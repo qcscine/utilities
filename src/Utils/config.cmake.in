@@ -1,0 +1,19 @@
+# Dependencies
+set(Boost_USE_STATIC_LIBS ON)
+include(CMakeFindDependencyMacro)
+if(NOT TARGET Boost::log)
+  unset(Boost_FOUND)
+  find_dependency(Boost REQUIRED COMPONENTS log)
+endif()
+find_dependency(Eigen3 3.3.1 REQUIRED NO_MODULE)
+find_dependency(yaml-cpp REQUIRED)
+# We are interface-dependent on Core, so those headers must also be available
+find_dependency(Scine REQUIRED COMPONENTS Core)
+
+set(UtilsOS_VERSION 0.1.0)
+
+include(${CMAKE_CURRENT_LIST_DIR}/UtilsOSTargets.cmake)
+
+@PACKAGE_INIT@
+
+check_required_components(UtilsOS)

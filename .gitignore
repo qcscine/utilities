@@ -1,0 +1,19 @@
+# build files
+build/*
+cmake-build-*
+compile_commands.json
+
+# hidden files
+*.swp
+.idea/*
+.lvimrc
+.vscode
+
+# python files
+*__pycache__*
+
+# generated documentation
+resource/Documentation/*
+
+# generated source files
+orca_output_location.h
