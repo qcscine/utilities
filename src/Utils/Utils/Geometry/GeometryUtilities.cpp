@@ -115,17 +115,17 @@ Eigen::Matrix3d calculateInertiaTensor(const PositionCollection& positions, cons
     Ixz -= m * x * z;
     Iyz -= m * y * z;
   }
-  Eigen::Matrix3d I;
-  I << Ixx, Ixy, Ixz, Ixy, Iyy, Iyz, Ixz, Iyz, Izz;
-  return I;
+  Eigen::Matrix3d In;
+  In << Ixx, Ixy, Ixz, Ixy, Iyy, Iyz, Ixz, Iyz, Izz;
+  return In;
 }
 
 PrincipalMomentsOfInertia calculatePrincipalMoments(const PositionCollection& positions,
                                                     const std::vector<double>& masses, const Position& centerOfMass) {
-  auto I = calculateInertiaTensor(positions, masses, centerOfMass);
+  auto In = calculateInertiaTensor(positions, masses, centerOfMass);
 
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es;
-  es.compute(I);
+  es.compute(In);
 
   PrincipalMomentsOfInertia pmi;
   pmi.eigenvalues = es.eigenvalues();
