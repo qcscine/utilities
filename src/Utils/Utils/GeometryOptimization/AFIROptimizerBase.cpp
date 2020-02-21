@@ -8,6 +8,7 @@
 #include "Utils/GeometryOptimization/AFIROptimizerBase.h"
 #include "Utils/Geometry/AtomCollection.h"
 #include "Utils/Geometry/ElementInfo.h"
+#include <array>
 #include <math.h>
 #include <Eigen/Dense>
 
