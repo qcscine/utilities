@@ -16,10 +16,10 @@
 namespace Scine {
 namespace Core {
 class Calculator;
-}
+class State;
+} // namespace Core
 namespace Utils {
 
-class State;
 class Results;
 
 /**
@@ -70,9 +70,8 @@ class NumericalHessianCalculator {
   double hessianElementSameFromEnergy(int i, const PositionCollection& referencePositions, double delta);
   double hessianElementDifferentFromEnergy(int i, int j, const PositionCollection& referencePositions, double delta);
 
-  Eigen::VectorXd addGradientContribution(DipoleGradient& dipoleDiff, int i,
-                                          const Utils::PositionCollection& referencePositions, double delta,
-                                          std::shared_ptr<Core::Calculator> calculator, std::shared_ptr<State> state);
+  Eigen::VectorXd addGradientContribution(DipoleGradient& dipoleDiff, int i, const Utils::PositionCollection& referencePositions,
+                                          double delta, Core::Calculator& calculator, std::shared_ptr<Core::State> state);
   Core::Calculator& calculator_;
 
   // A step width of 0.01 bohr is also the default setting in MoViPac (see its manual for a study of this parameter)

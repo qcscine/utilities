@@ -8,9 +8,9 @@
 #include "boost/filesystem.hpp"
 #include <Utils/Geometry/AtomCollection.h>
 #include <Utils/IO/ChemicalFileFormats/ChemicalFileHandler.h>
-#include <Utils/IO/ChemicalFileFormats/MOLStreamHandler.h>
+#include <Utils/IO/ChemicalFileFormats/MolStreamHandler.h>
 #include <Utils/IO/ChemicalFileFormats/OpenBabelStreamHandler.h>
-#include <Utils/IO/ChemicalFileFormats/XYZStreamHandler.h>
+#include <Utils/IO/ChemicalFileFormats/XyzStreamHandler.h>
 #include <fstream>
 
 namespace Scine {
@@ -21,8 +21,8 @@ namespace detail {
 template<typename IStream, typename... Args>
 auto dispatchRead(const std::string& suffix, IStream& is, Args... args) {
   std::vector<std::unique_ptr<FormattedStreamHandler>> handlers;
-  handlers.emplace_back(new MOLStreamHandler());
-  handlers.emplace_back(new XYZStreamHandler());
+  handlers.emplace_back(new MolStreamHandler());
+  handlers.emplace_back(new XyzStreamHandler());
   handlers.emplace_back(new OpenBabelStreamHandler());
 
   for (auto& handlerPtr : handlers) {
@@ -38,8 +38,8 @@ auto dispatchRead(const std::string& suffix, IStream& is, Args... args) {
 template<typename OStream, typename... Args>
 auto dispatchWrite(const std::string& suffix, OStream& os, Args... args) {
   std::vector<std::unique_ptr<FormattedStreamHandler>> handlers;
-  handlers.emplace_back(new MOLStreamHandler());
-  handlers.emplace_back(new XYZStreamHandler());
+  handlers.emplace_back(new MolStreamHandler());
+  handlers.emplace_back(new XyzStreamHandler());
   handlers.emplace_back(new OpenBabelStreamHandler());
 
   for (auto& handlerPtr : handlers) {

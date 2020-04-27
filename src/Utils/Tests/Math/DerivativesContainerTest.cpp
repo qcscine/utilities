@@ -54,7 +54,7 @@ TEST_F(DerivativesContainerTest, AddDerivativeCorrectlyToContainer) {
   // Define diatomic molecule. Define vector r between the two atoms as Second1D object
   Position posA(0.0, 0.0, 0.0);
   Position posB(0.0, 0.0, 1.5);
-  Displacement rVector = posB - posA;
+  Eigen::Vector3d rVector = posB - posA;
   Second1D r(rVector.norm(), 1, 0);
 
   // Assume, E = 5*r^2

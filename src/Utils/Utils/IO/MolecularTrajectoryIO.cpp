@@ -56,8 +56,9 @@ void MolecularTrajectoryIO::writeBinary(std::ostream& out, const MolecularTrajec
   // Atomic numbers
   const auto& elements = m.getElementTypes();
   for (int j = 0; j < nAtoms; ++j) {
-    auto Z = static_cast<int32_t>(elements[j]);
-    out.write(reinterpret_cast<char*>(&Z), sizeof(int32_t)); // NOLINT
+    using ElementUnderlying = std::underlying_type<ElementType>::type;
+    auto elementUnderlying = static_cast<ElementUnderlying>(elements[j]);
+    out.write(reinterpret_cast<char*>(&elementUnderlying), sizeof(elementUnderlying)); // NOLINT
   }
 
   // Coordinates
@@ -126,9 +127,10 @@ MolecularTrajectory MolecularTrajectoryIO::readBinary(std::istream& in) {
 
   // Atomic numbers
   for (int j = 0; j < nAtoms; ++j) {
-    int32_t Z;
-    in.read(reinterpret_cast<char*>(&Z), sizeof(int32_t)); // NOLINT
-    elements[j] = static_cast<ElementType>(Z);
+    using ElementUnderlying = std::underlying_type<ElementType>::type;
+    ElementUnderlying elementUnderlying;
+    in.read(reinterpret_cast<char*>(&elementUnderlying), sizeof(elementUnderlying)); // NOLINT
+    elements[j] = static_cast<ElementType>(elementUnderlying);
   }
 
   MolecularTrajectory m;

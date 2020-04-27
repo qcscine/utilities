@@ -15,25 +15,28 @@ namespace Scine {
 namespace Utils {
 namespace Geometry {
 
-PositionCollection translatePositions(const PositionCollection& positions, const Displacement& translation) {
+PositionCollection translatePositions(const PositionCollection& positions, const Eigen::Ref<Eigen::RowVector3d>& translation) {
   PositionCollection pc = positions;
-  translatePositions(pc, translation);
+  translatePositionsInPlace(pc, translation);
   return pc;
 }
 
-void translatePositions(PositionCollection& positions, const Displacement& translation) {
+void translatePositionsInPlace(PositionCollection& positions, const Eigen::Ref<Eigen::RowVector3d>& translation) {
   positions.rowwise() += translation;
 }
 
-unsigned getIndexOfClosestAtom(const PositionCollection& positions, const Position& targetPosition) {
-  assert(positions.rows() == 0 && "Cannot determine closest atom if there are no atoms!");
+int getIndexOfClosestAtom(const PositionCollection& positions, const Position& targetPosition,
+                          double squaredDistanceConsideredZero) {
+  assert(positions.rows() != 0 && "Cannot determine closest atom if there are no atoms!");
   double minimalDistanceSquared = std::numeric_limits<double>::max();
-  unsigned closestAtom = 0;
+  int closestAtom = 0;
 
-  auto nAtoms = static_cast<unsigned int>(positions.rows());
+  auto nAtoms = static_cast<int>(positions.rows());
 
-  for (unsigned int i = 0; i < nAtoms; i++) {
+  for (int i = 0; i < nAtoms; i++) {
     double currentSquaredDistance = (positions.row(i) - targetPosition).squaredNorm();
+    if (currentSquaredDistance <= squaredDistanceConsideredZero)
+      continue;
     if (currentSquaredDistance < minimalDistanceSquared) {
       minimalDistanceSquared = currentSquaredDistance;
       closestAtom = i;
@@ -41,6 +44,21 @@ unsigned getIndexOfClosestAtom(const PositionCollection& positions, const Positi
   }
 
   return closestAtom;
+}
+
+int getIndexOfAtomInStructure(const AtomCollection& structure, const Atom& atom, double squaredDistanceConsideredZero) {
+  int index = 0;
+  ElementType element = atom.getElementType();
+  for (const auto& a : structure) {
+    if (a.getElementType() == element) { // First check whether the element types match
+      double squaredDistance = (a.getPosition() - atom.getPosition()).squaredNorm();
+      if (squaredDistance <= squaredDistanceConsideredZero) { // Check whether the atoms have basically the same position
+        return index;
+      }
+    }
+    index++;
+  }
+  throw std::runtime_error("The given atom was not found in the given structure.");
 }
 
 Eigen::MatrixXd positionVectorToMatrix(const Eigen::VectorXd& v) {
@@ -96,7 +114,7 @@ Position getCenterOfMass(const AtomCollection& structure) {
 }
 
 Position getAveragePosition(const PositionCollection& positions) {
-  return positions.rowwise().sum() / positions.rows();
+  return positions.colwise().sum() / positions.rows();
 }
 
 Eigen::Matrix3d calculateInertiaTensor(const PositionCollection& positions, const std::vector<double>& masses,
@@ -115,17 +133,17 @@ Eigen::Matrix3d calculateInertiaTensor(const PositionCollection& positions, cons
     Ixz -= m * x * z;
     Iyz -= m * y * z;
   }
-  Eigen::Matrix3d I;
-  I << Ixx, Ixy, Ixz, Ixy, Iyy, Iyz, Ixz, Iyz, Izz;
-  return I;
+  Eigen::Matrix3d In;
+  In << Ixx, Ixy, Ixz, Ixy, Iyy, Iyz, Ixz, Iyz, Izz;
+  return In;
 }
 
 PrincipalMomentsOfInertia calculatePrincipalMoments(const PositionCollection& positions,
                                                     const std::vector<double>& masses, const Position& centerOfMass) {
-  auto I = calculateInertiaTensor(positions, masses, centerOfMass);
+  auto In = calculateInertiaTensor(positions, masses, centerOfMass);
 
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es;
-  es.compute(I);
+  es.compute(In);
 
   PrincipalMomentsOfInertia pmi;
   pmi.eigenvalues = es.eigenvalues();
@@ -133,7 +151,7 @@ PrincipalMomentsOfInertia calculatePrincipalMoments(const PositionCollection& po
   return pmi;
 }
 
-Eigen::MatrixXd calculateRotationAndTranslationModes(const PositionCollection& positions, const ElementTypeCollection& elements) {
+Eigen::MatrixXd calculateTranslationAndRotationModes(const PositionCollection& positions, const ElementTypeCollection& elements) {
   auto nAtoms = positions.rows();
   auto masses = Utils::Geometry::getMasses(elements);
   auto centerOfMass = Utils::Geometry::getCenterOfMass(positions, masses);
@@ -178,11 +196,22 @@ Eigen::MatrixXd calculateRotationAndTranslationModes(const PositionCollection& p
   return rotoTranslationVectors;
 }
 
-Eigen::MatrixXd calculateRotTransFreeTransformMatrix(const PositionCollection& positions, const ElementTypeCollection& elements) {
-  auto rotoTranslation = calculateRotationAndTranslationModes(positions, elements);
+Eigen::MatrixXd calculateRotTransFreeTransformMatrix(const PositionCollection& positions,
+                                                     const ElementTypeCollection& elements, bool massWeighted) {
+  auto rotoTranslation = calculateTranslationAndRotationModes(positions, elements);
+  // If mass-weighted Hessian shall be transformed the rotation and translation modes have to be adapted accordingly
+  if (massWeighted) {
+    int nAtoms = elements.size();
+    auto masses = Geometry::getMasses(elements);
+    for (int i = 0; i < nAtoms; ++i) {
+      rotoTranslation.middleRows(3 * i, 3) *= std::sqrt(masses[i]);
+    }
+    rotoTranslation.colwise().normalize();
+  }
   auto nDims = rotoTranslation.rows();
   auto numberRotoTranslationModes = rotoTranslation.cols();
 
+  srand(42);
   Eigen::MatrixXd A = Eigen::MatrixXd::Random(nDims, nDims);
 
   A.leftCols(numberRotoTranslationModes) = rotoTranslation;

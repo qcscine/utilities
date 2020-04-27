@@ -43,8 +43,9 @@ void init_atom_collection(pybind11::module& m) {
   atom_collection.def(pybind11::self != pybind11::self);
 
   // Sequence magic methods
-  atom_collection.def("__iter__", [](const AtomCollection& s) { return pybind11::make_iterator(s.begin(), s.end()); },
-                      pybind11::keep_alive<0, 1>() // Keep object alive while iterator exists
+  atom_collection.def(
+      "__iter__", [](const AtomCollection& s) { return pybind11::make_iterator(s.begin(), s.end()); },
+      pybind11::keep_alive<0, 1>() // Keep object alive while iterator exists
   );
   atom_collection.def("__len__", &AtomCollection::size);
   atom_collection.def("__getitem__", &AtomCollection::operator[]);

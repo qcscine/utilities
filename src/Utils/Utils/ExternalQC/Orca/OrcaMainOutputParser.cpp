@@ -5,6 +5,7 @@
  *            See LICENSE.txt for details.
  */
 #include "OrcaMainOutputParser.h"
+#include <Utils/Bonds/BondOrderCollection.h>
 #include <Utils/ExternalQC/Exceptions.h>
 #include <Utils/IO/Regex.h>
 #include <fstream>
@@ -26,13 +27,43 @@ void OrcaMainOutputParser::extractContent(const std::string& filename) {
   content_ = std::string(std::istreambuf_iterator<char>{fin}, {});
 }
 
+void OrcaMainOutputParser::checkForErrors() const {
+  std::regex r1(R"(E\s?R\s?R\s?O\s?R\s?)");
+  std::smatch m1;
+  if (std::regex_search(content_, m1, r1))
+    throw OutputFileParsingError("ORCA encountered an error during the calculation.");
+}
+
 int OrcaMainOutputParser::getNumberAtoms() const {
-  std::regex regex(R"(Number of atoms +\.+ +(\d+))");
-  std::smatch matches;
-  bool b = std::regex_search(content_, matches, regex);
-  if (!b)
-    throw OutputFileParsingError("Number of atoms could not be read from ORCA output");
-  return std::stoi(matches[1]);
+  int nAtoms = 0;
+
+  std::istringstream contentStream(content_);
+  std::string line;
+  bool coordinatesStarted = false;
+  bool coordinatesEnded = false;
+  while (std::getline(contentStream, line)) {
+    if (!coordinatesStarted) {
+      if (line.find("CARTESIAN COORDINATES (ANGSTROEM)") != std::string::npos) {
+        coordinatesStarted = true;
+        // Do not try to parse this line
+        continue;
+      }
+    }
+
+    if (coordinatesStarted && !coordinatesEnded) {
+      if (line.empty()) {
+        // This indicates the end of the coordinates block
+        coordinatesEnded = true;
+        continue;
+      }
+      nAtoms++;
+    }
+  }
+
+  if (!coordinatesStarted)
+    throw OutputFileParsingError("Number of atoms could not be read from ORCA output.");
+
+  return nAtoms - 1; // Removing one for a wrongly counted separator line
 }
 
 GradientCollection OrcaMainOutputParser::getGradients() const {
@@ -43,7 +74,7 @@ GradientCollection OrcaMainOutputParser::getGradients() const {
   std::smatch m1;
   bool b = std::regex_search(content_, m1, r1);
   if (!b)
-    throw OutputFileParsingError("Gradient section could not be found in ORCA output");
+    throw OutputFileParsingError("Gradient section could not be found in ORCA output.");
   // set iterator where to start search for gradients
   auto it = m1[0].second;
 
@@ -62,7 +93,7 @@ GradientCollection OrcaMainOutputParser::getGradients() const {
       it = m2[0].second;
     }
     else {
-      throw OutputFileParsingError("Gradient could not be found in ORCA output");
+      throw OutputFileParsingError("Gradient could not be found in ORCA output.");
     }
   }
   return gc;
@@ -74,8 +105,108 @@ double OrcaMainOutputParser::getEnergy() const {
   std::smatch matches;
   bool b = std::regex_search(content_, matches, regex);
   if (!b)
-    throw OutputFileParsingError("Energy could not be read from ORCA output");
+    throw OutputFileParsingError("Energy could not be read from ORCA output.");
   return std::stod(matches[1]);
+}
+
+Utils::BondOrderCollection OrcaMainOutputParser::getBondOrders() const {
+  int nAtoms = getNumberAtoms();
+  Utils::BondOrderCollection bondOrders(nAtoms);
+
+  const std::regex bondOrderRegex(R"(\w\(\s*(-?\d+)-\w+\s*,\s*(-?\d+)-\w+\s*\)\s+:\s+(-?\d+\.\d+)\s+)");
+
+  std::istringstream contentStream(content_);
+  std::string line;
+  bool parseLine = false;
+  bool parsedBondOrders = false;
+  while (std::getline(contentStream, line)) {
+    if (line.find("Mayer bond orders larger than") != std::string::npos) {
+      // Ensure that last Mayer bond order block is stored
+      if (parsedBondOrders) {
+        bondOrders.setZero();
+      }
+      parseLine = true;
+      // Do not try to parse this line, the next is the first interesting one
+      continue;
+    }
+
+    if (parseLine) {
+      if (line.empty()) {
+        // This indicates the end of the Mayer bond order block
+        parseLine = false;
+        parsedBondOrders = true;
+        continue;
+      }
+
+      // Parse the line with a regex
+      auto line_begin = std::sregex_iterator(std::begin(line), std::end(line), bondOrderRegex);
+      auto line_end = std::sregex_iterator();
+
+      for (auto it = line_begin; it != line_end; ++it) {
+        // Extract the capture groups. Stoi and stod all throw on error
+        int i = std::stoi(it->str(1));
+        int j = std::stoi(it->str(2));
+        double bo = std::stod(it->str(3));
+
+        bondOrders.setOrder(i, j, bo);
+      }
+    }
+  }
+
+  if (!parsedBondOrders)
+    throw OutputFileParsingError("Bond orders could not be read from ORCA output.");
+  return bondOrders;
+}
+
+double OrcaMainOutputParser::getTemperature() const {
+  std::string regexString = "Temperature+\\s+...\\s+" + Regex::capturingFloatingPointNumber();
+  std::regex regex(regexString);
+  std::smatch matches;
+  bool b = std::regex_search(content_, matches, regex);
+  if (!b)
+    throw OutputFileParsingError("Temperature could not be read from ORCA output.");
+  return std::stod(matches[1]);
+}
+
+double OrcaMainOutputParser::getEnthalpy() const {
+  std::string regexString = "Total enthalpy+\\s+...\\s+" + Regex::capturingFloatingPointNumber();
+  std::regex regex(regexString);
+  std::smatch matches;
+  bool b = std::regex_search(content_, matches, regex);
+  if (!b)
+    throw OutputFileParsingError("Enthalpy could not be read from ORCA output.");
+  return std::stod(matches[1]) - getEnergy();
+}
+
+double OrcaMainOutputParser::getEntropy() const {
+  std::string regexString = "Total entropy correction+\\s+...\\s+" + Regex::capturingFloatingPointNumber();
+  std::regex regex(regexString);
+  std::smatch matches;
+  bool b = std::regex_search(content_, matches, regex);
+  if (!b)
+    throw OutputFileParsingError("Entropy could not be read from ORCA output.");
+  return -std::stod(matches[1]) / getTemperature();
+}
+
+double OrcaMainOutputParser::getZeroPointVibrationalEnergy() const {
+  std::string regexString = "Non-thermal \\(ZPE\\) correction+\\s+...\\s+" + Regex::capturingFloatingPointNumber();
+  std::regex regex(regexString);
+  std::smatch matches;
+  bool b = std::regex_search(content_, matches, regex);
+  if (!b)
+    throw OutputFileParsingError("Zero point vibrational energy could not be read from ORCA output.");
+  return std::stod(matches[1]);
+}
+
+double OrcaMainOutputParser::getGibbsFreeEnergy() const {
+  // In Orca 4.1.0 the employed word is 'enthalpy' and in Orca 4.2.0 it is 'energy'
+  std::string regexString = "Final Gibbs free (?:enthalpy|energy)+\\s+...\\s+" + Regex::capturingFloatingPointNumber();
+  std::regex regex(regexString);
+  std::smatch matches;
+  bool b = std::regex_search(content_, matches, regex);
+  if (!b)
+    throw OutputFileParsingError("Gibbs free energy could not be read from ORCA output.");
+  return std::stod(matches[1]) - getEnergy();
 }
 
 } // namespace ExternalQC

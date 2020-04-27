@@ -47,9 +47,9 @@ void init_molecular_trajectory(pybind11::module& m) {
   molecular_trajectory.def("__getitem__", pybind11::overload_cast<int>(&MolecularTrajectory::operator[], pybind11::const_),
                            "Access a PositionCollection frame of the trajectory");
 
-  molecular_trajectory.def("__iter__",
-                           [](const MolecularTrajectory& m) { return pybind11::make_iterator(m.begin(), m.end()); },
-                           pybind11::keep_alive<0, 1>() // Keep object alive while iterator exists
+  molecular_trajectory.def(
+      "__iter__", [](const MolecularTrajectory& m) { return pybind11::make_iterator(m.begin(), m.end()); },
+      pybind11::keep_alive<0, 1>() // Keep object alive while iterator exists
   );
 
   molecular_trajectory.def("__len__", &MolecularTrajectory::size);

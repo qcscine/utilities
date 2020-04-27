@@ -13,7 +13,7 @@ namespace Scine {
 namespace Utils {
 class AtomCollection;
 class BondOrderCollection;
-enum class ElementType;
+enum class ElementType : unsigned;
 
 /**
  * @class VanDerWaalsBondDetector VanDerWaalsBondDetector.h

@@ -13,20 +13,38 @@
 
 using namespace Scine::Core;
 
+bool hasResults(const Calculator& calculator) {
+  try {
+    calculator.results();
+  }
+  catch (...) {
+    return false;
+  }
+  return true;
+}
+
+Scine::Utils::AtomCollection getStructure(const Calculator& calc) {
+  Scine::Utils::AtomCollection ret(*(calc.getStructure()));
+  return ret;
+}
+
 void init_calculator(pybind11::module& m) {
   pybind11::class_<Calculator, std::shared_ptr<Calculator>> calculator(m, "Calculator");
 
-  calculator.def("set_structure", &Calculator::setStructure, "Set the molecular structure to calculate");
+  calculator.def_property("structure", &getStructure, &Calculator::setStructure, "The molecular structure to calculate");
 
   calculator.def_property("positions", &Calculator::getPositions, &Calculator::modifyPositions,
                           "Positions of the molecular structure");
 
   calculator.def("set_required_properties", &Calculator::setRequiredProperties, "Set the required properties");
 
-  calculator.def("possible_properties", &Calculator::possibleProperties,
+  calculator.def("get_possible_properties", &Calculator::possibleProperties,
                  "Yields a list of properties that the calculator can calculate");
 
   calculator.def("calculate", &Calculator::calculate, pybind11::arg("dummy") = std::string{}, "Execute the calculation");
+
+  calculator.def("get_results", pybind11::overload_cast<>(&Calculator::results), "Get any strored results.");
+  calculator.def("has_results", &hasResults, "Check if results are present.");
 
   calculator.def("name", &Calculator::name, "Yields the name of the calculator");
 

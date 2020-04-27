@@ -9,7 +9,6 @@
 #include "Utils/GeometricDerivatives/HessianUtilities.h"
 #include "Utils/GeometricDerivatives/NormalMode.h"
 #include "Utils/GeometricDerivatives/NormalModesContainer.h"
-#include <iostream>
 
 namespace Scine {
 namespace Utils {
@@ -22,10 +21,10 @@ NormalModeAnalyzer::NormalModeAnalyzer(const HessianMatrix& hessian, const Eleme
 NormalModesContainer NormalModeAnalyzer::calculateNormalModes() {
   nAtoms_ = elements_.size();
 
-  HessianUtilities diagonalizer(hessian_, elements_, positions_);
+  HessianUtilities diagonalizer(hessian_, elements_, positions_, true);
 
-  eigenvalues_ = diagonalizer.getInternalEigenvalues(true);
-  cartesianDisplacements_ = diagonalizer.getBackTransformedInternalEigenvectors(true);
+  eigenvalues_ = diagonalizer.getInternalEigenvalues();
+  cartesianDisplacements_ = diagonalizer.getBackTransformedInternalEigenvectors();
 
   NormalModesContainer modesContainer;
   DisplacementCollection dc(nAtoms_, 3);

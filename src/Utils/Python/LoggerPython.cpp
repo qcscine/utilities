@@ -60,8 +60,16 @@ void init_logger(pybind11::module& m) {
 
   logger.def_static("disable_logging", &Log::disableLogging, "Disable all logging");
   logger.def_static("enable_logging", &Log::enableLogging, "Enable all logging");
-  logger.def_static("start_file_logging", &Log::startFileLogging, "Write the log to a file");
-  logger.def_static("start_console_logging", &Log::startConsoleLogging, "Write the log to the console");
+  logger.def_static("start_file_logging",
+                    pybind11::overload_cast<std::string, Log::severity_level, bool>(&Log::startFileLogging),
+                    "Write the log to a file");
+  logger.def_static("start_file_logging",
+                    pybind11::overload_cast<std::string, const std::string&, bool>(&Log::startFileLogging),
+                    "Write the log to a file");
+  logger.def_static("start_console_logging", pybind11::overload_cast<Log::severity_level>(&Log::startConsoleLogging),
+                    "Write the log to the console");
+  logger.def_static("start_console_logging", pybind11::overload_cast<const std::string&>(&Log::startConsoleLogging),
+                    "Write the log to the console");
   logger.def_static("stop_console_logging", &Log::stopConsoleLogging, "Stops writing the log to the console");
 
   logger.def_static("trace", &detail::trace, "Logs a supplied string at trace severity.");

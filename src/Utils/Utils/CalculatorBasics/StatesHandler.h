@@ -7,7 +7,7 @@
 #ifndef UTILS_STATESHANDLER_H
 #define UTILS_STATESHANDLER_H
 
-#include "Utils/CalculatorBasics/State.h"
+#include <Core/BaseClasses/StateHandableObject.h>
 #include <deque>
 #include <exception>
 #include <memory>
@@ -23,65 +23,92 @@ class EmptyStatesHandlerContainer : public std::exception {
     return "Tried to shrink the states handler container when no states were stored.";
   }
 };
-
+/**
+ * @brief This exception is thrown if an empty states handler is popped.
+ */
+class NoStateHandableObjectPresent : public std::exception {
+  const char* what() const noexcept final {
+    return "The pointer in the StatesHandler is empty. Please call the constructor with a pointer to "
+           "an instance of the StateHandableObject.";
+  }
+};
 /**
  * @class StatesHandler
- * @brief Base class for the implementation of a generic saving and loading capability.
- * Implementation note:
- * If a class having an interface needs to save/load a state, then it has to populate the polymorphic pointers
- * to the State class with a derived class, specific to the class.
+ * @brief Class responsible for saving, storing and loading object-specific states.
+ * Core::State is an empty class. This base class is then implemented to have some
+ * meaningful definition of a state for an application. I could be, for instance,
+ * a density matrix for a Core::Calculator, a partially converged Markov Chain
+ * Montecarlo, a checkpoint,... .
+ * A Core::StateHandableObject interface exposes the functions for getting and
+ * loading a single state.
+ * The StatesHandler job is that of storing a list of these states and
+ * freely switching between them.
+ * This class is stand-alone, but can also be specialized to suit certain needs,
+ * this is why it exposes a virtual destructor.
  */
 class StatesHandler {
  public:
-  using StatesContainer = std::deque<std::shared_ptr<State>>;
-
-  StatesHandler() = default;
+  /**
+   * @brief The data structure in which states are stored.
+   */
+  using StatesContainer = std::deque<std::shared_ptr<Core::State>>;
+  /**
+   * @brief Constructor of the class taking a StateHandableObject instance.
+   */
+  explicit StatesHandler(std::shared_ptr<Core::StateHandableObject> object = nullptr);
+  /**
+   * @brief Virtual default destructor.
+   */
   virtual ~StatesHandler() = default;
   /**
-   * @brief Store a state as the newest state.
-   * @param state A pointer to the state to store internally.
+   * @brief Store an externally generated state as the newest state.
+   * @param state A pointer to the state to store.
    */
-  void store(std::shared_ptr<State> state);
+  void store(std::shared_ptr<Core::State> state);
   /**
-   * @brief Internally store the current state as the newest state.
-   * @param size The required size of the state to save.
+   * @brief Stores the current state of the Core::StateHandableObject instance in this class.
    */
-  virtual void store(StateSize /*size*/){};
+  void store();
   /**
-   * @brief Loads a state, i.e. it applies it.
+   * @brief Loads an externally generated state.
    * @param state The state to be loaded.
-   *        Can also be one of the states currently stored in the StatesHandler.
+   * The specifics of how exactly the state is stored is not implemented in this class, but
+   * is in the Core::StateHandableObject derived class.
+   * This just calls the load() method in Core::StateHandableObject instance of this class.
    */
-  virtual void load(std::shared_ptr<State> /*state*/){};
+  void load(std::shared_ptr<Core::State> state);
   /**
-   * @brief Gets the state with the index i.
-   * @return A polymorphic smart pointer to the State at index i.
+   * @brief Loads an internally stored state.
+   * @param index The index of the state to be loaded.
+   * The specifics of how exactly the state is stored is not implemented in this class, but
+   * is in the Core::StateHandableObject derived class.
+   * This just extracts the state and calls the load() method in Core::StateHandableObject instance of this class.
    */
-  std::shared_ptr<State> getState(int index);
+  void load(int index);
   /**
-   * @brief Gets the current state without the need to load it.
-   * @return A polymorphic shared pointer to the current State.
+   * @brief Gets the state at some index in the StatesContainer.
+   * @return A polymorphic smart pointer to the Core::State at some index.
    */
-  virtual std::shared_ptr<State> getCurrentState(StateSize /*size*/) const = 0;
+  std::shared_ptr<Core::State> getState(int index) const;
   /**
-   * @brief Eliminates from the underlying container and returns the oldest state recorded.
+   * @brief Eliminates the oldest state from the StatesContainer and returns it.
    */
-  std::shared_ptr<State> popOldestState();
+  std::shared_ptr<Core::State> popOldestState();
   /**
-   * @brief Eliminates from the underlying container and returns the newest state recorded.
+   * @brief Eliminates the newest state from the underlying container and returns it.
    */
-  std::shared_ptr<State> popNewestState();
+  std::shared_ptr<Core::State> popNewestState();
   /**
-   * @brief Clear all the internally saved states.
+   * @brief Clears all the internally saved states.
    */
   void clear();
   /**
-   * @brief Get the current size of the state storage.
-   * @return The number of states currently saved.
+   * @brief Gets the current size of the state storage.
    */
   int size() const;
 
  protected:
+  std::weak_ptr<Core::StateHandableObject> statesHandableObject_;
   StatesContainer states_;
 };
 

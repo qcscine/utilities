@@ -128,7 +128,9 @@ void InformationOutput::print(const std::string& key, const DescriptorCollection
         print(settingKey, descriptor.getDescriptorCollection(), out, indentation + 4, false);
         break;
       }
-      default: { throw Exception("GenericDescriptor not implemented."); }
+      default: {
+        throw Exception("GenericDescriptor not implemented.");
+      }
     }
   }
 }
@@ -234,7 +236,9 @@ void InformationOutput::printLong(const std::string& key, const DescriptorCollec
         print(settingKey, descriptor.getDescriptorCollection(), out, indentation + 4, false);
         break;
       }
-      default: { throw Exception("GenericDescriptor not implemented."); }
+      default: {
+        throw Exception("GenericDescriptor not implemented.");
+      }
     }
   }
 }

@@ -5,6 +5,8 @@
  *            See LICENSE.txt for details.
  */
 #include "Utils/IO/Logger.h"
+#include <Utils/UniversalSettings/Exceptions.h>
+#include <Utils/UniversalSettings/SettingsNames.h>
 #include <boost/core/null_deleter.hpp>
 #include <boost/log/core/core.hpp>
 #include <boost/log/expressions.hpp>
@@ -62,6 +64,7 @@ struct Log::Impl {
   bool consoleLoggingActive_ = false;
 };
 std::unique_ptr<Log::Impl> Log::pImpl_ = std::make_unique<Log::Impl>();
+std::mutex Log::m_;
 
 void Log::Impl::disableLogging() {
   enabled_ = false;
@@ -145,26 +148,65 @@ void Log::Impl::initialize() {
 }
 
 void Log::disableLogging() {
+  std::lock_guard<std::mutex> lock(m_);
   pImpl_->disableLogging();
 }
 
 void Log::enableLogging() {
+  std::lock_guard<std::mutex> lock(m_);
   pImpl_->enableLogging();
 }
 
 void Log::flush() {
+  std::lock_guard<std::mutex> lock(m_);
   pImpl_->flush();
 }
 
 void Log::startFileLogging(std::string filename, severity_level minimalSeverity, bool autoFlush) {
+  std::lock_guard<std::mutex> lock(m_);
   pImpl_->startFileLogging(std::move(filename), minimalSeverity, autoFlush);
 }
 
+void Log::startFileLogging(std::string filename, const std::string& minimalSeverity, bool autoFlush) {
+  std::lock_guard<std::mutex> lock(m_);
+  minimalSeverity.empty() ? pImpl_->startFileLogging(std::move(filename), defaultMinimalSeverity_)
+                          : pImpl_->startFileLogging(std::move(filename), stringToSeverity(minimalSeverity), autoFlush);
+}
+
+void Log::startConsoleLogging(const std::string& minimalSeverity) {
+  if (minimalSeverity == SettingsNames::LogLevels::none) {
+    Utils::Log::stopConsoleLogging();
+    return;
+  }
+  else {
+    startConsoleLogging(stringToSeverity(minimalSeverity));
+  }
+}
+Log::severity_level Log::stringToSeverity(const std::string& minimalSeverity) {
+  severity_level requiredSeverity;
+  if (minimalSeverity == SettingsNames::LogLevels::trace)
+    requiredSeverity = severity_level::trace;
+  else if (minimalSeverity == SettingsNames::LogLevels::debug)
+    requiredSeverity = severity_level::debug;
+  else if (minimalSeverity == SettingsNames::LogLevels::info)
+    requiredSeverity = severity_level::info;
+  else if (minimalSeverity == SettingsNames::LogLevels::warning)
+    requiredSeverity = severity_level::warning;
+  else if (minimalSeverity == SettingsNames::LogLevels::error)
+    requiredSeverity = severity_level::error;
+  else if (minimalSeverity == SettingsNames::LogLevels::fatal)
+    requiredSeverity = severity_level::fatal;
+  else
+    throw UniversalSettings::OptionDoesNotExistException(minimalSeverity, Utils::SettingsNames::loggerVerbosity);
+  return requiredSeverity;
+}
 void Log::startConsoleLogging(severity_level minimalSeverity) {
+  std::lock_guard<std::mutex> lock(m_);
   pImpl_->startConsoleLogging(minimalSeverity);
 }
 
 void Log::stopConsoleLogging() {
+  std::lock_guard<std::mutex> lock(m_);
   pImpl_->stopConsoleLogging();
 }
 

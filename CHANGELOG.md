@@ -1,5 +1,14 @@
 # Changelog
 
+## Release 2.0.0
+
+- Add support for internal coordinates
+- Add interface to Gaussian
+- Improve ORCA interface (and make compatible with ORCA 4.2.0)
+- Add BFGS optimizer and G-DIIS convergence accelerator
+- Improve Bofill transition state search algorithm
+- Various bugfixes and improvements
+
 ## Release 1.0.1
 
 Hotfix to allow compilation on OSX using Clang.

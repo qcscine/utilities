@@ -13,14 +13,12 @@ namespace Scine {
 namespace Utils {
 
 HessianUtilities::HessianUtilities(const Eigen::MatrixXd& hessian, const ElementTypeCollection& elements,
-                                   const PositionCollection& positions)
-  : _hessian(hessian), _elements(elements), _positions(positions) {
-  _transformation = Geometry::calculateRotTransFreeTransformMatrix(positions, elements);
+                                   const PositionCollection& positions, bool massWeighted)
+  : _hessian(hessian), _elements(elements), _positions(positions), _massWeighted(massWeighted) {
+  _transformation = Geometry::calculateRotTransFreeTransformMatrix(positions, elements, _massWeighted);
 }
 
 void HessianUtilities::hessianUpdate() {
-  _mwinternalEValues.reset(nullptr);
-  _mwinternalEVectors.reset(nullptr);
   _internalEValues.reset(nullptr);
   _internalEVectors.reset(nullptr);
 }
@@ -34,17 +32,10 @@ const Eigen::MatrixXd& HessianUtilities::getTransformationMatrix() const {
   return _transformation;
 }
 
-const Eigen::VectorXd& HessianUtilities::getInternalEigenvalues(bool massWeighted) {
-  if (massWeighted) {
-    if (!_mwinternalEValues)
-      this->calculateInternal(true);
-    return *_mwinternalEValues;
-  }
-  else {
-    if (!_internalEValues)
-      this->calculateInternal();
-    return *_internalEValues;
-  }
+const Eigen::VectorXd& HessianUtilities::getInternalEigenvalues() {
+  if (!_internalEValues)
+    this->calculateInternal();
+  return *_internalEValues;
 }
 
 const Eigen::MatrixXd& HessianUtilities::getInternalEigenvectors() {
@@ -53,26 +44,25 @@ const Eigen::MatrixXd& HessianUtilities::getInternalEigenvectors() {
   return *_internalEVectors;
 }
 
-Eigen::MatrixXd HessianUtilities::getBackTransformedInternalEigenvectors(bool massWeighted) {
-  if (massWeighted) {
-    if (!_mwinternalEVectors)
-      this->calculateInternal(true);
+Eigen::MatrixXd HessianUtilities::getBackTransformedInternalEigenvectors() {
+  if (!_internalEVectors) {
+    this->calculateInternal();
+  }
+  if (_massWeighted) {
     auto masses = Geometry::getMasses(_elements);
-    Eigen::MatrixXd ret = _transformation * (*_mwinternalEVectors);
+    Eigen::MatrixXd ret = _transformation * (*_internalEVectors);
     for (int i = 0; i < masses.size(); ++i)
       ret.middleRows(3 * i, 3) *= 1. / std::sqrt(masses[i]);
     ret.colwise().normalize();
     return ret;
   }
   else {
-    if (!_internalEVectors)
-      this->calculateInternal();
     return _transformation * (*_internalEVectors);
   }
 }
 
-Eigen::MatrixXd HessianUtilities::getInternalHessian(bool massWeighted) const {
-  if (massWeighted) {
+Eigen::MatrixXd HessianUtilities::getInternalHessian() const {
+  if (_massWeighted) {
     Eigen::MatrixXd m = _hessian.get();
     auto masses = Geometry::getMasses(_elements);
     for (unsigned i = 0; i < masses.size(); ++i) {
@@ -87,19 +77,21 @@ Eigen::MatrixXd HessianUtilities::getInternalHessian(bool massWeighted) const {
   }
 }
 
-void HessianUtilities::calculateInternal(bool massWeighted) {
-  if (massWeighted) {
+void HessianUtilities::calculateInternal() {
+  if (_massWeighted) {
     Eigen::MatrixXd m = _hessian.get();
     auto masses = Geometry::getMasses(_elements);
+    // Get mass weighted Hessian
     for (unsigned i = 0; i < masses.size(); ++i) {
       double invSqrtM = 1. / std::sqrt(masses[i]);
       m.middleCols(3 * i, 3) *= invSqrtM;
       m.middleRows(3 * i, 3) *= invSqrtM;
     }
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
+    // Project out by multiplying by  transformation matrix (has to be mass-weighted, too!)
     es.compute(_transformation.transpose() * m * _transformation);
-    _mwinternalEValues = std::make_unique<Eigen::VectorXd>(es.eigenvalues());
-    _mwinternalEVectors = std::make_unique<Eigen::MatrixXd>(es.eigenvectors());
+    _internalEValues = std::make_unique<Eigen::VectorXd>(es.eigenvalues());
+    _internalEVectors = std::make_unique<Eigen::MatrixXd>(es.eigenvectors());
   }
   else {
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;

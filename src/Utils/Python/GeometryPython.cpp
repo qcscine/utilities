@@ -16,9 +16,10 @@ void init_geometry(pybind11::module& m) {
   auto geometry_submodule = m.def_submodule("Geometry");
 
   // This is going to fail, how to overload this?
-  geometry_submodule.def("translate_positions",
-                         pybind11::overload_cast<const PositionCollection&, const Displacement&>(&translatePositions),
-                         "Translates a set of positions by a Displacement");
+  geometry_submodule.def(
+      "translate_positions",
+      pybind11::overload_cast<const PositionCollection&, const Eigen::Ref<Eigen::RowVector3d>&>(&translatePositions),
+      "Translates a set of positions by a Displacement");
 
   geometry_submodule.def("get_index_of_closest_atom", &getIndexOfClosestAtom,
                          "Get the index of an atom that is closes to a spatial position");

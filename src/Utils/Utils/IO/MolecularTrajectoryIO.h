@@ -13,7 +13,7 @@
 namespace Scine {
 namespace Utils {
 class MolecularTrajectory;
-enum class ElementType;
+enum class ElementType : unsigned;
 
 /**
  * @class MolecularTrajectoryIO MolecularTrajectoryIO.h

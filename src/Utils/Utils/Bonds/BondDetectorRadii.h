@@ -27,10 +27,7 @@ class BondDetectorRadii {
    * @param e The element.
    * @return double The covalent radius.
    */
-  double getRadius(ElementType e) const {
-    auto index = static_cast<int>(e);
-    return radii[index];
-  }
+  double getRadius(ElementType e) const;
 
  private:
   void fillArray();

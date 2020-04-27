@@ -32,6 +32,8 @@ class NewtonRaphson : public Optimizer {
    *                        1. const Eigen::VectorXd& parameters\n
    *                        2. double& value\n
    *                        3. Eigen::VectorXd& gradients
+   *                        4. Eigen::Matrixd& the Hessian
+   *                        5. bool a flag if the Hessian is to be calculated
    *
    * @param parameters The parameters to be optimized.
    * @param function   The function to be evaluated in order to get values and gradients
@@ -53,7 +55,7 @@ class NewtonRaphson : public Optimizer {
     hessian->setZero();
 
     /* Initial update */
-    function(parameters, value, gradients, *hessian);
+    function(parameters, value, gradients, *hessian, true);
     bool stop = false;
     int cycle = 0;
     while (!stop) {
@@ -69,7 +71,7 @@ class NewtonRaphson : public Optimizer {
       }
       parameters -= steps;
       // Update and check convergence
-      function(parameters, value, gradients, *hessian);
+      function(parameters, value, gradients, *hessian, true);
       this->triggerObservers(cycle, value, parameters);
       stop = check.checkMaxIterations(cycle);
       if (!stop) {

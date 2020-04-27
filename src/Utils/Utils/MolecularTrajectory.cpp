@@ -30,7 +30,7 @@ void MolecularTrajectory::setEnergies(const EnergyContainer& energies) {
   energies_ = energies;
 }
 
-MolecularTrajectory::EnergyContainer MolecularTrajectory::getEnergies() {
+MolecularTrajectory::EnergyContainer MolecularTrajectory::getEnergies() const {
   return energies_;
 }
 
@@ -155,7 +155,7 @@ MolecularTrajectory MolecularTrajectory::operator/(double f) const {
 bool MolecularTrajectory::resettingElementTypeCollectionIsAllowed(const ElementTypeCollection& ec) const {
   bool hasSameSizeAsPreviousElementTypeCollection = ec.size() == molecularSize();
   bool noPositionsArePresent = empty();
-  bool hasSameSizeAsPresentPositions = empty() || (structureVector_.front().size() == ec.size());
+  bool hasSameSizeAsPresentPositions = empty() || (structureVector_.front().rows() == ec.size());
   return hasSameSizeAsPreviousElementTypeCollection || noPositionsArePresent || hasSameSizeAsPresentPositions;
 }
 

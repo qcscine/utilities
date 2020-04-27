@@ -20,10 +20,10 @@ class Settings;
 namespace ExternalQC {
 
 /**
- * @class InputFileCreator InputFileCreator.h
+ * @class OrcaInputFileCreator OrcaInputFileCreator.h
  * @brief This class creates ORCA input files.
  */
-class InputFileCreator {
+class OrcaInputFileCreator {
  public:
   /**
    * @brief Create the ORCA input file with the filename 'filename'

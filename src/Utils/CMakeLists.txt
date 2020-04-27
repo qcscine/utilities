@@ -9,7 +9,10 @@ include(ImportCore)
 import_core()
 include(ImportYamlCpp)
 import_yamlcpp()
-find_package(Eigen3 3.3.1 REQUIRED NO_MODULE)
+include(ImportIRC)
+import_irc()
+include(AddEigen)
+set(Boost_USE_STATIC_LIBS OFF)
 find_package(Boost REQUIRED COMPONENTS filesystem log system)
 find_package(OpenMP)
 
@@ -29,21 +32,28 @@ target_include_directories(UtilsOS
     $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>
     $<TARGET_PROPERTY:Scine::Core,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:yaml-cpp,INCLUDE_DIRECTORIES>
+  PRIVATE
+    ${LIBIRC_INCLUDE_DIR}
 )
 target_compile_definitions(UtilsOS PUBLIC BOOST_ALL_DYN_LINK)
 target_link_libraries(UtilsOS
   PUBLIC
-    Eigen3::Eigen
     Boost::boost
     Boost::filesystem
     Boost::log
     Boost::system
-    Eigen3::Eigen
     Scine::Core
     yaml-cpp
   PRIVATE
     $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>
 )
+add_eigen(UtilsOS PUBLIC)
+target_compile_options(UtilsOS
+  PUBLIC
+    $<TARGET_PROPERTY:Scine::Core,INTERFACE_COMPILE_OPTIONS>
+)
+
+
 
 # Add namespaced aliases
 add_library(Scine::UtilsOS ALIAS UtilsOS)
@@ -66,14 +76,14 @@ install(
 )
 
 # Symlink on install
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink 
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_INSTALL_PREFIX}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}utilsos${CMAKE_SHARED_LIBRARY_SUFFIX} \
         ${CMAKE_INSTALL_PREFIX}/lib/utilsos.module${CMAKE_SHARED_LIBRARY_SUFFIX})"
 )
 
 # Symlink on build
 add_custom_command(TARGET UtilsOS POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E create_symlink 
+                   COMMAND ${CMAKE_COMMAND} -E create_symlink
                    "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}utilsos${CMAKE_SHARED_LIBRARY_SUFFIX}"
                    "${CMAKE_CURRENT_BINARY_DIR}/utilsos.module${CMAKE_SHARED_LIBRARY_SUFFIX}"
 )
@@ -93,6 +103,10 @@ if(SCINE_BUILD_TESTS)
       gmock
       ${PROJECT_NAME}
   )
+  target_compile_options(UtilsOS_tests
+    PUBLIC
+      $<TARGET_PROPERTY:UtilsOS,INTERFACE_COMPILE_OPTIONS>
+  )
   add_test(
     NAME UtilsOSTests
     COMMAND UtilsOS_tests --gtest_output=xml:gtest_report.xml
@@ -103,8 +117,11 @@ if(SCINE_BUILD_TESTS)
   )
   # Hard-code location of the ORCA output files into the test by configuring a header file for it.
   set(externalQCTests_dir "${CMAKE_CURRENT_SOURCE_DIR}/Tests/ExternalQC/")
-  configure_file(${externalQCTests_dir}/orca_output_location.h.in
-                 ${externalQCTests_dir}/orca_output_location.h)
+  configure_file(${externalQCTests_dir}/externalQC_output_location.h.in
+                 ${externalQCTests_dir}/externalQC_output_location.h)
+
+  file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/Tests/IO/traj.xyz
+       DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/test_resources/)
 endif()
 
 # Python bindings
@@ -114,15 +131,15 @@ if(SCINE_BUILD_PYTHON_BINDINGS)
   set(PYBIND11_PYTHON_VERSION ${PYTHONVERSION})
 
   # Python module
-  pybind11_add_module(scine_utils_os ${UTILS_PYTHON_CPPS})
-  set_target_properties(scine_utils_os PROPERTIES SUFFIX ".so")
-  target_link_libraries(scine_utils_os
-    PRIVATE
-      Scine::UtilsOS
-      Scine::Core
-      Eigen3::Eigen
+  pybind11_add_module(scine_utilities ${UTILS_PYTHON_CPPS})
+  set_target_properties(scine_utilities PROPERTIES SUFFIX ".so")
+  set_target_properties(scine_utilities PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/scine_utilities)
+  target_link_libraries(scine_utilities PRIVATE Scine::UtilsOS Scine::Core)
+  target_compile_options(scine_utilities
+    PUBLIC
+      $<TARGET_PROPERTY:Scine::Core,INTERFACE_COMPILE_OPTIONS>
   )
-  install(TARGETS scine_utils_os LIBRARY DESTINATION lib)
+  install(CODE "execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install --prefix=${CMAKE_INSTALL_PREFIX} --upgrade ${CMAKE_CURRENT_BINARY_DIR})")
 
   # Python tests
   if(SCINE_BUILD_TESTS)
@@ -141,6 +158,11 @@ if(SCINE_BUILD_PYTHON_BINDINGS)
   # using pip or make a distribution with the compiled binary
   file(
     COPY
+      ${CMAKE_CURRENT_SOURCE_DIR}/Python/__init__.py
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/scine_utilities
+  )
+  file(
+    COPY
       ${CMAKE_CURRENT_SOURCE_DIR}/Python/setup.py
       ${PROJECT_SOURCE_DIR}/README.md
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
@@ -157,4 +179,3 @@ endif()
 if(WIN32)
   target_link_libraries(UtilsOS PRIVATE $<$<BOOL:MINGW>:ws2_32>)
 endif()
-

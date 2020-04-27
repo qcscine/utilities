@@ -52,8 +52,8 @@ class CloneInterface : public Bases... {
    * it!).
    * This is achieved with templetized Derived and Base classes.
    */
-  std::unique_ptr<Derived> clone() const {
-    return std::unique_ptr<Derived>(static_cast<Derived*>(this->cloneImpl()));
+  std::shared_ptr<Derived> clone() const {
+    return std::shared_ptr<Derived>(static_cast<Derived*>(this->cloneImpl()));
   }
 
  private:
@@ -80,8 +80,8 @@ class CloneInterface<Abstract<Derived>, Bases...> : public Bases... {
  public:
   ~CloneInterface() override = default;
 
-  std::unique_ptr<Derived> clone() const {
-    return std::unique_ptr<Derived>(static_cast<Derived*>(this->cloneImpl()));
+  std::shared_ptr<Derived> clone() const {
+    return std::shared_ptr<Derived>(static_cast<Derived*>(this->cloneImpl()));
   }
 
  private:

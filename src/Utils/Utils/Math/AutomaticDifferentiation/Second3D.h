@@ -48,7 +48,7 @@ class Second3D {
   /**
    * @brief Setter for first derivative as Eigen::Vector3d.
    */
-  void setFirst3D(const Eigen::Vector3d& d);
+  void setFirst3D(const Eigen::Ref<Eigen::Vector3d> d);
   /**
    * @brief Zero initializer.
    */
@@ -171,7 +171,7 @@ inline void Second3D::setValue(double v) {
   v_ = v;
 }
 
-inline void Second3D::setFirst3D(const Eigen::Vector3d& d) {
+inline void Second3D::setFirst3D(const Eigen::Ref<Eigen::Vector3d> d) {
   dx_ = d.x();
   dy_ = d.y();
   dz_ = d.z();

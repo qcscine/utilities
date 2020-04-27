@@ -1,11 +1,12 @@
 import pytest
-import scine_utils_os as scine
+import scine_utilities as scine
 import os
 
+
 def test_IO():
-  # Write a sample XYZ file
-  sample_XYZ = """50			
-			
+    # Write a sample XYZ file
+    sample_XYZ = """50
+
 Fe	-4.492570	-0.096320	0.847820
 Fe	-2.054660	-0.157130	-1.789610
 C	-1.813660	-1.875500	-1.459220
@@ -57,7 +58,7 @@ H	-2.879290	4.799710	-3.348950
 H	-5.331970	4.415900	-3.118460
 H	-6.148750	2.165060	-2.346420"""
 
-  sample_MOL = """ 
+    sample_MOL = """
  OpenBabel02081817133D
 
  50 54  0  0  0  0  0  0  0  0999 V2000
@@ -167,39 +168,39 @@ H	-6.148750	2.165060	-2.346420"""
  49 42  1  0  0  0  0
 M  END"""
 
-  # Test reading an XYZ file
-  with open("sample.xyz", "w") as xyz_file:
-    xyz_file.write(sample_XYZ)
+    # Test reading an XYZ file
+    with open("sample.xyz", "w") as xyz_file:
+        xyz_file.write(sample_XYZ)
 
-  (xyz_atoms, xyz_BO) = scine.IO.read("sample.xyz")
-  assert xyz_BO.empty()
-  assert xyz_atoms.size() == 50
-  assert xyz_atoms.elements[0] == scine.ElementType.Fe
+    (xyz_atoms, xyz_BO) = scine.IO.read("sample.xyz")
+    assert xyz_BO.empty()
+    assert xyz_atoms.size() == 50
+    assert xyz_atoms.elements[0] == scine.ElementType.Fe
 
-  # Write the read atoms into a file and re-read
-  scine.IO.write("out.xyz", xyz_atoms)
-  (reread_xyz_atoms, reread_xyz_BO) = scine.IO.read("out.xyz")
-  assert xyz_atoms == reread_xyz_atoms
+    # Write the read atoms into a file and re-read
+    scine.IO.write("out.xyz", xyz_atoms)
+    (reread_xyz_atoms, reread_xyz_BO) = scine.IO.read("out.xyz")
+    assert xyz_atoms == reread_xyz_atoms
 
-  # Clean up
-  os.remove("sample.xyz")
-  os.remove("out.xyz")
+    # Clean up
+    os.remove("sample.xyz")
+    os.remove("out.xyz")
 
-  # Test reading a MOL file
-  with open("sample.mol", "w") as mol_file:
-    mol_file.write(sample_MOL)
+    # Test reading a MOL file
+    with open("sample.mol", "w") as mol_file:
+        mol_file.write(sample_MOL)
 
-  (mol_atoms, mol_BO) = scine.IO.read("sample.mol")
-  assert mol_atoms.size() == 50
-  assert mol_atoms.elements[0] == scine.ElementType.Fe
-  assert mol_BO.get_system_size() == 50
+    (mol_atoms, mol_BO) = scine.IO.read("sample.mol")
+    assert mol_atoms.size() == 50
+    assert mol_atoms.elements[0] == scine.ElementType.Fe
+    assert mol_BO.get_system_size() == 50
 
-  # Write the read info into a file and re-read
-  scine.IO.write_topology("out.mol", mol_atoms, mol_BO)
-  (reread_mol_atoms, reread_mol_BO) = scine.IO.read("out.mol")
-  assert mol_atoms == reread_mol_atoms
-  assert mol_BO == reread_mol_BO
+    # Write the read info into a file and re-read
+    scine.IO.write_topology("out.mol", mol_atoms, mol_BO)
+    (reread_mol_atoms, reread_mol_BO) = scine.IO.read("out.mol")
+    assert mol_atoms == reread_mol_atoms
+    assert mol_BO == reread_mol_BO
 
-  # Clean up
-  os.remove("sample.mol")
-  os.remove("out.mol")
+    # Clean up
+    os.remove("sample.mol")
+    os.remove("out.mol")

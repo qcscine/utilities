@@ -11,8 +11,11 @@
 #include "Utils/CalculatorBasics/PropertyList.h"
 #include "Utils/CalculatorBasics/Results.h"
 #include "Utils/Geometry/AtomCollection.h"
-#include "Utils/Geometry/GeometryUtilities.h"
+#include "Utils/Geometry/InternalCoordinates.h"
+#include "Utils/Optimizer/GradientBased/Bfgs.h"
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
+#include "Utils/Optimizer/GradientBased/Lbfgs.h"
+#include "Utils/Optimizer/HessianBased/Bofill.h"
 #include "Utils/Optimizer/HessianBased/EigenvectorFollowing.h"
 #include "Utils/Optimizer/HessianBased/NewtonRaphson.h"
 #include <Core/Interfaces/Calculator.h>
@@ -36,7 +39,7 @@ namespace Utils {
  */
 class GeometryOptimizerBase {
  public:
-  static constexpr const char* geooptTransfromCoordinatesKey = "geoopt_transfrom_coordinates";
+  static constexpr const char* geooptTransfromCoordinatesKey = "geoopt_transform_coordinates";
   /// @brief Default constructor.
   GeometryOptimizerBase() = default;
   /// @brief Virtual default destructor.
@@ -113,10 +116,10 @@ class GeometryOptimizerSettings : public Settings {
     optimizer.addSettingsDescriptors(this->_fields);
     check.addSettingsDescriptors(this->_fields);
 
-    UniversalSettings::BoolDescriptor geoopt_transfrom_coordinates(
+    UniversalSettings::BoolDescriptor geoopt_transform_coordinates(
         "Switch to transform the coordinates from Cartesian into an internal space.");
-    geoopt_transfrom_coordinates.setDefaultValue(base.transformCoordinates);
-    this->_fields.push_back(GeometryOptimizerBase::geooptTransfromCoordinatesKey, geoopt_transfrom_coordinates);
+    geoopt_transform_coordinates.setDefaultValue(base.transformCoordinates);
+    this->_fields.push_back(GeometryOptimizerBase::geooptTransfromCoordinatesKey, geoopt_transform_coordinates);
     this->resetToDefaults();
   }
 };
@@ -143,20 +146,21 @@ class GeometryOptimizer : public GeometryOptimizerBase {
    * @return int  The final number of optimization cycles carried out.
    */
   virtual int optimize(AtomCollection& atoms) final {
+    // Disable L-BFGS + internals for now
+    //  TODO fix the hessian projection in the L-BFGS to allow for this combination
+    if (std::is_same<OptimizerType, Lbfgs>::value && this->transformCoordinates)
+      throw std::runtime_error("Error: L-BFGS + Internal coordinates are currently not allowed.");
     // Configure Calculator
     _calculator.setStructure(atoms);
-    // Transformation into internal basis
-    Eigen::MatrixXd transformation;
-    if (this->transformCoordinates) {
-      transformation = Geometry::calculateRotTransFreeTransformMatrix(atoms.getPositions(), atoms.getElements());
-    }
+    _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
+    // Transform into internal coordinates
+    auto transformation = std::make_shared<InternalCoordinates>(atoms);
     // Define update function
     const unsigned int nAtoms = atoms.size();
     auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
       Utils::PositionCollection coordinates;
       if (this->transformCoordinates) {
-        auto tmp = (transformation * parameters).eval();
-        coordinates = Eigen::Map<const Utils::PositionCollection>(tmp.data(), atoms.size(), 3);
+        coordinates = transformation->coordinatesToCartesian(parameters);
       }
       else {
         coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
@@ -165,20 +169,18 @@ class GeometryOptimizer : public GeometryOptimizerBase {
       _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
       atoms.setPositions(coordinates);
       Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
-      value = results.getEnergy();
+      value = results.get<Property::Energy>();
       if (this->transformCoordinates) {
-        auto tmp = Eigen::Map<const Eigen::VectorXd>(results.getGradients().data(), nAtoms * 3);
-        gradients = (transformation.transpose() * tmp).eval();
+        gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
       }
       else {
-        gradients = Eigen::Map<const Eigen::VectorXd>(results.getGradients().data(), nAtoms * 3);
+        gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
       }
     };
     // Get initial positions
     Eigen::VectorXd positions;
     if (this->transformCoordinates) {
-      auto tmp = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), atoms.size() * 3);
-      positions = (transformation.transpose() * tmp).eval();
+      positions = transformation->coordinatesToInternal(atoms.getPositions());
     }
     else {
       positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), atoms.size() * 3);
@@ -188,11 +190,10 @@ class GeometryOptimizer : public GeometryOptimizerBase {
     // Update Atom collection and return
     Utils::PositionCollection coordinates;
     if (this->transformCoordinates) {
-      auto tmp = (transformation * positions).eval();
-      coordinates = Eigen::Map<const Utils::PositionCollection>(tmp.data(), atoms.size(), 3);
+      coordinates = transformation->coordinatesToCartesian(positions);
     }
     else {
-      coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), atoms.size(), 3);
+      coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), nAtoms, 3);
     }
     atoms.setPositions(coordinates);
     return cycles;
@@ -244,21 +245,162 @@ class GeometryOptimizer : public GeometryOptimizerBase {
   Core::Calculator& _calculator;
 };
 
+/*=============================*
+ *  Approximate Hessian Based
+ *=============================*/
+
+template<>
+inline int GeometryOptimizer<Bfgs>::optimize(AtomCollection& atoms) {
+  // Configure Calculator
+  _calculator.setStructure(atoms);
+  _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
+  // Transform into internal coordinates
+  auto transformation = std::make_shared<InternalCoordinates>(atoms);
+  // Define update function
+  const unsigned int nAtoms = atoms.size();
+  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
+    Utils::PositionCollection coordinates;
+    if (this->transformCoordinates) {
+      coordinates = transformation->coordinatesToCartesian(parameters);
+    }
+    else {
+      coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
+    }
+    _calculator.modifyPositions(coordinates);
+    _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
+    atoms.setPositions(coordinates);
+    Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+    value = results.get<Property::Energy>();
+    if (this->transformCoordinates) {
+      gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
+    }
+    else {
+      gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
+    }
+  };
+  // Get initial positions
+  Eigen::VectorXd positions;
+  if (this->transformCoordinates) {
+    positions = transformation->coordinatesToInternal(atoms.getPositions());
+  }
+  else {
+    positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), atoms.size() * 3);
+  }
+  // Optimize
+  if (this->transformCoordinates) {
+    optimizer.projection = std::make_unique<std::function<void(Eigen::MatrixXd&)>>(
+        [&transformation](Eigen::MatrixXd& inv) { inv = transformation->projectHessianInverse(inv); });
+  }
+  auto cycles = optimizer.optimize(positions, update, check);
+  // Update Atom collection and return
+  Utils::PositionCollection coordinates;
+  if (this->transformCoordinates) {
+    optimizer.invH = transformation->inverseHessianGuess();
+    coordinates = transformation->coordinatesToCartesian(positions);
+  }
+  else {
+    coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), nAtoms, 3);
+  }
+  atoms.setPositions(coordinates);
+  return cycles;
+}
+
 /*================================*
  *  Hessian Base Specializations
  *================================*/
 template<>
-inline int GeometryOptimizer<NewtonRaphson>::optimize(AtomCollection& atoms) {
+inline int GeometryOptimizer<Bofill>::optimize(AtomCollection& atoms) {
   // Configure Calculator
   _calculator.setStructure(atoms);
+  _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
   // Transformation into internal basis
   Eigen::MatrixXd transformation;
+  auto elements = atoms.getElements();
   if (this->transformCoordinates) {
-    transformation = Geometry::calculateRotTransFreeTransformMatrix(atoms.getPositions(), atoms.getElements());
+    transformation = Geometry::calculateRotTransFreeTransformMatrix(atoms.getPositions(), elements);
   }
   // Define update function
   const unsigned int nAtoms = atoms.size();
-  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients, Eigen::MatrixXd& hessian) {
+  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients,
+                          Eigen::MatrixXd& hessian, bool calcHessian) {
+    Utils::PositionCollection coordinates;
+    if (this->transformCoordinates) {
+      auto tmp = (transformation * parameters).eval();
+      coordinates = Eigen::Map<const Utils::PositionCollection>(tmp.data(), nAtoms, 3);
+    }
+    else {
+      coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
+    }
+    _calculator.modifyPositions(coordinates);
+    atoms.setPositions(coordinates);
+
+    if (calcHessian) {
+      _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
+      Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+      value = results.get<Property::Energy>();
+      if (this->transformCoordinates) {
+        auto tmp = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
+        gradients = (transformation.transpose() * tmp).eval();
+        hessian = transformation.transpose() * results.get<Property::Hessian>() * transformation;
+      }
+      else {
+        gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
+        hessian = results.get<Property::Hessian>();
+      }
+    }
+    else {
+      _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
+      Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+      value = results.get<Property::Energy>();
+      if (this->transformCoordinates) {
+        auto tmp = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
+        gradients = (transformation.transpose() * tmp).eval();
+      }
+      else {
+        gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
+      }
+    }
+  };
+  // Get initial positions
+  Eigen::VectorXd positions;
+  if (this->transformCoordinates) {
+    auto tmp = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), nAtoms * 3);
+    positions = (transformation.transpose() * tmp).eval();
+  }
+  else {
+    positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), nAtoms * 3);
+  }
+
+  // Optimize
+  auto cycles = optimizer.optimize(positions, update, check);
+  // Update Atom collection and return
+  Utils::PositionCollection coordinates;
+  if (this->transformCoordinates) {
+    auto tmp = (transformation * positions).eval();
+    coordinates = Eigen::Map<const Utils::PositionCollection>(tmp.data(), nAtoms, 3);
+  }
+  else {
+    coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), nAtoms, 3);
+  }
+  atoms.setPositions(coordinates);
+  return cycles;
+}
+
+template<>
+inline int GeometryOptimizer<NewtonRaphson>::optimize(AtomCollection& atoms) {
+  // Configure Calculator
+  _calculator.setStructure(atoms);
+  _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
+  // Transformation into internal basis
+  Eigen::MatrixXd transformation;
+  auto elements = atoms.getElements();
+  if (this->transformCoordinates) {
+    transformation = Geometry::calculateRotTransFreeTransformMatrix(atoms.getPositions(), elements);
+  }
+  // Define update function
+  const unsigned int nAtoms = atoms.size();
+  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients,
+                          Eigen::MatrixXd& hessian, bool /*calcHessian*/) {
     Utils::PositionCollection coordinates;
     if (this->transformCoordinates) {
       auto tmp = (transformation * parameters).eval();
@@ -271,15 +413,15 @@ inline int GeometryOptimizer<NewtonRaphson>::optimize(AtomCollection& atoms) {
     atoms.setPositions(coordinates);
     _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
     Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
-    value = results.getEnergy();
+    value = results.get<Property::Energy>();
     if (this->transformCoordinates) {
-      auto tmp = Eigen::Map<const Eigen::VectorXd>(results.getGradients().data(), nAtoms * 3);
+      auto tmp = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
       gradients = (transformation.transpose() * tmp).eval();
-      hessian = transformation.transpose() * results.getHessian() * transformation;
+      hessian = transformation.transpose() * results.get<Property::Hessian>() * transformation;
     }
     else {
-      gradients = Eigen::Map<const Eigen::VectorXd>(results.getGradients().data(), nAtoms * 3);
-      hessian = results.getHessian();
+      gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
+      hessian = results.get<Property::Hessian>();
     }
   };
   // Get initial positions
@@ -291,6 +433,7 @@ inline int GeometryOptimizer<NewtonRaphson>::optimize(AtomCollection& atoms) {
   else {
     positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), nAtoms * 3);
   }
+
   // Optimize
   auto cycles = optimizer.optimize(positions, update, check);
   // Update Atom collection and return
@@ -310,14 +453,17 @@ template<>
 inline int GeometryOptimizer<EigenvectorFollowing>::optimize(AtomCollection& atoms) {
   // Configure Calculator
   _calculator.setStructure(atoms);
+  _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
   // Transformation into internal basis
   Eigen::MatrixXd transformation;
+  auto elements = atoms.getElements();
   if (this->transformCoordinates) {
-    transformation = Geometry::calculateRotTransFreeTransformMatrix(atoms.getPositions(), atoms.getElements());
+    transformation = Geometry::calculateRotTransFreeTransformMatrix(atoms.getPositions(), elements);
   }
   // Define update function
   const unsigned int nAtoms = atoms.size();
-  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients, Eigen::MatrixXd& hessian) {
+  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients,
+                          Eigen::MatrixXd& hessian, bool /*calcHessian*/) {
     Utils::PositionCollection coordinates;
     if (this->transformCoordinates) {
       auto tmp = (transformation * parameters).eval();
@@ -330,15 +476,15 @@ inline int GeometryOptimizer<EigenvectorFollowing>::optimize(AtomCollection& ato
     atoms.setPositions(coordinates);
     _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
     Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
-    value = results.getEnergy();
+    value = results.get<Property::Energy>();
     if (this->transformCoordinates) {
-      auto tmp = Eigen::Map<const Eigen::VectorXd>(results.getGradients().data(), nAtoms * 3);
+      auto tmp = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
       gradients = (transformation.transpose() * tmp).eval();
-      hessian = transformation.transpose() * results.getHessian() * transformation;
+      hessian = transformation.transpose() * results.get<Property::Hessian>() * transformation;
     }
     else {
-      gradients = Eigen::Map<const Eigen::VectorXd>(results.getGradients().data(), nAtoms * 3);
-      hessian = results.getHessian();
+      gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
+      hessian = results.get<Property::Hessian>();
     }
   };
   // Get initial positions
@@ -350,6 +496,7 @@ inline int GeometryOptimizer<EigenvectorFollowing>::optimize(AtomCollection& ato
   else {
     positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), nAtoms * 3);
   }
+
   // Optimize
   auto cycles = optimizer.optimize(positions, update, check);
   // Update Atom collection and return

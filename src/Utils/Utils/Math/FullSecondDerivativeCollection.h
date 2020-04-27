@@ -96,7 +96,7 @@ inline void FullSecondDerivativeCollection::setZero() {
 
 // This function generates gradients from displacements
 inline GradientCollection FullSecondDerivativeCollection::generateGradients(const DisplacementCollection& displacements) const {
-  GradientCollection gc{nAtoms_, 3};
+  GradientCollection gc(nAtoms_, 3);
   for (int i = 0; i < nAtoms_; ++i) {
     Eigen::Vector3d v = referenceGradients_.row(i);
     for (int j = 0; j < nAtoms_; ++j)

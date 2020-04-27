@@ -6,6 +6,7 @@
  */
 
 #include <Utils/Bonds/BondOrderCollection.h>
+#include <Utils/CalculatorBasics/PropertyList.h>
 #include <Utils/CalculatorBasics/Results.h>
 #include <Utils/Typenames.h>
 #include <gmock/gmock.h>
@@ -71,183 +72,204 @@ TEST_F(AResultsTest, CanCreateDefaultResult) {
 }
 
 TEST_F(AResultsTest, CanSetDescription) {
-  arbitraryResults.setDescription(arbitraryDescription);
+  arbitraryResults.set<Property::Description>(arbitraryDescription);
 }
 
 TEST_F(AResultsTest, CanSetEnergy) {
-  arbitraryResults.setEnergy(arbitraryEnergy);
+  arbitraryResults.set<Property::Energy>(arbitraryEnergy);
 }
 
 TEST_F(AResultsTest, CanSetGradients) {
-  arbitraryResults.setGradients(arbitraryGradients);
+  arbitraryResults.set<Property::Gradients>(arbitraryGradients);
 }
 
 TEST_F(AResultsTest, CanSetHessian) {
-  arbitraryResults.setHessian(arbitraryHessian);
+  arbitraryResults.set<Property::Hessian>(arbitraryHessian);
 }
 
 TEST_F(AResultsTest, CanSetDipole) {
-  arbitraryResults.setDipole(arbitraryDipole);
+  arbitraryResults.set<Property::Dipole>(arbitraryDipole);
 }
 
 TEST_F(AResultsTest, CanSetDipoleGradient) {
-  arbitraryResults.setDipoleGradient(arbitraryDipoleGradient);
+  arbitraryResults.set<Property::DipoleGradient>(arbitraryDipoleGradient);
 }
 
 TEST_F(AResultsTest, CanSetAODipoleMatrix) {
-  arbitraryResults.setAODipoleMatrix(arbitraryDipoleAO);
+  arbitraryResults.set<Property::DipoleMatrixAO>(arbitraryDipoleAO);
 }
 
 TEST_F(AResultsTest, CanSetMODipoleMatrix) {
-  arbitraryResults.setMODipoleMatrix(arbitraryDipoleMO);
+  arbitraryResults.set<Property::DipoleMatrixMO>(arbitraryDipoleMO);
 }
 
 TEST_F(AResultsTest, CanSetOneElectronMatrix) {
-  arbitraryResults.setOneElectronMatrix(arbitraryOneElectronMatrix);
+  arbitraryResults.set<Property::OneElectronMatrix>(arbitraryOneElectronMatrix);
 }
 
 TEST_F(AResultsTest, CanSetTwoElectronMatrix) {
-  arbitraryResults.setTwoElectronMatrix(arbitraryTwoElectronMatrix);
+  arbitraryResults.set<Property::TwoElectronMatrix>(arbitraryTwoElectronMatrix);
 }
 
 TEST_F(AResultsTest, CanSetBondOrders) {
-  arbitraryResults.setBondOrders(arbitraryBondOrders);
+  arbitraryResults.set<Property::BondOrderMatrix>(arbitraryBondOrders);
 }
 
 TEST_F(AResultsTest, CanGetDescription) {
-  arbitraryResults.setDescription(arbitraryDescription);
-  ASSERT_EQ(arbitraryResults.getDescription(), arbitraryDescription);
+  arbitraryResults.set<Property::Description>(arbitraryDescription);
+  ASSERT_EQ(arbitraryResults.get<Property::Description>(), arbitraryDescription);
 }
 
 TEST_F(AResultsTest, CanGetEnergy) {
-  arbitraryResults.setEnergy(arbitraryEnergy);
-  ASSERT_EQ(arbitraryResults.getEnergy(), arbitraryEnergy);
+  arbitraryResults.set<Property::Energy>(arbitraryEnergy);
+  ASSERT_EQ(arbitraryResults.get<Property::Energy>(), arbitraryEnergy);
 }
 
 TEST_F(AResultsTest, CanGetGradients) {
-  arbitraryResults.setGradients(arbitraryGradients);
-  ASSERT_EQ(arbitraryResults.getGradients(), arbitraryGradients);
+  arbitraryResults.set<Property::Gradients>(arbitraryGradients);
+  ASSERT_EQ(arbitraryResults.get<Property::Gradients>(), arbitraryGradients);
 }
 
 TEST_F(AResultsTest, CanGetHessian) {
-  arbitraryResults.setHessian(arbitraryHessian);
-  ASSERT_EQ(arbitraryResults.getHessian(), arbitraryHessian);
+  arbitraryResults.set<Property::Hessian>(arbitraryHessian);
+  ASSERT_EQ(arbitraryResults.get<Property::Hessian>(), arbitraryHessian);
 }
 
 TEST_F(AResultsTest, CanGetDipole) {
-  arbitraryResults.setDipole(arbitraryDipole);
-  ASSERT_EQ(arbitraryResults.getDipole(), arbitraryDipole);
+  arbitraryResults.set<Property::Dipole>(arbitraryDipole);
+  ASSERT_EQ(arbitraryResults.get<Property::Dipole>(), arbitraryDipole);
 }
 
 TEST_F(AResultsTest, CanGetDipoleGradient) {
-  arbitraryResults.setDipoleGradient(arbitraryDipoleGradient);
-  ASSERT_EQ(arbitraryResults.getDipoleGradient(), arbitraryDipoleGradient);
+  arbitraryResults.set<Property::DipoleGradient>(arbitraryDipoleGradient);
+  ASSERT_EQ(arbitraryResults.get<Property::DipoleGradient>(), arbitraryDipoleGradient);
 }
 
 TEST_F(AResultsTest, CanGetAODipoleMatrix) {
-  arbitraryResults.setAODipoleMatrix(arbitraryDipoleAO);
+  arbitraryResults.set<Property::DipoleMatrixAO>(arbitraryDipoleAO);
   for (int dimension = 0; dimension < 3; ++dimension) {
-    ASSERT_EQ(arbitraryResults.getAODipoleMatrix()[dimension], arbitraryDipoleAO[dimension]);
+    ASSERT_EQ(arbitraryResults.get<Property::DipoleMatrixAO>()[dimension], arbitraryDipoleAO[dimension]);
   }
 }
 
 TEST_F(AResultsTest, CanGetMODipoleMatrix) {
-  arbitraryResults.setMODipoleMatrix(arbitraryDipoleMO);
+  arbitraryResults.set<Property::DipoleMatrixMO>(arbitraryDipoleMO);
   for (int dimension = 0; dimension < 3; ++dimension) {
-    ASSERT_EQ(arbitraryResults.getMODipoleMatrix()[dimension], arbitraryDipoleMO[dimension]);
+    ASSERT_EQ(arbitraryResults.get<Property::DipoleMatrixMO>()[dimension], arbitraryDipoleMO[dimension]);
   }
 }
 
 TEST_F(AResultsTest, CanGetOneElectronMatrix) {
-  arbitraryResults.setOneElectronMatrix(arbitraryOneElectronMatrix);
-  ASSERT_EQ(arbitraryResults.getOneElectronMatrix(), arbitraryOneElectronMatrix);
+  arbitraryResults.set<Property::OneElectronMatrix>(arbitraryOneElectronMatrix);
+  ASSERT_EQ(arbitraryResults.get<Property::OneElectronMatrix>(), arbitraryOneElectronMatrix);
 }
 
 TEST_F(AResultsTest, CanGetTwoElectronMatrix) {
-  arbitraryResults.setTwoElectronMatrix(arbitraryTwoElectronMatrix);
-  ASSERT_EQ(arbitraryResults.getTwoElectronMatrix().restrictedMatrix(), arbitraryTwoElectronMatrix.restrictedMatrix());
+  arbitraryResults.set<Property::TwoElectronMatrix>(arbitraryTwoElectronMatrix);
+  ASSERT_EQ(arbitraryResults.get<Property::TwoElectronMatrix>().restrictedMatrix(),
+            arbitraryTwoElectronMatrix.restrictedMatrix());
 }
 
 TEST_F(AResultsTest, CanGetBondOrders) {
-  arbitraryResults.setBondOrders(arbitraryBondOrders);
-  ASSERT_EQ(arbitraryResults.getBondOrders(), arbitraryBondOrders);
+  arbitraryResults.set<Property::BondOrderMatrix>(arbitraryBondOrders);
+  ASSERT_EQ(arbitraryResults.get<Property::BondOrderMatrix>(), arbitraryBondOrders);
 }
 
 TEST_F(AResultsTest, CanTakeGradients) {
-  arbitraryResults.setGradients(arbitraryGradients);
-  ASSERT_EQ(arbitraryResults.takeGradients(), arbitraryGradients);
-  ASSERT_THROW(arbitraryResults.takeGradients(), std::exception);
+  arbitraryResults.set<Property::Gradients>(arbitraryGradients);
+  ASSERT_EQ(arbitraryResults.take<Property::Gradients>(), arbitraryGradients);
+  ASSERT_THROW(arbitraryResults.take<Property::Gradients>(), std::exception);
 }
 
 TEST_F(AResultsTest, CanTakeHessian) {
-  arbitraryResults.setHessian(arbitraryHessian);
-  ASSERT_EQ(arbitraryResults.takeHessian(), arbitraryHessian);
-  ASSERT_THROW(arbitraryResults.takeHessian(), std::exception);
+  arbitraryResults.set<Property::Hessian>(arbitraryHessian);
+  ASSERT_EQ(arbitraryResults.take<Property::Hessian>(), arbitraryHessian);
+  ASSERT_THROW(arbitraryResults.take<Property::Hessian>(), std::exception);
 }
 
 TEST_F(AResultsTest, CanTakeDipoleGradients) {
-  arbitraryResults.setDipoleGradient(arbitraryDipoleGradient);
-  ASSERT_EQ(arbitraryResults.takeDipoleGradient(), arbitraryDipoleGradient);
-  ASSERT_THROW(arbitraryResults.takeDipoleGradient(), std::exception);
+  arbitraryResults.set<Property::DipoleGradient>(arbitraryDipoleGradient);
+  ASSERT_EQ(arbitraryResults.take<Property::DipoleGradient>(), arbitraryDipoleGradient);
+  ASSERT_THROW(arbitraryResults.take<Property::DipoleGradient>(), std::exception);
 }
 
 TEST_F(AResultsTest, CanTakeAODipoleMatrix) {
-  arbitraryResults.setAODipoleMatrix(arbitraryDipoleAO);
-  auto aoDip = arbitraryResults.takeAODipoleMatrix();
+  arbitraryResults.set<Property::DipoleMatrixAO>(arbitraryDipoleAO);
+  auto aoDip = arbitraryResults.take<Property::DipoleMatrixAO>();
   for (int dimension = 0; dimension < 3; ++dimension) {
     ASSERT_EQ(aoDip[dimension], arbitraryDipoleAO[dimension]);
   }
-  ASSERT_THROW(arbitraryResults.takeAODipoleMatrix(), std::exception);
+  ASSERT_THROW(arbitraryResults.take<Property::DipoleMatrixAO>(), std::exception);
 }
 
 TEST_F(AResultsTest, CanTakeMODipoleMatrix) {
-  arbitraryResults.setMODipoleMatrix(arbitraryDipoleMO);
-  auto moDip = arbitraryResults.takeMODipoleMatrix();
+  arbitraryResults.set<Property::DipoleMatrixMO>(arbitraryDipoleMO);
+  auto moDip = arbitraryResults.take<Property::DipoleMatrixMO>();
   for (int dimension = 0; dimension < 3; ++dimension) {
     ASSERT_EQ(moDip[dimension], arbitraryDipoleMO[dimension]);
   }
-  ASSERT_THROW(arbitraryResults.takeMODipoleMatrix(), std::exception);
+  ASSERT_THROW(arbitraryResults.take<Property::DipoleMatrixMO>(), std::exception);
 }
 
 TEST_F(AResultsTest, CanTakeOneElectronMatrix) {
-  arbitraryResults.setOneElectronMatrix(arbitraryOneElectronMatrix);
-  ASSERT_EQ(arbitraryResults.takeOneElectronMatrix(), arbitraryOneElectronMatrix);
-  ASSERT_THROW(arbitraryResults.takeOneElectronMatrix(), std::exception);
+  arbitraryResults.set<Property::OneElectronMatrix>(arbitraryOneElectronMatrix);
+  ASSERT_EQ(arbitraryResults.take<Property::OneElectronMatrix>(), arbitraryOneElectronMatrix);
+  ASSERT_THROW(arbitraryResults.take<Property::OneElectronMatrix>(), std::exception);
 }
 
 TEST_F(AResultsTest, CanTakeTwoElectronMatrix) {
-  arbitraryResults.setTwoElectronMatrix(arbitraryTwoElectronMatrix);
-  ASSERT_EQ(arbitraryResults.takeTwoElectronMatrix().restrictedMatrix(), arbitraryTwoElectronMatrix.restrictedMatrix());
-  ASSERT_THROW(arbitraryResults.takeTwoElectronMatrix(), std::exception);
+  arbitraryResults.set<Property::TwoElectronMatrix>(arbitraryTwoElectronMatrix);
+  ASSERT_EQ(arbitraryResults.take<Property::TwoElectronMatrix>().restrictedMatrix(),
+            arbitraryTwoElectronMatrix.restrictedMatrix());
+  ASSERT_THROW(arbitraryResults.take<Property::TwoElectronMatrix>(), std::exception);
 }
 
 TEST_F(AResultsTest, CanTakeBondOrders) {
-  arbitraryResults.setBondOrders(arbitraryBondOrders);
-  ASSERT_EQ(arbitraryResults.takeBondOrders(), arbitraryBondOrders);
-  ASSERT_THROW(arbitraryResults.takeBondOrders(), std::exception);
+  arbitraryResults.set<Property::BondOrderMatrix>(arbitraryBondOrders);
+  ASSERT_EQ(arbitraryResults.take<Property::BondOrderMatrix>(), arbitraryBondOrders);
+  ASSERT_THROW(arbitraryResults.take<Property::BondOrderMatrix>(), std::exception);
 }
 
 TEST_F(AResultsTest, CanCopyConstructResults) {
-  arbitraryResults.setEnergy(arbitraryEnergy);
-  arbitraryResults.setTwoElectronMatrix(arbitraryTwoElectronMatrix);
+  arbitraryResults.set<Property::Energy>(arbitraryEnergy);
+  arbitraryResults.set<Property::TwoElectronMatrix>(arbitraryTwoElectronMatrix);
 
   auto copiedResults = arbitraryResults;
 
-  ASSERT_EQ(copiedResults.getEnergy(), arbitraryResults.getEnergy());
-  ASSERT_EQ(copiedResults.getTwoElectronMatrix().restrictedMatrix(),
-            arbitraryResults.getTwoElectronMatrix().restrictedMatrix());
+  ASSERT_EQ(copiedResults.get<Property::Energy>(), arbitraryResults.get<Property::Energy>());
+  ASSERT_EQ(copiedResults.get<Property::TwoElectronMatrix>().restrictedMatrix(),
+            arbitraryResults.get<Property::TwoElectronMatrix>().restrictedMatrix());
 }
 
 TEST_F(AResultsTest, CanCopyAssignResults) {
-  arbitraryResults.setEnergy(arbitraryEnergy);
-  arbitraryResults.setTwoElectronMatrix(arbitraryTwoElectronMatrix);
+  arbitraryResults.set<Property::Energy>(arbitraryEnergy);
+  arbitraryResults.set<Property::TwoElectronMatrix>(arbitraryTwoElectronMatrix);
 
   Results copiedResults;
   copiedResults = arbitraryResults;
 
-  ASSERT_EQ(copiedResults.getEnergy(), arbitraryResults.getEnergy());
-  ASSERT_EQ(copiedResults.getTwoElectronMatrix().restrictedMatrix(),
-            arbitraryResults.getTwoElectronMatrix().restrictedMatrix());
+  ASSERT_EQ(copiedResults.get<Property::Energy>(), arbitraryResults.get<Property::Energy>());
+  ASSERT_EQ(copiedResults.get<Property::TwoElectronMatrix>().restrictedMatrix(),
+            arbitraryResults.get<Property::TwoElectronMatrix>().restrictedMatrix());
+}
+
+TEST_F(AResultsTest, CanReturnAllContainedPropertiesList) {
+  arbitraryResults.set<Property::Energy>(arbitraryEnergy);
+  arbitraryResults.set<Property::TwoElectronMatrix>(arbitraryTwoElectronMatrix);
+
+  PropertyList samePropertyList;
+  samePropertyList.addProperty(Property::Energy);
+  samePropertyList.addProperty(Property::TwoElectronMatrix);
+
+  PropertyList differentPropertyList;
+  differentPropertyList.addProperty(Property::Energy);
+  differentPropertyList.addProperty(Property::Gradients);
+
+  PropertyList containedPropertyList = arbitraryResults.allContainedProperties();
+
+  ASSERT_TRUE(containedPropertyList.containsSubSet(samePropertyList) && samePropertyList.containsSubSet(containedPropertyList));
+  ASSERT_FALSE(containedPropertyList.containsSubSet(differentPropertyList) &&
+               differentPropertyList.containsSubSet(containedPropertyList));
 }
 
 } // namespace Tests

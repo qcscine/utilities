@@ -12,7 +12,7 @@
 namespace Scine {
 namespace Utils {
 
-enum class ElementType;
+enum class ElementType : unsigned;
 class AtomCollection;
 class BondOrderCollection;
 

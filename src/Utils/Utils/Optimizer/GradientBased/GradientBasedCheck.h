@@ -80,7 +80,7 @@ class GradientBasedCheck : public ConvergenceCheck {
 
  private:
   Eigen::VectorXd _oldParams;
-  double _oldValue;
+  double _oldValue = 0.0;
 };
 
 } // namespace Utils

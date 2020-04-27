@@ -10,17 +10,18 @@
 #include "GenericDescriptor.h"
 #include <Core/Exceptions.h>
 
-void Scine::Utils::UniversalSettings::SettingPopulator::populateLCAOSettings(SettingsCollection& settings) {
+void Scine::Utils::UniversalSettings::SettingPopulator::populateLcaoSettings(SettingsCollection& settings) {
   addMolecularCharge(settings);
   addSpinMultiplicity(settings);
   addUnrestrictedCalculation(settings);
-  addLogOption(settings);
+  addTemperatureOption(settings);
+  addDavidsonOption(settings);
 }
 
-void Scine::Utils::UniversalSettings::SettingPopulator::populateSCFSettings(SettingsCollection& settings) {
+void Scine::Utils::UniversalSettings::SettingPopulator::populateScfSettings(SettingsCollection& settings) {
   addSelfConsistanceCriterion(settings);
   addMaxIterations(settings);
-  addSCFMixer(settings);
+  addScfMixer(settings);
 }
 
 void Scine::Utils::UniversalSettings::SettingPopulator::populateSemiEmpiricalSettings(SettingsCollection& settings,
@@ -41,8 +42,8 @@ void Scine::Utils::UniversalSettings::SettingPopulator::populateSemiEmpiricalSet
 
 void Scine::Utils::UniversalSettings::SettingPopulator::addMolecularCharge(SettingsCollection& settings) {
   Utils::UniversalSettings::IntDescriptor molecularCharge("Sets the molecular charge to use in the calculation.");
-  molecularCharge.setMinimum(-10);
-  molecularCharge.setMaximum(+10);
+  molecularCharge.setMinimum(-20);
+  molecularCharge.setMaximum(+20);
   molecularCharge.setDefaultValue(0);
 
   settings.push_back(SettingsNames::molecularCharge, std::move(molecularCharge));
@@ -65,20 +66,6 @@ void Scine::Utils::UniversalSettings::SettingPopulator::addUnrestrictedCalculati
   settings.push_back(SettingsNames::unrestrictedCalculation, std::move(unrestrictedCalculation));
 }
 
-void Scine::Utils::UniversalSettings::SettingPopulator::addLogOption(SettingsCollection& settings) {
-  Utils::UniversalSettings::OptionListDescriptor loggerVerbosity("Level of verbosity.");
-  loggerVerbosity.addOption(SettingsNames::LogLevels::none);
-  loggerVerbosity.addOption(SettingsNames::LogLevels::trace);
-  loggerVerbosity.addOption(SettingsNames::LogLevels::debug);
-  loggerVerbosity.addOption(SettingsNames::LogLevels::info);
-  loggerVerbosity.addOption(SettingsNames::LogLevels::warning);
-  loggerVerbosity.addOption(SettingsNames::LogLevels::error);
-  loggerVerbosity.addOption(SettingsNames::LogLevels::fatal);
-  loggerVerbosity.setDefaultOption(SettingsNames::LogLevels::info);
-
-  settings.push_back(SettingsNames::loggerVerbosity, std::move(loggerVerbosity));
-}
-
 void Scine::Utils::UniversalSettings::SettingPopulator::addSelfConsistanceCriterion(SettingsCollection& settings) {
   Utils::UniversalSettings::DoubleDescriptor selfConsistanceCriterion("Sets the desired convergence criterion.");
   selfConsistanceCriterion.setMinimum(0.);
@@ -95,60 +82,61 @@ void Scine::Utils::UniversalSettings::SettingPopulator::addMaxIterations(Setting
   settings.push_back(SettingsNames::maxIterations, std::move(maxIterations));
 }
 
-void Scine::Utils::UniversalSettings::SettingPopulator::addSCFMixer(SettingsCollection& settings) {
+void Scine::Utils::UniversalSettings::SettingPopulator::addScfMixer(SettingsCollection& settings) {
   Utils::UniversalSettings::OptionListDescriptor mixer("Convergence acceleration to use.");
-  mixer.addOption(SettingsNames::SCFMixers::noMixer);
-  mixer.addOption(SettingsNames::SCFMixers::diis);
-  mixer.addOption(SettingsNames::SCFMixers::ediis);
-  mixer.addOption(SettingsNames::SCFMixers::ediisDiis);
-  mixer.setDefaultOption(SettingsNames::SCFMixers::diis);
+  mixer.addOption(SettingsNames::ScfMixers::noMixer);
+  mixer.addOption(SettingsNames::ScfMixers::diis);
+  mixer.addOption(SettingsNames::ScfMixers::ediis);
+  mixer.addOption(SettingsNames::ScfMixers::ediisDiis);
+  mixer.setDefaultOption(SettingsNames::ScfMixers::diis);
 
   settings.push_back(SettingsNames::mixer, mixer);
+}
+
+void Scine::Utils::UniversalSettings::SettingPopulator::addTemperatureOption(
+    Scine::Utils::UniversalSettings::SettingPopulator::SettingsCollection& settings) {
+  Utils::UniversalSettings::DoubleDescriptor temperature("Temperature to use for thermochemical calculation.");
+  temperature.setMinimum(0.);
+  temperature.setMaximum(10000);
+  temperature.setDefaultValue(298.15);
+
+  settings.push_back(SettingsNames::temperature, std::move(temperature));
+}
+
+void Scine::Utils::UniversalSettings::SettingPopulator::addDavidsonOption(
+    Scine::Utils::UniversalSettings::SettingPopulator::SettingsCollection& settings) {
+  Utils::UniversalSettings::BoolDescriptor davidsonForGroundState(
+      "Use Davidson algorithm to just solve for the occupied "
+      "molecular orbitals eigenpairs.");
+  davidsonForGroundState.setDefaultValue(false);
+  settings.push_back(SettingsNames::davidsonForGroundState, std::move(davidsonForGroundState));
 }
 
 std::string Scine::Utils::UniversalSettings::SettingPopulator::scfMixerToString(Utils::scf_mixer_t mixer) {
   switch (mixer) {
     case Utils::scf_mixer_t::none:
-      return SettingsNames::SCFMixers::noMixer;
+      return SettingsNames::ScfMixers::noMixer;
     case Utils::scf_mixer_t::fock_diis:
-      return SettingsNames::SCFMixers::diis;
+      return SettingsNames::ScfMixers::diis;
     case Utils::scf_mixer_t::ediis:
-      return SettingsNames::SCFMixers::ediis;
+      return SettingsNames::ScfMixers::ediis;
     case Utils::scf_mixer_t::ediis_diis:
-      return SettingsNames::SCFMixers::ediisDiis;
+      return SettingsNames::ScfMixers::ediisDiis;
     default:
       throw std::runtime_error("Unknown conversion from Utils::scf_mixer_t to std::string. Enum id is " +
                                std::to_string(static_cast<int>(mixer)));
   }
 }
 
-Scine::Utils::scf_mixer_t Scine::Utils::UniversalSettings::SettingPopulator::stringToSCFMixer(const std::string& scfMixerName) {
-  if (scfMixerName == SettingsNames::SCFMixers::diis)
+Scine::Utils::scf_mixer_t Scine::Utils::UniversalSettings::SettingPopulator::stringToScfMixer(const std::string& scfMixerName) {
+  if (scfMixerName == SettingsNames::ScfMixers::diis)
     return Utils::scf_mixer_t::fock_diis;
-  else if (scfMixerName == SettingsNames::SCFMixers::ediis)
+  else if (scfMixerName == SettingsNames::ScfMixers::ediis)
     return Utils::scf_mixer_t::ediis;
-  else if (scfMixerName == SettingsNames::SCFMixers::ediisDiis)
+  else if (scfMixerName == SettingsNames::ScfMixers::ediisDiis)
     return Utils::scf_mixer_t::ediis_diis;
-  else if (scfMixerName == SettingsNames::SCFMixers::noMixer)
+  else if (scfMixerName == SettingsNames::ScfMixers::noMixer)
     return Utils::scf_mixer_t::none;
   else
     throw std::runtime_error("Invalid value for " + std::string(scfMixerName));
-}
-
-Scine::Utils::Log::severity_level
-Scine::Utils::UniversalSettings::SettingPopulator::stringToLogLevel(const std::string& logVerbosityString) {
-  if (logVerbosityString == Utils::SettingsNames::LogLevels::trace)
-    return Utils::Log::severity_level::trace;
-  else if (logVerbosityString == Utils::SettingsNames::LogLevels::debug)
-    return Utils::Log::severity_level::debug;
-  else if (logVerbosityString == Utils::SettingsNames::LogLevels::info)
-    return Utils::Log::severity_level::info;
-  else if (logVerbosityString == Utils::SettingsNames::LogLevels::warning)
-    return Utils::Log::severity_level::warning;
-  else if (logVerbosityString == Utils::SettingsNames::LogLevels::error)
-    return Utils::Log::severity_level::error;
-  else if (logVerbosityString == Utils::SettingsNames::LogLevels::fatal)
-    return Utils::Log::severity_level::fatal;
-  else
-    throw Utils::UniversalSettings::OptionDoesNotExistException(logVerbosityString, Utils::SettingsNames::loggerVerbosity);
 }

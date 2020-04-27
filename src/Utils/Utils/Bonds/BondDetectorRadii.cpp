@@ -5,6 +5,7 @@
  *            See LICENSE.txt for details.
  */
 #include "Utils/Bonds/BondDetectorRadii.h"
+#include "Utils/Geometry/ElementInfo.h"
 #include <algorithm>
 
 namespace Scine {
@@ -88,12 +89,17 @@ void BondDetectorRadii::fillArray() {
   setRadiusInAngstrom(ElementType::Tm, 1.72);
 }
 
+double BondDetectorRadii::getRadius(ElementType e) const {
+  auto index = ElementInfo::Z(e);
+  return radii[index];
+}
+
 void BondDetectorRadii::setRadiusInAngstrom(ElementType e, double rInAngstrom) {
   setRadius(e, toBohr(Angstrom(rInAngstrom)));
 }
 
 void BondDetectorRadii::setRadius(ElementType e, double r) {
-  auto index = static_cast<int>(e);
+  auto index = ElementInfo::Z(e);
   radii[index] = r;
 }
 

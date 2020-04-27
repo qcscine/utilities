@@ -12,5 +12,6 @@
 #include "Utils/CalculatorBasics/Results.h"
 #include "Utils/CalculatorBasics/StatesHandler.h"
 #include "Utils/Typenames.h"
+#include <Utils/CalculatorBasics/ResultsAutoCompleter.h>
 
 #endif // UTILS_CALCULATORBASICS_H_

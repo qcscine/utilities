@@ -60,7 +60,7 @@ class MolecularTrajectory {
    * @brief Getter for the vector of energies corresponding to the structures.
    * @return The vector of energies.
    */
-  EnergyContainer getEnergies();
+  EnergyContainer getEnergies() const;
   /**
    * @brief Clears the energy container.
    */

@@ -10,7 +10,7 @@
 
 #include "SettingsNames.h"
 #include <Utils/IO/Logger.h>
-#include <Utils/MethodEssentials/MethodFactories/MixerFactory.h>
+#include <Utils/Scf/ConvergenceAccelerators/ConvergenceAcceleratorFactory.h>
 #include <string>
 namespace Scine {
 namespace Utils {
@@ -21,7 +21,7 @@ class DescriptorCollection;
 /**
  * @class SettingPopulator SettingPopulator.h
  * @brief This class populates the common settings of many calculators.
- * These settings include molecular charge, spin multiplicity, restricted/unrestricted formalism, and SCF options.
+ * These settings include molecular charge, spin multiplicity, restricted/unrestricted formalism, and Scf options.
  * It populates a Utils::UniversalSettings::DescriptorCollection with default values.
  */
 class SettingPopulator {
@@ -29,9 +29,9 @@ class SettingPopulator {
   using SettingsCollection = Utils::UniversalSettings::DescriptorCollection;
 
   //! Populate Settings in the by-reference argument with default settings common to all LCAO methods.
-  static void populateLCAOSettings(SettingsCollection& settings);
+  static void populateLcaoSettings(SettingsCollection& settings);
   //! Populate Settings in the by-reference argument with default settings common to all SCF methods.
-  static void populateSCFSettings(SettingsCollection& settings);
+  static void populateScfSettings(SettingsCollection& settings);
   /** @brief Populate Settings in the by-reference argument with default settings common to all SemiEmpirical methods.
    *  Here the parameter files settings are set. In order for this to work SPARROWInitializer::initialize()
    *  must already be called.
@@ -45,31 +45,26 @@ class SettingPopulator {
    * @param scfMixerName Name of the mixer type.
    * @return a Util::scf_mixer_t, the type of a scf mixer.
    */
-  static Utils::scf_mixer_t stringToSCFMixer(const std::string& scfMixerName);
+  static Utils::scf_mixer_t stringToScfMixer(const std::string& scfMixerName);
   /**
    * @brief This function converts a mixer type into a mixer name.
    * @param scfMixerType Type of the scf mixer.
    * @return a std::string containing the name of the scf mixer.
    */
   static std::string scfMixerToString(Utils::scf_mixer_t mixerType);
-  /**
-   * @brief This function converts a log verbosity string into a severity_level type.
-   * @param logVerbosityString Name of the log verbosity level.
-   * @return Utils::Log::severity_level The severity_level type corresponding to the given string.
-   */
-  static Utils::Log::severity_level stringToLogLevel(const std::string& logVerbosityString);
 
  private:
-  // LCAO Settings
+  // Lcao Settings
   static void addMolecularCharge(SettingsCollection& settings);
   static void addSpinMultiplicity(SettingsCollection& settings);
   static void addUnrestrictedCalculation(SettingsCollection& settings);
-  static void addLogOption(SettingsCollection& settings);
+  static void addTemperatureOption(SettingsCollection& settings);
+  static void addDavidsonOption(SettingsCollection& settings);
 
-  // SCF Settings
+  // Scf Settings
   static void addSelfConsistanceCriterion(SettingsCollection& settings);
   static void addMaxIterations(SettingsCollection& settings);
-  static void addSCFMixer(SettingsCollection& settings);
+  static void addScfMixer(SettingsCollection& settings);
 };
 
 } // namespace UniversalSettings

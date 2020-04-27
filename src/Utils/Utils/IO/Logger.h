@@ -8,6 +8,7 @@
 #define UTILS_LOGGER_H_
 
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
 
@@ -21,6 +22,7 @@ namespace Utils {
  * By default, logging is disabled.
  * Logging can be started with startConsoleLogging() or startFileLogging().
  * It is possible to have several files for logging.
+ * The calls to Log are thread-safe.
  */
 class Log {
   struct ChainedLogger;
@@ -57,11 +59,27 @@ class Log {
    */
   static void startFileLogging(std::string filename, severity_level minimalSeverity = defaultMinimalSeverity_,
                                bool autoFlush = false);
+
+  /**
+   * @brief Start writing log to a file.
+   * @param filename The path to the file to be logged to.
+   * @param minimalSeverity Log messages will be written only when their severity is at least as important as this.
+   * @param autoFlush Ff true, after each log message the stream will be flushed (at higher computational cost).
+   */
+  static void startFileLogging(std::string filename, const std::string& minimalSeverity, bool autoFlush = false);
+  /**
+   * @brief (Re)starts logging to the console.
+   * @param minimalSeverity Log messages will be written only when their severity is at least as important as this.
+   * The severity levels are written in UniversalSettings::LogLevels.
+   */
+  static void startConsoleLogging(const std::string& minimalSeverity);
+
   /**
    * @brief (Re)starts logging to the console.
    * @param minimalSeverity Log messages will be written only when their severity is at least as important as this.
    */
   static void startConsoleLogging(severity_level minimalSeverity = defaultMinimalSeverity_);
+
   /**
    * @brief Stops logging to the console.
    */
@@ -184,10 +202,23 @@ class Log {
     fatal() << std::forward<String>(s);
   }
 
+  /**
+   * @brieg Method to convert a string to the corresponding severity_level.
+   * possible strings are
+   * debug
+   * trace
+   * info
+   * warning
+   * error
+   * fatal
+   */
+  static severity_level stringToSeverity(const std::string& minimalSeverity);
+
  private:
   struct Impl;
   static std::unique_ptr<Impl> pImpl_;
   static const severity_level defaultMinimalSeverity_ = severity_level::info;
+  static std::mutex m_;
 
   /**
    * @class ChainedLogger Logger.h

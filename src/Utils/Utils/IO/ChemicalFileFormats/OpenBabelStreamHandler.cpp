@@ -7,8 +7,8 @@
 #include "OpenBabelStreamHandler.h"
 #include "Utils/Bonds/BondOrderCollection.h"
 #include "Utils/Geometry/AtomCollection.h"
-#include "Utils/IO/ChemicalFileFormats/MOLStreamHandler.h"
-#include "Utils/IO/ChemicalFileFormats/XYZStreamHandler.h"
+#include "Utils/IO/ChemicalFileFormats/MolStreamHandler.h"
+#include "Utils/IO/ChemicalFileFormats/XyzStreamHandler.h"
 #include "boost/optional.hpp"
 #include "boost/process/child.hpp"
 #include "boost/process/io.hpp"
@@ -199,7 +199,7 @@ std::pair<AtomCollection, BondOrderCollection> OpenBabelStreamHandler::read(std:
     throw FormattedStreamHandler::FormatMismatchException();
   }
 
-  return MOLStreamHandler::read(intermediate);
+  return MolStreamHandler::read(intermediate);
 }
 
 void OpenBabelStreamHandler::write(std::ostream& os, const std::string& format, const AtomCollection& atoms) const {
@@ -211,7 +211,7 @@ void OpenBabelStreamHandler::write(std::ostream& os, const std::string& format, 
    * character parsing / writing
    */
   std::stringstream intermediate;
-  XYZStreamHandler::write(intermediate, atoms);
+  XyzStreamHandler::write(intermediate, atoms);
   intermediate << EOF;
 
   int returnValue = indirect(intermediate, os, "xyz", format);
@@ -230,7 +230,7 @@ void OpenBabelStreamHandler::write(std::ostream& os, const std::string& format, 
   /* Here we need to use the MOL format reader/writer to carry bond order
    * information
    */
-  MOLStreamHandler::write(intermediate, atoms, bondOrders, "V2000");
+  MolStreamHandler::write(intermediate, atoms, bondOrders, "V2000");
   intermediate << EOF;
 
   int returnValue = indirect(intermediate, os, "mol", format);

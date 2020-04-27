@@ -10,8 +10,10 @@
 namespace Scine {
 namespace Utils {
 
-void StructuralCompletion::generate3TetrahedronCornersFrom1Other(const Eigen::Vector3d& v1, Eigen::Vector3d& v2,
-                                                                 Eigen::Vector3d& v3, Eigen::Vector3d& v4) {
+void StructuralCompletion::generate3TetrahedronCornersFrom1Other(const Eigen::Ref<Eigen::Vector3d> v1,
+                                                                 Eigen::Ref<Eigen::Vector3d> v2,
+                                                                 Eigen::Ref<Eigen::Vector3d> v3,
+                                                                 Eigen::Ref<Eigen::Vector3d> v4) {
   /*
    * Generate a vector perpendicular to the given one and then perform rotation around this vector to generate v2, then
    * rotate v2 around v1 to generate v3 and v4.
@@ -34,8 +36,10 @@ void StructuralCompletion::generate3TetrahedronCornersFrom1Other(const Eigen::Ve
   v4 = R * v3;
 }
 
-void StructuralCompletion::generate2TetrahedronCornersFrom2Others(const Eigen::Vector3d& v1, const Eigen::Vector3d& v2,
-                                                                  Eigen::Vector3d& v3, Eigen::Vector3d& v4) {
+void StructuralCompletion::generate2TetrahedronCornersFrom2Others(const Eigen::Ref<Eigen::Vector3d> v1,
+                                                                  const Eigen::Ref<Eigen::Vector3d> v2,
+                                                                  Eigen::Ref<Eigen::Vector3d> v3,
+                                                                  Eigen::Ref<Eigen::Vector3d> v4) {
   /*
    * Generate the vector a, which is in the middle between v1 and v2, and the vector b, which is perpendicular to a but
    * in the same plane as v1 and v2, and then rotate a around b to generate v3 and v4.
@@ -51,8 +55,10 @@ void StructuralCompletion::generate2TetrahedronCornersFrom2Others(const Eigen::V
   v4 = R * v3;
 }
 
-void StructuralCompletion::generate1TetrahedronCornerFrom3Others(const Eigen::Vector3d& v1, const Eigen::Vector3d& v2,
-                                                                 const Eigen::Vector3d& v3, Eigen::Vector3d& v4) {
+void StructuralCompletion::generate1TetrahedronCornerFrom3Others(const Eigen::Ref<Eigen::Vector3d> v1,
+                                                                 const Eigen::Ref<Eigen::Vector3d> v2,
+                                                                 const Eigen::Ref<Eigen::Vector3d> v3,
+                                                                 Eigen::Ref<Eigen::Vector3d> v4) {
   Eigen::Vector3d res = -(v1 + v2 + v3);
   // check that the three vectors were non-planar enough
   if (res.squaredNorm() < 0.4 * 0.4)
@@ -61,8 +67,8 @@ void StructuralCompletion::generate1TetrahedronCornerFrom3Others(const Eigen::Ve
   v4 = res.normalized();
 }
 
-void StructuralCompletion::generate2TriangleCornersFrom1Other(const Eigen::Vector3d& v1, Eigen::Vector3d& v2,
-                                                              Eigen::Vector3d& v3) {
+void StructuralCompletion::generate2TriangleCornersFrom1Other(const Eigen::Ref<Eigen::Vector3d> v1,
+                                                              Eigen::Ref<Eigen::Vector3d> v2, Eigen::Ref<Eigen::Vector3d> v3) {
   /*
    * Generate a vector perpendicular to the given one and then perform rotation around this vector to generate v2 and
    * v3.
@@ -81,8 +87,9 @@ void StructuralCompletion::generate2TriangleCornersFrom1Other(const Eigen::Vecto
   v3 = R * v2;
 }
 
-void StructuralCompletion::generate1TriangleCornerFrom2Others(const Eigen::Vector3d& v1, const Eigen::Vector3d& v2,
-                                                              Eigen::Vector3d& v3) {
+void StructuralCompletion::generate1TriangleCornerFrom2Others(const Eigen::Ref<Eigen::Vector3d> v1,
+                                                              const Eigen::Ref<Eigen::Vector3d> v2,
+                                                              Eigen::Ref<Eigen::Vector3d> v3) {
   v3 = -(v1 + v2).normalized();
 }
 

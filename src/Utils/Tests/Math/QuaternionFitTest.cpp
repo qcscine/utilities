@@ -6,7 +6,7 @@
  */
 #include <Utils/Geometry.h>
 #include <Utils/Geometry/AtomCollection.h>
-#include <Utils/IO/ChemicalFileFormats/XYZStreamHandler.h>
+#include <Utils/IO/ChemicalFileFormats/XyzStreamHandler.h>
 #include <Utils/Math/QuaternionFit.h>
 #include <gmock/gmock.h>
 #include <Eigen/Geometry>
@@ -18,7 +18,7 @@ namespace Tests {
 
 /**
  * @class QuaternionFitTest QuaternionFitTest.cpp
- * @brief Comprises tests for the class Scine::Utils::UniversalSettings::GenericValue.
+ * @brief Comprises tests for the class Scine::Utils::QuaternionFit.
  * @test
  */
 class QuaternionFitTest : public Test {
@@ -56,7 +56,7 @@ TEST_F(QuaternionFitTest, Chirality) {
                            "H      0.0964209243   -0.3151252987    1.0637808670\n"
                            "H      0.9724726657    0.2803022650   -0.3910960761");
 
-  auto atoms1 = XYZStreamHandler::read(stream);
+  auto atoms1 = XyzStreamHandler::read(stream);
   auto atoms2 = atoms1;
 
   // Swap positions
@@ -89,7 +89,7 @@ TEST_F(QuaternionFitTest, Weights) {
                            "H    -0.76036657  -0.19836384  0.00000000\n"
                            "H     0.75900101  -0.18964299  0.00000000");
 
-  auto atoms1 = XYZStreamHandler::read(stream);
+  auto atoms1 = XyzStreamHandler::read(stream);
   auto atoms2 = atoms1;
 
   // Move one position

@@ -7,7 +7,10 @@
 #ifndef UTILS_ORCASTATE_H
 #define UTILS_ORCASTATE_H
 
-#include <Utils/CalculatorBasics/State.h>
+#include "Utils/IO/NativeFilenames.h"
+#include "Utils/Technical/UniqueIdentifier.h"
+#include <Core/BaseClasses/StateHandableObject.h>
+#include <stdio.h>
 #include <exception>
 #include <utility>
 
@@ -16,20 +19,8 @@ namespace Utils {
 namespace ExternalQC {
 
 /**
- * @brief Exception for the case that a state is requested which is not available.
+ * @brief Exception for the case that a state is requested which is empty.
  */
-class StateNotAvailableException : public std::exception {
- public:
-  explicit StateNotAvailableException(std::string stateName)
-    : stateName_("ORCA state " + std::move(stateName) + " is not available.") {
-  }
-  const char* what() const noexcept final {
-    return stateName_.c_str();
-  }
-
- private:
-  std::string stateName_;
-};
 class EmptyStateException : public std::exception {
  public:
   const char* what() const noexcept final {
@@ -38,52 +29,40 @@ class EmptyStateException : public std::exception {
 };
 
 /**
+ * @brief Exception for a failure to save or load an ORCA state.
+ */
+class StateSavingException : public std::exception {
+ public:
+  const char* what() const noexcept final {
+    return "Failure while saving or loading ORCA state.";
+  }
+};
+
+/**
  * @brief Definition of a calculation state for ORCA calculations.
  *        The calculation state is defined as a unique identifier. Only a string state is saved here.
  */
-struct OrcaState : public Utils::State {
+struct OrcaState : public Core::State {
   /**
    * @brief Constructor, calls the base class constructor to initialize the size of the state.
    */
-  explicit OrcaState(Utils::StateSize size);
-
-  /**
-   * @brief Getter for a Eigen::MatrixXd state identified with a std::string.
-   * @param matrixState The key for the state's key-value pair.
-   * @return The value of the key-value pair, an Eigen::MatrixXd.
-   */
-  const Eigen::MatrixXd& getMatrixState(const std::string& matrixState) const final;
-  /**
-   * @brief Getter for a std::string state identified with a std::string.
-   * @param stringState The key for the state's key-value pair.
-   * @return The value of the key-value pair, a std::string.
-   */
-  const std::string& getStringState(const std::string& stringState) const final;
-  /**
-   * @brief Getter for a integer state identified with a std::string.
-   * @param intState The key for the state's key-value pair.
-   * @return The value of the key-value pair, an integer.
-   */
-  int getIntState(const std::string& intState) const final;
-  /**
-   * @brief Getter for a double state identified with a std::string.
-   * @param doubleState The key for the state's key-value pair.
-   * @return The value of the key-value pair, a double.
-   */
-  double getDoubleState(const std::string& doubleState) const final;
+  explicit OrcaState(std::string dir) : directory(dir) {
+    UniqueIdentifier id;
+    stateIdentifier = id.getStringRepresentation();
+  }
+  /// @brief Destructor, deletes the .gbw file.
+  ~OrcaState() final {
+    auto file = NativeFilenames::combinePathSegments(directory, stateIdentifier + ".gbw");
+    std::remove(file.c_str());
+  }
 
   /**
    * @brief Initializer for the state.
    */
-  void initialize() final;
+  void initialize();
 
-  /**
-   * @brief Returns whether a state has been initialized
-   */
-  bool hasState() const;
-
- private:
-  std::string stateIdentifier_;
+  std::string directory;
+  std::string stateIdentifier;
 };
 
 } // namespace ExternalQC

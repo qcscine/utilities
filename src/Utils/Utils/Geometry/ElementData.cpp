@@ -27,8 +27,10 @@ const ElementDataSingleton::ElementData& ElementDataSingleton::operator[](const 
 }
 
 const ElementDataSingleton& ElementDataSingleton::instance() {
-  if (!d_instance)
-    d_instance = std::unique_ptr<ElementDataSingleton>(new ElementDataSingleton());
+  if (!d_instance) {
+#pragma omp critical(ElementDataSingletonInstance)
+    { d_instance = std::make_unique<ElementDataSingleton>(ElementDataSingleton()); }
+  }
   return *d_instance;
 }
 

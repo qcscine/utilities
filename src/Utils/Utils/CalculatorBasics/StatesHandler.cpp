@@ -10,17 +10,41 @@
 namespace Scine {
 namespace Utils {
 
-void StatesHandler::store(std::shared_ptr<State> state) {
+StatesHandler::StatesHandler(std::shared_ptr<Core::StateHandableObject> object) : statesHandableObject_(object) {
+}
+
+void StatesHandler::store(std::shared_ptr<Core::State> state) {
   states_.emplace_back(std::move(state));
 }
 
-std::shared_ptr<State> StatesHandler::getState(int index) {
+void StatesHandler::store() {
+  auto instance = statesHandableObject_.lock();
+  if (!instance)
+    throw NoStateHandableObjectPresent();
+  states_.emplace_back(instance->getState());
+}
+
+void StatesHandler::load(std::shared_ptr<Core::State> state) {
+  auto instance = statesHandableObject_.lock();
+  if (!instance)
+    throw NoStateHandableObjectPresent();
+  instance->loadState(std::move(state));
+}
+
+void StatesHandler::load(int index) {
+  auto instance = statesHandableObject_.lock();
+  if (!instance)
+    throw NoStateHandableObjectPresent();
+  instance->loadState(getState(index));
+}
+
+std::shared_ptr<Core::State> StatesHandler::getState(int index) const {
   return states_.at(index);
 }
 
-std::shared_ptr<State> StatesHandler::popOldestState() {
+std::shared_ptr<Core::State> StatesHandler::popOldestState() {
   if (!states_.empty()) {
-    std::shared_ptr<State> state = std::move(states_.front());
+    std::shared_ptr<Core::State> state = std::move(states_.front());
     states_.pop_front();
     return state;
   }
@@ -29,9 +53,9 @@ std::shared_ptr<State> StatesHandler::popOldestState() {
   }
 }
 
-std::shared_ptr<State> StatesHandler::popNewestState() {
+std::shared_ptr<Core::State> StatesHandler::popNewestState() {
   if (!states_.empty()) {
-    std::shared_ptr<State> state = std::move(states_.back());
+    std::shared_ptr<Core::State> state = std::move(states_.back());
     states_.pop_back();
     return state;
   }

@@ -63,6 +63,20 @@ constexpr double hartree_per_kJPerMol = 1 / kJPerMol_per_hartree;
 
 constexpr double kCalPerMol_per_hartree = joule_per_hartree * calorie_per_joule / 1000 * avogadroNumber;
 constexpr double hartree_per_kCalPerMol = 1 / kCalPerMol_per_hartree;
+
+// Spectroscopic conversions E = hcw
+constexpr double ev_per_invCentimeter = 8.065540107e3;
+constexpr double invCentimeter_per_ev = 1.239842573e-4;
+
+constexpr double hartree_per_invCentimeter = 4.556335281e-6;
+constexpr double invCentimeter_per_hartree = 219474.63;
+
+constexpr double kJPerMol_per_invCentimeter = 2.859144166e-3;
+constexpr double invCentimeter_per_kJPerMol = 349.7550112241469;
+
+constexpr double kCalPerMol_per_invCentimeter = 1.196265919e-2;
+constexpr double invCentimeter_per_kCalPerMol = 8.359345393;
+
 } /* namespace Constants */
 /*=========
  *  Units

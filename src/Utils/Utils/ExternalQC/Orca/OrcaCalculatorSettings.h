@@ -13,12 +13,13 @@
 
 namespace Scine {
 namespace Utils {
+namespace ExternalQC {
 namespace SettingsNames {
-static constexpr const char* orcaMethod = "orca_method";
 static constexpr const char* orcaNumProcs = "orca_nprocs";
-static constexpr const char* orcaBinaryPath = "orca_binary_path";
 static constexpr const char* orcaFilenameBase = "orca_filename_base";
 static constexpr const char* baseWorkingDirectory = "base_working_directory";
+static constexpr const char* externalQCMemory = "external_program_memory";
+static constexpr const char* deleteTemporaryFiles = "delete_tmp_files";
 } // namespace SettingsNames
 
 /**
@@ -32,11 +33,13 @@ class OrcaCalculatorSettings : public Scine::Utils::Settings {
   void addSpinMultiplicity(UniversalSettings::DescriptorCollection& settings);
   void addSelfConsistenceCriterion(UniversalSettings::DescriptorCollection& settings);
   void addMaxIterations(UniversalSettings::DescriptorCollection& settings);
-  void addOrcaMethod(UniversalSettings::DescriptorCollection& settings);
+  void addMethod(UniversalSettings::DescriptorCollection& settings);
+  void addBasisSet(UniversalSettings::DescriptorCollection& settings);
   void addOrcaNumProcs(UniversalSettings::DescriptorCollection& settings);
-  void addOrcaBinaryPath(UniversalSettings::DescriptorCollection& settings);
   void addOrcaFilenameBase(UniversalSettings::DescriptorCollection& settings);
   void addBaseWorkingDirectory(UniversalSettings::DescriptorCollection& settings);
+  void addMemoryForOrca(UniversalSettings::DescriptorCollection& settings);
+  void addDeleteTemporaryFilesOption(UniversalSettings::DescriptorCollection& settings);
 
   /**
    * @brief Constructor that populates the OrcaCalculatorSettings.
@@ -46,11 +49,13 @@ class OrcaCalculatorSettings : public Scine::Utils::Settings {
     addSpinMultiplicity(_fields);
     addSelfConsistenceCriterion(_fields);
     addMaxIterations(_fields);
-    addOrcaMethod(_fields);
+    addMethod(_fields);
+    addBasisSet(_fields);
     addOrcaNumProcs(_fields);
-    addOrcaBinaryPath(_fields);
     addOrcaFilenameBase(_fields);
     addBaseWorkingDirectory(_fields);
+    addMemoryForOrca(_fields);
+    addDeleteTemporaryFilesOption(_fields);
     resetToDefaults();
   };
 };
@@ -60,7 +65,7 @@ inline void OrcaCalculatorSettings::addMolecularCharge(UniversalSettings::Descri
   molecularCharge.setMinimum(-10);
   molecularCharge.setMaximum(10);
   molecularCharge.setDefaultValue(0);
-  settings.push_back(SettingsNames::molecularCharge, std::move(molecularCharge));
+  settings.push_back(Scine::Utils::SettingsNames::molecularCharge, std::move(molecularCharge));
 }
 
 inline void OrcaCalculatorSettings::addSpinMultiplicity(UniversalSettings::DescriptorCollection& settings) {
@@ -69,20 +74,26 @@ inline void OrcaCalculatorSettings::addSpinMultiplicity(UniversalSettings::Descr
   spinMultiplicity.setMinimum(1);
   spinMultiplicity.setMaximum(10);
   spinMultiplicity.setDefaultValue(1);
-  settings.push_back(SettingsNames::spinMultiplicity, std::move(spinMultiplicity));
+  settings.push_back(Scine::Utils::SettingsNames::spinMultiplicity, std::move(spinMultiplicity));
 }
 
 inline void OrcaCalculatorSettings::addSelfConsistenceCriterion(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::DoubleDescriptor selfConsistanceCriterion("Sets the desired convergence criterion.");
   selfConsistanceCriterion.setMinimum(0);
   selfConsistanceCriterion.setDefaultValue(1e-6);
-  settings.push_back(SettingsNames::selfConsistanceCriterion, std::move(selfConsistanceCriterion));
+  settings.push_back(Scine::Utils::SettingsNames::selfConsistanceCriterion, std::move(selfConsistanceCriterion));
 }
 
-inline void OrcaCalculatorSettings::addOrcaMethod(UniversalSettings::DescriptorCollection& settings) {
-  Utils::UniversalSettings::StringDescriptor orcaMethod("The method used in the ORCA calculation.");
-  orcaMethod.setDefaultValue("PBE def2-SVP");
-  settings.push_back(SettingsNames::orcaMethod, std::move(orcaMethod));
+inline void OrcaCalculatorSettings::addMethod(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::StringDescriptor method("The method used in the ORCA calculation.");
+  method.setDefaultValue("PBE");
+  settings.push_back(Utils::SettingsNames::method, std::move(method));
+}
+
+inline void OrcaCalculatorSettings::addBasisSet(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::StringDescriptor basisSet("The basis set used in the ORCA calculation.");
+  basisSet.setDefaultValue("def2-SVP");
+  settings.push_back(Utils::SettingsNames::basisSet, std::move(basisSet));
 }
 
 inline void OrcaCalculatorSettings::addOrcaNumProcs(UniversalSettings::DescriptorCollection& settings) {
@@ -90,12 +101,6 @@ inline void OrcaCalculatorSettings::addOrcaNumProcs(UniversalSettings::Descripto
   orcaNumProcs.setDefaultValue(1);
   orcaNumProcs.setMinimum(1);
   settings.push_back(SettingsNames::orcaNumProcs, std::move(orcaNumProcs));
-}
-
-inline void OrcaCalculatorSettings::addOrcaBinaryPath(UniversalSettings::DescriptorCollection& settings) {
-  Utils::UniversalSettings::StringDescriptor orcaBinaryPath("Path to the orca binary.");
-  orcaBinaryPath.setDefaultValue("orca");
-  settings.push_back(SettingsNames::orcaBinaryPath, std::move(orcaBinaryPath));
 }
 
 inline void OrcaCalculatorSettings::addOrcaFilenameBase(UniversalSettings::DescriptorCollection& settings) {
@@ -111,12 +116,26 @@ inline void OrcaCalculatorSettings::addBaseWorkingDirectory(UniversalSettings::D
 }
 
 inline void OrcaCalculatorSettings::addMaxIterations(UniversalSettings::DescriptorCollection& settings) {
-  Utils::UniversalSettings::IntDescriptor maxSCFIterations("Maximum number of SCF iterations.");
-  maxSCFIterations.setMinimum(1);
-  maxSCFIterations.setDefaultValue(100);
-  settings.push_back(SettingsNames::maxIterations, std::move(maxSCFIterations));
+  Utils::UniversalSettings::IntDescriptor maxScfIterations("Maximum number of SCF iterations.");
+  maxScfIterations.setMinimum(1);
+  maxScfIterations.setDefaultValue(100);
+  settings.push_back(Scine::Utils::SettingsNames::maxIterations, std::move(maxScfIterations));
 }
 
+inline void OrcaCalculatorSettings::addMemoryForOrca(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::IntDescriptor orcaMemory("Memory that can be used by the Orca calculation.");
+  orcaMemory.setDefaultValue(1024);
+  settings.push_back(SettingsNames::externalQCMemory, std::move(orcaMemory));
+}
+
+inline void OrcaCalculatorSettings::addDeleteTemporaryFilesOption(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::BoolDescriptor deleteTemporaryFiles(
+      "Delete all files with the .tmp extension after an Orca calculation has failed.");
+  deleteTemporaryFiles.setDefaultValue(true);
+  settings.push_back(SettingsNames::deleteTemporaryFiles, std::move(deleteTemporaryFiles));
+}
+
+} // namespace ExternalQC
 } // namespace Utils
 } // namespace Scine
 

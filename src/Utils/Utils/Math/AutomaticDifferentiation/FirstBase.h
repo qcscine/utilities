@@ -84,6 +84,8 @@ class FirstBase {
   Crtp& thisImpl();
   /* corresponds to "*this", but returns the derived type. */
   const Crtp& thisImpl() const;
+
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 template<typename DerivativeT, typename Crtp>

@@ -14,6 +14,7 @@ namespace Scine {
 namespace Utils {
 
 class AtomCollection;
+class Atom;
 
 /// @brief Functionalities working with an entire geometry (PositionCollection).
 namespace Geometry {
@@ -24,23 +25,37 @@ namespace Geometry {
  * @param translation The displacement to be added.
  * @return PositionCollection Returns the translated positions.
  */
-PositionCollection translatePositions(const PositionCollection& positions, const Displacement& translation);
+PositionCollection translatePositions(const PositionCollection& positions, const Eigen::Ref<Eigen::RowVector3d>& translation);
 /**
- * @brief Translates a set of postions by a given displacement.
+ * @brief Translates a set of positions by a given displacement.
  *
- * The translatrion happend in-place.
+ * The translation happens in-place.
  *
  * @param positions The initial positions, will be transformed in-place.
  * @param translation The displacement to be added.
  */
-void translatePositions(PositionCollection& positions, const Displacement& translation);
+void translatePositionsInPlace(PositionCollection& positions, const Eigen::Ref<Eigen::RowVector3d>& translation);
 /**
  * @brief Get the index of closest position (atom) to a given position in space.
  * @param positions A set of positions to be traversed.
  * @param targetPosition The target position.
- * @return unsigned int The index of the closest atom to the given target.
+ * @param distanceConsideredZero Squared distance between two positions resulting in them being considered equal
+ *                               and therefore skipping this position as it is already present in the given
+ *                               PositionCollection. The default is set to a negative value, so that all positions
+ *                               are considered as possible candidates for the closest one.
+ * @return int The index of the closest atom to the given target.
  */
-unsigned int getIndexOfClosestAtom(const PositionCollection& positions, const Position& targetPosition);
+int getIndexOfClosestAtom(const PositionCollection& positions, const Position& targetPosition,
+                          double squaredDistanceConsideredZero = -1.0);
+/**
+ * @brief Get the index of a given atom in a given molecular structure.
+ * @param structure The structure to be traversed.
+ * @param atom The target atom that is tried to be found in the given structure.
+ * @param distanceConsideredZero Squared distance between two atoms resulting in them being considered equal.
+ * @return int The index of the given atom in the given molecular structure.
+ * @throws std::runtime_error Function throws error if the atom is not found in the given structure.
+ */
+int getIndexOfAtomInStructure(const AtomCollection& structure, const Atom& atom, double squaredDistanceConsideredZero = 1e-4);
 /**
  * @brief Transforms a 3N-dimensional vector {x0, y0, z0, x1, y1, z1, ...} to a Nx3 matrix.
  * @param v The positions in vector form.
@@ -115,7 +130,7 @@ Eigen::Matrix3d calculateInertiaTensor(const PositionCollection& positions, cons
 PrincipalMomentsOfInertia calculatePrincipalMoments(const PositionCollection& positions,
                                                     const std::vector<double>& masses, const Position& centerOfMass);
 /**
- * @brief Calculated the cartesion modes correspoding to translations and rotations of the entire system.
+ * @brief Calculated the cartesian modes corresponding to translations and rotations of the entire system.
  *
  * @param positions The positions of all atoms.
  * @param elements  The ElemenetTypes of all atoms.
@@ -124,14 +139,17 @@ PrincipalMomentsOfInertia calculatePrincipalMoments(const PositionCollection& po
  *                         rotation modes 3-final column (depending on the geometry)
  */
 Eigen::MatrixXd calculateTranslationAndRotationModes(const PositionCollection& positions, const ElementTypeCollection& elements);
+
 /**
  * @brief Generates the matrix removing rotation and translation modes from the given geometry if applied.
  *
  * @param positions The positions of all atoms.
  * @param elements  The ElemenetTypes of all atoms.
+ * @param massWeighted True if Hessian to be transformed is mass-weighted
  * @return Eigen::MatrixXd The transformation matrix (applied as X^T*H*X to the Hessian).
  */
-Eigen::MatrixXd calculateRotTransFreeTransformMatrix(const PositionCollection& positions, const ElementTypeCollection& elements);
+Eigen::MatrixXd calculateRotTransFreeTransformMatrix(const PositionCollection& positions,
+                                                     const ElementTypeCollection& elements, bool massWeighted = false);
 
 } /* namespace Geometry */
 } /* namespace Utils */

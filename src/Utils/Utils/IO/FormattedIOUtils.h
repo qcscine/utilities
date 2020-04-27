@@ -10,6 +10,7 @@
 #include <Utils/GeometricDerivatives/NormalModesContainer.h>
 #include <Utils/Geometry/ElementInfo.h>
 #include <Utils/Geometry/ElementTypes.h>
+#include <Utils/Properties/Thermochemistry/ThermochemistryCalculator.h>
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <iomanip>
@@ -95,7 +96,7 @@ void matrixPrettyPrint(std::ostream& out, const MatrixType& matrix) {
       }
       out << std::endl;
     }
-    out << std::endl;
+    out << std::defaultfloat << std::endl;
   }
 }
 
@@ -104,6 +105,7 @@ void printElement(std::ostream& out, const Eigen::SparseMatrix<double>::InnerIte
   out << std::setw(7) << std::left << "<" + std::to_string(it.col()) + ">";
   out << std::setw(7) << std::left << std::to_string(it.value());
   out << std::setw(4) << std::left << " ";
+  out << std::right;
 }
 
 void matrixPrettyPrint(std::ostream& out, const Eigen::SparseMatrix<double> matrix, double threshold) {
@@ -113,7 +115,7 @@ void matrixPrettyPrint(std::ostream& out, const Eigen::SparseMatrix<double> matr
   const int nCols = 5;
   const int maxElementsPerColumn = 50;
   // print header line
-  out << std::setw(10) << " ";
+  out << std::setw(10) << std::right << std::scientific << " ";
   for (++headerCount; headerCount <= nCols; ++headerCount) {
     out << std::setw(26) << std::left << headerCount;
   }
@@ -141,6 +143,7 @@ void matrixPrettyPrint(std::ostream& out, const Eigen::SparseMatrix<double> matr
       }
     }
   }
+  out << std::defaultfloat;
 }
 void matrixPrettyPrint(std::ostream& out, const NormalModesContainer& container, const ElementTypeCollection& elementTypes) {
   auto dimension = container.size();
@@ -215,6 +218,54 @@ void matrixPrettyPrint(std::ostream& out, const NormalModesContainer& container,
     }
     out << std::defaultfloat << std::endl;
   }
+}
+
+void prettyPrint(std::ostream& out, const ThermochemicalComponentsContainer& thermochemicalComponents) {
+  // header line
+  out << std::setw(20) << std::right << "Temperature:" << std::defaultfloat << std::setw(10)
+      << thermochemicalComponents.overall.temperature << " K" << std::endl;
+  out << std::scientific << std::endl;
+  out << std::setw(20) << "Component:" << std::setw(35) << "ZPVE [kJ/mol]" << std::setw(35) << "Enthalpy [kJ/mol]"
+      << std::setw(35) << "Entropy [kJ/(K mol)]" << std::endl;
+  // Components
+  out << std::setw(20) << "Vibration:" << std::setw(35)
+      << thermochemicalComponents.vibrationalComponent.zeroPointVibrationalEnergy << std::setw(35)
+      << thermochemicalComponents.vibrationalComponent.enthalpy << std::setw(35)
+      << thermochemicalComponents.vibrationalComponent.entropy << std::endl;
+  out << std::setw(20) << "Rotation:" << std::setw(35) << thermochemicalComponents.rotationalComponent.zeroPointVibrationalEnergy
+      << std::setw(35) << thermochemicalComponents.rotationalComponent.enthalpy << std::setw(35)
+      << thermochemicalComponents.rotationalComponent.entropy << std::endl;
+  out << std::setw(20) << "Translation:" << std::setw(35)
+      << thermochemicalComponents.translationalComponent.zeroPointVibrationalEnergy << std::setw(35)
+      << thermochemicalComponents.translationalComponent.enthalpy << std::setw(35)
+      << thermochemicalComponents.translationalComponent.entropy << std::endl;
+  out << std::setw(20) << "Electronic:" << std::setw(35)
+      << thermochemicalComponents.electronicComponent.zeroPointVibrationalEnergy << std::setw(35)
+      << thermochemicalComponents.electronicComponent.enthalpy << std::setw(35)
+      << thermochemicalComponents.electronicComponent.entropy << std::endl;
+  out << std::setw(20) << "Overall:" << std::setw(35) << thermochemicalComponents.overall.zeroPointVibrationalEnergy
+      << std::setw(35) << thermochemicalComponents.overall.enthalpy << std::setw(35)
+      << thermochemicalComponents.overall.entropy << std::endl;
+  out << std::endl;
+  out << std::setw(20) << " " << std::setw(35) << "Heat Capacity Cp [kJ/(K mol)]" << std::setw(35)
+      << "Heat Capacity Cv [kJ/(K mol)]" << std::setw(35) << "Gibbs Free Energy [kJ/mol]" << std::endl;
+  // Components
+  out << std::setw(20) << "Vibration:" << std::setw(35) << thermochemicalComponents.vibrationalComponent.heatCapacityP
+      << std::setw(35) << thermochemicalComponents.vibrationalComponent.heatCapacityV << std::setw(35)
+      << thermochemicalComponents.vibrationalComponent.gibbsFreeEnergy << std::endl;
+  out << std::setw(20) << "Rotation:" << std::setw(35) << thermochemicalComponents.rotationalComponent.heatCapacityP
+      << std::setw(35) << thermochemicalComponents.rotationalComponent.heatCapacityV << std::setw(35)
+      << thermochemicalComponents.rotationalComponent.gibbsFreeEnergy << std::endl;
+  out << std::setw(20) << "Translation:" << std::setw(35) << thermochemicalComponents.translationalComponent.heatCapacityP
+      << std::setw(35) << thermochemicalComponents.translationalComponent.heatCapacityV << std::setw(35)
+      << thermochemicalComponents.translationalComponent.gibbsFreeEnergy << std::endl;
+  out << std::setw(20) << "Electronic:" << std::setw(35) << thermochemicalComponents.electronicComponent.heatCapacityP
+      << std::setw(35) << thermochemicalComponents.electronicComponent.heatCapacityV << std::setw(35)
+      << thermochemicalComponents.electronicComponent.gibbsFreeEnergy << std::endl;
+  out << std::setw(20) << "Overall:" << std::setw(35) << thermochemicalComponents.overall.heatCapacityP << std::setw(35)
+      << thermochemicalComponents.overall.heatCapacityV << std::setw(35)
+      << thermochemicalComponents.overall.gibbsFreeEnergy << std::endl;
+  out << std::endl;
 }
 
 } // namespace Utils

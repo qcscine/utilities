@@ -41,7 +41,7 @@ class UnsuccessfulSystemCommand : public Exception {
 
  private:
   static std::string createErrorMessage(const std::string& command, const std::string& inputFile, const std::string& outputFile) {
-    std::string message = "Error executing the command \"" + command;
+    std::string message = "The following command exited with non-zero exit status: " + command;
     if (!inputFile.empty()) {
       message += " < " + inputFile;
     }
