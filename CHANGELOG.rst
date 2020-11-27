@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Release 3.0.1
+=============
+
+- Update development-utils
+
 Release 3.0.0
 =============
 
