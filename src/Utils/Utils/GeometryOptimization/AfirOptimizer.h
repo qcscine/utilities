@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -14,10 +14,10 @@
 #include "Utils/Geometry/ElementInfo.h"
 #include "Utils/Geometry/GeometryUtilities.h"
 #include "Utils/Geometry/InternalCoordinates.h"
+#include "Utils/GeometryOptimization/AfirConvergenceCheck.h"
 #include "Utils/GeometryOptimization/AfirOptimizerBase.h"
 #include "Utils/GeometryOptimization/AfirOptimizerSettings.h"
 #include "Utils/Optimizer/GradientBased/Bfgs.h"
-#include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/GradientBased/Lbfgs.h"
 #include <Core/Interfaces/Calculator.h>
 #include <Eigen/Core>
@@ -47,9 +47,15 @@ class AfirOptimizer : public AfirOptimizerBase {
    * @brief See AfirOptimizerBase::optimize().
    *
    * @param atoms The AtomCollection (Geometry) to be optimized.
+   * @param log The logger to which eventual output is written.
    * @return int  The final number of optimization cycles carried out.
    */
-  virtual int optimize(AtomCollection& atoms) final {
+  virtual int optimize(AtomCollection& atoms, Core::Log& log) final {
+    // Ensure that AFIR check uses the same LHS and RHS list and knows whether internal coordinates are used
+    check.lhsList = this->lhsList;
+    check.rhsList = this->rhsList;
+    // AFIR check needs coordinate transformation information for distance check
+    check.transformCoordinates = this->transformCoordinates;
     // Disable L-BFGS + internals for now
     //  TODO fix the hessian projection in the L-BFGS to allow for this combination
     if (std::is_same<OptimizerType, Lbfgs>::value && this->transformCoordinates)
@@ -58,7 +64,11 @@ class AfirOptimizer : public AfirOptimizerBase {
     _calculator.setStructure(atoms);
     _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
     // Transform into internal coordinates
-    auto transformation = std::make_shared<InternalCoordinates>(atoms);
+    std::shared_ptr<InternalCoordinates> transformation = nullptr;
+    if (this->transformCoordinates) {
+      transformation = std::make_shared<InternalCoordinates>(atoms);
+      check.transformation = transformation;
+    }
     // Define update function
     int cycle = 0;
     const unsigned int nAtoms = atoms.size();
@@ -73,6 +83,9 @@ class AfirOptimizer : public AfirOptimizerBase {
       }
       _calculator.modifyPositions(coordinates);
       Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+      if (!results.get<Property::SuccessfulCalculation>()) {
+        throw std::runtime_error("Gradient calculation in AFIR run failed.");
+      }
       value = results.get<Property::Energy>();
       auto gradientMatrix = results.get<Property::Gradients>();
       // Evaluate AF
@@ -100,7 +113,23 @@ class AfirOptimizer : public AfirOptimizerBase {
       positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), atoms.size() * 3);
     }
     // Optimize
-    auto cycles = optimizer.optimize(positions, update, check);
+    int cycles = 0;
+    try {
+      cycles = optimizer.optimize(positions, update, check);
+    }
+    catch (const InternalCoordinatesException& e) {
+      log.output << "Internal coordinates broke down. Continuing in cartesians." << Core::Log::nl;
+      // Update coordinates to the last ones that were successfully reconverted
+      Utils::PositionCollection lastCoordinates = _calculator.getPositions();
+      // Disable coordinate transformation
+      this->transformCoordinates = false;
+      check.transformCoordinates = false;
+      check.transformation = nullptr;
+      // Restart optimization
+      optimizer.prepareRestart(cycle);
+      Eigen::VectorXd lastPositions = Eigen::Map<const Eigen::VectorXd>(lastCoordinates.data(), atoms.size() * 3);
+      cycles = optimizer.optimize(lastPositions, update, check);
+    }
     // Update Atom collection and return
     Utils::PositionCollection coordinates;
     if (this->transformCoordinates) {
@@ -118,6 +147,7 @@ class AfirOptimizer : public AfirOptimizerBase {
    */
   virtual void setSettings(const Settings& settings) override {
     check.applySettings(settings);
+    check.applyAfirSettings(settings);
     optimizer.applySettings(settings);
     this->rhsList = settings.getIntList(AfirOptimizerBase::afirRHSListKey);
     this->lhsList = settings.getIntList(AfirOptimizerBase::afirLHSListKey);
@@ -132,7 +162,7 @@ class AfirOptimizer : public AfirOptimizerBase {
    * @return Settings A settings object with the current settings.
    */
   virtual Settings getSettings() const override {
-    return AfirOptimizerSettings<OptimizerType, GradientBasedCheck>(*this, optimizer, check);
+    return AfirOptimizerSettings<OptimizerType, AfirConvergenceCheck>(*this, optimizer, check);
   };
   /**
    * @brief Add an observer function that will be triggered in each iteration.
@@ -158,7 +188,7 @@ class AfirOptimizer : public AfirOptimizerBase {
   /// @brief The underlying optimizer, public in order to change it's settings.
   OptimizerType optimizer;
   /// @brief The underlying convergence check, public in order to change it's settings.
-  GradientBasedCheck check;
+  AfirConvergenceCheck check;
 
  private:
   Core::Calculator& _calculator;
@@ -169,12 +199,21 @@ class AfirOptimizer : public AfirOptimizerBase {
  *===================*/
 
 template<>
-inline int AfirOptimizer<Bfgs>::optimize(AtomCollection& atoms) {
+inline int AfirOptimizer<Bfgs>::optimize(AtomCollection& atoms, Core::Log& log) {
+  // Ensure that AFIR check uses the same LHS and RHS list
+  check.lhsList = this->lhsList;
+  check.rhsList = this->rhsList;
+  // AFIR check needs coordinate transformation information for distance check
+  check.transformCoordinates = this->transformCoordinates;
   // Configure Calculator
   _calculator.setStructure(atoms);
   _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
   // Transform into internal coordinates
-  auto transformation = std::make_shared<InternalCoordinates>(atoms);
+  std::shared_ptr<InternalCoordinates> transformation = nullptr;
+  if (this->transformCoordinates) {
+    transformation = std::make_shared<InternalCoordinates>(atoms);
+    check.transformation = transformation;
+  }
   // Define update function
   int cycle = 0;
   const unsigned int nAtoms = atoms.size();
@@ -189,6 +228,9 @@ inline int AfirOptimizer<Bfgs>::optimize(AtomCollection& atoms) {
     }
     _calculator.modifyPositions(coordinates);
     Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+    if (!results.get<Property::SuccessfulCalculation>()) {
+      throw std::runtime_error("Gradient calculation in AFIR run failed.");
+    }
     value = results.get<Property::Energy>();
     auto gradientMatrix = results.get<Property::Gradients>();
     // Evaluate AF
@@ -215,12 +257,31 @@ inline int AfirOptimizer<Bfgs>::optimize(AtomCollection& atoms) {
   else {
     positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), atoms.size() * 3);
   }
-  // Optimize
+  // Get projection
   if (this->transformCoordinates) {
-    optimizer.projection = std::make_unique<std::function<void(Eigen::MatrixXd&)>>(
-        [&transformation](Eigen::MatrixXd& inv) { inv = transformation->projectHessianInverse(inv); });
+    optimizer.projection = [&transformation](Eigen::MatrixXd& inv) { inv = transformation->projectHessianInverse(inv); };
   }
-  auto cycles = optimizer.optimize(positions, update, check);
+  else {
+    optimizer.projection = nullptr;
+  }
+  // Optimize
+  int cycles = 0;
+  try {
+    cycles = optimizer.optimize(positions, update, check);
+  }
+  catch (const InternalCoordinatesException& e) {
+    log.output << "Internal coordinates broke down. Continuing in cartesians." << Core::Log::nl;
+    // Update coordinates to the last ones that were successfully reconverted
+    Utils::PositionCollection lastCoordinates = _calculator.getPositions();
+    // Disable coordinate transformation
+    this->transformCoordinates = false;
+    check.transformCoordinates = false;
+    check.transformation = nullptr;
+    // Restart optimization
+    optimizer.prepareRestart(cycle);
+    Eigen::VectorXd lastPositions = Eigen::Map<const Eigen::VectorXd>(lastCoordinates.data(), atoms.size() * 3);
+    cycles = optimizer.optimize(lastPositions, update, check);
+  }
   // Update Atom collection and return
   Utils::PositionCollection coordinates;
   if (this->transformCoordinates) {

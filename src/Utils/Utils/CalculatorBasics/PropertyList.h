@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -9,6 +9,7 @@
 #define UTILS_PROPERTYLIST_H
 
 #include <Utils/Bonds/BondOrderCollection.h>
+#include <Utils/DataStructures/AtomicGtos.h>
 #include <Utils/DataStructures/AtomsOrbitalsIndexes.h>
 #include <Utils/DataStructures/DensityMatrix.h>
 #include <Utils/DataStructures/DipoleMatrix.h>
@@ -21,6 +22,7 @@
 #include <Utils/Typenames.h>
 #include <array>
 #include <type_traits>
+#include <unordered_map>
 
 namespace Scine {
 namespace Utils {
@@ -50,6 +52,8 @@ enum class Property : unsigned {
   Description = (1 << 19),
   SuccessfulCalculation = (1 << 20),
   ProgramName = (1 << 21),
+  PointChargesGradients = (1 << 22),
+  AtomicGtos = (1 << 23)
 };
 
 // clang-format off
@@ -76,11 +80,13 @@ using PropertyTypeTuple =
     BondOrderCollection, /*Property::BondOrderMatrix*/
     std::string, /*Property::Description*/
     bool, /*Property::SuccessfulCalculation*/
-    std::string /*Property::ProgramName*/
+    std::string, /*Property::ProgramName*/
+    GradientCollection, /*Property::PointChargesGradients*/
+    std::unordered_map<int, AtomicGtos> /*Property::AtomicGtos*/
     >;
 // clang-format on
 
-static_assert(std::tuple_size<PropertyTypeTuple>::value == 22,
+static_assert(std::tuple_size<PropertyTypeTuple>::value == 24,
               "Tuple does not contain as many elements as there are properties");
 
 constexpr std::array<Property, std::tuple_size<PropertyTypeTuple>::value> allProperties{{Property::Energy,
@@ -104,7 +110,9 @@ constexpr std::array<Property, std::tuple_size<PropertyTypeTuple>::value> allPro
                                                                                          Property::BondOrderMatrix,
                                                                                          Property::Description,
                                                                                          Property::SuccessfulCalculation,
-                                                                                         Property::ProgramName}};
+                                                                                         Property::ProgramName,
+                                                                                         Property::PointChargesGradients,
+                                                                                         Property::AtomicGtos}};
 
 // Python binding names
 constexpr std::array<const char*, std::tuple_size<PropertyTypeTuple>::value> allPropertyNames{"energy",
@@ -123,12 +131,14 @@ constexpr std::array<const char*, std::tuple_size<PropertyTypeTuple>::value> all
                                                                                               "electronic_occupation",
                                                                                               "thermochemistry",
                                                                                               "excited_states",
-                                                                                              "AO_to_atom_mapping",
+                                                                                              "ao_to_atom_mapping",
                                                                                               "atomic_charges",
                                                                                               "bond_orders",
                                                                                               "description",
                                                                                               "successful_calculation",
-                                                                                              "program_name"};
+                                                                                              "program_name",
+                                                                                              "point_charges_gradients",
+                                                                                              "atomic_gtos"};
 
 /* other variants of doing this:
  * - Use a constexpr map datatype

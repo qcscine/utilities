@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -11,9 +11,9 @@
 #include "MDIntegrator.h"
 #include "MolecularDynamicsSettings.h"
 #include "VelocityVerletMD.h"
+#include <Core/Log.h>
 #include <Utils/CalculatorBasics.h>
 #include <Utils/Geometry/GeometryUtilities.h>
-#include <Utils/IO/Logger.h>
 
 namespace Scine {
 namespace Utils {
@@ -58,7 +58,7 @@ Utils::Settings& MolecularDynamics::settings() {
   return *settings_;
 }
 
-void MolecularDynamics::performMDSimulation(const AtomCollection& structure) {
+void MolecularDynamics::performMDSimulation(const AtomCollection& structure, Core::Log& log) {
   applySettings();
   structures_.clear();
   structures_.setElementTypes(structure.getElements());
@@ -88,8 +88,8 @@ void MolecularDynamics::performMDSimulation(const AtomCollection& structure) {
   if (saveVelocities_)
     velocities_.push_back(initialVelocities_);
 
-  Utils::Log::info() << "Calculation for initial structure done.";
-  Utils::Log::info() << "Starting MD simulation with " << numberOfSteps_ << " steps...";
+  log.output << "Calculation for initial structure done." << Core::Log::nl;
+  log.output << "Starting MD simulation with " << numberOfSteps_ << " steps..." << Core::Log::nl;
 
   // MD simulation
   for (int i = 0; i < numberOfSteps_; ++i) {
@@ -110,11 +110,11 @@ void MolecularDynamics::performMDSimulation(const AtomCollection& structure) {
       structures_.push_back(positions, results.get<Property::Energy>());
       if (saveVelocities_)
         velocities_.push_back(positionUpdater->getVelocities());
-      Utils::Log::debug() << "The structure number " << ((i + 1) / recordFrequency_) + 1
-                          << " has been added to the MD trajectory.";
+      log.debug << "The structure number " << ((i + 1) / recordFrequency_) + 1
+                << " has been added to the MD trajectory." << Core::Log::nl;
     }
   }
-  Utils::Log::info() << "MD simulation done.";
+  log.output.line("MD simulation done.");
 }
 
 std::unique_ptr<MDIntegrator> MolecularDynamics::getIntegrator() const {

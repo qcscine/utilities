@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/Geometry/AtomCollection.h"
@@ -92,6 +92,26 @@ TEST_F(AtomCollectionTest, AllowsForRangeBasedLoops) {
     ASSERT_THAT(a.getPosition(), Eq(atoms[i].getPosition()));
     ++i;
   }
+}
+
+TEST_F(AtomCollectionTest, AtomCollectionsCanBeCombined) {
+  AtomCollection first;
+  first.push_back(Atom(ElementType::He, Position(0, 0, 0)));
+
+  AtomCollection second;
+  second.push_back(Atom(ElementType::Xe, Position(1, 1, 1)));
+
+  AtomCollection merge = first + second;
+
+  ASSERT_THAT(merge.size(), first.size() + second.size());
+  ASSERT_THAT(merge.getElement(0), first.getElement(0));
+  ASSERT_THAT(merge.getElement(merge.size() - 1), second.getElement(second.size() - 1));
+
+  merge += first + second;
+
+  ASSERT_THAT(merge.size(), 2 * first.size() + 2 * second.size());
+  ASSERT_THAT(merge.getElement(0), first.getElement(0));
+  ASSERT_THAT(merge.getElement(merge.size() - 1), second.getElement(second.size() - 1));
 }
 
 } /* namespace Tests */

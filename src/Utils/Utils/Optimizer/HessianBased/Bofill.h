@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -53,19 +53,24 @@ class Bofill : public Optimizer {
   int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, GradientBasedCheck& check) {
     /* number of parameters treated */
     unsigned int nParams = parameters.size();
+    if (nParams == 0) {
+      throw EmptyOptimizerParametersException();
+    }
     double value;
     /* Setting all gradients to zero. */
     Eigen::VectorXd gradients = Eigen::VectorXd::Zero(nParams);
     /* Initialize Hessian matrix */
     Eigen::MatrixXd hessian = Eigen::MatrixXd::Identity(nParams, nParams);
     /* Initial update */
+    int cycle = _startCycle;
     function(parameters, value, gradients, hessian, true);
-    this->triggerObservers(0, value, parameters);
+    this->triggerObservers(cycle, value, parameters);
+    // Init parameters and value stored in the convergence checker
+    check.setParametersAndValue(parameters, value);
     /* Initialize 'old' variables */
     Eigen::VectorXd xOld(parameters);
     Eigen::VectorXd gOld(gradients);
     bool stop = false;
-    int cycle = 0;
     while (!stop) {
       cycle++;
       // Hessian decomposition
@@ -88,6 +93,9 @@ class Bofill : public Optimizer {
       const double lambdaN = es3.eigenvalues()[0];
       // Contribution from first eigenvalue to step
       Eigen::VectorXd steps = (-minstep(0) / (es.eigenvalues()[0] - lambdaP)) * es.eigenvectors().col(0);
+      if (steps != steps) {
+        throw std::runtime_error("Step size in Bofill optimizer is nan.");
+      }
       // Contribution from other eigenvalues to step
       for (int i = 1; i < es.eigenvalues().size(); ++i) {
         steps -= (minstep(i) / (es.eigenvalues()[i] - lambdaN)) * es.eigenvectors().col(i);
@@ -101,13 +109,23 @@ class Bofill : public Optimizer {
       parameters += steps;
       // Update
       gOld = gradients;
-      bool hessianUpdateRequired = (cycle % hessianUpdate == 0);
+      bool hessianUpdateRequired = ((cycle - _startCycle) % hessianUpdate == 0);
       function(parameters, value, gradients, hessian, hessianUpdateRequired);
       // Check convergence
       this->triggerObservers(cycle, value, parameters);
       stop = check.checkMaxIterations(cycle);
       if (!stop) {
         stop = check.checkConvergence(parameters, value, gradients);
+      }
+      // Check oscillation, perform new hessian calculation if oscillating
+      if (!stop && this->isOscillating(value)) {
+        xOld.noalias() = parameters;
+        gOld.noalias() = gradients;
+        this->oscillationCorrection(steps, parameters);
+        hessianUpdateRequired = true;
+        function(parameters, value, gradients, hessian, hessianUpdateRequired);
+        cycle++;
+        this->triggerObservers(cycle, value, parameters);
       }
       Eigen::VectorXd dx = parameters - xOld;
       Eigen::VectorXd dg = gradients - gOld;
@@ -126,7 +144,7 @@ class Bofill : public Optimizer {
         //  SR1 part of the Bofill algorithm
         hessian += bofillFactor * ((tmp2 * tmp2.transpose()) / tmpdotdx);
         if (projection) {
-          (*projection)(hessian);
+          projection(hessian);
         }
       }
     }
@@ -154,12 +172,32 @@ class Bofill : public Optimizer {
     trustRadius = settings.getDouble(Bofill::bofillTrustRadius);
     hessianUpdate = settings.getInt(Bofill::bofillHessianUpdate);
   };
+  /**
+   * @brief Prepares the Bofill optimizer for rerunning its optimize function.
+   *
+   * This function is used to prepare a Bofill optimizer instance for rerunning
+   * its optimize function with possibly different settings.
+   * It changes the cycle count the optimizer starts with when the optimize
+   * function is called and removes its optional Hessian projection function.
+   * The value memory for an eventual oscillating correction is cleared.
+   *
+   * @param cycleNumber The cycle number the optimizer starts with.
+   */
+  virtual void prepareRestart(const int& cycleNumber) final {
+    // Set start cycle number
+    _startCycle = cycleNumber;
+    // Remove Hessian projection
+    this->projection = nullptr;
+    // Clear value memory for oscillating correction
+    _initializedValueMemory = false;
+    _valueMemory.clear();
+  };
   /// @brief The maximum RMS of a taken step.
   double trustRadius = 0.1;
   /// @brief The number of cycles in between full Hessian updates.
   int hessianUpdate = 5;
   /// @brief A possible Hessian projection
-  std::unique_ptr<std::function<void(Eigen::MatrixXd&)>> projection = nullptr;
+  std::function<void(Eigen::MatrixXd&)> projection;
 };
 
 } // namespace Utils

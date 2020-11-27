@@ -1,14 +1,13 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
 #include "RandomOrbitalMixer.h"
 #include "UniqueRandomNumbersGenerator.h"
 #include <Utils/DataStructures/MolecularOrbitals.h>
-#include <Utils/IO/Logger.h>
 #include <random>
 
 namespace Scine {
@@ -39,8 +38,7 @@ void RandomOrbitalMixer::mix() {
   checkValidNumberOfMixes();
 
   if (invalidMolecularOrbitals(orbitals_)) {
-    Utils::Log::warning() << "Cannot mix the molecular orbitals since they are invalid.";
-    return;
+    throw std::runtime_error("Cannot mix the molecular orbitals since they are invalid.");
   }
 
   if (orbitals_.isUnrestricted()) {

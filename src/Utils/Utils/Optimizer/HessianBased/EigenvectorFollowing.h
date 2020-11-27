@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -50,16 +50,21 @@ class EigenvectorFollowing : public Optimizer {
   int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, GradientBasedCheck& check) {
     /* number of parameters treated */
     unsigned int nParams = parameters.size();
+    if (nParams == 0) {
+      throw EmptyOptimizerParametersException();
+    }
     double value;
     /* Initialize gradients and Hessian. */
     Eigen::VectorXd gradients = Eigen::VectorXd::Zero(nParams);
     auto hessian = std::make_unique<Eigen::MatrixXd>(nParams, nParams);
     hessian->setZero();
+    int cycle = _startCycle;
     /* Initial update */
     function(parameters, value, gradients, *hessian, true);
-    this->triggerObservers(0, value, parameters);
+    this->triggerObservers(cycle, value, parameters);
+    // Init parameters and value stored in the convergence checker
+    check.setParametersAndValue(parameters, value);
     bool stop = false;
-    int cycle = 0;
     Eigen::VectorXd prevFollowedEigenvector;
     prevFollowedEigenvector.resize(nParams);
     while (!stop) {
@@ -73,7 +78,7 @@ class EigenvectorFollowing : public Optimizer {
       /* for first step lowest eigenvalue is followed; could be changed to user-defined value */
       unsigned int modeToFollow = 0;
       Eigen::VectorXd overlaps = Eigen::VectorXd::Zero(nEV);
-      if (cycle != 1) {
+      if (cycle != _startCycle + 1) {
         /* estimate overlap of EVs to previous EV, which was followed, by cosine similarity */
         for (int i = 0; i < nEV; ++i) {
           /* only evaluate EVs with negative eigenvalues */
@@ -129,6 +134,9 @@ class EigenvectorFollowing : public Optimizer {
       /* Contribution from followed eigenvalue to step */
       Eigen::VectorXd steps =
           (-minstep[modeToFollow] / (es.eigenvalues()[modeToFollow] - lambdaP)) * es.eigenvectors().col(modeToFollow);
+      if (steps != steps) {
+        throw std::runtime_error("Step size in EVF optimizer is nan.");
+      }
       /* Contribution from other eigenvalues to step */
       for (int i = 0; i < nEV; ++i) {
         if (i != modeToFollow) {
@@ -147,6 +155,13 @@ class EigenvectorFollowing : public Optimizer {
       stop = check.checkMaxIterations(cycle);
       if (!stop) {
         stop = check.checkConvergence(parameters, value, gradients);
+      }
+      // Check oscillation, if oscillating modify step and calculate new Hessian
+      if (!stop && this->isOscillating(value)) {
+        this->oscillationCorrection(steps, parameters);
+        function(parameters, value, gradients, *hessian, true);
+        cycle++;
+        this->triggerObservers(cycle, value, parameters);
       }
     }
     return cycle;

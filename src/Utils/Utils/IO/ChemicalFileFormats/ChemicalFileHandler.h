@@ -2,7 +2,7 @@
  * @file
  * @brief File-level I/O on chemical file formats
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef INCLUDE_SCINE_UTILS_FILE_HANDLER_H

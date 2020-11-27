@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -42,9 +42,13 @@ class IrcOptimizerBase {
    * This function wraps the optimize functions of the underlying optimizer.
    *
    * @param atoms The AtomCollection (Geometry) to be optimized.
+   * @param log The logger to which eventual output is written.
+   * @param mode  The mode to follow in the IRC.
+   * @param forward A boolean signaling to follow the mode forwards (true, current positions + mode)
+   *                or backwards (false, current positions - mode)
    * @return int  The final number of optimization cycles carried out.
    */
-  virtual int optimize(AtomCollection& atoms, const Eigen::VectorXd& mode, bool forward = true) = 0;
+  virtual int optimize(AtomCollection& atoms, Core::Log& log, const Eigen::VectorXd& mode, bool forward = true) = 0;
   /**
    * @brief Function to apply the given settings to underlying classes.
    * @param settings The new settings.
@@ -146,12 +150,13 @@ class IrcOptimizer : public IrcOptimizerBase {
    * @brief See IRCOptimizerBase::optimize().
    *
    * @param atoms The AtomCollection (Geometry) to be optimized.
+   * @param log The logger to which eventual output is written.
    * @param mode  The mode to follow in the IRC.
    * @param forward A boolean signaling to follow the mode forwards (true, current positions + mode)
    *                or backwards (false, current positions - mode)
    * @return int  The final number of optimization cycles carried out.
    */
-  virtual int optimize(AtomCollection& atoms, const Eigen::VectorXd& mode, bool forward = true) final {
+  virtual int optimize(AtomCollection& atoms, Core::Log& log, const Eigen::VectorXd& mode, bool forward = true) final {
     // Configure Calculator
     _calculator.setStructure(atoms);
     _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
@@ -167,7 +172,10 @@ class IrcOptimizer : public IrcOptimizerBase {
     std::shared_ptr<InternalCoordinates> transformation = nullptr;
     if (this->transformCoordinates)
       transformation = std::make_shared<InternalCoordinates>(atoms);
+    // Count cycles for eventual restart
+    int cycle = 0;
     auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
+      cycle++;
       Utils::PositionCollection coordinates;
       if (this->transformCoordinates) {
         coordinates = transformation->coordinatesToCartesian(parameters);
@@ -177,6 +185,9 @@ class IrcOptimizer : public IrcOptimizerBase {
       }
       _calculator.modifyPositions(coordinates);
       Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+      if (!results.get<Property::SuccessfulCalculation>()) {
+        throw std::runtime_error("Gradient calculation in IRC scan failed.");
+      }
       value = results.get<Property::Energy>();
       auto gradientMatrix = results.get<Property::Gradients>();
       if (this->transformCoordinates) {
@@ -203,7 +214,21 @@ class IrcOptimizer : public IrcOptimizerBase {
       positions = Eigen::Map<const Eigen::VectorXd>(coordinates.data(), atoms.size() * 3);
     }
     // Optimize
-    auto cycles = optimizer.optimize(positions, update, check);
+    int cycles = 0;
+    try {
+      cycles = optimizer.optimize(positions, update, check);
+    }
+    catch (const InternalCoordinatesException& e) {
+      log.output << "Internal coordinates broke down. Continuing in cartesians." << Core::Log::nl;
+      // Update coordinates to the last ones that were successfully reconverted
+      Utils::PositionCollection lastCoordinates = _calculator.getPositions();
+      // Disable coordinate transformation
+      this->transformCoordinates = false;
+      // Restart optimization
+      optimizer.prepareRestart(cycle);
+      Eigen::VectorXd lastPositions = Eigen::Map<const Eigen::VectorXd>(lastCoordinates.data(), atoms.size() * 3);
+      cycles = optimizer.optimize(lastPositions, update, check);
+    }
     // Update Atom collection and return
     if (this->transformCoordinates) {
       coordinates = transformation->coordinatesToCartesian(positions);

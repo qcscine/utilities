@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/IO/ChemicalFileFormats/MolStreamHandler.h"
@@ -381,13 +381,19 @@ std::pair<AtomCollection, BondOrderCollection> MolStreamHandler::read(std::istre
       if (0 < molBondSpecifier && molBondSpecifier < 4) {
         bondOrders.setOrder(a, b, molBondSpecifier);
       }
-      // The bond type "4" in mol files encodes aromatic bonds. Set their order to 1.5.
-      else if (molBondSpecifier == 4) {
+      else if (4 <= molBondSpecifier && molBondSpecifier < 8) {
+        /* The bond types 4 through 7 are
+         * - aromatic
+         * - single or double
+         * - single or aromatic
+         * - double or aromatic
+         *
+         * Best effort fractional value for all of these is 1.5
+         */
         bondOrders.setOrder(a, b, 1.5);
       }
-      // Throw an exception if other fancy bond types that we do not handle are specified in the file
-      else if (molBondSpecifier > 4) {
-        throw std::logic_error("MOL format bond types > 4 are not supported.");
+      else if (molBondSpecifier == 8) { // Any
+        bondOrders.setOrder(a, b, 1.0);
       }
     }
   }

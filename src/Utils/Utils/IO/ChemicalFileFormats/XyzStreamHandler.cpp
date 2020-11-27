@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/IO/ChemicalFileFormats/XyzStreamHandler.h"
@@ -12,6 +12,7 @@
 #include "Utils/Technical/ScopedLocale.h"
 #include "boost/optional.hpp"
 #include <iomanip>
+#include <string>
 
 namespace Scine {
 
@@ -78,26 +79,26 @@ AtomCollection XyzStreamHandler::read(std::istream& is) {
   ElementTypeCollection elements;
   PositionCollection positions;
 
-  /* Extract the number of atoms. This number is principally wholly untrusted.
-   * We use it to reserve the number of atoms, but reading does not fail if
-   * more or less atoms are encountered.
+  /* Extract the number of atoms. This number is principally enforced and
+   * any deviation leads to a thrown exception
+   * If the first line (without the ignored linebreak and spaces) is not a single integer
+   * a FormatMismatch is thrown.
+   * If the number of atoms in the positions after the read-in is different to the integer
+   * a AtomNumberMismatch is thrown
    */
-  unsigned nAtoms;
-  is >> nAtoms;
-  // If this operation did not fail, we can preallocate the expected number of positions
-  if (!is.fail()) {
-    elements.reserve(nAtoms);
-    positions.resize(nAtoms, Eigen::NoChange_t());
+  int nAtoms;
+  while (true) {
+    std::string temp_str;
+    std::getline(is, temp_str, is.widen('\n'));
+    std::stringstream parser(temp_str);
+    if (parser >> nAtoms && (parser >> std::ws).eof() && nAtoms >= 0)
+      break; // success
+    throw FormattedStreamHandler::FormatMismatchException();
   }
 
-  // Clear any failure bit from the initial read (we do not rely on it)
-  is.clear();
-
-  /* Skip the rest of the first line (there should be nothing but the end
-   * line), but if the initial read failed, then we skip whatever was there
-   * too.
-   */
-  is.ignore(std::numeric_limits<std::streamsize>::max(), is.widen('\n'));
+  // If this operation did not fail, we can preallocate the expected number of positions
+  elements.reserve(nAtoms);
+  positions.resize(nAtoms, Eigen::NoChange_t());
 
   // Skip the comment line
   is.ignore(std::numeric_limits<std::streamsize>::max(), is.widen('\n'));
@@ -105,8 +106,7 @@ AtomCollection XyzStreamHandler::read(std::istream& is) {
   // Read atom lines
   std::string elementString;
   ElementType element;
-  std::vector<Position> extraPositions;
-  for (unsigned i = 0; !is.eof(); ++i) {
+  for (int i = 0; !is.eof(); ++i) {
     // Try to read an element string.
     is >> elementString;
     if (is.fail() && !is.eof()) {
@@ -132,10 +132,8 @@ AtomCollection XyzStreamHandler::read(std::istream& is) {
       is >> positions(i, 0) >> positions(i, 1) >> positions(i, 2);
     }
     else {
-      // Read into a temporary matrix
-      Position position;
-      is >> position(0) >> position(1) >> position(2);
-      extraPositions.push_back(std::move(position));
+      // more atoms in file than specified at the top
+      throw FormattedStreamHandler::AtomNumberMismatchException();
     }
 
     if (is.fail()) {
@@ -146,21 +144,9 @@ AtomCollection XyzStreamHandler::read(std::istream& is) {
     is.ignore(std::numeric_limits<std::streamsize>::max(), is.widen('\n'));
   }
 
-  // Add any extra positions encountered
-  if (!extraPositions.empty()) {
-    const unsigned nExtra = extraPositions.size();
-    positions.conservativeResize(nAtoms + nExtra, Eigen::NoChange_t());
-    for (unsigned i = 0; i < nExtra; ++i) {
-      positions.row(nAtoms + i) = extraPositions[i];
-    }
-  }
-
-  /* If fewer lines were encountered than expected, downsize the matrix
-   * accordingly to ensure the calls to AtomCollection's .size() and
-   * .getPositions().nrows() are consistent
-   */
   if (elements.size() < nAtoms) {
-    positions.conservativeResize(elements.size(), Eigen::NoChange_t());
+    // fewer atoms in file than specified at the top
+    throw FormattedStreamHandler::AtomNumberMismatchException();
   }
 
   /* Since all positions were read in as angstrom, but are internally

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -40,6 +40,7 @@ class AfirOptimizerSettings : public Settings {
     : Settings("AfirOptimizerSettings") {
     optimizer.addSettingsDescriptors(this->_fields);
     check.addSettingsDescriptors(this->_fields);
+    check.addAfirSettingsDescriptors(this->_fields);
 
     UniversalSettings::IntListDescriptor afir_rhs_list(
         "The list of atoms indices of atoms to be artificially forced onto or away from those in the LHS list.");

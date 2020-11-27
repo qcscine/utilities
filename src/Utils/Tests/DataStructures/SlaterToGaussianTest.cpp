@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -52,14 +52,14 @@ TEST_F(ASlaterToGaussianTest, ReturnsCorrectValuesForSTO_4G_4f) {
 TEST_F(ASlaterToGaussianTest, ReturnsResultAsGTOExpansionInstance) {
   auto gtos = SlaterToGaussian::getGTOExpansion(4, 4, 3);
   auto values = SlaterToGaussian::get(4, 4, 3);
-  ASSERT_THAT(gtos.getGTF(0).getCoefficient(), Eq(values[0].second));
-  ASSERT_THAT(gtos.getGTF(1).getCoefficient(), Eq(values[1].second));
-  ASSERT_THAT(gtos.getGTF(2).getCoefficient(), Eq(values[2].second));
-  ASSERT_THAT(gtos.getGTF(3).getCoefficient(), Eq(values[3].second));
-  ASSERT_THAT(gtos.getGTF(0).getExponent(), Eq(values[0].first));
-  ASSERT_THAT(gtos.getGTF(1).getExponent(), Eq(values[1].first));
-  ASSERT_THAT(gtos.getGTF(2).getExponent(), Eq(values[2].first));
-  ASSERT_THAT(gtos.getGTF(3).getExponent(), Eq(values[3].first));
+  ASSERT_THAT(gtos.gtfs.at(0).coefficient, Eq(values[0].second));
+  ASSERT_THAT(gtos.gtfs.at(1).coefficient, Eq(values[1].second));
+  ASSERT_THAT(gtos.gtfs.at(2).coefficient, Eq(values[2].second));
+  ASSERT_THAT(gtos.gtfs.at(3).coefficient, Eq(values[3].second));
+  ASSERT_THAT(gtos.gtfs.at(0).exponent, Eq(values[0].first));
+  ASSERT_THAT(gtos.gtfs.at(1).exponent, Eq(values[1].first));
+  ASSERT_THAT(gtos.gtfs.at(2).exponent, Eq(values[2].first));
+  ASSERT_THAT(gtos.gtfs.at(3).exponent, Eq(values[3].first));
 }
 
 } // namespace Tests

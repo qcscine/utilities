@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "GaussianCalculator.h"
@@ -59,6 +59,10 @@ GaussianCalculator::GaussianCalculator(const GaussianCalculator& rhs) {
 }
 
 void GaussianCalculator::applySettings() {
+  if (settings_->getDouble(Utils::SettingsNames::electronicTemperature) > 0.0) {
+    throw Core::InitializationException(
+        "Gaussian calculations with an electronic temperature above 0.0 K are not supported.");
+  }
   if (settings_->check()) {
     fileNameBase_ = settings_->getString(SettingsNames::gaussianFilenameBase);
     baseWorkingDirectory_ = settings_->getString(SettingsNames::baseWorkingDirectory);
@@ -191,7 +195,6 @@ std::string GaussianCalculator::getCalculationDirectory() const {
 bool GaussianCalculator::binaryIsValid() {
   if (binaryHasBeenChecked_)
     return true;
-
   if (gaussianExecutable_.empty())
     return false;
 

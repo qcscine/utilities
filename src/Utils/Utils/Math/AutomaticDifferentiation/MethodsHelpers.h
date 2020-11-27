@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -23,19 +23,19 @@ namespace AutomaticDifferentiation {
 /**
  * @brief Get opposed derivatives. i.e. sign of first derivative changes.
  */
-template<derivativeType o>
+template<Derivative o>
 DerivativeType<o> getOppositeDerivative(const DerivativeType<o>& v);
 /**
  * @brief Extract the derivatives from a value type with derivatives.
  */
-template<derivativeType o>
+template<Derivative o>
 DerivativeType<o> getDerivativeFromValueWithDerivatives(const Value3DType<UnderlyingOrder<o>>& v);
 
 /**
  * @brief Add derivatives to a derivative container.
  * @param v Derivative for the pair of indexes a-b. Considering the direction a->b.
  */
-template<derivativeType o>
+template<Derivative o>
 void addDerivativeToContainer(DerivativeContainerType<o>& container, int a, int b, const DerivativeType<o>& v);
 
 /*
@@ -43,54 +43,52 @@ void addDerivativeToContainer(DerivativeContainerType<o>& container, int a, int 
  */
 
 template<>
-inline DerivativeType<derivativeType::first>
-getOppositeDerivative<derivativeType::first>(const DerivativeType<derivativeType::first>& v) {
+inline DerivativeType<Derivative::First> getOppositeDerivative<Derivative::First>(const DerivativeType<Derivative::First>& v) {
   return -v;
 }
 template<>
-inline DerivativeType<derivativeType::second_atomic>
-getOppositeDerivative<derivativeType::second_atomic>(const DerivativeType<derivativeType::second_atomic>& v) {
+inline DerivativeType<Derivative::SecondAtomic>
+getOppositeDerivative<Derivative::SecondAtomic>(const DerivativeType<Derivative::SecondAtomic>& v) {
   return v.opposite();
 }
 template<>
-inline DerivativeType<derivativeType::second_full>
-getOppositeDerivative<derivativeType::second_full>(const DerivativeType<derivativeType::second_full>& v) {
+inline DerivativeType<Derivative::SecondFull>
+getOppositeDerivative<Derivative::SecondFull>(const DerivativeType<Derivative::SecondFull>& v) {
   return v.opposite();
 }
 
 template<>
-inline DerivativeType<derivativeType::first>
-getDerivativeFromValueWithDerivatives<derivativeType::first>(const Value3DType<derivOrder::one>& v) {
+inline DerivativeType<Derivative::First>
+getDerivativeFromValueWithDerivatives<Derivative::First>(const Value3DType<DerivativeOrder::One>& v) {
   return Gradient(v.derivatives());
 }
 template<>
-inline DerivativeType<derivativeType::second_atomic>
-getDerivativeFromValueWithDerivatives<derivativeType::second_atomic>(const Value3DType<derivOrder::two>& v) {
+inline DerivativeType<Derivative::SecondAtomic>
+getDerivativeFromValueWithDerivatives<Derivative::SecondAtomic>(const Value3DType<DerivativeOrder::Two>& v) {
   return v;
 }
 template<>
-inline DerivativeType<derivativeType::second_full>
-getDerivativeFromValueWithDerivatives<derivativeType::second_full>(const Value3DType<derivOrder::two>& v) {
+inline DerivativeType<Derivative::SecondFull>
+getDerivativeFromValueWithDerivatives<Derivative::SecondFull>(const Value3DType<DerivativeOrder::Two>& v) {
   return v;
 }
 
 template<>
-inline void addDerivativeToContainer<derivativeType::first>(DerivativeContainerType<derivativeType::first>& container,
-                                                            int a, int b, const DerivativeType<derivativeType::first>& v) {
+inline void addDerivativeToContainer<Derivative::First>(DerivativeContainerType<Derivative::First>& container, int a,
+                                                        int b, const DerivativeType<Derivative::First>& v) {
   container.row(b) += v;
   container.row(a) -= v;
 }
 template<>
-inline void
-addDerivativeToContainer<derivativeType::second_atomic>(DerivativeContainerType<derivativeType::second_atomic>& container,
-                                                        int a, int b, const DerivativeType<derivativeType::second_atomic>& v) {
+inline void addDerivativeToContainer<Derivative::SecondAtomic>(DerivativeContainerType<Derivative::SecondAtomic>& container,
+                                                               int a, int b,
+                                                               const DerivativeType<Derivative::SecondAtomic>& v) {
   container[b] += v;
-  container[a] += getOppositeDerivative<derivativeType::second_atomic>(v);
+  container[a] += getOppositeDerivative<Derivative::SecondAtomic>(v);
 }
 template<>
-inline void
-addDerivativeToContainer<derivativeType::second_full>(DerivativeContainerType<derivativeType::second_full>& container,
-                                                      int a, int b, const DerivativeType<derivativeType::second_full>& v) {
+inline void addDerivativeToContainer<Derivative::SecondFull>(DerivativeContainerType<Derivative::SecondFull>& container,
+                                                             int a, int b, const DerivativeType<Derivative::SecondFull>& v) {
   container.addDerivative(a, b, v);
 }
 

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_BONDDETECTORRADII_H_
@@ -23,7 +23,20 @@ class BondDetectorRadii {
   /// @brief Default constructor.
   BondDetectorRadii();
   /**
-   * @brief Get the covalent radius for a given element.
+   * @brief Get the Cambridge Structural Database covalent radius for a given element.
+   *
+   * For molecular structures the covalent radii available in Utils::ElementInfo are often more appropriate.
+   *
+   * The covalent radii here were extracted from the Cambridge Structural Database (CSD) on 04/08/2020:\n
+   * https://www.ccdc.cam.ac.uk/support-and-resources/ccdcresources/Elemental_Radii.xlsx\n
+   * C. R. Groom, I. J. Bruno, M. P. Lightfoot and S. C. Ward, Acta Cryst. 2016, B72, 171-179.
+   * [DOI 10.1107/S2052520616003954]\n
+   *
+   * The original reference for the covalent radii of metals is:\n
+   * S. Alvarez et al., Dalton Trans., 2008, 2832-2838. [DOI: 10.1039/B801115J]
+   *
+   * Elements not yet encountered in the CSD get assigned a default covalent radius of 1.5 Angstrom.
+   *
    * @param e The element.
    * @return double The covalent radius.
    */

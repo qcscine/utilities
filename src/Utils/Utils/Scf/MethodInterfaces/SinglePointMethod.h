@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -9,7 +9,6 @@
 #define UTILS_SINGLEPOINTMETHOD_H
 
 #include <Utils/Bonds/BondOrderCollection.h>
-#include <Utils/IO/Logger.h>
 #include <Utils/Math/AtomicSecondDerivativeCollection.h>
 #include <Utils/Math/DerivOrderEnum.h>
 #include <Utils/Math/FullSecondDerivativeCollection.h>
@@ -17,11 +16,13 @@
 #include <vector>
 
 namespace Scine {
+namespace Core {
+struct Log;
+} // namespace Core
 
 namespace Utils {
+
 class AtomCollection;
-}
-namespace Utils {
 
 /*!
  * This class is the base class of any method to be used in
@@ -31,12 +32,12 @@ namespace Utils {
 
 class SinglePointMethod {
  public:
-  explicit SinglePointMethod(Utils::derivOrder maximalOrder);
+  explicit SinglePointMethod(Utils::DerivativeOrder maximalOrder);
   virtual ~SinglePointMethod() = default;
 
   /*! Performs one single-point calculation of the energy.
    * \param derivativesOrder which derivative to calculate up to, if possible. */
-  virtual void calculate(Utils::derivativeType d) = 0;
+  virtual void calculate(Utils::Derivative d, Core::Log& log) = 0;
 
   void setAtomCollection(const Utils::AtomCollection& structure);
   /*! Set up the structure from the positions and element types.
@@ -83,7 +84,7 @@ class SinglePointMethod {
   Utils::BondOrderCollection bondOrders_;
   Utils::ElementTypeCollection elementTypes_;
   Utils::PositionCollection positions_;
-  const Utils::derivOrder maximalCalculableDerivativeOrder_;
+  const Utils::DerivativeOrder maximalCalculableDerivativeOrder_;
   Utils::GradientCollection gradients_;
   Utils::AtomicSecondDerivativeCollection secondDerivatives_;
   Utils::FullSecondDerivativeCollection fullSecondDerivatives_;

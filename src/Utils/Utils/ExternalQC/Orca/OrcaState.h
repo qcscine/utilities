@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_ORCASTATE_H
@@ -42,7 +42,7 @@ class StateSavingException : public std::exception {
  * @brief Definition of a calculation state for ORCA calculations.
  *        The calculation state is defined as a unique identifier. Only a string state is saved here.
  */
-struct OrcaState : public Core::State {
+struct OrcaState final : public Core::State {
   /**
    * @brief Constructor, calls the base class constructor to initialize the size of the state.
    */

@@ -2,7 +2,7 @@
  * @file FormattedStreamHandler.h
  * @brief Defines interface for classes handling formatted IO from streams
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef CORE_FORMATTED_STREAM_HANDLER_H_
@@ -53,6 +53,14 @@ class FormattedStreamHandler {
     }
   };
   /**
+   * @brief Exception thrown if the specified number of atoms was exceeded
+   */
+  struct AtomNumberMismatchException final : public std::exception {
+    const char* what() const noexcept final {
+      return "Encountered more or fewer atoms than specified.";
+    }
+  };
+  /**
    * @brief Exception thrown if the function yielding or taking a
    *   BondOrderCollection reads from or writes to a stream whose format does
    *   not include bond order information.
@@ -64,8 +72,6 @@ class FormattedStreamHandler {
   };
   //*@}
 
-  /// @brief Default Constructor.
-  FormattedStreamHandler() = default;
   /// @brief Default Destructor.
   virtual ~FormattedStreamHandler() = default;
 

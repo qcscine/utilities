@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_DAVIDSONDIAGONALIZER_H
@@ -13,7 +13,12 @@
 #include <exception>
 #include <map>
 #include <memory>
+
 namespace Scine {
+namespace Core {
+struct Log;
+} // namespace Core
+
 namespace Utils {
 
 class InvalidDavidsonInputException : public std::exception {
@@ -80,12 +85,12 @@ class DavidsonDiagonalizer {
    * for the problem at hand, custom guess vectors can be given through the
    * DavidsonDiagonalizer::setGuess() method.
    */
-  DavidsonDiagonalizer(int eigenvaluesToCompute, int numberGuessVectors, int totalDimension);
+  DavidsonDiagonalizer(int eigenvaluesToCompute, int numberGuessVectors, int totalDimension, Core::Log& log);
   /**
    * @brief Feeds in the matrix to be diagonalized.
    * @param matrix An Eigen::MatrixXd for which the first eigenvector/-value pairs are to be found.
    */
-  void setMatrixToDiagonalize(const MatrixType& matrix);
+  void setMatrixToDiagonalize(const MatrixType& matrix, Core::Log& log);
 
   /**
    * @brief Sets the guess eigenvectors.
@@ -132,10 +137,10 @@ class DavidsonDiagonalizer {
    * Depending on whether the standard or direct modality is chosen, the Davidson diagonalizer
    * uses the stored matrix or calculated on the fly the sigma matrix.
    */
-  EigenContainer solve();
+  EigenContainer solve(Core::Log& log);
 
  protected:
-  void initialize(int dimension);
+  void initialize(int dimension, Core::Log& log);
   void checkEvaluators();
   void orthogonalizeSubspace(Eigen::MatrixXd& trialSpace);
   Eigen::VectorXd orthogonalizeToSubspace(const Eigen::VectorXd& vector, const Eigen::MatrixXd& subspace) const;

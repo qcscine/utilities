@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -9,7 +9,6 @@
 #define UTILS_SETTINGPOPULATOR_H
 
 #include "SettingsNames.h"
-#include <Utils/IO/Logger.h>
 #include <Utils/Scf/ConvergenceAccelerators/ConvergenceAcceleratorFactory.h>
 #include <string>
 namespace Scine {
@@ -39,7 +38,7 @@ class SettingPopulator {
    *         For NDDO methods it is usually parameter.xml, for DFTB it is different.
    */
   static void populateSemiEmpiricalSettings(SettingsCollection& settings,
-                                            std::string defaultParameterFile = "parameter.xml");
+                                            std::string defaultParameterFile = "parameter.json");
   /**
    * @brief This function converts a mixer name into a mixer type.
    * @param scfMixerName Name of the mixer type.
@@ -59,6 +58,7 @@ class SettingPopulator {
   static void addSpinMultiplicity(SettingsCollection& settings);
   static void addUnrestrictedCalculation(SettingsCollection& settings);
   static void addTemperatureOption(SettingsCollection& settings);
+  static void addSymmetryNumberOption(SettingsCollection& settings);
   static void addDavidsonOption(SettingsCollection& settings);
 
   // Scf Settings

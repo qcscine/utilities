@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -21,15 +21,11 @@ class AStatesHandlerTest : public Test {
   // Mock State class for testing the StateHandler.
   class TestState : public Core::State {
    public:
-    TestState() = default;
-    ~TestState() final = default;
     int stateNumber_ = 0;
   };
 
   class TestStateWithWrongType : public Core::State {
    public:
-    TestStateWithWrongType() = default;
-    ~TestStateWithWrongType() final = default;
   };
 
   class TestHandableObject : public Core::StateHandableObject {

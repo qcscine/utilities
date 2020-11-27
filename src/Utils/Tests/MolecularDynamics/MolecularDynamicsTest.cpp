@@ -1,10 +1,11 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Core/Interfaces/Calculator.h>
+#include <Core/Log.h>
 #include <Utils/CalculatorBasics.h>
 #include <Utils/IO/ChemicalFileFormats/XyzStreamHandler.h>
 #include <Utils/MolecularDynamics/LeapFrogMD.h>
@@ -23,8 +24,6 @@ namespace Tests {
 // Define a mock calculator
 class MockCalculator : public CloneInterface<MockCalculator, Core::Calculator> {
  public:
-  explicit MockCalculator() = default;
-  ~MockCalculator() final = default;
   void setStructure(const AtomCollection& structure) final {
     structure_ = structure;
   };
@@ -87,33 +86,36 @@ class MockCalculator : public CloneInterface<MockCalculator, Core::Calculator> {
  * @brief Comprises tests for Molecular Dynamics.
  * @test
  */
-class AMolecularDynamicsTest : public Test {};
+class AMolecularDynamicsTest : public Test {
+ public:
+  Core::Log log = Core::Log::silent();
+};
 
 TEST_F(AMolecularDynamicsTest, SettingsWorkCorrectly) {
   MockCalculator mockCalculator;
-  MolecularDynamics MD(mockCalculator);
-  MD.settings().modifyDouble(SettingsNames::timeStepInFemtoseconds, 3.0);
-  MD.settings().modifyInt(SettingsNames::numberOfMDSteps, 234);
-  MD.settings().modifyString(SettingsNames::integrationAlgorithm, "euler");
-  MD.settings().modifyBool(SettingsNames::temperatureBath, false);
-  MD.settings().modifyDouble(SettingsNames::relaxationTimeFactor, 15.0);
-  MD.settings().modifyBool(SettingsNames::saveVelocities, true);
+  MolecularDynamics md(mockCalculator);
+  md.settings().modifyDouble(SettingsNames::timeStepInFemtoseconds, 3.0);
+  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 234);
+  md.settings().modifyString(SettingsNames::integrationAlgorithm, "euler");
+  md.settings().modifyBool(SettingsNames::temperatureBath, false);
+  md.settings().modifyDouble(SettingsNames::relaxationTimeFactor, 15.0);
+  md.settings().modifyBool(SettingsNames::saveVelocities, true);
 
-  ASSERT_THAT(MD.settings().getDouble(SettingsNames::timeStepInFemtoseconds), Eq(3.0));
-  ASSERT_THAT(MD.settings().getInt(SettingsNames::numberOfMDSteps), Eq(234));
-  ASSERT_THAT(MD.settings().getString(SettingsNames::integrationAlgorithm), Eq("euler"));
-  ASSERT_FALSE(MD.settings().getBool(SettingsNames::temperatureBath));
-  ASSERT_THAT(MD.settings().getDouble(SettingsNames::relaxationTimeFactor), Eq(15.0));
-  ASSERT_TRUE(MD.settings().getBool(SettingsNames::saveVelocities));
+  ASSERT_THAT(md.settings().getDouble(SettingsNames::timeStepInFemtoseconds), Eq(3.0));
+  ASSERT_THAT(md.settings().getInt(SettingsNames::numberOfMDSteps), Eq(234));
+  ASSERT_THAT(md.settings().getString(SettingsNames::integrationAlgorithm), Eq("euler"));
+  ASSERT_FALSE(md.settings().getBool(SettingsNames::temperatureBath));
+  ASSERT_THAT(md.settings().getDouble(SettingsNames::relaxationTimeFactor), Eq(15.0));
+  ASSERT_TRUE(md.settings().getBool(SettingsNames::saveVelocities));
 }
 
-TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithLeapFrog) {
+TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithLeapFrog) {
   MockCalculator mockCalculator;
-  MolecularDynamics MD(mockCalculator);
+  MolecularDynamics md(mockCalculator);
 
-  MD.settings().modifyInt(SettingsNames::numberOfMDSteps, 7);
-  MD.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::leapFrogOption);
-  MD.settings().modifyBool(SettingsNames::saveVelocities, true);
+  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 7);
+  md.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::leapFrogOption);
+  md.settings().modifyBool(SettingsNames::saveVelocities, true);
 
   std::stringstream ss("3\n\n"
                        "O      0.0000000000    0.0000000000    0.0000000000\n"
@@ -122,8 +124,8 @@ TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithLeapFrog) {
   auto structure = Utils::XyzStreamHandler::read(ss);
 
   // Normal MD test
-  MD.performMDSimulation(structure);
-  MolecularTrajectory mt = MD.getMolecularTrajectory();
+  md.performMDSimulation(structure, log);
+  MolecularTrajectory mt = md.getMolecularTrajectory();
 
   ASSERT_THAT(mt.size(), Eq(8));
   for (const auto& energy : mt.getEnergies()) {
@@ -134,9 +136,9 @@ TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithLeapFrog) {
   }
 
   // Different temperature should lead to different trajectory
-  MD.settings().modifyDouble(SettingsNames::targetTemperature, 700);
-  MD.performMDSimulation(structure);
-  MolecularTrajectory mtNew = MD.getMolecularTrajectory();
+  md.settings().modifyDouble(SettingsNames::targetTemperature, 700);
+  md.performMDSimulation(structure, log);
+  MolecularTrajectory mtNew = md.getMolecularTrajectory();
 
   ASSERT_THAT(mtNew[0](1, 1), Eq(mt[0](1, 1)));
   for (int i = 1; i < mtNew.size(); ++i) {
@@ -144,25 +146,25 @@ TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithLeapFrog) {
   }
 
   // Initial velocities should lead to different trajectory
-  MD.settings().modifyDouble(SettingsNames::targetTemperature, 300);
-  MD.setInitialVelocities(Eigen::MatrixXd::Random(structure.size(), 3));
-  MD.performMDSimulation(structure);
-  MolecularTrajectory mtRandomStart = MD.getMolecularTrajectory();
+  md.settings().modifyDouble(SettingsNames::targetTemperature, 300);
+  md.setInitialVelocities(Eigen::MatrixXd::Random(structure.size(), 3));
+  md.performMDSimulation(structure, log);
+  MolecularTrajectory mtRandomStart = md.getMolecularTrajectory();
 
   ASSERT_THAT(mtRandomStart[0](1, 1), Eq(mt[0](1, 1)));
   for (int i = 1; i < mtRandomStart.size(); ++i) {
     ASSERT_THAT(mtRandomStart[i](1, 1), Ne(mt[i](1, 1)));
   }
   // Assert that velocities were saved as specified in the settings.
-  ASSERT_THAT(MD.getVelocities().size(), Eq(mtNew.size()));
+  ASSERT_THAT(md.getVelocities().size(), Eq(mtNew.size()));
 }
 
-TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithEuler) {
+TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithEuler) {
   MockCalculator mockCalculator;
-  MolecularDynamics MD(mockCalculator);
+  MolecularDynamics md(mockCalculator);
 
-  MD.settings().modifyInt(SettingsNames::numberOfMDSteps, 7);
-  MD.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::eulerOption);
+  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 7);
+  md.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::eulerOption);
 
   std::stringstream ss("5\n\n"
                        "C      0.0000000000    0.0000000000    0.0000000000\n"
@@ -174,8 +176,8 @@ TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithEuler) {
   auto structure = Utils::XyzStreamHandler::read(ss);
 
   // Normal MD test
-  MD.performMDSimulation(structure);
-  MolecularTrajectory mt = MD.getMolecularTrajectory();
+  md.performMDSimulation(structure, log);
+  MolecularTrajectory mt = md.getMolecularTrajectory();
 
   ASSERT_THAT(mt.size(), Eq(8));
   for (const auto& energy : mt.getEnergies()) {
@@ -186,9 +188,9 @@ TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithEuler) {
   }
 
   // Different temperature should lead to different trajectory
-  MD.settings().modifyDouble(SettingsNames::targetTemperature, 700);
-  MD.performMDSimulation(structure);
-  MolecularTrajectory mtNew = MD.getMolecularTrajectory();
+  md.settings().modifyDouble(SettingsNames::targetTemperature, 700);
+  md.performMDSimulation(structure, log);
+  MolecularTrajectory mtNew = md.getMolecularTrajectory();
 
   ASSERT_THAT(mtNew[0](1, 1), Eq(mt[0](1, 1)));
   // Start at 2 because 1st structure is also equal for Euler algorithm.
@@ -197,25 +199,25 @@ TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithEuler) {
   }
 
   // Initial velocities should lead to different trajectory
-  MD.settings().modifyDouble(SettingsNames::targetTemperature, 300);
-  MD.setInitialVelocities(Eigen::MatrixXd::Random(structure.size(), 3));
-  MD.performMDSimulation(structure);
-  MolecularTrajectory mtRandomStart = MD.getMolecularTrajectory();
+  md.settings().modifyDouble(SettingsNames::targetTemperature, 300);
+  md.setInitialVelocities(Eigen::MatrixXd::Random(structure.size(), 3));
+  md.performMDSimulation(structure, log);
+  MolecularTrajectory mtRandomStart = md.getMolecularTrajectory();
 
   ASSERT_THAT(mtRandomStart[0](1, 1), Eq(mt[0](1, 1)));
   for (int i = 1; i < mtRandomStart.size(); ++i) {
     ASSERT_THAT(mtRandomStart[i](1, 1), Ne(mt[i](1, 1)));
   }
   // Should be empty since the default setting is to not record the velocities.
-  ASSERT_TRUE(MD.getVelocities().empty());
+  ASSERT_TRUE(md.getVelocities().empty());
 }
 
-TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithVelocityVerlet) {
+TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithVelocityVerlet) {
   MockCalculator mockCalculator;
-  MolecularDynamics MD(mockCalculator);
+  MolecularDynamics md(mockCalculator);
 
-  MD.settings().modifyInt(SettingsNames::numberOfMDSteps, 7);
-  MD.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::velocityVerletOption);
+  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 7);
+  md.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::velocityVerletOption);
 
   std::stringstream ss("2\n\n"
                        "H     0.0000000000    0.0000000000   -0.0000000000\n"
@@ -224,8 +226,8 @@ TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithVelocityVerle
   auto structure = Utils::XyzStreamHandler::read(ss);
 
   // Normal MD test
-  MD.performMDSimulation(structure);
-  MolecularTrajectory mt = MD.getMolecularTrajectory();
+  md.performMDSimulation(structure, log);
+  MolecularTrajectory mt = md.getMolecularTrajectory();
 
   ASSERT_THAT(mt.size(), Eq(8));
   for (const auto& energy : mt.getEnergies()) {
@@ -236,9 +238,9 @@ TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithVelocityVerle
   }
 
   // Different temperature should lead to different trajectory
-  MD.settings().modifyDouble(SettingsNames::targetTemperature, 700);
-  MD.performMDSimulation(structure);
-  MolecularTrajectory mtNew = MD.getMolecularTrajectory();
+  md.settings().modifyDouble(SettingsNames::targetTemperature, 700);
+  md.performMDSimulation(structure, log);
+  MolecularTrajectory mtNew = md.getMolecularTrajectory();
 
   ASSERT_THAT(mtNew[0](1, 1), Eq(mt[0](1, 1)));
   // Start at 2 because 1st structure is also equal for Velocity Verlet algorithm.
@@ -247,17 +249,17 @@ TEST_F(AMolecularDynamicsTest, MDSimulationIsPerformedCorrectlyWithVelocityVerle
   }
 
   // Initial velocities should lead to different trajectory
-  MD.settings().modifyDouble(SettingsNames::targetTemperature, 300);
-  MD.setInitialVelocities(Eigen::MatrixXd::Random(structure.size(), 3));
-  MD.performMDSimulation(structure);
-  MolecularTrajectory mtRandomStart = MD.getMolecularTrajectory();
+  md.settings().modifyDouble(SettingsNames::targetTemperature, 300);
+  md.setInitialVelocities(Eigen::MatrixXd::Random(structure.size(), 3));
+  md.performMDSimulation(structure, log);
+  MolecularTrajectory mtRandomStart = md.getMolecularTrajectory();
 
   ASSERT_THAT(mtRandomStart[0](1, 1), Eq(mt[0](1, 1)));
   for (int i = 1; i < mtRandomStart.size(); ++i) {
     ASSERT_THAT(mtRandomStart[i](1, 1), Ne(mt[i](1, 1)));
   }
   // Should be empty since the default setting is to not record the velocities.
-  ASSERT_TRUE(MD.getVelocities().empty());
+  ASSERT_TRUE(md.getVelocities().empty());
 }
 
 TEST_F(AMolecularDynamicsTest, InitialVelocitiesGeneratedAndCOMComponentRemoved) {

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -37,7 +37,7 @@ class RepulsionCalculator {
    * This functions dispatches the call to the right PairwiseCoreRepulsion class
    * computing the interaction between two cores up to the derivative order specified.
    */
-  virtual void calculateRepulsion(derivOrder order);
+  virtual void calculateRepulsion(DerivativeOrder order);
 
   /**
    * @brief Method to collect the energy contributions stored in the PairwiseCoreRepulsion classes.
@@ -47,18 +47,17 @@ class RepulsionCalculator {
    * @brief Method to collect the energy derivatives contributions stored in the PairwiseCoreRepulsion classes.
    * @{
    */
-  virtual void addRepulsionDerivatives(AutomaticDifferentiation::DerivativeContainerType<derivativeType::first>& derivatives) const;
+  virtual void addRepulsionDerivatives(AutomaticDifferentiation::DerivativeContainerType<Derivative::First>& derivatives) const;
   virtual void
-  addRepulsionDerivatives(AutomaticDifferentiation::DerivativeContainerType<derivativeType::second_atomic>& derivatives) const;
-  virtual void
-  addRepulsionDerivatives(AutomaticDifferentiation::DerivativeContainerType<derivativeType::second_full>& derivatives) const;
+  addRepulsionDerivatives(AutomaticDifferentiation::DerivativeContainerType<Derivative::SecondAtomic>& derivatives) const;
+  virtual void addRepulsionDerivatives(AutomaticDifferentiation::DerivativeContainerType<Derivative::SecondFull>& derivatives) const;
   //! @}
 
  protected:
   /**
    * @brief Use AutomaticDifferentiation to get the right values for the energy derivatives.
    */
-  template<derivOrder order>
+  template<DerivativeOrder order>
   AutomaticDifferentiation::Value1DType<order> calculatePairwiseCoreRepulsion(double distance, double repulsionConstant) {
     auto R = Utils::AutomaticDifferentiation::variableWithUnitDerivative<order>(distance);
     // The result of this depends on the derivative order!

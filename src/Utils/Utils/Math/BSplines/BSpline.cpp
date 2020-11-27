@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -9,7 +9,6 @@
 #include "BSplineBasis.h"
 #include "Coefficients.h"
 #include "Exceptions.h"
-#include <Utils/IO/Logger.h>
 #include <iostream>
 
 namespace Scine {
@@ -132,9 +131,7 @@ void BSpline::deriveControlPointMatrices(int highestDerivativeToCalculate) const
 void BSpline::calculateDerivatives(int highestDerivativeToCalculate) const {
   assert(highestDerivativeToCalculate >= 0);
   if (highestDerivativeToCalculate > p_) {
-    Utils::Log::warning() << "Derivatives for b-spline of degree " << p_ << " will only be calculated up to order "
-                          << p_ << " instead of " << highestDerivativeToCalculate;
-    highestDerivativeToCalculate = p_;
+    throw std::runtime_error("Invalid derivative order");
   }
 
   deriveKnotVectors(highestDerivativeToCalculate);

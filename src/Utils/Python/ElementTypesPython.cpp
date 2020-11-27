@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/Geometry/ElementInfo.h>
@@ -11,7 +11,14 @@
 using namespace Scine::Utils;
 
 void init_element_type(pybind11::module& m) {
-  pybind11::enum_<ElementType> element_type(m, "ElementType", pybind11::arithmetic(), "Element type enum");
+  pybind11::enum_<ElementType> element_type(m, "ElementType", pybind11::arithmetic(),
+                                            R"delim(
+      Enum to represent element types including isotopes
+
+      >>> h = ElementType.H # Represents isotopic mixture
+      >>> h1 = ElementType.H1 # Represents only H with A = 1
+      >>> d = ElementType.D # Represents only H with A = 2 (Deuterium)
+    )delim");
 
   element_type.value("none", ElementType::none)
       .value("H", ElementType::H)

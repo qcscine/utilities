@@ -1,7 +1,7 @@
 /**
  * @file QuadrupoleMatrix.h
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILSOS_QUADRUPOLEMATRIX_H
@@ -60,26 +60,26 @@ namespace Utils {
      }
    }
    // Fill with the zero-th derivative integrals
-   quadrupoleMatrixZero.xx().get<derivOrder::zero>(XXMatrix);
-   quadrupoleMatrixZero.xy().get<derivOrder::zero>(XYMatrix);
-   quadrupoleMatrixZero.xz().get<derivOrder::zero>(XZMatrix);
-   quadrupoleMatrixZero.yy().get<derivOrder::zero>(YYMatrix);
-   quadrupoleMatrixZero.yz().get<derivOrder::zero>(YZMatrix);
-   quadrupoleMatrixZero.zz().get<derivOrder::zero>(ZZMatrix);
+   quadrupoleMatrixZero.xx().get<DerivativeOrder::Zero>(XXMatrix);
+   quadrupoleMatrixZero.xy().get<DerivativeOrder::Zero>(XYMatrix);
+   quadrupoleMatrixZero.xz().get<DerivativeOrder::Zero>(XZMatrix);
+   quadrupoleMatrixZero.yy().get<DerivativeOrder::Zero>(YYMatrix);
+   quadrupoleMatrixZero.yz().get<DerivativeOrder::Zero>(YZMatrix);
+   quadrupoleMatrixZero.zz().get<DerivativeOrder::Zero>(ZZMatrix);
 
    // Fill with the first derivative integrals
-   quadrupoleMatrixFirst.xx().get<derivOrder::one>(XXderivatives);
-   quadrupoleMatrixFirst.xy().get<derivOrder::one>(XYderivatives);
-   quadrupoleMatrixFirst.xz().get<derivOrder::one>(XZderivatives);
-   quadrupoleMatrixFirst.yy().get<derivOrder::one>(YYderivatives);
-   quadrupoleMatrixFirst.yz().get<derivOrder::one>(YZderivatives);
-   quadrupoleMatrixFirst.zz().get<derivOrder::one>(ZZderivatives);
+   quadrupoleMatrixFirst.xx().get<DerivativeOrder::One>(XXderivatives);
+   quadrupoleMatrixFirst.xy().get<DerivativeOrder::One>(XYderivatives);
+   quadrupoleMatrixFirst.xz().get<DerivativeOrder::One>(XZderivatives);
+   quadrupoleMatrixFirst.yy().get<DerivativeOrder::One>(YYderivatives);
+   quadrupoleMatrixFirst.yz().get<DerivativeOrder::One>(YZderivatives);
+   quadrupoleMatrixFirst.zz().get<DerivativeOrder::One>(ZZderivatives);
 
    // Get the zeroth and first derivatives of the first element of the first derivative matrix
-   quadrupoleMatrixZero.xx().get<derivOrder::zero>()(0, 0);
+   quadrupoleMatrixZero.xx().get<DerivativeOrder::Zero>()(0, 0);
    // Get the zeroth and first derivatives of the first element of the first derivative matrix
-   quadrupoleMatrixFirst.xx().get<derivOrder::one>()(0, 0).value();
-   quadrupoleMatrixFirst.xx().get<derivOrder::one>()(0, 0).derivatives();
+   quadrupoleMatrixFirst.xx().get<DerivativeOrder::One>()(0, 0).value();
+   quadrupoleMatrixFirst.xx().get<DerivativeOrder::One>()(0, 0).derivatives();
  * @endcode
  */
 class QuadrupoleMatrix {

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_FORMATTEDIOUTILS_H
@@ -154,7 +154,7 @@ void matrixPrettyPrint(std::ostream& out, const NormalModesContainer& container,
 
   out << std::scientific << std::right;
   // Print the matrix in blocks of 5 columns
-  for (int col = 0; col < dimension - 5; col += 5) {
+  for (int col = 0; col < columnsToRest; col += 5) {
     // print header line
     out << std::setw(10) << " ";
     for (int i = col; i < col + 5; ++i) {
@@ -222,8 +222,8 @@ void matrixPrettyPrint(std::ostream& out, const NormalModesContainer& container,
 
 void prettyPrint(std::ostream& out, const ThermochemicalComponentsContainer& thermochemicalComponents) {
   // header line
-  out << std::setw(20) << std::right << "Temperature:" << std::defaultfloat << std::setw(10)
-      << thermochemicalComponents.overall.temperature << " K" << std::endl;
+  out << std::setw(20) << " " << std::setw(27) << std::left << "Molecular symmetry number:" << std::setw(10)
+      << thermochemicalComponents.overall.symmetryNumber << std::endl;
   out << std::scientific << std::endl;
   out << std::setw(20) << "Component:" << std::setw(35) << "ZPVE [kJ/mol]" << std::setw(35) << "Enthalpy [kJ/mol]"
       << std::setw(35) << "Entropy [kJ/(K mol)]" << std::endl;

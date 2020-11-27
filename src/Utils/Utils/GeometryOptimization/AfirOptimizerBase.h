@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -9,6 +9,7 @@
 #define UTILS_AFIROPTIMIZERBASE_H_
 
 #include "Utils/Typenames.h"
+#include <Core/Log.h>
 #include <Eigen/Core>
 #include <vector>
 
@@ -57,9 +58,10 @@ class AfirOptimizerBase {
    * This function wraps the optimize functions of the underlying optimizer.
    *
    * @param atoms The AtomCollection (Geometry) to be optimized.
+   * @param log The logger to which eventual output is written.
    * @return int  The final number of optimization cycles carried out.
    */
-  virtual int optimize(AtomCollection& atoms) = 0;
+  virtual int optimize(AtomCollection& atoms, Core::Log& log) = 0;
   /**
    * @brief Function to apply the given settings to underlying classes.
    * @param settings The new settings.
@@ -87,9 +89,9 @@ class AfirOptimizerBase {
    * as std::functions and can not be added via templates.
    */
   virtual void clearObservers() = 0;
-  // @brief The list of atoms indices of atoms to be artificially forced onto or away from those in the RHS list.
+  /// @brief The list of atoms indices of atoms to be artificially forced onto or away from those in the RHS list.
   std::vector<int> lhsList = {};
-  // @brief The list of atoms indices of atoms to be artificially forced onto or away from those in the LHS list.
+  /// @brief The list of atoms indices of atoms to be artificially forced onto or away from those in the LHS list.
   std::vector<int> rhsList = {};
   /**
    * @brief The maximum amount of energy to be added by the artifical force, in kJ/mol.

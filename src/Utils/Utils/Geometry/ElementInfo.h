@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_ELEMENTINFO_H
@@ -78,7 +78,18 @@ class ElementInfo {
    * @returns standard atomic weight in unified atomic mass units (u)
    */
   static double mass(ElementType e);
+  /**
+   * @brief Getter for the covalent radius in atomic units.
+   *
+   * References:
+   * - "Atomic Radii of the Elements" in CRC Handbook of Chemistry and Physics, 100th Edition
+   * (Internet Version 2019), John R. Rumble, ed., CRC Press/Taylor & Francis, Boca Raton, FL.
+   * - DOI: 10.1039/b801115j
+   * - DOI: 10.1002/chem.200800987
+   * @return double  Returns the covalent radius in atomic units.
+   */
 
+  static double covalentRadius(ElementType e);
   /**
    * @brief Getter for the van der Waals radius in atomic units.
    * @param e The ElementType.
@@ -156,15 +167,15 @@ class ElementInfo {
    */
   static int dElectrons(ElementType e);
 
- private:
   /**
    * @brief A map mapping between string an enum  type of an element.
    *
-   * Note: please do not use this map directly, instead use:
+   * @note Please do not use this map directly, instead use:
    * ElementInfo::elementTypeForSymbol() because it includes error handling.
    */
-  static std::unordered_map<std::string, ElementType> stringToElementType;
+  static const std::unordered_map<std::string, ElementType>& stringToElementType();
 
+ private:
   struct IsotopeData {
     double mass;
     double abundance;

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -16,7 +16,7 @@ namespace Utils {
 
 using namespace Utils::AutomaticDifferentiation;
 
-SinglePointMethod::SinglePointMethod(Utils::derivOrder maximalOrder)
+SinglePointMethod::SinglePointMethod(Utils::DerivativeOrder maximalOrder)
   : maximalCalculableDerivativeOrder_(maximalOrder), energy_(0) {
 }
 
@@ -63,7 +63,7 @@ const Utils::ElementTypeCollection& SinglePointMethod::getElementTypes() const {
 }
 
 bool SinglePointMethod::canCalculateSecondDerivatives() const {
-  return maximalCalculableDerivativeOrder_ == Utils::derivOrder::two;
+  return maximalCalculableDerivativeOrder_ == Utils::DerivativeOrder::Two;
 }
 
 const Utils::BondOrderCollection& SinglePointMethod::getBondOrderCollection() const {

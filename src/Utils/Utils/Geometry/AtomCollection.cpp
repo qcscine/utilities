@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/Geometry/AtomCollection.h"
@@ -90,6 +90,20 @@ Position AtomCollection::getPosition(int i) const {
 
 int AtomCollection::size() const {
   return elements_.size();
+}
+
+AtomCollection AtomCollection::operator+(const AtomCollection& other) const {
+  AtomCollection merge = *this;
+  for (const auto& atom : other) {
+    merge.push_back(atom);
+  }
+  return merge;
+}
+
+AtomCollection& AtomCollection::operator+=(const AtomCollection& other) {
+  AtomCollection merge = *this + other;
+  *this = merge;
+  return *this;
 }
 
 Atom AtomCollection::operator[](int i) const {

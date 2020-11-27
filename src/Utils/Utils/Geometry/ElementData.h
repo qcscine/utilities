@@ -1,7 +1,7 @@
 /**
  * @file ElementData.h
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_ELEMENTDATA_H_
@@ -53,17 +53,20 @@ class ElementDataSingleton {
      * @param symbol The element symbol.
      * @param Z      The nuclear charge.
      * @param mass   The mass (isotope average, precision: 3 digits).
+     * @param covalentRadiusInPicometers The covalent radius in pm.
      * @param vdWRadiusInPicometers The van der Waals radius in pm.
      * @param valElectrons The number of electrons in the valence shell.
      * @param sElectrons The number of s-electrons in the valence shell.
      * @param pElectrons The number of p-electrons in the valence shell.
      * @param dElectrons The number of d-electrons in the valence shell.
      */
-    ElementData(std::string symbol, int Z, double mass, double vdWRadiusInPicometers = -1, int valElectrons = -1,
-                int sElectrons = -1, int pElectrons = -1, int dElectrons = -1)
+    ElementData(std::string symbol, int Z, double mass, double covalentRadiusInPicometers = -1,
+                double vdWRadiusInPicometers = -1, int valElectrons = -1, int sElectrons = -1, int pElectrons = -1,
+                int dElectrons = -1)
       : d_symbol(std::move(symbol)),
         d_Z(Z),
         d_mass(mass),
+        d_covalentRadius(covalentRadiusInPicometers / 100 * bohr_per_angstrom),
         d_vdWRadius(vdWRadiusInPicometers / 100 * bohr_per_angstrom),
         d_valElectrons(valElectrons),
         d_sElectrons(sElectrons),
@@ -90,6 +93,21 @@ class ElementDataSingleton {
      */
     double mass() const {
       return d_mass;
+    }
+    /**
+     * @brief Getter for the covalent radius.
+     *
+     * References:
+     * - "Atomic Radii of the Elements" in CRC Handbook of Chemistry and Physics, 100th Edition
+     * (Internet Version 2019), John R. Rumble, ed., CRC Press/Taylor & Francis, Boca Raton, FL.
+     * - DOI: 10.1039/b801115j
+     * - DOI: 10.1002/chem.200800987
+     * @return double  Returns the covalent radius in atomic units.
+     */
+    double covalentRadius() const {
+      if (d_covalentRadius > 0.0)
+        return d_covalentRadius;
+      throw DataNotAvailable();
     }
     /**
      * @brief Getter for the Van-der-Waals Radius.
@@ -142,6 +160,7 @@ class ElementDataSingleton {
 
     int d_Z{0};
     double d_mass{-1};
+    double d_covalentRadius{-1};
     double d_vdWRadius{-1};
 
     int d_valElectrons{-1};

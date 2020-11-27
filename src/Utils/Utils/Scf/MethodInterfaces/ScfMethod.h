@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -27,14 +27,12 @@ enum class scf_mixer_t;
  */
 class ScfMethod : public LcaoMethod {
  public:
-  explicit ScfMethod(bool unrestrictedCalculationPossible, Utils::derivOrder maximalOrder, bool orthogonalBasisSet = false);
+  explicit ScfMethod(bool unrestrictedCalculationPossible, Utils::DerivativeOrder maximalOrder, bool orthogonalBasisSet = false);
   ~ScfMethod() override;
 
   void initialize() override;
 
-  void calculate(Utils::derivativeType d) override {
-    convergedCalculation(d);
-  }
+  void calculate(Utils::Derivative d, Core::Log& log) override;
 
   /*! Adds a modifier to the SCF method.
       First checks whether the ScfModifier already exists.
@@ -46,8 +44,8 @@ class ScfMethod : public LcaoMethod {
   void removeModifier(const std::shared_ptr<ScfModifier>& modifier);
 
   /*! Performs an SCF calculation (NB: will stop after max number of cycles). */
-  void convergedCalculation(Utils::derivativeType d = Utils::derivativeType::first);
-  void performIteration(Utils::derivativeType d = Utils::derivativeType::first);
+  void convergedCalculation(Core::Log& log, Utils::Derivative d = Utils::Derivative::First);
+  void performIteration(Core::Log& log, Utils::Derivative d = Utils::Derivative::First);
 
   bool hasConverged() const {
     return converged;
@@ -86,12 +84,12 @@ class ScfMethod : public LcaoMethod {
   /*! @name Steps of SCF calculations
    * @{
    */
-  void calculateDensityDependentQuantities(Utils::derivativeType d = Utils::derivativeType::first);
-  void finalizeCalculation(Utils::derivativeType d = Utils::derivativeType::first);
+  void calculateDensityDependentQuantities(Utils::Derivative d = Utils::Derivative::First);
+  void finalizeCalculation(Utils::Derivative d = Utils::Derivative::First);
   /*! @} */
 
   /*! Perform a calculation for the current density matrix without optimizing it. */
-  void evaluateDensity(Utils::derivativeType derivativeOrder);
+  void evaluateDensity(Utils::Derivative derivativeOrder);
 
  protected:
   std::shared_ptr<DensityMatrixGuessCalculator> densityMatrixGuess_;
@@ -100,7 +98,7 @@ class ScfMethod : public LcaoMethod {
   int maxIterations;
 
  private:
-  void solveEigenValueProblem();
+  void solveEigenValueProblem(Core::Log& log);
   void onConvergedCalculationStarts();
   using ModifierContainer = std::multimap<int, std::shared_ptr<ScfModifier>>;
 

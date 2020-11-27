@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -14,6 +14,11 @@
 #include <Utils/Settings.h>
 
 namespace Scine {
+
+namespace Core {
+struct Log;
+}
+
 namespace Utils {
 class MDIntegrator;
 
@@ -27,7 +32,7 @@ class MolecularDynamics {
    * @brief Performs an MD simulation with the set calculator and the current settings.
    * @param structure The initial molecular structure.
    */
-  void performMDSimulation(const AtomCollection& structure);
+  void performMDSimulation(const AtomCollection& structure, Core::Log& log);
   /**
    * @brief Getter for the molecular trajectory.
    *

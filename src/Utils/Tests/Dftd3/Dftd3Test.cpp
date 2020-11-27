@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/Dftd3/Dftd3.h"
@@ -99,7 +99,7 @@ TEST_F(ADftd3Calculation, HasCorrectCoordinationNumbers) {
                        "H     2.0000000000    0.0000000000    0.0000000000\n");
   auto atomCollection = XyzStreamHandler::read(ss);
   method.initialize(atomCollection, 0.4289, 0.7875, 4.4407);
-  method.calculate(derivativeType::none);
+  method.calculate(Derivative::None);
 
   Dftd3::Dftd3Atom firstAtom = method.getStructure().at(0);
   Dftd3::Dftd3Atom secondAtom = method.getStructure().at(1);
@@ -116,7 +116,7 @@ TEST_F(ADftd3Calculation, HasCorrectDispersionEnergyandGradientForPBE) {
                        "O     1.0000000000    0.0000000000    0.0000000000\n");
   auto atomCollection = XyzStreamHandler::read(ss);
   method.initialize(atomCollection, 0.4289, 0.7875, 4.4407); // Parameters for PBE
-  method.calculate(derivativeType::first);
+  method.calculate(Derivative::First);
   auto gradient = method.getGradients();
 
   // Correct energy and gradient were obtained with Grimme's implementation of D3
@@ -138,7 +138,7 @@ TEST_F(ADftd3Calculation, HasCorrectDispersionEnergyForBP86) {
                        "O     1.0000000000    0.0000000000    0.0000000000\n");
   auto atomCollection = XyzStreamHandler::read(ss);
   method.initialize(atomCollection, 0.3946, 3.2822, 4.8516); // Parameters for BP86
-  method.calculate(derivativeType::none);
+  method.calculate(Derivative::None);
 
   // Correct energy was obtained with Grimme's implementation of D3
   EXPECT_THAT(method.getEnergy(), DoubleNear(-0.00062281, 10e-8));
@@ -152,7 +152,7 @@ TEST_F(ADftd3Calculation, HasCorrectDispersionEnergyandGradientForTPSS) {
                        "O     -1.000000000    0.0000000000    0.0000000000\n");
   auto atomCollection = XyzStreamHandler::read(ss);
   method.initialize(atomCollection, 0.4535, 1.9435, 4.4752); // Parameters for TPSS
-  method.calculate(derivativeType::first);
+  method.calculate(Derivative::First);
 
   // Correct values were obtained with Grimme's implementation of D3
   EXPECT_THAT(method.getEnergy(), DoubleNear(-0.00116406, 10e-8));
@@ -169,7 +169,7 @@ TEST_F(ADftd3Calculation, EnergyCalculationIsInternallyConsistent) {
                        "O     1.0000000000    0.0000000000    0.0000000000\n");
   auto atomCollection = XyzStreamHandler::read(ss);
   method.initialize(atomCollection, 0.4535, 1.9435, 4.4752); // Parameters for TPSS
-  method.calculate(derivativeType::none);
+  method.calculate(Derivative::None);
   double energy1 = method.getEnergy();
 
   Dftd3::Dftd3Atom firstAtom = method.getStructure().at(0);
@@ -186,7 +186,7 @@ TEST_F(ADftd3Calculation, HasCorrectC6Coefficients) {
                        "O     1.0000000000    0.0000000000    0.0000000000\n");
   auto atomCollection = XyzStreamHandler::read(ss);
   method.initialize(atomCollection, 0.4535, 1.9435, 4.4752); // Parameters for TPSS
-  method.calculate(derivativeType::none);
+  method.calculate(Derivative::None);
 
   Dftd3::Dftd3Atom firstAtom = method.getStructure().at(0);
   Dftd3::Dftd3Atom secondAtom = method.getStructure().at(1);
@@ -407,7 +407,7 @@ TEST_F(ADftd3Calculation, HasCorrectDispersionEnergyandGradientForPBE0) {
                        "H  -1.933288   -3.674655   -3.535551 \n");
   auto atomCollection = XyzStreamHandler::read(ss);
   method.initialize(atomCollection, 0.4145, 1.2177, 4.8593); // Parameters for PBE0
-  method.calculate(derivativeType::first);
+  method.calculate(Derivative::First);
   auto gradient = method.getGradients();
 
   // Correct energy and gradient were obtained with Grimme's implementation of D3

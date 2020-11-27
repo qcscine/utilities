@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "GaussianInputFileCreator.h"
@@ -32,10 +32,14 @@ void GaussianInputFileCreator::createInputFile(std::ostream& out, const AtomColl
 
 void GaussianInputFileCreator::printCalculationType(std::ostream& out, const Settings& settings,
                                                     const PropertyList& requiredProperties) {
-  out << "%NProcShared=" << settings.getInt(SettingsNames::gaussianNumProcs) << std::endl;
-  out << "%Mem=" << settings.getInt(SettingsNames::externalQCMemory) << "MB" << std::endl;
+  out << "%NProcShared=" << settings.getInt(Utils::SettingsNames::externalProgramNProcs) << std::endl;
+  out << "%Mem=" << settings.getInt(Utils::SettingsNames::externalProgramMemory) << "MB" << std::endl;
 
   out << "# " << settings.getString(Utils::SettingsNames::method) << "/" << settings.getString(Utils::SettingsNames::basisSet);
+  auto solvent = settings.getString(Utils::SettingsNames::solvent);
+  if (!solvent.empty()) {
+    out << " SCRF=(CPCM,Solvent=" << solvent << ")";
+  }
   if (requiredProperties.containsSubSet(Property::Gradients)) {
     out << " Force";
   }

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -15,6 +15,7 @@ void Scine::Utils::UniversalSettings::SettingPopulator::populateLcaoSettings(Set
   addSpinMultiplicity(settings);
   addUnrestrictedCalculation(settings);
   addTemperatureOption(settings);
+  addSymmetryNumberOption(settings);
   addDavidsonOption(settings);
 }
 
@@ -25,19 +26,10 @@ void Scine::Utils::UniversalSettings::SettingPopulator::populateScfSettings(Sett
 }
 
 void Scine::Utils::UniversalSettings::SettingPopulator::populateSemiEmpiricalSettings(SettingsCollection& settings,
-                                                                                      std::string defaultParameterFile) {
-  Utils::UniversalSettings::FileDescriptor parameterFile("File where the parameters are stored.");
-  parameterFile.setDefaultValue(std::move(defaultParameterFile));
-  Utils::UniversalSettings::DirectoryDescriptor parameterRootDirectory(
-      "Resource directory where all the parameters are.");
-  try {
-    parameterRootDirectory.setDefaultValue("");
-  }
-  catch (Core::InitializationException& e) {
-  }
-
-  settings.push_back(SettingsNames::parameterFile, parameterFile);
-  settings.push_back(SettingsNames::parameterRootDirectory, parameterRootDirectory);
+                                                                                      std::string defaultParameterPath) {
+  Utils::UniversalSettings::FileDescriptor parameterPath("Filesystem path where method parameters are stored.");
+  parameterPath.setDefaultValue(std::move(defaultParameterPath));
+  settings.push_back(SettingsNames::methodParameters, parameterPath);
 }
 
 void Scine::Utils::UniversalSettings::SettingPopulator::addMolecularCharge(SettingsCollection& settings) {
@@ -101,6 +93,15 @@ void Scine::Utils::UniversalSettings::SettingPopulator::addTemperatureOption(
   temperature.setDefaultValue(298.15);
 
   settings.push_back(SettingsNames::temperature, std::move(temperature));
+}
+
+void Scine::Utils::UniversalSettings::SettingPopulator::addSymmetryNumberOption(
+    Scine::Utils::UniversalSettings::SettingPopulator::SettingsCollection& settings) {
+  Utils::UniversalSettings::IntDescriptor symmetryNumber(
+      "Molecular symmetry number to use for thermochemical calculation.");
+  symmetryNumber.setMinimum(1);
+  symmetryNumber.setDefaultValue(1);
+  settings.push_back(SettingsNames::symmetryNumber, std::move(symmetryNumber));
 }
 
 void Scine::Utils::UniversalSettings::SettingPopulator::addDavidsonOption(

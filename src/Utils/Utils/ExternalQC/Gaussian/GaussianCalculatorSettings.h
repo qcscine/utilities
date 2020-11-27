@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_GAUSSIANCALCULATORSETTINGS_H
@@ -17,7 +17,6 @@ namespace Utils {
 namespace ExternalQC {
 namespace SettingsNames {
 static constexpr const char* gaussianFilenameBase = "gaussian_filename_base";
-static constexpr const char* gaussianNumProcs = "gaussian_nprocs";
 } // namespace SettingsNames
 
 /**
@@ -32,9 +31,11 @@ class GaussianCalculatorSettings : public Scine::Utils::Settings {
   void addMethod(UniversalSettings::DescriptorCollection& settings);
   void addGaussianFilenameBase(UniversalSettings::DescriptorCollection& settings);
   void addBaseWorkingDirectory(UniversalSettings::DescriptorCollection& settings);
-  void addGaussianNumProcs(UniversalSettings::DescriptorCollection& settings);
+  void addNumProcs(UniversalSettings::DescriptorCollection& settings);
   void addBasisSet(UniversalSettings::DescriptorCollection& settings);
   void addMemoryForGaussian(UniversalSettings::DescriptorCollection& settings);
+  void addSolvent(UniversalSettings::DescriptorCollection& settings);
+  void addElectronicTemperature(UniversalSettings::DescriptorCollection& settings);
 
   /**
    * @brief Constructor that populates the GaussianCalculatorSettings.
@@ -46,8 +47,10 @@ class GaussianCalculatorSettings : public Scine::Utils::Settings {
     addBasisSet(_fields);
     addGaussianFilenameBase(_fields);
     addBaseWorkingDirectory(_fields);
-    addGaussianNumProcs(_fields);
+    addNumProcs(_fields);
     addMemoryForGaussian(_fields);
+    addSolvent(_fields);
+    addElectronicTemperature(_fields);
     resetToDefaults();
   };
 };
@@ -94,17 +97,31 @@ inline void GaussianCalculatorSettings::addBaseWorkingDirectory(UniversalSetting
   settings.push_back(SettingsNames::baseWorkingDirectory, std::move(baseWorkingDirectory));
 }
 
-inline void GaussianCalculatorSettings::addGaussianNumProcs(UniversalSettings::DescriptorCollection& settings) {
+inline void GaussianCalculatorSettings::addNumProcs(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::IntDescriptor gaussianNumProcs("Number of processes for the Gaussian calculation.");
   gaussianNumProcs.setDefaultValue(1);
   gaussianNumProcs.setMinimum(1);
-  settings.push_back(SettingsNames::gaussianNumProcs, std::move(gaussianNumProcs));
+  settings.push_back(Utils::SettingsNames::externalProgramNProcs, std::move(gaussianNumProcs));
 }
 
 inline void GaussianCalculatorSettings::addMemoryForGaussian(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::IntDescriptor gaussianMemory("Memory that can be used by the Gaussian calculation.");
   gaussianMemory.setDefaultValue(1024);
-  settings.push_back(SettingsNames::externalQCMemory, std::move(gaussianMemory));
+  settings.push_back(Utils::SettingsNames::externalProgramMemory, std::move(gaussianMemory));
+}
+
+inline void GaussianCalculatorSettings::addSolvent(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::StringDescriptor solventOption(
+      "Sets the implicit solvent using the CPCM model to be applied in the Gaussian calculation.");
+  solventOption.setDefaultValue("");
+  settings.push_back(Utils::SettingsNames::solvent, std::move(solventOption));
+}
+
+inline void GaussianCalculatorSettings::addElectronicTemperature(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::DoubleDescriptor electronicTemperature(
+      "Sets the electronic temperature for SCF calculations.");
+  electronicTemperature.setDefaultValue(0.0);
+  settings.push_back(Utils::SettingsNames::electronicTemperature, std::move(electronicTemperature));
 }
 
 } // namespace ExternalQC

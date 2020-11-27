@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -59,15 +59,15 @@ double ACoreCoreRepulsionCalculatorTest::hessianElementSameFromEnergy(int i, con
   auto compI = i % 3;
 
   arbitraryPositions = referencePositions;
-  repulsionCalculator->calculateRepulsion(derivOrder::zero);
+  repulsionCalculator->calculateRepulsion(DerivativeOrder::Zero);
   auto E = repulsionCalculator->getRepulsionEnergy();
 
   arbitraryPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - delta;
-  repulsionCalculator->calculateRepulsion(derivOrder::zero);
+  repulsionCalculator->calculateRepulsion(DerivativeOrder::Zero);
   auto Em = repulsionCalculator->getRepulsionEnergy();
 
   arbitraryPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) + delta;
-  repulsionCalculator->calculateRepulsion(derivOrder::zero);
+  repulsionCalculator->calculateRepulsion(DerivativeOrder::Zero);
   auto Ep = repulsionCalculator->getRepulsionEnergy();
 
   return (Ep - 2 * E + Em) / (delta * delta);
@@ -87,22 +87,22 @@ double ACoreCoreRepulsionCalculatorTest::hessianElementDifferentFromEnergy(int i
 
   arbitraryPositions.row(atomI)[compI] = referencePositions.row(atomI)(compI) + D;
   arbitraryPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) + D;
-  repulsionCalculator->calculateRepulsion(derivOrder::zero);
+  repulsionCalculator->calculateRepulsion(DerivativeOrder::Zero);
   auto Epp = repulsionCalculator->getRepulsionEnergy();
 
   arbitraryPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - D;
   arbitraryPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) + D;
-  repulsionCalculator->calculateRepulsion(derivOrder::zero);
+  repulsionCalculator->calculateRepulsion(DerivativeOrder::Zero);
   auto Emp = repulsionCalculator->getRepulsionEnergy();
 
   arbitraryPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) + D;
   arbitraryPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) - D;
-  repulsionCalculator->calculateRepulsion(derivOrder::zero);
+  repulsionCalculator->calculateRepulsion(DerivativeOrder::Zero);
   auto Epm = repulsionCalculator->getRepulsionEnergy();
 
   arbitraryPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - D;
   arbitraryPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) - D;
-  repulsionCalculator->calculateRepulsion(derivOrder::zero);
+  repulsionCalculator->calculateRepulsion(DerivativeOrder::Zero);
   auto Emm = repulsionCalculator->getRepulsionEnergy();
 
   return (Epp - Epm - Emp + Emm) / (delta * delta);
@@ -117,22 +117,22 @@ TEST_F(ACoreCoreRepulsionCalculatorTest, CanCalculateRepulsionEnergy) {
     }
   }
 
-  repulsionCalculator->calculateRepulsion(derivOrder::zero);
+  repulsionCalculator->calculateRepulsion(DerivativeOrder::Zero);
   ASSERT_DOUBLE_EQ(repulsionCalculator->getRepulsionEnergy(), repulsionEnergy);
 }
 
 TEST_F(ACoreCoreRepulsionCalculatorTest, CanCalculateRepulsionGradient) {
-  repulsionCalculator->calculateRepulsion(derivOrder::one);
+  repulsionCalculator->calculateRepulsion(DerivativeOrder::One);
   GradientCollection gradients = GradientCollection::Zero(arbitraryElements.size(), 3);
   repulsionCalculator->addRepulsionDerivatives(gradients);
   for (int i = 0; i < arbitraryPositions.rows(); ++i) {
     for (int j = 0; j < arbitraryPositions.cols(); ++j) {
       const double position = arbitraryPositions(i, j);
       arbitraryPositions(i, j) += 1e-5;
-      repulsionCalculator->calculateRepulsion(derivOrder::zero);
+      repulsionCalculator->calculateRepulsion(DerivativeOrder::Zero);
       const double energyPlus = repulsionCalculator->getRepulsionEnergy();
       arbitraryPositions(i, j) = position - 1e-5;
-      repulsionCalculator->calculateRepulsion(derivOrder::zero);
+      repulsionCalculator->calculateRepulsion(DerivativeOrder::Zero);
       const double energyMinus = repulsionCalculator->getRepulsionEnergy();
       arbitraryPositions(i, j) = position;
       EXPECT_THAT((energyPlus - energyMinus) / 2e-5, DoubleNear(gradients(i, j), 1e-5));
@@ -141,7 +141,7 @@ TEST_F(ACoreCoreRepulsionCalculatorTest, CanCalculateRepulsionGradient) {
 }
 
 TEST_F(ACoreCoreRepulsionCalculatorTest, CanCalculateRepulsionHessian) {
-  repulsionCalculator->calculateRepulsion(derivOrder::two);
+  repulsionCalculator->calculateRepulsion(DerivativeOrder::Two);
   FullSecondDerivativeCollection secondDerivatives(arbitraryElements.size());
   secondDerivatives.setZero();
   repulsionCalculator->addRepulsionDerivatives(secondDerivatives);
@@ -158,12 +158,12 @@ TEST_F(ACoreCoreRepulsionCalculatorTest, CanCalculateRepulsionHessian) {
     const int j = hessianIndex % 3;
     const double position = arbitraryPositions(i, j);
     arbitraryPositions(i, j) += 1e-6;
-    repulsionCalculator->calculateRepulsion(derivOrder::one);
+    repulsionCalculator->calculateRepulsion(DerivativeOrder::One);
     GradientCollection gradPlus = GradientCollection::Zero(arbitraryElements.size(), 3);
     repulsionCalculator->addRepulsionDerivatives(gradPlus);
     const Eigen::VectorXd mappedGradientPlus = MapType(gradPlus.data(), gradPlus.size());
     arbitraryPositions(i, j) = position - 1e-6;
-    repulsionCalculator->calculateRepulsion(derivOrder::one);
+    repulsionCalculator->calculateRepulsion(DerivativeOrder::One);
     GradientCollection gradMinus = GradientCollection::Zero(arbitraryElements.size(), 3);
     repulsionCalculator->addRepulsionDerivatives(gradMinus);
     const Eigen::VectorXd mappedGradientMinus = MapType(gradMinus.data(), gradMinus.size());

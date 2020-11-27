@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -13,6 +13,7 @@
 #include "Utils/Geometry/AtomCollection.h"
 #include "Utils/Geometry/InternalCoordinates.h"
 #include "Utils/Optimizer/GradientBased/Bfgs.h"
+#include "Utils/Optimizer/GradientBased/Dimer.h"
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/GradientBased/Lbfgs.h"
 #include "Utils/Optimizer/HessianBased/Bofill.h"
@@ -20,7 +21,6 @@
 #include "Utils/Optimizer/HessianBased/NewtonRaphson.h"
 #include <Core/Interfaces/Calculator.h>
 #include <Eigen/Core>
-#include <iostream>
 
 namespace Scine {
 namespace Utils {
@@ -39,7 +39,8 @@ namespace Utils {
  */
 class GeometryOptimizerBase {
  public:
-  static constexpr const char* geooptTransfromCoordinatesKey = "geoopt_transform_coordinates";
+  static constexpr const char* geooptTransformCoordinatesKey = "geoopt_transform_coordinates";
+  static constexpr const char* geooptFixedAtomsKey = "geoopt_constrained_atoms";
   /// @brief Default constructor.
   GeometryOptimizerBase() = default;
   /// @brief Virtual default destructor.
@@ -50,9 +51,10 @@ class GeometryOptimizerBase {
    * This function wraps the optimize functions of the underlying optimizer.
    *
    * @param atoms The AtomCollection (Geometry) to be optimized.
+   * @param log The logger to which eventual output is written.
    * @return int  The final number of optimization cycles carried out.
    */
-  virtual int optimize(AtomCollection& atoms) = 0;
+  virtual int optimize(AtomCollection& atoms, Core::Log& log) = 0;
   /**
    * @brief Function to apply the given settings to underlying classes.
    * @param settings The new settings.
@@ -84,9 +86,14 @@ class GeometryOptimizerBase {
    * @brief Switch to transform the coordinates from Cartesian into an internal space.
    *
    * The optimization will be carried out in the internal coordinate space possibly
-   * accellerating convergence.
+   * accelerating convergence.
    */
   bool transformCoordinates = true;
+  /**
+   * @brief Vector containing the atom indices to which Cartesian constraints are applied during the optimization.
+   *        Note that only an empty vector still allows for the use of internal coordinates.
+   */
+  std::vector<int> fixedAtoms = {};
 };
 
 /**
@@ -119,7 +126,13 @@ class GeometryOptimizerSettings : public Settings {
     UniversalSettings::BoolDescriptor geoopt_transform_coordinates(
         "Switch to transform the coordinates from Cartesian into an internal space.");
     geoopt_transform_coordinates.setDefaultValue(base.transformCoordinates);
-    this->_fields.push_back(GeometryOptimizerBase::geooptTransfromCoordinatesKey, geoopt_transform_coordinates);
+    this->_fields.push_back(GeometryOptimizerBase::geooptTransformCoordinatesKey, std::move(geoopt_transform_coordinates));
+
+    UniversalSettings::StringDescriptor geooptFixedAtoms(
+        "List of atoms with Cartesian constraints applied to them during the optimization (separated by whitespaces).");
+    geooptFixedAtoms.setDefaultValue("");
+    this->_fields.push_back(GeometryOptimizerBase::geooptFixedAtomsKey, std::move(geooptFixedAtoms));
+
     this->resetToDefaults();
   }
 };
@@ -141,23 +154,30 @@ class GeometryOptimizer : public GeometryOptimizerBase {
   GeometryOptimizer(Core::Calculator& calculator) : _calculator(calculator){};
   /**
    * @brief See GeometryOptimizerBase::optimize().
-   *
+   * @param log The logger to which eventual output is written.
    * @param atoms The AtomCollection (Geometry) to be optimized.
+   *
    * @return int  The final number of optimization cycles carried out.
    */
-  virtual int optimize(AtomCollection& atoms) final {
+  virtual int optimize(AtomCollection& atoms, Core::Log& log) final {
     // Disable L-BFGS + internals for now
-    //  TODO fix the hessian projection in the L-BFGS to allow for this combination
+    // TODO: fix the hessian projection in the L-BFGS to allow for this combination
     if (std::is_same<OptimizerType, Lbfgs>::value && this->transformCoordinates)
       throw std::runtime_error("Error: L-BFGS + Internal coordinates are currently not allowed.");
     // Configure Calculator
     _calculator.setStructure(atoms);
     _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
-    // Transform into internal coordinates
-    auto transformation = std::make_shared<InternalCoordinates>(atoms);
+    // Transformation into internal coordinates
+    std::shared_ptr<InternalCoordinates> transformation = nullptr;
+    if (this->transformCoordinates) {
+      transformation = std::make_shared<InternalCoordinates>(atoms);
+    }
     // Define update function
     const unsigned int nAtoms = atoms.size();
+    // Count cycles for eventual restart
+    int cycle = 0;
     auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
+      cycle++;
       Utils::PositionCollection coordinates;
       if (this->transformCoordinates) {
         coordinates = transformation->coordinatesToCartesian(parameters);
@@ -169,12 +189,24 @@ class GeometryOptimizer : public GeometryOptimizerBase {
       _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
       atoms.setPositions(coordinates);
       Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+      if (!results.get<Property::SuccessfulCalculation>()) {
+        throw std::runtime_error("Gradient calculation in geometry optimization failed.");
+      }
       value = results.get<Property::Energy>();
       if (this->transformCoordinates) {
         gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
       }
       else {
         gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
+        // Apply Cartesian constraints
+        if (!this->fixedAtoms.empty()) {
+          for (const auto& a : fixedAtoms) {
+            if (a >= gradients.size() / 3)
+              throw std::runtime_error("Constrained atom index " + std::to_string(a) + " is invalid!");
+            for (int i = 0; i < 3; ++i)
+              gradients(3 * a + i) = 0.0;
+          }
+        }
       }
     };
     // Get initial positions
@@ -186,7 +218,21 @@ class GeometryOptimizer : public GeometryOptimizerBase {
       positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), atoms.size() * 3);
     }
     // Optimize
-    auto cycles = optimizer.optimize(positions, update, check);
+    int cycles = 0;
+    try {
+      cycles = optimizer.optimize(positions, update, check);
+    }
+    catch (const InternalCoordinatesException& e) {
+      log.output << "Internal coordinates broke down. Continuing in cartesians." << Core::Log::nl;
+      // Update coordinates to the last ones that were successfully reconverted
+      Utils::PositionCollection lastCoordinates = _calculator.getPositions();
+      // Disable coordinate transformation
+      this->transformCoordinates = false;
+      // Restart optimization
+      optimizer.prepareRestart(cycle);
+      Eigen::VectorXd lastPositions = Eigen::Map<const Eigen::VectorXd>(lastCoordinates.data(), atoms.size() * 3);
+      cycles = optimizer.optimize(lastPositions, update, check);
+    }
     // Update Atom collection and return
     Utils::PositionCollection coordinates;
     if (this->transformCoordinates) {
@@ -206,7 +252,19 @@ class GeometryOptimizer : public GeometryOptimizerBase {
   virtual void setSettings(const Settings& settings) override {
     check.applySettings(settings);
     optimizer.applySettings(settings);
-    this->transformCoordinates = settings.getBool(GeometryOptimizerBase::geooptTransfromCoordinatesKey);
+    this->transformCoordinates = settings.getBool(GeometryOptimizerBase::geooptTransformCoordinatesKey);
+
+    // For Cartesian constraints:
+    std::string fixedAtomsString = settings.getString(GeometryOptimizerBase::geooptFixedAtomsKey);
+    this->fixedAtoms.clear();
+    int index;
+    std::stringstream ss(fixedAtomsString);
+    while (ss >> index)
+      this->fixedAtoms.push_back(index);
+
+    // Check whether constraints and internal coordinates are both switched on:
+    if (this->transformCoordinates && !this->fixedAtoms.empty())
+      throw std::runtime_error("Cartesian constraints cannot be set when using internal coordinates!");
   };
   /**
    * @brief Get the public settings as a Utils::Settings object.
@@ -250,12 +308,15 @@ class GeometryOptimizer : public GeometryOptimizerBase {
  *=============================*/
 
 template<>
-inline int GeometryOptimizer<Bfgs>::optimize(AtomCollection& atoms) {
+inline int GeometryOptimizer<Dimer>::optimize(AtomCollection& atoms, Core::Log& log) {
   // Configure Calculator
   _calculator.setStructure(atoms);
   _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
   // Transform into internal coordinates
-  auto transformation = std::make_shared<InternalCoordinates>(atoms);
+  std::shared_ptr<InternalCoordinates> transformation = nullptr;
+  if (this->transformCoordinates) {
+    transformation = std::make_shared<InternalCoordinates>(atoms);
+  }
   // Define update function
   const unsigned int nAtoms = atoms.size();
   auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
@@ -270,6 +331,9 @@ inline int GeometryOptimizer<Bfgs>::optimize(AtomCollection& atoms) {
     _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
     atoms.setPositions(coordinates);
     Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+    if (!results.get<Property::SuccessfulCalculation>()) {
+      throw std::runtime_error("Gradient calculation in geometry optimization failed.");
+    }
     value = results.get<Property::Energy>();
     if (this->transformCoordinates) {
       gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
@@ -291,11 +355,117 @@ inline int GeometryOptimizer<Bfgs>::optimize(AtomCollection& atoms) {
     optimizer.projection = std::make_unique<std::function<void(Eigen::MatrixXd&)>>(
         [&transformation](Eigen::MatrixXd& inv) { inv = transformation->projectHessianInverse(inv); });
   }
-  auto cycles = optimizer.optimize(positions, update, check);
+
+  int cycles = 0;
+  try {
+    cycles = optimizer.optimize(positions, update, check);
+  }
+  catch (const InternalCoordinatesException& e) {
+    log.output << "Internal coordinates broke down. Continuing in cartesians." << Core::Log::nl;
+    // Update coordinates to the last ones that were successfully reconverted
+    Utils::PositionCollection lastCoordinates = _calculator.getPositions();
+    // Disable coordinate transformation
+    this->transformCoordinates = false;
+    // Restart optimization
+    // Get cycle from optimizer because one cycle contains several calls to the update function
+    optimizer.prepareRestart(optimizer.getCycle());
+    Eigen::VectorXd lastPositions = Eigen::Map<const Eigen::VectorXd>(lastCoordinates.data(), atoms.size() * 3);
+    cycles = optimizer.optimize(lastPositions, update, check);
+  }
   // Update Atom collection and return
   Utils::PositionCollection coordinates;
   if (this->transformCoordinates) {
+    coordinates = transformation->coordinatesToCartesian(positions);
+  }
+  else {
+    coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), nAtoms, 3);
+  }
+  atoms.setPositions(coordinates);
+  return cycles;
+}
+
+template<>
+inline int GeometryOptimizer<Bfgs>::optimize(AtomCollection& atoms, Core::Log& log) {
+  // Configure Calculator
+  _calculator.setStructure(atoms);
+  _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
+  // Transformation into internal coordinates
+  std::shared_ptr<InternalCoordinates> transformation = nullptr;
+  if (this->transformCoordinates) {
+    transformation = std::make_shared<InternalCoordinates>(atoms);
+  }
+  // Define update function
+  const unsigned int nAtoms = atoms.size();
+  // Count cycles for eventual restart
+  int cycle = 0;
+  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
+    cycle++;
+    Utils::PositionCollection coordinates;
+    if (this->transformCoordinates) {
+      coordinates = transformation->coordinatesToCartesian(parameters);
+    }
+    else {
+      coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
+    }
+    _calculator.modifyPositions(coordinates);
+    _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
+    atoms.setPositions(coordinates);
+    Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+    if (!results.get<Property::SuccessfulCalculation>()) {
+      throw std::runtime_error("Gradient calculation in geometry optimization failed.");
+    }
+    value = results.get<Property::Energy>();
+    if (this->transformCoordinates) {
+      gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
+    }
+    else {
+      gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
+      // Apply Cartesian constraints
+      if (!this->fixedAtoms.empty()) {
+        for (const auto& a : fixedAtoms) {
+          if (a >= gradients.size() / 3)
+            throw std::runtime_error("Constrained atom index " + std::to_string(a) + " is invalid!");
+          for (int i = 0; i < 3; ++i)
+            gradients(3 * a + i) = 0.0;
+        }
+      }
+    }
+  };
+  // Get initial positions
+  Eigen::VectorXd positions;
+  if (this->transformCoordinates) {
+    positions = transformation->coordinatesToInternal(atoms.getPositions());
+  }
+  else {
+    positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), atoms.size() * 3);
+  }
+  // Get projection
+  if (this->transformCoordinates) {
     optimizer.invH = transformation->inverseHessianGuess();
+    optimizer.projection = [&transformation](Eigen::MatrixXd& inv) { inv = transformation->projectHessianInverse(inv); };
+  }
+  else {
+    optimizer.projection = nullptr;
+  }
+  // Optimize
+  int cycles = 0;
+  try {
+    cycles = optimizer.optimize(positions, update, check);
+  }
+  catch (const InternalCoordinatesException& e) {
+    log.output << "Internal coordinates broke down. Continuing in cartesians." << Core::Log::nl;
+    // Update coordinates to the last ones that were successfully reconverted
+    Utils::PositionCollection lastCoordinates = _calculator.getPositions();
+    // Disable coordinate transformation
+    this->transformCoordinates = false;
+    // Restart optimization
+    optimizer.prepareRestart(cycle);
+    Eigen::VectorXd lastPositions = Eigen::Map<const Eigen::VectorXd>(lastCoordinates.data(), atoms.size() * 3);
+    cycles = optimizer.optimize(lastPositions, update, check);
+  }
+  // Update Atom collection and return
+  Utils::PositionCollection coordinates;
+  if (this->transformCoordinates) {
     coordinates = transformation->coordinatesToCartesian(positions);
   }
   else {
@@ -309,7 +479,7 @@ inline int GeometryOptimizer<Bfgs>::optimize(AtomCollection& atoms) {
  *  Hessian Base Specializations
  *================================*/
 template<>
-inline int GeometryOptimizer<Bofill>::optimize(AtomCollection& atoms) {
+inline int GeometryOptimizer<Bofill>::optimize(AtomCollection& atoms, Core::Log& log) {
   // Configure Calculator
   _calculator.setStructure(atoms);
   _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
@@ -337,6 +507,9 @@ inline int GeometryOptimizer<Bofill>::optimize(AtomCollection& atoms) {
     if (calcHessian) {
       _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
       Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+      if (!results.get<Property::SuccessfulCalculation>()) {
+        throw std::runtime_error("Gradient calculation in geometry optimization failed.");
+      }
       value = results.get<Property::Energy>();
       if (this->transformCoordinates) {
         auto tmp = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
@@ -351,6 +524,9 @@ inline int GeometryOptimizer<Bofill>::optimize(AtomCollection& atoms) {
     else {
       _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
       Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+      if (!results.get<Property::SuccessfulCalculation>()) {
+        throw std::runtime_error("Gradient calculation in geometry optimization failed.");
+      }
       value = results.get<Property::Energy>();
       if (this->transformCoordinates) {
         auto tmp = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
@@ -387,7 +563,7 @@ inline int GeometryOptimizer<Bofill>::optimize(AtomCollection& atoms) {
 }
 
 template<>
-inline int GeometryOptimizer<NewtonRaphson>::optimize(AtomCollection& atoms) {
+inline int GeometryOptimizer<NewtonRaphson>::optimize(AtomCollection& atoms, Core::Log& log) {
   // Configure Calculator
   _calculator.setStructure(atoms);
   _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
@@ -413,6 +589,9 @@ inline int GeometryOptimizer<NewtonRaphson>::optimize(AtomCollection& atoms) {
     atoms.setPositions(coordinates);
     _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
     Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+    if (!results.get<Property::SuccessfulCalculation>()) {
+      throw std::runtime_error("Gradient calculation in geometry optimization failed.");
+    }
     value = results.get<Property::Energy>();
     if (this->transformCoordinates) {
       auto tmp = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
@@ -450,7 +629,7 @@ inline int GeometryOptimizer<NewtonRaphson>::optimize(AtomCollection& atoms) {
 }
 
 template<>
-inline int GeometryOptimizer<EigenvectorFollowing>::optimize(AtomCollection& atoms) {
+inline int GeometryOptimizer<EigenvectorFollowing>::optimize(AtomCollection& atoms, Core::Log& log) {
   // Configure Calculator
   _calculator.setStructure(atoms);
   _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
@@ -476,6 +655,9 @@ inline int GeometryOptimizer<EigenvectorFollowing>::optimize(AtomCollection& ato
     atoms.setPositions(coordinates);
     _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
     Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
+    if (!results.get<Property::SuccessfulCalculation>()) {
+      throw std::runtime_error("Gradient calculation in geometry optimization failed.");
+    }
     value = results.get<Property::Energy>();
     if (this->transformCoordinates) {
       auto tmp = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);

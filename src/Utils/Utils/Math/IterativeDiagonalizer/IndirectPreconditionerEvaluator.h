@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -17,7 +17,7 @@ namespace Utils {
  * @class IndirectPreconditionerEvaluator @file IndirectPreconditionerEvaluator
  * @brief This preconditioner evaluator returns the diagonal preconditioner for the Davidson algorithm.
  */
-class IndirectPreconditionerEvaluator : public PreconditionerEvaluator {
+class IndirectPreconditionerEvaluator final : public PreconditionerEvaluator {
  public:
   explicit IndirectPreconditionerEvaluator(const Eigen::VectorXd& diagonal);
   ~IndirectPreconditionerEvaluator() final = default;

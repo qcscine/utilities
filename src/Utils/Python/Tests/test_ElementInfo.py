@@ -1,3 +1,8 @@
+__copyright__ = """This code is licensed under the 3-clause BSD license.
+Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.
+See LICENSE.txt for details.
+"""
+
 import pytest
 import numpy
 import scine_utilities as scine
@@ -8,3 +13,5 @@ def test_ElementInfo():
     assert scine.ElementInfo.element_from_symbol("F") == scine.ElementType.F
     assert scine.ElementInfo.symbol(scine.ElementType.Ca) == "Ca"
     assert scine.ElementInfo.mass(scine.ElementType.Ru) == 101.07
+
+    assert scine.ElementInfo.Z(scine.ElementType.F) == 9

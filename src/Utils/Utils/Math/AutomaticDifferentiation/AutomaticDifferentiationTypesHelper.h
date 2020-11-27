@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -26,44 +26,44 @@ class Second3D;
 /**
  * @brief Values in 3 dimensions
  */
-template<derivOrder O>
+template<DerivativeOrder O>
 struct Value3DOrder {
   using ValueType = double;
 }; // Default
 template<>
-struct Value3DOrder<derivOrder::one> {
+struct Value3DOrder<DerivativeOrder::One> {
   using ValueType = First3D;
 };
 template<>
-struct Value3DOrder<derivOrder::two> {
+struct Value3DOrder<DerivativeOrder::Two> {
   using ValueType = Second3D;
 };
 
 /**
  * @brief Values in 1 dimension
  */
-template<derivOrder O>
+template<DerivativeOrder O>
 struct Value1DOrder {
   using ValueType = double;
 }; // Default
 template<>
-struct Value1DOrder<derivOrder::one> {
+struct Value1DOrder<DerivativeOrder::One> {
   using ValueType = First1D;
 };
 template<>
-struct Value1DOrder<derivOrder::two> {
+struct Value1DOrder<DerivativeOrder::Two> {
   using ValueType = Second1D;
 };
 
 /**
  * @brief Templated type for a value in 1 dimension.
  */
-template<derivOrder o>
+template<DerivativeOrder o>
 using Value1DType = typename Value1DOrder<o>::ValueType;
 /**
  * @brief Templated type for a value in 3 dimension.
  */
-template<derivOrder o>
+template<DerivativeOrder o>
 using Value3DType = typename Value3DOrder<o>::ValueType;
 
 } // namespace AutomaticDifferentiation

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  * @brief This header file defines constants commonly used in computational chemistry.
  *
@@ -20,16 +20,26 @@ namespace Utils {
  * This namespace does not include fitted parameters for
  * specific methods, only general constant parameters,
  * such as natural constants and atomic data.
+ * Constants from CODATA2014,  https://doi.org/10.1063/1.4954402
  */
 namespace Constants {
 /*=====================
  *  Natural Constants
  *=====================*/
 // Constants
-constexpr double elementaryCharge = 1.6021766208e-19; // C
+constexpr double pi = 3.14159265358979323846;
+// Constants from CODATA2014
+constexpr double atomicMassUnit = 1.660539040e-27;    // kg
 constexpr double avogadroNumber = 6.022140857e23;     // mol^-1
 constexpr double bohrRadius = 0.52917721067e-10;      // m
-constexpr double pi = 3.14159265358979323846;
+constexpr double boltzmannConstant = 1.38064852e-23;  // J K^-1
+constexpr double electronRestMass = 9.10938356e-31;   // kg
+constexpr double elementaryCharge = 1.6021766208e-19; // C
+// Note: the inverse fine structure constant is also
+// the speed of light in Hartree atomic units.
+constexpr double inverseFineStructureConstant = 137.035999139;
+constexpr double planckConstant = 6.626070040e-34; // J s
+constexpr double speedOfLight = 2.99792458e8;      // m s^-1
 
 /*======================
  *  Conversion Factors
@@ -77,6 +87,16 @@ constexpr double invCentimeter_per_kJPerMol = 349.7550112241469;
 constexpr double kCalPerMol_per_invCentimeter = 1.196265919e-2;
 constexpr double invCentimeter_per_kCalPerMol = 8.359345393;
 
+// Mass
+
+constexpr double electronRestMass_per_kg = 1 / electronRestMass;
+constexpr double kg_per_electronRestMass = electronRestMass; // 1 / electronRestMass_per_kg;
+
+constexpr double u_per_kg = 1 / atomicMassUnit;
+constexpr double kg_per_u = 1 / u_per_kg;
+
+constexpr double electronRestMass_per_u = kg_per_u * electronRestMass_per_kg;
+constexpr double u_per_electronRestMass = 1 / electronRestMass_per_u;
 } /* namespace Constants */
 /*=========
  *  Units

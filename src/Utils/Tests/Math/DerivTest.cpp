@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/Math/AutomaticDifferentiation/AutomaticDifferentiationHelpers.h>
@@ -270,7 +270,7 @@ TEST_F(ADerivClass, CanCreate3DFrom1DInXDirection) {
   Eigen::Vector3d vec(x, 0, 0);
 
   First1D d1D(v, d);
-  auto d3D = get3Dfrom1D<derivOrder::one>(d1D, vec);
+  auto d3D = get3Dfrom1D<DerivativeOrder::One>(d1D, vec);
 
   const auto& deriv = d3D.derivatives();
   ASSERT_THAT(d3D.value(), DoubleEq(d1D.value()));
@@ -289,7 +289,7 @@ TEST_F(ADerivClass, CanCreate3DFrom1DInRandomDirection) {
   double R = vec.norm();
 
   First1D d1D(v, d);
-  auto d3D = get3Dfrom1D<derivOrder::one>(d1D, vec);
+  auto d3D = get3Dfrom1D<DerivativeOrder::One>(d1D, vec);
 
   const auto& deriv = d3D.derivatives();
   ASSERT_THAT(d3D.value(), DoubleEq(d1D.value()));
@@ -304,7 +304,7 @@ TEST_F(ADerivClass, DoubleCanBeDividedByValueWithDerivatives) {
   double x = -9.3343;
 
   First1D d1D(v, d);
-  auto xWithDerivatives = constant1D<derivOrder::one>(x);
+  auto xWithDerivatives = constant1D<DerivativeOrder::One>(x);
 
   auto expected = xWithDerivatives / d1D;
   auto obtained = x / d1D;

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/CalculatorBasics/PropertyList.h>
@@ -23,12 +23,18 @@ void init_property_list(pybind11::module& m) {
   property.value("DipoleGradient", Property::DipoleGradient);
   property.value("DipoleMatrixAO", Property::DipoleMatrixAO);
   property.value("DipoleMatrixMO", Property::DipoleMatrixMO);
+  property.value("DensityMatrix", Property::DensityMatrix);
   property.value("OneElectronMatrix", Property::OneElectronMatrix);
   property.value("TwoElectronMatrix", Property::TwoElectronMatrix);
+  property.value("OverlapMatrix", Property::OverlapMatrix);
+  property.value("CoefficientMatrix", Property::CoefficientMatrix);
   property.value("BondOrderMatrix", Property::BondOrderMatrix);
   property.value("Thermochemistry", Property::Thermochemistry);
   property.value("ExcitedStates", Property::ExcitedStates);
   property.value("AtomicCharges", Property::AtomicCharges);
+  property.value("AtomicGtos", Property::AtomicGtos);
+  property.value("AOtoAtomMapping", Property::AOtoAtomMapping);
+  property.value("PointChargesGradients", Property::PointChargesGradients);
   property.value("Description", Property::Description);
   property.value("SuccessfulCalculation", Property::SuccessfulCalculation);
   property.value("ProgramName", Property::ProgramName);

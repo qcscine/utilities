@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -11,10 +11,10 @@ namespace Scine {
 namespace Utils {
 
 Eigen::MatrixXd MatrixWithDerivatives::getMatrixXd() const {
-  if (order_ == Utils::derivOrder::zero)
+  if (order_ == Utils::DerivativeOrder::Zero)
     return val;
 
-  if (order_ == Utils::derivOrder::one) {
+  if (order_ == Utils::DerivativeOrder::One) {
     Matrix0 m(der.rows(), der.cols());
     for (int i = 0; i < der.rows(); ++i) {
       for (int j = 0; j < der.cols(); ++j) {
@@ -24,7 +24,7 @@ Eigen::MatrixXd MatrixWithDerivatives::getMatrixXd() const {
     return m;
   }
 
-  // if (order_ == Utils::derivOrder::two)...
+  // if (order_ == Utils::DerivativeOrder::Two)...
   Matrix0 m(hes.rows(), hes.cols());
   for (int i = 0; i < hes.rows(); ++i) {
     for (int j = 0; j < hes.cols(); ++j) {

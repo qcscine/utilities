@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -90,4 +90,10 @@ class HessianUtilities {
 } // namespace Utils
 } // namespace Scine
 
+class EmptyInternalHessianException : public std::runtime_error {
+ public:
+  explicit EmptyInternalHessianException()
+    : std::runtime_error("Transformation to internals results into an empty Hessian.") {
+  }
+};
 #endif // UTILS_SPECTROSCOPY_HESSIANUTILITIES_H

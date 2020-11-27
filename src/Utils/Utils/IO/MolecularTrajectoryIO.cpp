@@ -1,14 +1,13 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/IO/MolecularTrajectoryIO.h"
 #include "Utils/Constants.h"
 #include "Utils/Geometry/AtomCollection.h"
 #include "Utils/Geometry/ElementInfo.h"
-#include "Utils/IO/Logger.h"
 #include "Utils/MolecularTrajectory.h"
 #include <fstream>
 #include <iomanip>

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_BONDDETECTOR_H_
@@ -18,14 +18,19 @@ class BondOrderCollection;
 
 /**
  * @class BondDetector BondDetector.h
- * @brief Detecting bonds from 3D structures using covalent radii.
+ * @brief Detecting bonds from 3D structures based on interatomic distances using covalent radii.
  *
- * The radii are stored in Scine::Utils::BondDetectorRadii .
+ * A bond is detected if the distance between two atoms is smaller than the sum of their covalent radii plus 0.4
+ * Angstrom. A binary decision on whether a bond exists (resulting in a bond order of 1.0) or not (yielding a bond order
+ * of 0.0) is made.
  *
- * References:
- * - DOI: 10.1002/jcc.540120716
- * - DOI: 10.1186/1758-2946-4-26
- * - DOI: 10.1002/jcc.24309
+ * The covalent radii were extracted from the Cambridge Structural Database and are available in
+ * Utils::BondDetectorRadii.
+ *
+ * References:\n
+ * E. C. Meng, R. A. Lewis, Comput. Chem. 1991, 12, 891-898. [DOI: 10.1002/jcc.540120716]\n
+ * C. R. Groom, I. J. Bruno, M. P. Lightfoot and S. C. Ward, Acta Cryst. (2016). B72, 171-179.
+ * [DOI: 10.1107/S2052520616003954]\n
  */
 class BondDetector {
  public:

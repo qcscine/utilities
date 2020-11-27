@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -12,6 +12,7 @@
 
 namespace Scine {
 namespace Utils {
+namespace AutomaticDifferentiation {
 
 /**
  * @class VectorDerivatives3D VectorDerivatives3D.h
@@ -121,6 +122,7 @@ inline VectorDerivatives3D::Second3D VectorDerivatives3D::norm() const {
   return root;
 }
 
+} // namespace AutomaticDifferentiation
 } // namespace Utils
 } // namespace Scine
 

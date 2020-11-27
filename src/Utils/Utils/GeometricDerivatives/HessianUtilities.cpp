@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -88,6 +88,10 @@ void HessianUtilities::calculateInternal() {
       m.middleRows(3 * i, 3) *= invSqrtM;
     }
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
+    // Check whether internal Hessian would be empty
+    if (_transformation.size() == 0) {
+      throw EmptyInternalHessianException();
+    }
     // Project out by multiplying by  transformation matrix (has to be mass-weighted, too!)
     es.compute(_transformation.transpose() * m * _transformation);
     _internalEValues = std::make_unique<Eigen::VectorXd>(es.eigenvalues());

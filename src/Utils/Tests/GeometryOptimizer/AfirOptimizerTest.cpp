@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/GeometryOptimization/AfirOptimizer.h"
@@ -23,8 +23,6 @@ namespace Tests {
 // Define a mock calculator
 class AfirOptMockCalculator : public CloneInterface<AfirOptMockCalculator, Core::Calculator> {
  public:
-  AfirOptMockCalculator() = default;
-  ~AfirOptMockCalculator() final = default;
   void setStructure(const AtomCollection& structure) final {
     structure_ = structure;
   };
@@ -66,6 +64,7 @@ class AfirOptMockCalculator : public CloneInterface<AfirOptMockCalculator, Core:
     g(2, 2) = (4.0 * pow(r23, 2.0) - 40.0) * v32[2];
 
     r_ = Results();
+    r_.set<Property::SuccessfulCalculation>(true);
     r_.set<Property::Energy>(e);
     r_.set<Property::Gradients>(g);
     return r_;
@@ -103,6 +102,11 @@ class AfirOptMockCalculator : public CloneInterface<AfirOptMockCalculator, Core:
   Settings settings_ = Settings("dummy");
 };
 
+// Define a test logger
+namespace {
+Core::Log logger = Core::Log::silent();
+}
+
 /**
  * @class Scine::Utils::Tests::AfirOptimizerTests
  * @brief Comprises tests for the class Scine::Utils::AfirOptimizer.
@@ -126,7 +130,7 @@ TEST(AfirOptimizerTests, SteepestDescent_NoPotential) {
   positions(0, 0) = -M_PI;
   positions(2, 0) = M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = afir.optimize(atoms);
+  auto nIter = afir.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < afir.check.maxIter);
@@ -156,7 +160,7 @@ TEST(AfirOptimizerTests, Lbfgs_NoPotential) {
   positions(0, 0) = 0.75 * M_PI;
   positions(2, 0) = 0.64 * M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = afir.optimize(atoms);
+  auto nIter = afir.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < afir.check.maxIter);
@@ -187,7 +191,7 @@ TEST(AfirOptimizerTests, Lbfgs_WeakOnly) {
   positions(0, 0) = -0.59 * M_PI;
   positions(2, 0) = 0.59 * M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = afir.optimize(atoms);
+  auto nIter = afir.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < afir.check.maxIter);
@@ -219,7 +223,7 @@ TEST(AfirOptimizerTests, Lbfgs_ListAttractiveOnly) {
   positions(0, 0) = -0.59 * M_PI;
   positions(2, 0) = 0.59 * M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = afir.optimize(atoms);
+  auto nIter = afir.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < afir.check.maxIter);
@@ -252,7 +256,7 @@ TEST(AfirOptimizerTests, Lbfgs_ListRepulsiveOnly) {
   positions(0, 0) = -0.59 * M_PI;
   positions(2, 0) = 0.59 * M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = afir.optimize(atoms);
+  auto nIter = afir.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < afir.check.maxIter);
@@ -286,7 +290,7 @@ TEST(AfirOptimizerTests, Lbfgs_ListAndWeak) {
   positions(0, 0) = -0.59 * M_PI;
   positions(2, 0) = 0.59 * M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = afir.optimize(atoms);
+  auto nIter = afir.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < afir.check.maxIter);
@@ -297,6 +301,85 @@ TEST(AfirOptimizerTests, Lbfgs_ListAndWeak) {
   auto r23 = (p3 - p2).norm();
   EXPECT_TRUE(r12 > sqrt(10));
   EXPECT_TRUE(r23 < sqrt(10));
+}
+
+TEST(AfirOptimizerTests, Lbfgs_maxFragmentDistance) {
+  AfirOptMockCalculator mockCalculator;
+  AfirOptimizer<Lbfgs> afir(mockCalculator);
+
+  afir.check.maxIter = 50;
+  afir.optimizer.linesearch = false;
+  afir.check.stepMaxCoeff = 1.0e-7;
+  afir.check.afirUseMaxFragmentDistance = true;
+  afir.check.afirMaxFragmentDistance = 10.0;
+  afir.check.stepRMS = 1.0e-8;
+  afir.check.gradMaxCoeff = 1.0e-7;
+  afir.check.gradRMS = 1.0e-8;
+  afir.check.deltaValue = 1.0e-9;
+  afir.phaseIn = 0;
+  afir.rhsList = {0};
+  afir.lhsList = {1};
+  afir.weak = true;
+  afir.attractive = false;
+  afir.transformCoordinates = false;
+
+  auto elements = ElementTypeCollection{ElementType::H, ElementType::H, ElementType::H};
+  Eigen::MatrixX3d positions = Eigen::MatrixX3d::Zero(3, 3);
+  positions(0, 0) = -0.59 * M_PI;
+  positions(2, 0) = 0.59 * M_PI;
+  AtomCollection atoms(elements, positions);
+
+  auto nIter = afir.optimize(atoms, logger);
+
+  // Check results
+  // A calculation converging anyways should still do so with a maximum fragment distance
+  EXPECT_TRUE(nIter < afir.check.maxIter);
+  auto p1 = atoms.getPosition(0);
+  auto p2 = atoms.getPosition(1);
+  auto p3 = atoms.getPosition(2);
+  auto r12 = (p1 - p2).norm();
+  auto r23 = (p3 - p2).norm();
+  EXPECT_TRUE(r12 > sqrt(10));
+  EXPECT_TRUE(r23 < sqrt(10));
+}
+
+TEST(AfirOptimizerTests, Lbfgs_hugeRepulsion) {
+  AfirOptMockCalculator mockCalculator;
+  AfirOptimizer<Lbfgs> afir(mockCalculator);
+
+  afir.check.maxIter = 50;
+  afir.optimizer.linesearch = false;
+  afir.check.stepMaxCoeff = 1.0e-7;
+  afir.check.afirUseMaxFragmentDistance = true;
+  afir.check.afirMaxFragmentDistance = 15.0;
+  afir.check.stepRMS = 1.0e-8;
+  afir.check.gradMaxCoeff = 1.0e-7;
+  afir.check.gradRMS = 1.0e-8;
+  afir.check.deltaValue = 1.0e-9;
+  afir.energyAllowance = 999999;
+  afir.phaseIn = 0;
+  afir.rhsList = {0};
+  afir.lhsList = {1};
+  afir.weak = false;
+  afir.attractive = false;
+  afir.transformCoordinates = false;
+
+  auto elements = ElementTypeCollection{ElementType::H, ElementType::H, ElementType::H};
+  Eigen::MatrixX3d positions = Eigen::MatrixX3d::Zero(3, 3);
+  positions(0, 0) = -0.59 * M_PI;
+  positions(2, 0) = 0.59 * M_PI;
+  AtomCollection atoms(elements, positions);
+
+  auto nIter = afir.optimize(atoms, logger);
+
+  // Check results
+  EXPECT_TRUE(nIter < afir.check.maxIter);
+  auto p1 = atoms.getPosition(0);
+  auto p2 = atoms.getPosition(1);
+  auto p3 = atoms.getPosition(2);
+  auto r12 = (p1 - p2).norm();
+  auto r23 = (p3 - p2).norm();
+  EXPECT_TRUE(r12 > 15.0);
 }
 
 } /* namespace Tests */

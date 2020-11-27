@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_ATOMCOLLECTION_H_
@@ -148,7 +148,7 @@ class AtomCollection {
    */
   void push_back(const Atom& atom);
   /**
-   * @brief Operator overlaod, getter by position.
+   * @brief Operator overload, getter by position.
    * @param i The position.
    * @return Atom That atom at position i.
    */
@@ -174,6 +174,18 @@ class AtomCollection {
 
   //! Negates @see operator ==
   bool operator!=(const AtomCollection& other) const;
+  /**
+   * @brief Operator overload, combine two atom collections.
+   * @param other The other atom collection, appended to the first one.
+   * @return The combined atom collection.
+   */
+  AtomCollection operator+(const AtomCollection& other) const;
+  /**
+   * @brief Operator overload, append atom collection other.
+   * @param other The atom collection which shall be appended.
+   * @return The combined atom collection.
+   */
+  AtomCollection& operator+=(const AtomCollection& other);
 
  private:
   ElementTypeCollection elements_;

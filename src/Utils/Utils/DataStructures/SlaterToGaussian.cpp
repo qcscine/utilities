@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -12,11 +12,12 @@ namespace Utils {
 
 GtoExpansion SlaterToGaussian::getGTOExpansion(unsigned int N, unsigned int n, unsigned int l, double exponent) {
   auto values = get(N, n, l, exponent);
-  GtoExpansion gtos(N);
-  gtos.setAngularMomentum(l);
+  GtoExpansion gtos;
+  gtos.angularMomentum = l;
 
-  for (unsigned int i = 0; i < N; i++) {
-    gtos.setGTF(i, values[i].first, values[i].second);
+  gtos.gtfs.resize(N);
+  for (int i = 0; i < N; i++) {
+    gtos.gtfs[i] = Gtf{static_cast<int>(l), values[i].first, values[i].second};
   }
 
   return gtos;

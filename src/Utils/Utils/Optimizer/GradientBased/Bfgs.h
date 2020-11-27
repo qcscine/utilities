@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -37,6 +37,8 @@ class Bfgs : public Optimizer {
    *                        1. const Eigen::VectorXd& parameters\n
    *                        2. double& value\n
    *                        3. Eigen::VectorXd& gradients
+   * @tparam ConvergenceCheckClass The convergence check class, needs to have a check function signature
+   *                               that is the same as the GradientBasedCheck.
    *
    * @param parameters The parameters to be optimized.
    * @param function   The function to be evaluated in order to get values and gradients
@@ -46,15 +48,19 @@ class Bfgs : public Optimizer {
    * @return int       Returns the number of optimization cycles carried out until the conclusion
    *                   of the optimization function.
    */
-  template<class UpdateFunction>
-  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, GradientBasedCheck& check) {
+  template<class UpdateFunction, class ConvergenceCheckClass>
+  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, ConvergenceCheckClass& check) {
     /* number of parameters treated */
     unsigned int nParams = parameters.size();
+    if (nParams == 0) {
+      throw EmptyOptimizerParametersException();
+    }
     double value = 0.0;
 
-    /* Initialize Hessian inverse if need */
-    if (invH.size() == 0)
+    /* Initialize Hessian inverse if needed */
+    if (invH.size() == 0) {
       invH = 0.1 * Eigen::MatrixXd::Identity(nParams, nParams);
+    }
     /* Initialize GDIIS */
     Gdiis diis(invH, gdiisMaxStore);
     /* Setting all gradients to zero. */
@@ -64,10 +70,13 @@ class Bfgs : public Optimizer {
     /* Set "assumed previous parameters" as parametersOld. */
     Eigen::VectorXd parametersOld(parameters);
     double oldValue = value;
-    /* start with one steepest descent step */
-    int cycle = 1;
+    /* Get start cycle */
+    int cycle = _startCycle;
     function(parameters, value, gradients);
     this->triggerObservers(cycle, value, parameters);
+    // Init parameters and value stored in the convergence checker
+    check.setParametersAndValue(parameters, value);
+    /* start with one steepest descent step */
     Eigen::VectorXd stepVector = -invH * gradients;
     bool stop = false;
     while (!stop) {
@@ -79,7 +88,7 @@ class Bfgs : public Optimizer {
       /* Rotate the (now) old value to the local variable. */
       oldValue = value;
 
-      if ((sqrt(gradients.squaredNorm() / gradients.size()) < 0.2) && useGdiis && cycle > gdiisMaxStore) {
+      if ((sqrt(gradients.squaredNorm() / gradients.size()) < 0.2) && useGdiis && cycle - _startCycle > gdiisMaxStore) {
         parameters = diis.update(parameters, gradients);
         stepVector.noalias() = (parameters - parametersOld);
         /* Check trust radius */
@@ -110,8 +119,8 @@ class Bfgs : public Optimizer {
       }
       if (value > oldValue) {
         /* Backtrack of value rises */
-        parameters = parametersOld;
-        gradients = gradientsOld;
+        parameters.noalias() = parametersOld;
+        gradients.noalias() = gradientsOld;
         invH = Eigen::MatrixXd::Identity(nParams, nParams);
         if (useGdiis)
           diis.flush();
@@ -123,7 +132,15 @@ class Bfgs : public Optimizer {
       }
       if (stop)
         break;
-
+      // Check oscillation, perform new calculation if oscillating
+      if (this->isOscillating(value)) {
+        parametersOld.noalias() = parameters;
+        gradientsOld.noalias() = gradients;
+        this->oscillationCorrection(stepVector, parameters);
+        function(parameters, value, gradients);
+        cycle++;
+        this->triggerObservers(cycle, value, parameters);
+      }
       /* BFGS inverse Hessian update */
       Eigen::VectorXd dx = parameters - parametersOld;
       Eigen::VectorXd dg = gradients - gradientsOld;
@@ -135,7 +152,7 @@ class Bfgs : public Optimizer {
       const double beta = 1.0 / dxTdg;
       invH += alpha * (dx * dx.transpose()) - beta * (invH * dg * dx.transpose() + dx * dg.transpose() * invH);
       if (projection) {
-        (*projection)(invH);
+        projection(invH);
       }
       stepVector.noalias() = -invH * gradients;
     }
@@ -172,6 +189,28 @@ class Bfgs : public Optimizer {
     useGdiis = settings.getBool(Bfgs::bfgsUseGdiis);
     gdiisMaxStore = settings.getInt(Bfgs::bfgsGdiisMaxStore);
   };
+  /**
+   * @brief Prepares the BFGS optimizer for rerunning its optimize function.
+   *
+   * This function is used to prepare an BFGS optimizer instance for rerunning
+   * its optimize function with possibly different settings.
+   * It changes the cycle count the optimizer starts with when the optimize
+   * function is called and removes the stored inverse Hessian and its
+   * projection function.
+   * The value memory for an eventual oscillating correction is cleared.
+   *
+   * @param cycleNumber The cycle number the optimizer starts with.
+   */
+  virtual void prepareRestart(const int& cycleNumber) final {
+    // Set start cycle number
+    _startCycle = cycleNumber;
+    // Remove inverse Hessian and projection function
+    (this->invH).resize(0, 0);
+    this->projection = nullptr;
+    // Clear value memory for oscillating correction
+    _initializedValueMemory = false;
+    _valueMemory.clear();
+  };
   /// @brief Enable the use of a trust radius for all steps.
   bool useTrustRadius = false;
   /// @brief The maximum size (RMS) of a taken step.
@@ -183,7 +222,7 @@ class Bfgs : public Optimizer {
   /// @brief The inverse Hessian
   Eigen::MatrixXd invH;
   /// @brief A possible Hessian projection
-  std::unique_ptr<std::function<void(Eigen::MatrixXd&)>> projection = nullptr;
+  std::function<void(Eigen::MatrixXd&)> projection;
 };
 
 } // namespace Utils

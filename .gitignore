@@ -2,12 +2,14 @@
 build/*
 cmake-build-*
 compile_commands.json
+install/*
 
 # hidden files
 *.swp
 .idea/*
 .lvimrc
 .vscode
+.conan_test_package/build
 
 # python files
 *__pycache__*
@@ -16,4 +18,8 @@ compile_commands.json
 resource/Documentation/*
 
 # generated source files
+externalQC_output_location.h
 orca_output_location.h
+
+# conan ci files
+conan/*

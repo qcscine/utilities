@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -44,6 +44,10 @@ class Settings : public Scine::Utils::UniversalSettings::ValueCollection {
   Settings(Utils::UniversalSettings::ValueCollection settings, Utils::UniversalSettings::DescriptorCollection fields)
     : Utils::UniversalSettings::ValueCollection(std::move(settings)), _fields(std::move(fields)) {
   }
+  /**
+   * @brief Virtual destructor.
+   */
+  virtual ~Settings() = default;
   /**
    * @brief Getter for the name set in the constructor of the settings object.
    * @return std::string Returns the name.

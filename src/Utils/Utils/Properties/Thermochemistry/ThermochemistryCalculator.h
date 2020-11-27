@@ -1,7 +1,7 @@
 /**
  * @file ThermochemistryContainer.h
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -17,12 +17,11 @@ namespace Utils {
  * @brief Struct containing the single thermochemical properties of interest.
  */
 struct ThermochemicalContainer {
-  double temperature = 0, entropy = 0, enthalpy = 0, heatCapacityP = 0, heatCapacityV = 0, gibbsFreeEnergy = 0,
-         zeroPointVibrationalEnergy = 0;
+  double entropy = 0, enthalpy = 0, heatCapacityP = 0, heatCapacityV = 0, gibbsFreeEnergy = 0, zeroPointVibrationalEnergy = 0;
+  int symmetryNumber = 1;
   ThermochemicalContainer operator+(const ThermochemicalContainer& rhs) const {
-    assert(temperature == rhs.temperature && "Summing up thermochemical data at different temperatures.");
     ThermochemicalContainer result = *this;
-    result.temperature = this->temperature;
+    result.symmetryNumber = this->symmetryNumber;
     result.entropy += rhs.entropy;
     result.enthalpy += rhs.enthalpy;
     result.heatCapacityP += rhs.heatCapacityP;
@@ -134,8 +133,9 @@ class ThermochemistryCalculator {
   ThermochemicalContainer calculateRotationalPart(double temperature) const;
   ThermochemicalContainer calculateTranslationalPart(double temperature) const;
   ThermochemicalContainer calculateElectronicPart(double temperature) const;
-  // Approximated because no symmetry calculated.
-  void calculateSigmaForLinearMolecule();
+  // Sets the symmetry number for diatomic molecules
+  void calculateSigmaForDiatomicMolecule();
+  // TODO Automatically determine symmetry for all molecules
   NormalModesContainer normalModesContainer_{};
 };
 

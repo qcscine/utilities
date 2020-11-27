@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/Geometry/ElementInfo.h>
@@ -13,7 +13,7 @@ using namespace Scine::Utils;
 void init_element_info(pybind11::module& m) {
   pybind11::class_<ElementInfo> element_info(m, "ElementInfo");
 
-  element_info.def_static("element_from_symbol", &ElementInfo::elementTypeForSymbol,
+  element_info.def_static("element_from_symbol", &ElementInfo::elementTypeForSymbol, pybind11::arg("element_str"),
                           R"delim(
       Translate a string representation to an ElementType
 
@@ -28,8 +28,9 @@ void init_element_info(pybind11::module& m) {
       >>> assert ElementInfo.element_from_symbol("T") == ElementType.T
       >>> assert ElementInfo.element_from_symbol("3H") == ElementType.T
     )delim");
-  element_info.def_static("symbol", &ElementInfo::symbol, "Translate an ElementType into its string representation");
-  element_info.def_static("mass", &ElementInfo::mass,
+  element_info.def_static("symbol", &ElementInfo::symbol, pybind11::arg("element"),
+                          "Translate an ElementType into its string representation");
+  element_info.def_static("mass", &ElementInfo::mass, pybind11::arg("element"),
                           R"delim(
       Standard atomic weight of element type
 
@@ -50,8 +51,27 @@ void init_element_info(pybind11::module& m) {
       >>> ElementInfo.mass(ElementType.D)
       2.01410177812
     )delim");
-  element_info.def_static("vdw_radius", &ElementInfo::vdwRadius, "van der Waals radius in atomic units");
-  element_info.def_static("Z", &ElementInfo::Z,
+  element_info.def_static("covalent_radius", &ElementInfo::covalentRadius, pybind11::arg("element"),
+                          R"delim(
+      Returns the covalent radius of an element in atomic units.
+
+      References:
+
+      - Atomic Radii of the Elements in CRC Handbook of Chemistry and Physics,
+        100th Edition (Internet Version 2019), John R. Rumble, ed., CRC
+        Press/Taylor & Francis, Boca Raton, FL.
+      - DOI: 10.1039/b801115j
+      - DOI: 10.1002/chem.200800987
+
+      :param element: The element type for which to fetch the covalent radius
+      :return: covalent radius in atomic units
+
+      >>> ElementInfo.covalent_radius(ElementType.H)
+      0.604712360146505
+    )delim");
+  element_info.def_static("vdw_radius", &ElementInfo::vdwRadius, pybind11::arg("element"),
+                          "van der Waals radius in atomic units");
+  element_info.def_static("Z", &ElementInfo::Z, pybind11::arg("element"),
                           R"delim(
       Atomic number of an element
 
@@ -60,7 +80,7 @@ void init_element_info(pybind11::module& m) {
       >>> ElementInfo.Z(ElementType.C14)
       6
     )delim");
-  element_info.def_static("A", &ElementInfo::A,
+  element_info.def_static("A", &ElementInfo::A, pybind11::arg("element"),
                           R"delim(
       Atomic mass number of an element
 
@@ -73,20 +93,24 @@ void init_element_info(pybind11::module& m) {
       >>> ElementInfo.A(ElementType.Be) # Be is monoisotopic, A is also nonzero
       9
     )delim");
-  element_info.def_static("abundance", &ElementInfo::abundance,
+  element_info.def_static("abundance", &ElementInfo::abundance, pybind11::arg("element"),
                           R"delim(
       Natural abundance of an isotope
 
-      Returns zero for non-monoisotopic elements. The stored natural abundances
-      of particular isotopes may not sum to one, but may all be zero for cases
-      in which no natural abundances have been measured.
+      Raises RuntimeError if atomic mass unspecified. The stored natural
+      abundances of particular isotopes may not sum to one, but may all be zero
+      for cases in which no natural abundances have been measured.
 
       >>> ElementInfo.abundance(ElementType.H)
-      0.0
+      Traceback (most recent call last):
+        ...
+      RuntimeError: Unspecified isotope has no abundance
       >>> ElementInfo.abundance(ElementType.H1)
       0.999885
+      >>> ElementInfo.abundance(ElementType.D)
+      0.000115
     )delim");
-  element_info.def_static("base", &ElementInfo::base,
+  element_info.def_static("base", &ElementInfo::base, pybind11::arg("element"),
                           R"delim(
       Returns the base of an isotope (e.g. Li for Li6)
 
@@ -94,14 +118,16 @@ void init_element_info(pybind11::module& m) {
       >>> assert ElementInfo.base(ElementType.H) == ElementType.H
       >>> assert ElementInfo.base(ElementType.H1) == ElementType.H
     )delim");
-  element_info.def_static("element", &ElementInfo::element,
+  element_info.def_static("element", &ElementInfo::element, pybind11::arg("z"),
                           R"delim(
       Compose an element from an atomic number
 
-      >>> ElementInfo.element(6) == ElementType.C
-      >>> ElementInfo.element(4) == ElementType.Be
+      >>> ElementInfo.element(6)
+      ElementType.C
+      >>> ElementInfo.element(4)
+      ElementType.Be
     )delim");
-  element_info.def_static("isotope", &ElementInfo::isotope,
+  element_info.def_static("isotope", &ElementInfo::isotope, pybind11::arg("z"), pybind11::arg("a"),
                           R"delim(
       Compose an isotope from an atomic number and an atomic mass number
 
@@ -111,14 +137,14 @@ void init_element_info(pybind11::module& m) {
 
       >>> assert ElementInfo.isotope(6, 12) == ElementType.C12
     )delim");
-  element_info.def_static("isotopes", &ElementInfo::isotopes,
+  element_info.def_static("isotopes", &ElementInfo::isotopes, pybind11::arg("element"),
                           R"delim(
       Returns isotopes of an element, in unsorted order
 
       >>> assert sorted(ElementInfo.isotopes(ElementType.H)) == [ElementType.H1, ElementType.D, ElementType.T]
     )delim");
-  element_info.def_static("val_electrons", &ElementInfo::valElectrons, "Number of valence electrons");
-  element_info.def_static("s_electrons", &ElementInfo::sElectrons, "Number of s valence electrons");
-  element_info.def_static("p_electrons", &ElementInfo::pElectrons, "Number of p valence electrons");
-  element_info.def_static("d_electrons", &ElementInfo::dElectrons, "Number of d valence electrons");
+  element_info.def_static("val_electrons", &ElementInfo::valElectrons, pybind11::arg("element"), "Number of valence electrons");
+  element_info.def_static("s_electrons", &ElementInfo::sElectrons, pybind11::arg("element"), "Number of s valence electrons");
+  element_info.def_static("p_electrons", &ElementInfo::pElectrons, pybind11::arg("element"), "Number of p valence electrons");
+  element_info.def_static("d_electrons", &ElementInfo::dElectrons, pybind11::arg("element"), "Number of d valence electrons");
 }

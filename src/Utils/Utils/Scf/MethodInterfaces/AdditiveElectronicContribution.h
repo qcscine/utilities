@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILSOS_ADDITIVEELECTRONICCONTRIBUTION_H
@@ -20,7 +20,7 @@ class DensityMatrix;
  * @class AdditiveElectronicContribution @file AdditiveElectronicContribution.h
  * This class represents an additive electronic contribution.
  * On one sides it stores the matrix with the matrix elements, on the other side
- * it is an interface for the addDerivatives<Utils::derivativeType O> methods in the derived classes.
+ * it is an interface for the addDerivatives<Utils::Derivative O> methods in the derived classes.
  */
 class AdditiveElectronicContribution {
  public:
@@ -75,25 +75,24 @@ class AdditiveElectronicContribution {
    * @brief Calculates the energy contribution.
    * For example, calculates the dipole-field interaction energy.
    */
-  virtual void calculate(const DensityMatrix& densityMatrix, derivOrder order) = 0;
+  virtual void calculate(const DensityMatrix& densityMatrix, DerivativeOrder order) = 0;
   /**
    * @brief Functions to calculate the first derivatives of the electronic contribution.
    * @param derivativeContainer A container for the derivatives up to the first order.
    */
-  virtual void
-  addDerivatives(AutomaticDifferentiation::DerivativeContainerType<derivativeType::first>& derivativeContainer) const = 0;
+  virtual void addDerivatives(AutomaticDifferentiation::DerivativeContainerType<Derivative::First>& derivativeContainer) const = 0;
   /**
    * @brief Functions to calculate the atomic second derivatives of the electronic contribution.
    * @param derivativeContainer A container for the atomic derivatives up to the second order.
    */
   virtual void
-  addDerivatives(AutomaticDifferentiation::DerivativeContainerType<derivativeType::second_atomic>& derivativeContainer) const = 0;
+  addDerivatives(AutomaticDifferentiation::DerivativeContainerType<Derivative::SecondAtomic>& derivativeContainer) const = 0;
   /**
    * @brief Functions to calculate the second derivatives of the electronic contribution.
    * @param derivativeContainer A container for the derivatives up to the second order.
    */
   virtual void
-  addDerivatives(AutomaticDifferentiation::DerivativeContainerType<derivativeType::second_full>& derivativeContainer) const = 0;
+  addDerivatives(AutomaticDifferentiation::DerivativeContainerType<Derivative::SecondFull>& derivativeContainer) const = 0;
 
  private:
   SpinAdaptedMatrix electronicContribution_;

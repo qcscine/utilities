@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_EXTERNALQC_ORCAMAINOUTPUTPARSER_H
@@ -39,9 +39,14 @@ class OrcaMainOutputParser {
   double getEnergy() const;
   /**
    * @brief Parse the Mayer bond orders from the ORCA output.
-   * @return The Utils::BondOrderCollection
+   * @return The Utils::BondOrderCollection.
    */
   Utils::BondOrderCollection getBondOrders() const;
+  /**
+   * @brief Parse the Hirshfeld charges from the ORCA output.
+   * @return The Hirshfeld charges.
+   */
+  std::vector<double> getHirshfeldCharges() const;
   /**
    * @brief Parse the number of atoms from the ORCA output.
    * @return The number of atoms.
@@ -77,6 +82,12 @@ class OrcaMainOutputParser {
    * @return The Gibbs free energy in Hartree.
    */
   double getGibbsFreeEnergy() const;
+
+  /**
+   * @brief Parse the molecular symmetry for which the thermochemistry was computed.
+   * @return The molecular symmetry number.
+   */
+  double getSymmetryNumber() const;
 
  private:
   void extractContent(const std::string& filename);

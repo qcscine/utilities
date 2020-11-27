@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -35,6 +35,8 @@ class SteepestDescent : public Optimizer {
    *                        1. const Eigen::VectorXd& parameters\n
    *                        2. double& value\n
    *                        3. Eigen::VectorXd& gradients
+   * @tparam ConvergenceCheckClass The convergence check class, needs to have a check function signature
+   *                               that is the same as the GradientBasedCheck.
    *
    * @param parameters The parameters to be optimized.
    * @param function   The function to be evaluated in order to get values and gradients
@@ -44,13 +46,19 @@ class SteepestDescent : public Optimizer {
    * @return int       Returns the number of optimization cycles carried out until the conclusion
    *                   of the optimization function.
    */
-  template<class UpdateFunction>
-  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, GradientBasedCheck& check) {
+  template<class UpdateFunction, class ConvergenceCheckClass>
+  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, ConvergenceCheckClass& check) {
+    if (parameters.size() == 0) {
+      throw EmptyOptimizerParametersException();
+    }
     double value = 0.0;
     Eigen::VectorXd gradients = Eigen::VectorXd::Zero(parameters.size());
+    int cycle = _startCycle;
     function(parameters, value, gradients);
+    this->triggerObservers(cycle, value, parameters);
+    // Init parameters and value stored in the convergence checker
+    check.setParametersAndValue(parameters, value);
     bool stop = false;
-    int cycle = 0;
     while (!stop) {
       cycle++;
       parameters.array() -= factor * gradients.array();
@@ -59,6 +67,20 @@ class SteepestDescent : public Optimizer {
       stop = check.checkMaxIterations(cycle);
       if (!stop) {
         stop = check.checkConvergence(parameters, value, gradients);
+      }
+      // Check oscillation, perform new calculation if oscillating and lower factor
+      if (!stop && this->isOscillating(value)) {
+        this->oscillationCorrection(-factor * gradients, parameters);
+        function(parameters, value, gradients);
+        cycle++;
+        this->triggerObservers(cycle, value, parameters);
+        factor *= 0.95;
+        _oscillationCounter++;
+      }
+      else {
+        // reset factor
+        factor /= pow(0.95, _oscillationCounter);
+        _oscillationCounter = 0;
       }
     }
     return cycle;
@@ -87,6 +109,10 @@ class SteepestDescent : public Optimizer {
    * \f[ x_{i,n+1} = x_i - \alpha * g_i \f]
    */
   double factor = 0.1;
+
+ private:
+  // The number of back-to-back oscillation detections and factor decreases
+  unsigned int _oscillationCounter = 0;
 };
 
 } // namespace Utils

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -25,7 +25,7 @@ void EdiisModifier::onOverlapCalculated() {
 void EdiisModifier::onFockCalculated() {
   if (!sameNumberOfElectronsInMethodAndInDensityMatrix())
     return;
-  m->computeEnergyAndDerivatives(Utils::derivativeType::none);
+  m->computeEnergyAndDerivatives(Utils::Derivative::None);
   mixer_.addMatrices(m->getEnergy(), m->getFockMatrix(), m->getDensityMatrix());
   m->setFockMatrix(mixer_.getMixedFockMatrix());
 }

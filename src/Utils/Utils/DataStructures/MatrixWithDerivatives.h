@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -34,8 +34,8 @@ public:
   using Matrix0 = Eigen::MatrixXd;
   using Matrix1 = Eigen::Matrix<Der1, Eigen::Dynamic, Eigen::Dynamic>;
   using Matrix2 = Eigen::Matrix<Der2, Eigen::Dynamic, Eigen::Dynamic>;
-  template< derivOrder O > struct MatrixType { using MType = Matrix0; }; //Default
-  template<derivOrder o> using Matrix = typename MatrixType<o>::MType;
+  template< DerivativeOrder O > struct MatrixType { using MType = Matrix0; }; //Default
+  template<DerivativeOrder o> using Matrix = typename MatrixType<o>::MType;
 
   MatrixWithDerivatives& operator+(const MatrixWithDerivatives& rhs);
   MatrixWithDerivatives& operator+=(const MatrixWithDerivatives& rhs);
@@ -43,11 +43,11 @@ public:
   MatrixWithDerivatives& operator-=(const MatrixWithDerivatives& rhs);
 
   explicit MatrixWithDerivatives(int rows=0, int cols=0) {
-    order_ = derivOrder::zero;
+    order_ = DerivativeOrder::Zero;
     setDimension(rows, cols);
   }
 
-  void setOrder(derivOrder o) {
+  void setOrder(DerivativeOrder o) {
     order_ = o;
   }
 
@@ -58,8 +58,8 @@ public:
   const Der0& v0(int i1, int i2) const { return val(i1, i2); }
   const Der1& v1(int i1, int i2) const { return der(i1, i2); }
   const Der2& v2(int i1, int i2) const { return hes(i1, i2); }
-  template<derivOrder O> Matrix<O>& get();
-  template<derivOrder O> const Matrix<O>& get() const;
+  template<DerivativeOrder O> Matrix<O>& get();
+  template<DerivativeOrder O> const Matrix<O>& get() const;
   Matrix0& get0() { return val; }
   Matrix1& get1() { return der; }
   Matrix2& get2() { return hes; }
@@ -72,7 +72,7 @@ public:
 
   /*! Alias for setDimension for the case where rows = cols */
   void reset(int dimension) {
-    setOrder(derivOrder::zero);
+    setOrder(DerivativeOrder::Zero);
     setDimension(dimension, dimension);
   }
   /*! Initializes the members with dimensions given as parameters. */
@@ -83,29 +83,29 @@ public:
   void setBaseMatrix(const Eigen::MatrixXd& m);
 
   double getValue(int i, int j) const {
-    if (order_ == derivOrder::zero)
+    if (order_ == DerivativeOrder::Zero)
       return v0(i, j);
-    if (order_ == derivOrder::one)
+    if (order_ == DerivativeOrder::One)
       return v1(i, j).value();
     return v2(i, j).value();
   }
 
 private:
-  derivOrder order_;
+  DerivativeOrder order_;
   int nCols_ = 0, nRows_ = 0;
   Matrix0 val;
   Matrix1 der;
   Matrix2 hes;
 };
 
-template<> struct MatrixWithDerivatives::MatrixType<derivOrder::one> { using MType = Matrix1; };
-template<> struct MatrixWithDerivatives::MatrixType<derivOrder::two> { using MType = Matrix2; };
-template<> inline MatrixWithDerivatives::Matrix0& MatrixWithDerivatives::get<derivOrder::zero>() { return get0(); }
-template<> inline MatrixWithDerivatives::Matrix1& MatrixWithDerivatives::get<derivOrder::one>() { return get1(); }
-template<> inline MatrixWithDerivatives::Matrix2& MatrixWithDerivatives::get<derivOrder::two>() { return get2(); }
-template<> inline const MatrixWithDerivatives::Matrix0& MatrixWithDerivatives::get<derivOrder::zero>() const { return get0(); }
-template<> inline const MatrixWithDerivatives::Matrix1& MatrixWithDerivatives::get<derivOrder::one>() const { return get1(); }
-template<> inline const MatrixWithDerivatives::Matrix2& MatrixWithDerivatives::get<derivOrder::two>() const { return get2(); }
+template<> struct MatrixWithDerivatives::MatrixType<DerivativeOrder::One> { using MType = Matrix1; };
+template<> struct MatrixWithDerivatives::MatrixType<DerivativeOrder::Two> { using MType = Matrix2; };
+template<> inline MatrixWithDerivatives::Matrix0& MatrixWithDerivatives::get<DerivativeOrder::Zero>() { return get0(); }
+template<> inline MatrixWithDerivatives::Matrix1& MatrixWithDerivatives::get<DerivativeOrder::One>() { return get1(); }
+template<> inline MatrixWithDerivatives::Matrix2& MatrixWithDerivatives::get<DerivativeOrder::Two>() { return get2(); }
+template<> inline const MatrixWithDerivatives::Matrix0& MatrixWithDerivatives::get<DerivativeOrder::Zero>() const { return get0(); }
+template<> inline const MatrixWithDerivatives::Matrix1& MatrixWithDerivatives::get<DerivativeOrder::One>() const { return get1(); }
+template<> inline const MatrixWithDerivatives::Matrix2& MatrixWithDerivatives::get<DerivativeOrder::Two>() const { return get2(); }
 
 // clang-format on
 

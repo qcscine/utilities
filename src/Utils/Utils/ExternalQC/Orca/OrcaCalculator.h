@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_ORCACALCULATOR_H
@@ -20,7 +20,7 @@ namespace Utils {
 
 namespace ExternalQC {
 
-class OrcaCalculator : public CloneInterface<OrcaCalculator, Core::Calculator> {
+class OrcaCalculator final : public CloneInterface<OrcaCalculator, Core::Calculator> {
  public:
   static constexpr const char* model = "ORCA";
   /// @brief Default Constructor.

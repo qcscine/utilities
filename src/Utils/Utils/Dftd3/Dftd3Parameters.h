@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef SCINE_DFTD3PARAMETERS_H
@@ -22,7 +22,7 @@ namespace Dftd3 {
  * @brief A class handling the parameters involved in the calculation of D3 energies and gradients.
  *
  *      Most parameters in this method are static constexpr because they stay the same for all D3 methods.
- *      The parameters a1, s8 and a2 are specified by the user.
+ *      The parameters a1, s8, and a2 are specified by the user.
  *      One set of parameters, the reference pairs used to calculate the C6 coefficients, are outsourced to the
  *      Dftd3ReferencePairs class, because it involves a very large number of values.
  */
@@ -33,7 +33,7 @@ class Dftd3Parameters {
    */
   Dftd3Parameters() = default;
   /**
-   * @brief Constructor that allows for passing a1, s8 and a2 parameters.
+   * @brief Constructor that allows for passing a1, s8, and a2 parameters.
    */
   Dftd3Parameters(double a1, double s8, double a2);
   /**
@@ -58,7 +58,7 @@ class Dftd3Parameters {
   double getK3();
   /**
    * @brief Getter for reference pairs for one atom pair.
-   * @return const std::array<std::array<double, 3>, 75>& An 75 x 3 array which contains all the reference pairs for the
+   * @return const std::array<std::array<double, 3>, 75>& A 75 x 3 array which contains all the reference pairs for the
    * atom pair consisting of element type 1 and element type 2. Some of the reference pairs are just placeholders.
    */
   const std::array<std::array<double, 3>, 25>& getReferencePairs(ElementType elementType1, ElementType elementType2);
@@ -68,7 +68,7 @@ class Dftd3Parameters {
    *
    *     The name r2r4 is copied from Grimme's implementation of D3.
    *     It refers to the square root of the value Q, with Q being defined in
-   *     Eq.(9) of J. Chem. Phys. 132, 154104, (2010).
+   *     Eq. (9) of J. Chem. Phys. 132, 154104, (2010).
    *
    * @return double
    */
@@ -90,12 +90,12 @@ class Dftd3Parameters {
   double getA2();
 
  private:
-  // These three parameters have to be specified by the user as they depend on the method chosen
+  // These three parameters have to be specified by the user as they depend on the method chosen.
   double a1_;
   double s8_;
   double a2_;
 
-  // All the following parameters for have been taken from Grimme's D3 implementation
+  // All the following parameters for have been taken from Grimme's D3 implementation.
   static constexpr double covalentRadii_[94] = {
       0.80628308, 1.15903197, 3.02356173, 2.36845659, 1.94011865, 1.88972601, 1.78894056, 1.58736983, 1.61256616,
       1.68815527, 3.52748848, 3.14954334, 2.84718717, 2.62041997, 2.77159820, 2.57002732, 2.49443835, 2.41884923,

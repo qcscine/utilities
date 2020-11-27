@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/Constants.h>
@@ -50,29 +50,53 @@ TEST_F(XyzStreamHandlerTest, CorrectImportWithConversionFromAngstromToBohr) {
   ASSERT_THAT(structure.getPositions(), Eq(expectedPositions));
 }
 
-TEST_F(XyzStreamHandlerTest, AtomCountIsNotReliedUpon) {
+TEST_F(XyzStreamHandlerTest, ThrowsForWrongAtomCount) {
+  std::stringstream ss1("1\n\n"
+                        "H      0.0  0.0  -2.0\n"
+                        "V      3.0  0.4   0.0\n");
+
+  std::stringstream ss2("10\n\n"
+                        "H      0.0  0.0  -2.0\n"
+                        "V      3.0  0.4   0.0\n");
+
+  ASSERT_THROW(XyzStreamHandler::read(ss1), FormattedStreamHandler::AtomNumberMismatchException);
+  ASSERT_THROW(XyzStreamHandler::read(ss2), FormattedStreamHandler::AtomNumberMismatchException);
+}
+
+TEST_F(XyzStreamHandlerTest, ThrowsForWrongHeader) {
   std::stringstream ss1("Dummy\n\n"
                         "H      0.0  0.0  -2.0\n"
                         "V      3.0  0.4   0.0\n");
 
-  std::stringstream ss2("0\n\n"
+  std::stringstream ss2(""
                         "H      0.0  0.0  -2.0\n"
                         "V      3.0  0.4   0.0\n");
 
-  std::stringstream ss3("10\n\n"
+  std::stringstream ss3(" \n\n"
                         "H      0.0  0.0  -2.0\n"
                         "V      3.0  0.4   0.0\n");
 
-  auto checkStructure = [](auto& ss) {
-    auto structure = XyzStreamHandler::read(ss);
-    ASSERT_THAT(structure.size(), Eq(2));
-    ASSERT_THAT(structure.getPositions().rows(), Eq(2));
-    ASSERT_THAT(structure.getElements().size(), Eq(2));
-  };
+  std::stringstream ss4("12.1\n\n"
+                        "H      0.0  0.0  -2.0\n"
+                        "V      3.0  0.4   0.0\n");
 
-  checkStructure(ss1);
-  checkStructure(ss2);
-  checkStructure(ss3);
+  std::stringstream ss5("-2\n\n"
+                        "H      0.0  0.0  -2.0\n"
+                        "V      3.0  0.4   0.0\n");
+
+  ASSERT_THROW(XyzStreamHandler::read(ss1), FormattedStreamHandler::FormatMismatchException);
+  ASSERT_THROW(XyzStreamHandler::read(ss2), FormattedStreamHandler::FormatMismatchException);
+  ASSERT_THROW(XyzStreamHandler::read(ss3), FormattedStreamHandler::FormatMismatchException);
+  ASSERT_THROW(XyzStreamHandler::read(ss4), FormattedStreamHandler::FormatMismatchException);
+  ASSERT_THROW(XyzStreamHandler::read(ss5), FormattedStreamHandler::FormatMismatchException);
+}
+
+TEST_F(XyzStreamHandlerTest, ThrowsForStringInCoordinate) {
+  std::stringstream ss1("2\n\n"
+                        "H      0.0  0.0  -2.0\n"
+                        "V      3.0  something   0.0\n");
+
+  ASSERT_THROW(XyzStreamHandler::read(ss1), FormattedStreamHandler::FormatMismatchException);
 }
 
 TEST_F(XyzStreamHandlerTest, AllowsForSpacesAndTabsInFirstLine) {

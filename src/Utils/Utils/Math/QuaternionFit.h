@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_QUATERNIONFIT_H
@@ -84,12 +84,12 @@ class QuaternionFit {
    * @brief Getter for the RMSD not using any weights that might be stored.
    * @return double The RMSD.
    */
-  double getRotRMSD() const;
+  double getRMSD() const;
   /**
    * @brief Getter for the RMSD due to differences in rotation only.
    * @return double The RMSD.
    */
-  double getRMSD() const;
+  double getRotRMSD() const;
   /**
    * @brief Getter for the RMSD using the given weights.
    * @param weights The individaul weights for each point in the set of data.

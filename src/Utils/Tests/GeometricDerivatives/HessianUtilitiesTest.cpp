@@ -1,11 +1,10 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
-#include <Tests/ExternalQC/externalQC_output_location.h>
 #include <Utils/CalculatorBasics/PropertyList.h>
 #include <Utils/ExternalQC/Orca/OrcaHessianOutputParser.h>
 #include <Utils/GeometricDerivatives/HessianUtilities.h>
@@ -13,6 +12,7 @@
 #include <Utils/IO/ChemicalFileFormats/XyzStreamHandler.h>
 #include <gmock/gmock.h>
 #include <algorithm>
+#include <boost/dll/runtime_symbol_info.hpp>
 
 using namespace testing;
 namespace Scine {
@@ -35,7 +35,9 @@ class AHessianUtilitiesTest : public Test {
     AtomCollection arbitraryAtomCollection = XyzStreamHandler::read(stream);
     arbitraryPositions = arbitraryAtomCollection.getPositions();
     arbitraryElements = arbitraryAtomCollection.getElements();
-    ExternalQC::OrcaHessianOutputParser arbitraryHessianParser(orca_test_hessian_output);
+    auto pathToResources = boost::dll::program_location().parent_path();
+    pathToResources /= "Resources";
+    ExternalQC::OrcaHessianOutputParser arbitraryHessianParser((pathToResources / "orca_test_calc.hess").string());
     arbitraryHessian = arbitraryHessianParser.getHessian();
   }
 };
@@ -45,9 +47,9 @@ TEST_F(AHessianUtilitiesTest, CanComputeMassweightedEigenvalues) {
   // Get eigenvalues
   Eigen::Vector3d eigenvalues;
   eigenvalues = mwHessianUtilities.getInternalEigenvalues();
-  // Compute frequencies and transform to wavenumber
-  double freqToWvn = 5140.48686; // Conversion factor between frequency in a.u. and wavenumber in cm^-1
-  Eigen::Array3d wavenumbers = freqToWvn * eigenvalues.array().sqrt();
+  // Convert to cm-1
+  double wavenumberConversion = Constants::invCentimeter_per_hartree * sqrt(Constants::u_per_electronRestMass);
+  Eigen::Array3d wavenumbers = wavenumberConversion * eigenvalues.array().sqrt();
   // Compare to ORCA result; Slight deviations expected bc of different methods to project out rotation
   // EigenSolver returns sorted eigenvalues
   ASSERT_THAT(wavenumbers(0), DoubleNear(1348.49, 1));
@@ -80,6 +82,18 @@ TEST_F(AHessianUtilitiesTest, CanComputeMassweightedCartesianDisplacements) {
                          (orcaModes.col(i) + cartesianDisplacements.col(i)).squaredNorm()),
                 DoubleNear(0, 1e-6));
   }
+}
+
+TEST_F(AHessianUtilitiesTest, ThrowsEmptyInternalHessianException) {
+  std::stringstream stream("1\n\n"
+                           "H     0.0000000000    0.0000000000    0.0000000000\n");
+  AtomCollection monoatomicAtomCollection = XyzStreamHandler::read(stream);
+  PositionCollection position = monoatomicAtomCollection.getPositions();
+  ElementTypeCollection element = monoatomicAtomCollection.getElements();
+  Eigen::Matrix<double, 3, 3> threedimensionalHessian;
+  threedimensionalHessian << 1.0, 2.0, 3.0, 2.0, 2.0, 4.0, 3.0, 4.0, 3.0;
+  HessianUtilities mwHessianUtilities(threedimensionalHessian, element, position, true);
+  ASSERT_THROW(mwHessianUtilities.getInternalEigenvalues(), EmptyInternalHessianException);
 }
 
 } // namespace Utils

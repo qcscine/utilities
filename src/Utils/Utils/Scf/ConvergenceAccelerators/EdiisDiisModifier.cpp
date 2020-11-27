@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -47,7 +47,7 @@ void EdiisDiisModifier::onFockCalculated() {
     if (!sameNumberOfElectronsInMethodAndInDensityMatrix())
       return;
   }
-  m->computeEnergyAndDerivatives(Utils::derivativeType::none);
+  m->computeEnergyAndDerivatives(Utils::Derivative::None);
   ediis_.addMatrices(m->getEnergy(), m->getFockMatrix(), m->getDensityMatrix());
   diis_.addMatrices(m->getFockMatrix(), m->getDensityMatrix());
 

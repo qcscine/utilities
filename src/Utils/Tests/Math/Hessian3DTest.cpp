@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/Math/AutomaticDifferentiation/AutomaticDifferentiationHelpers.h>
@@ -323,7 +323,7 @@ TEST_F(ASecond3DClass, CanCreate3DFrom1DInXDirection) {
   Eigen::Vector3d vec(x, 0, 0);
 
   Second1D h1D(v, d, h);
-  auto h3D = get3Dfrom1D<derivOrder::two>(h1D, vec);
+  auto h3D = get3Dfrom1D<DerivativeOrder::Two>(h1D, vec);
 
   ASSERT_THAT(h3D.value(), DoubleEq(h1D.value()));
   ASSERT_THAT(h3D.dx(), DoubleEq(h1D.first()));
@@ -347,7 +347,7 @@ TEST_F(ASecond3DClass, CanCreate3DFrom1DInRandomDirection) {
   double RR = R * R, RRR = R * R * R;
 
   Second1D h1D(v, d, h);
-  auto h3D = get3Dfrom1D<derivOrder::two>(h1D, vec);
+  auto h3D = get3Dfrom1D<DerivativeOrder::Two>(h1D, vec);
 
   ASSERT_THAT(h3D.value(), DoubleEq(h1D.value()));
   ASSERT_THAT(h3D.dx(), DoubleEq(h1D.first() * x / R));

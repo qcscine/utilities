@@ -1,0 +1,43 @@
+/**
+ * @file
+ * @copyright This code is licensed under the 3-clause BSD license.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            See LICENSE.txt for details.
+ */
+
+#include <Utils/GeometricDerivatives/NormalMode.h>
+#include <Utils/GeometricDerivatives/NormalModeAnalysis.h>
+#include <Utils/GeometricDerivatives/NormalModesContainer.h>
+#include <pybind11/eigen.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <boost/optional.hpp>
+
+using namespace Scine::Utils;
+
+void init_normal_modes(pybind11::module& m) {
+  auto normal_modes_submodule = m.def_submodule("normal_modes");
+
+  pybind11::class_<NormalModesContainer> normalModesContainer(normal_modes_submodule, "container");
+
+  normalModesContainer.def("size", &NormalModesContainer::size);
+  normalModesContainer.def("get_mode", &NormalModesContainer::getMode, pybind11::arg("mode_index"),
+                           "Returns the vibrational mode with index mode_index.");
+  normalModesContainer.def("get_mode_as_molecular_trajectory", &NormalModesContainer::getModeAsMolecularTrajectory,
+                           pybind11::arg("mode_index"), pybind11::arg("structure"), pybind11::arg("scaling_factor"),
+                           "The molecular trajectory representing the mode.");
+
+  normalModesContainer.def("get_wave_numbers", &NormalModesContainer::getWaveNumbers,
+                           "Get the wave numbers corresponding to the vibrational modes [cm^(-1)].");
+
+  normal_modes_submodule.def("calculate", &NormalModeAnalysis::calculateNormalModes, pybind11::arg("hessian"),
+                             pybind11::arg("elements"), pybind11::arg("positions"),
+                             "Calculate the mass weighted normal modes.");
+
+  pybind11::class_<NormalMode> normalMode(normal_modes_submodule, "mode");
+
+  normalMode.def(pybind11::init<double, DisplacementCollection>(), pybind11::arg("wave_number"), pybind11::arg("mode"),
+                 "Initialize a new normal mode object.");
+  normalMode.def("get_wave_number", &NormalMode::getWaveNumber, "Get the wave number.");
+  normalMode.def("get_mode", &NormalMode::getMode, "Get mode.");
+}

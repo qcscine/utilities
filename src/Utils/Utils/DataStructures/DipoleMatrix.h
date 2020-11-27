@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -54,22 +54,22 @@ class InvalidDimensionSizeException : public std::exception {
      }
    }
    // Fill zeroth order dipole matrix
-   dipoleMatrixZero.x().get<derivOrder::zero>(XMatrix);
-   dipoleMatrixZero.y().get<derivOrder::zero>(YMatrix);
-   dipoleMatrixZero.z().get<derivOrder::zero>(ZMatrix);
+   dipoleMatrixZero.x().get<DerivativeOrder::Zero>(XMatrix);
+   dipoleMatrixZero.y().get<DerivativeOrder::Zero>(YMatrix);
+   dipoleMatrixZero.z().get<DerivativeOrder::Zero>(ZMatrix);
 
    // Fill first order dipole matrix with the first derivative integrals
-   dipoleMatrixFirst.x().get<derivOrder::one>(Xderivatives);
-   dipoleMatrixFirst.y().get<derivOrder::one>(Yderivatives);
-   dipoleMatrixFirst.z().get<derivOrder::one>(Zderivatives);
+   dipoleMatrixFirst.x().get<DerivativeOrder::One>(Xderivatives);
+   dipoleMatrixFirst.y().get<DerivativeOrder::One>(Yderivatives);
+   dipoleMatrixFirst.z().get<DerivativeOrder::One>(Zderivatives);
 
    // Get the zeroth and first derivatives of the first element of the first derivative matrix
-   dipoleMatrixZero.x().get<derivOrder::zero>()(0, 0);
+   dipoleMatrixZero.x().get<DerivativeOrder::Zero>()(0, 0);
    // Get the zeroth and first derivatives of the first element of the first derivative matrix
-   AutomaticDifferentiation::getValue3DAsDouble(dipoleMatrixFirst.x().get<derivOrder::one>()(0, 0));
+   AutomaticDifferentiation::getValue3DAsDouble(dipoleMatrixFirst.x().get<DerivativeOrder::One>()(0, 0));
    // or
-   dipoleMatrixFirst.x().get<derivOrder::one>()(0, 0).value();
-   dipoleMatrixFirst.x().get<derivOrder::one>()(0, 0).derivatives();
+   dipoleMatrixFirst.x().get<DerivativeOrder::One>()(0, 0).value();
+   dipoleMatrixFirst.x().get<DerivativeOrder::One>()(0, 0).derivatives();
  * @endcode
  *
  */

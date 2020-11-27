@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -49,7 +49,7 @@ class GradientBasedCheck : public ConvergenceCheck {
    */
   virtual bool checkConvergence(const Eigen::VectorXd& parameter, double value, const Eigen::VectorXd& gradient);
   /**
-   * @brief Checks if the curret iteration is within the maximum of allowed iterations.
+   * @brief Checks if the current iteration is within the maximum of allowed iterations.
    *
    * @param currentIteration The number of the current iteration.
    * @return true            If the current iteration is smaller than the maximum allowed number of iterations.
@@ -57,6 +57,16 @@ class GradientBasedCheck : public ConvergenceCheck {
    *                         iterations.
    */
   bool checkMaxIterations(unsigned int currentIteration);
+
+  /**
+   * @brief Sets the old parameters and value stored in the convergence checker.
+   *
+   * To be used to modify/init the parameters and value without performing a convergence check.
+   *
+   * @param parameter The current parameters.
+   * @param value     The current value
+   */
+  void setParametersAndValue(const Eigen::VectorXd& parameter, double value);
 
   /// @brief See Scine::Utils::ConvergenceCheck::addSettingsDescriptors()
   virtual void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final;

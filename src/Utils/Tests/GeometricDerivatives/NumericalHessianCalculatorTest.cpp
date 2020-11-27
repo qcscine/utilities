@@ -1,16 +1,20 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/GeometricDerivatives/NumericalHessianCalculator.h"
 #include "Utils/GeometryOptimization/IrcOptimizer.h"
 #include <Core/Interfaces/Calculator.h>
 #include <Utils/CalculatorBasics.h>
+#include <Utils/Math/AutomaticDifferentiation/AutomaticDifferentiationHelpers.h>
+#include <Utils/Math/AutomaticDifferentiation/MethodsHelpers.h>
+#include <Utils/Math/AutomaticDifferentiation/VectorDerivatives3D.h>
 #include <Utils/Settings.h>
 #include <Utils/Technical/CloneInterface.h>
 #include <gmock/gmock.h>
+#include <vector>
 
 using namespace testing;
 namespace Scine {
@@ -23,9 +27,11 @@ class MockState : public Core::State {};
 // Define a mock calculator
 class HessianMockCalculator : public CloneInterface<HessianMockCalculator, Core::Calculator> {
  public:
-  HessianMockCalculator() = default;
-  ~HessianMockCalculator() final = default;
   void setStructure(const AtomCollection& structure) final {
+    atomicCharges_ = Eigen::VectorXd::Random(structure.size());
+    atomicCharges_(0) = -atomicCharges_.sum() + atomicCharges_(0);
+    r_ = Results();
+    r_.set<Property::AtomicCharges>(std::vector<double>(atomicCharges_.data(), atomicCharges_.data() + atomicCharges_.size()));
     structure_ = structure;
   };
   void modifyPositions(PositionCollection newPositions) final {
@@ -36,30 +42,47 @@ class HessianMockCalculator : public CloneInterface<HessianMockCalculator, Core:
   };
   void setRequiredProperties(const PropertyList& requiredProperties) final{};
   PropertyList getRequiredProperties() const final {
-    return Utils::PropertyList{};
+    return PropertyList{};
   };
   PropertyList possibleProperties() const final {
-    return Utils::Property::Energy | Utils::Property::Gradients;
+    return Property::Energy | Property::Gradients | Property::Dipole | Property::DipoleGradient | Property::AtomicCharges;
   };
-  const Results& calculate(std::string dummy = "") final {
-    r_ = Results();
-    auto pos1 = structure_.getPosition(0);
-    auto pos2 = structure_.getPosition(1);
-    double dist = (pos1 - pos2).norm();
-    r_.set<Property::Energy>(cos(dist));
-    GradientCollection g(structure_.size(), 3);
-    g(0, 0) = -sin(dist) * (pos1[0] - pos2[0]) / dist;
-    g(0, 1) = -sin(dist) * (pos1[1] - pos2[1]) / dist;
-    g(0, 2) = -sin(dist) * (pos1[2] - pos2[2]) / dist;
-    g(1, 0) = -g(0, 0);
-    g(1, 1) = -g(0, 1);
-    g(1, 2) = -g(0, 2);
-    r_.set<Property::Gradients>(g);
+  const Results& calculate(std::string /*dummy*/) final {
+    double energy = 0.0;
+    Dipole d = Dipole::Zero();
+    DipoleGradient dipGrad = DipoleGradient::Zero(getPositions().size(), 3);
+    auto dip = AutomaticDifferentiation::VectorDerivatives3D::spatialVectorHessian3D(d);
+    for (int atom_i = 0; atom_i < getPositions().rows(); ++atom_i) {
+      auto atomicDipContrib =
+          AutomaticDifferentiation::VectorDerivatives3D::spatialVectorHessian3D(getPositions().row(atom_i)) *
+          atomicCharges_[atom_i];
+      dip = dip + atomicDipContrib;
+      dipGrad.block<3, 1>(atom_i * 3, 0) += Gradient(atomicDipContrib.x().deriv());
+      dipGrad.block<3, 1>(atom_i * 3, 1) += Gradient(atomicDipContrib.y().deriv());
+      dipGrad.block<3, 1>(atom_i * 3, 2) += Gradient(atomicDipContrib.z().deriv());
+    }
 
-    double charge1 = -0.5;
-    double charge2 = 0.5;
-    Dipole d = pos1 * charge1 + pos2 * charge2;
-    r_.set<Property::Dipole>(d);
+    GradientCollection g = GradientCollection::Zero(structure_.size(), 3);
+    for (int atom_i = 0; atom_i < getPositions().rows(); ++atom_i) {
+      for (int atom_j = atom_i; atom_j < getPositions().rows(); ++atom_j) {
+        Position distanceVector = getPositions().row(atom_j) - getPositions().row(atom_i);
+        auto distance = AutomaticDifferentiation::variableWithUnitDerivative<DerivativeOrder::One>(distanceVector.norm());
+        auto energyWithDeriv = cos(distance);
+        energy += energyWithDeriv.value();
+        auto gradient = AutomaticDifferentiation::get3Dfrom1D<DerivativeOrder::One>(energyWithDeriv, distanceVector);
+        AutomaticDifferentiation::addDerivativeToContainer<Derivative::First>(g, atom_i, atom_j,
+                                                                              Gradient(gradient.derivatives()));
+      }
+    }
+
+#pragma omp critical(writeData)
+    {
+      r_.set<Property::Energy>(energy);
+      r_.set<Property::Dipole>({dip.x().value(), dip.y().value(), dip.z().value()});
+      r_.set<Property::Gradients>(g);
+      r_.set<Property::DipoleGradient>(dipGrad);
+      r_.set<Property::SuccessfulCalculation>(true);
+    }
 
     return r_;
   };
@@ -96,6 +119,7 @@ class HessianMockCalculator : public CloneInterface<HessianMockCalculator, Core:
 
  private:
   AtomCollection structure_;
+  Eigen::VectorXd atomicCharges_;
   Results r_;
   Settings settings_ = Settings("dummy");
   //   Core::Calculator* cloneImpl() const override {
@@ -145,14 +169,12 @@ TEST(NumericalHessianCalculatorTest, SemiNumerical) {
   for (unsigned int i = 0; i < 6; i++) {
     for (unsigned int j = 0; j < 6; j++) {
       const double val = (1.0 / 3.0) * (i < 3 ? 1.0 : -1.0) * (j < 3 ? 1.0 : -1.0);
-      ASSERT_NEAR(val, results.get<Property::Hessian>()(i, j), 1.0e-5);
+      EXPECT_NEAR(val, results.get<Property::Hessian>()(i, j), 1.0e-5);
     }
   }
 }
 
 TEST(NumericalHessianCalculator, SeminumericalWithGradient) {
-  double charge1 = -0.5;
-  double charge2 = 0.5;
   HessianMockCalculator mockCalculator;
   PositionCollection pos(2, 3);
   pos(0, 0) = -M_PI / (2.0 * sqrt(3.0));
@@ -166,14 +188,10 @@ TEST(NumericalHessianCalculator, SeminumericalWithGradient) {
   NumericalHessianCalculator hessianCalc(mockCalculator);
   hessianCalc.requiredDipoleGradient(true);
   auto results = hessianCalc.calculateFromGradientDifferences(0.005);
+  auto charges = mockCalculator.results().get<Property::AtomicCharges>();
 
-  DipoleGradient dipoleGradientAnalytical = DipoleGradient::Zero(6, 3);
-  dipoleGradientAnalytical.row(0) = Dipole{charge1, 0, 0};
-  dipoleGradientAnalytical.row(1) = Dipole{0, charge1, 0};
-  dipoleGradientAnalytical.row(2) = Dipole{0, 0, charge1};
-  dipoleGradientAnalytical.row(3) = Dipole{charge2, 0, 0};
-  dipoleGradientAnalytical.row(4) = Dipole{0, charge2, 0};
-  dipoleGradientAnalytical.row(5) = Dipole{0, 0, charge2};
+  mockCalculator.calculate("");
+  DipoleGradient dipoleGradientAnalytical = mockCalculator.results().get<Property::DipoleGradient>();
 
   DipoleGradient dipoleGradient = results.get<Utils::Property::DipoleGradient>();
 
@@ -183,6 +201,50 @@ TEST(NumericalHessianCalculator, SeminumericalWithGradient) {
     EXPECT_THAT(dipoleGradientAnalytical.row(dimension).z(), DoubleNear(dipoleGradient.row(dimension).z(), 1e-3));
   }
 }
+
+TEST(NumericalHessianCalculator, SeminumericalWithGradientAndSelectedAtoms) {
+  HessianMockCalculator mockCalculator;
+  PositionCollection pos(3, 3);
+  pos(0, 0) = -M_PI / (2.0 * sqrt(3.0));
+  pos(0, 1) = -M_PI / (2.0 * sqrt(3.0));
+  pos(0, 2) = -M_PI / (2.0 * sqrt(3.0));
+  pos(1, 0) = +4. * M_PI / (2.0 * sqrt(3.0));
+  pos(1, 1) = +4. * M_PI / (2.0 * sqrt(3.0));
+  pos(1, 2) = +4. * M_PI / (2.0 * sqrt(3.0));
+  pos(2, 0) = +5. * M_PI / (2.0 * sqrt(3.0));
+  pos(2, 1) = +5. * M_PI / (2.0 * sqrt(3.0));
+  pos(2, 2) = +5. * M_PI / (2.0 * sqrt(3.0));
+  auto elements = ElementTypeCollection{ElementType::H, ElementType::H, ElementType::F};
+  mockCalculator.setStructure(AtomCollection(elements, pos));
+  NumericalHessianCalculator hessianCalc(mockCalculator);
+  hessianCalc.requiredDipoleGradient(true);
+  auto results = hessianCalc.calculateFromGradientDifferences(0.005);
+  const HessianMatrix& hessian1 = results.get<Property::Hessian>();
+
+  mockCalculator.calculate("");
+  DipoleGradient dipoleGradientAnalytical = mockCalculator.results().get<Property::DipoleGradient>();
+
+  auto indices = std::vector<int>(2);
+  indices[0] = 0;
+  indices[1] = 2;
+  auto results2 = hessianCalc.calculateFromGradientDifferences(0.005, indices);
+  const HessianMatrix& hessian2 = results2.get<Property::Hessian>();
+  DipoleGradient dipoleGradient = results2.get<Utils::Property::DipoleGradient>();
+
+  for (int row = 0; row < hessian1.rows(); ++row) {
+    for (int col = 0; col < hessian1.cols(); ++col) {
+      if (hessian2(row, col) > 1.0e-13)
+        EXPECT_NEAR(hessian2(row, col), hessian1(row, col), 1e-13);
+    }
+  }
+
+  for (int index : indices) {
+    EXPECT_NEAR(dipoleGradient.row(index).x(), dipoleGradientAnalytical.row(index).x(), 1.0e-13);
+    EXPECT_NEAR(dipoleGradient.row(index).y(), dipoleGradientAnalytical.row(index).y(), 1.0e-13);
+    EXPECT_NEAR(dipoleGradient.row(index).z(), dipoleGradientAnalytical.row(index).z(), 1.0e-13);
+  }
+}
+
 } // namespace Tests
 } // namespace Utils
 } // namespace Scine

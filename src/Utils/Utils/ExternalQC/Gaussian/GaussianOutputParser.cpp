@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "GaussianOutputParser.h"
@@ -87,7 +87,7 @@ std::vector<double> GaussianOutputParser::getCM5Charges() const {
   std::smatch m1;
   bool b = std::regex_search(content_, m1, r1);
   if (!b)
-    throw OutputFileParsingError("CM5 charge section could not be found in GAUSSIAN output");
+    throw OutputFileParsingError("CM5 charges section could not be found in GAUSSIAN output.");
   // set iterator where to start search for cm5 charges
   auto it = m1[0].second;
 
@@ -104,7 +104,7 @@ std::vector<double> GaussianOutputParser::getCM5Charges() const {
       it = m2[0].second;
     }
     else {
-      throw OutputFileParsingError("CM5 charges could not be found in GAUSSIAN output");
+      throw OutputFileParsingError("CM5 charges could not be found in GAUSSIAN output.");
     }
   }
 

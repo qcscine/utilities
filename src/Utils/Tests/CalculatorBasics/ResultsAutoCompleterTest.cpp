@@ -1,23 +1,19 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
-#include <Tests/ExternalQC/externalQC_output_location.h>
 #include <Utils/CalculatorBasics/PropertyList.h>
 #include <Utils/CalculatorBasics/ResultsAutoCompleter.h>
-#include <Utils/ExternalQC/ExternalProgram.h>
-#include <Utils/ExternalQC/Orca/OrcaCalculator.h>
-#include <Utils/ExternalQC/Orca/OrcaCalculatorSettings.h>
 #include <Utils/ExternalQC/Orca/OrcaHessianOutputParser.h>
-#include <Utils/ExternalQC/Orca/OrcaMainOutputParser.h>
 #include <Utils/Geometry/ElementTypes.h>
 #include <Utils/IO/ChemicalFileFormats/XyzStreamHandler.h>
 #include <Utils/Scf/LcaoUtils/ElectronicOccupation.h>
 #include <gmock/gmock.h>
 #include <Eigen/Eigenvalues>
+#include <boost/dll/runtime_symbol_info.hpp>
 
 using namespace testing;
 namespace Scine {
@@ -160,10 +156,13 @@ TEST_F(AResultsAutoCompleterTest, CanComputeThermochemistry) {
   LcaoUtils::ElectronicOccupation unrestrictedOccupation;
   unrestrictedOccupation.fillLowestUnrestrictedOrbitals(5, 4);
   arbitraryResults.set<Property::ElectronicOccupation>(unrestrictedOccupation);
-  // Set electronic energy
-  arbitraryResults.set<Property::Energy>(1.0);
+  // Electronic energy from Resources/orca_test_calc.out
+  arbitraryResults.set<Property::Energy>(-75.818269296087);
+
   // Read in Hessian from ORCA output given in ExternalQC test
-  ExternalQC::OrcaHessianOutputParser hessianParser(orca_test_hessian_output);
+  auto pathToResources = boost::dll::program_location().parent_path();
+  pathToResources /= "Resources";
+  ExternalQC::OrcaHessianOutputParser hessianParser((pathToResources / "orca_test_calc.hess").string());
   HessianMatrix hessian = hessianParser.getHessian();
   arbitraryResults.set<Property::Hessian>(hessian);
 
@@ -177,17 +176,12 @@ TEST_F(AResultsAutoCompleterTest, CanComputeThermochemistry) {
   // Insufficient information for calculating Atomic Charges so they should not be there
   ASSERT_FALSE(arbitraryResults.has<Property::AtomicCharges>());
 
-  // Check whether computed Thermochemical properties match Orca results
-  // Slight deviations especially w.r.t. rotational and vibrational entropy are expected bc Orca uses different
-  // calculation routines than are used here
+  // Check whether computed Thermochemical properties match orca_test_calc.out
   ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().vibrationalComponent.zeroPointVibrationalEnergy,
               DoubleNear(0.02101209, 1e-5));
-  ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().electronicComponent.entropy * 298.15,
-              DoubleNear(0.00065446, 1e-5));
-  // Differences in Gibbs Free Energy should arise from difference in entropies * T
-  double entropyDifferenceT = arbitraryResults.get<Property::Thermochemistry>().overall.entropy * 298.15 - 0.02210368;
-  ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().overall.gibbsFreeEnergy + entropyDifferenceT,
-              DoubleNear(1.00269434, 1e-5));
+  ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().overall.enthalpy, DoubleNear(-75.79347127, 1e-5));
+  ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().overall.entropy * 298.15, DoubleNear(0.02210368, 1e-5));
+  ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().overall.gibbsFreeEnergy, DoubleNear(-75.81557495, 1e-5));
 }
 
 TEST_F(AResultsAutoCompleterTest, CanComputeDensityMatrix) {

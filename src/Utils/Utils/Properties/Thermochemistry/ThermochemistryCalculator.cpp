@@ -1,21 +1,31 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
 #include "ThermochemistryCalculator.h"
-#include <Utils/GeometricDerivatives/NormalModeAnalyzer.h>
+#include <Utils/GeometricDerivatives/NormalModeAnalysis.h>
 
 namespace Scine {
 namespace Utils {
 
 namespace {
 constexpr const double R = 0.008314510 * Constants::hartree_per_kJPerMol; // hartree/K
-// h * c / k_B in SI units
-constexpr const double wavenumberConversionCoefficient = 6.6260755e-34 * 299792458 / 1.380658e-23 * 100;
-constexpr const double invCm_per_AngstromSquaredAndAmu = 16.8576304198232;
+// h * c / k_B in SI units (unit: cm * K, CODATA14)
+constexpr const double wavenumberConversionCoefficient =
+    Constants::planckConstant * Constants::speedOfLight / Constants::boltzmannConstant * 100;
+// ln(pi * (8*pi^2*c/h)^3), the unit inside the log is m^-3 kg^-3.
+// Rest of the ln is in the calculation of the rotational entropy,
+// with unit length^3 mass^3, so that with the sum property of logarithms
+// log(a) + log(b) = log(a*b), a*b is dimensionless.
+// In this case, a is this constant, b is
+//
+// I_x * I_y * I_z / (\sigma^2 * (wavenumberConversionCoefficient/temperature)^3)
+// |mass^3 length^6|  |----------------------- length^-3 -----------------------|
+// |-------------------------- mass^3 length^3 ---------------------------------|
+constexpr const double constantPartForRotational = 23.498533603003565418;
 } // namespace
 
 ThermochemistryCalculator::ThermochemistryCalculator(NormalModesContainer normalModesContainer,
@@ -37,8 +47,7 @@ ThermochemistryCalculator::ThermochemistryCalculator(const HessianMatrix& hessia
   auto masses = Utils::Geometry::getMasses(elements_);
   auto centerOfMass = Utils::Geometry::getCenterOfMass(positions, masses);
   principalMomentsOfInertia_ = Utils::Geometry::calculatePrincipalMoments(positions, masses, centerOfMass);
-  Utils::NormalModeAnalyzer analyzer(hessian, elements_, positions);
-  normalModesContainer_ = analyzer.calculateNormalModes();
+  normalModesContainer_ = Utils::NormalModeAnalysis::calculateNormalModes(hessian, elements_, positions);
 }
 
 ThermochemistryCalculator::ThermochemistryCalculator(ElementTypeCollection elements) : elements_(std::move(elements)) {
@@ -53,16 +62,17 @@ void ThermochemistryCalculator::setZPVEInclusion(ZPVEInclusion inclusion) {
 }
 
 ThermochemicalComponentsContainer ThermochemistryCalculator::calculate() {
-  calculateSigmaForLinearMolecule();
+  // TODO Automatically determine symmetry for all molecules
+  // This only affects the symmetry of diatomic molecules
+  calculateSigmaForDiatomicMolecule();
   ThermochemicalComponentsContainer container;
-  container.overall.temperature = temperature_;
   container.vibrationalComponent = calculateVibrationalPart(temperature_);
   container.rotationalComponent = calculateRotationalPart(temperature_);
   container.translationalComponent = calculateTranslationalPart(temperature_);
   container.electronicComponent = calculateElectronicPart(temperature_);
   container.overall = container.vibrationalComponent + container.rotationalComponent +
                       container.translationalComponent + container.electronicComponent;
-
+  container.overall.symmetryNumber = sigma_;
   return container;
 }
 
@@ -76,13 +86,12 @@ void ThermochemistryCalculator::setMolecularSymmetryNumber(int sigma) {
 
 ThermochemicalContainer ThermochemistryCalculator::calculateVibrationalPart(double temperature) const {
   ThermochemicalContainer vibrationalTC{};
-  vibrationalTC.temperature = temperature;
   const auto& wavenumbers = getWavenumbers();
 
   for (auto wn : wavenumbers) {
     if (wn > 0) {
       double characteristicTemperature = wavenumberConversionCoefficient * wn;
-      double temperatureRatio = characteristicTemperature / vibrationalTC.temperature;
+      double temperatureRatio = characteristicTemperature / temperature;
       double E_w = std::exp(-temperatureRatio);
       double stateProbability = 1 / (std::exp(temperatureRatio) - 1);
       vibrationalTC.zeroPointVibrationalEnergy += characteristicTemperature;
@@ -99,15 +108,14 @@ ThermochemicalContainer ThermochemistryCalculator::calculateVibrationalPart(doub
   vibrationalTC.entropy *= R;
   vibrationalTC.heatCapacityP *= R;
   vibrationalTC.heatCapacityV = vibrationalTC.heatCapacityP * 3. / 5.;
-  vibrationalTC.gibbsFreeEnergy = vibrationalTC.enthalpy - vibrationalTC.temperature * vibrationalTC.entropy;
+  vibrationalTC.gibbsFreeEnergy = vibrationalTC.enthalpy - temperature * vibrationalTC.entropy;
   return vibrationalTC;
 }
 
 ThermochemicalContainer ThermochemistryCalculator::calculateRotationalPart(double temperature) const {
   ThermochemicalContainer rotationalTC{};
-  rotationalTC.temperature = temperature;
 
-  const double thermalCoefficient = wavenumberConversionCoefficient / rotationalTC.temperature;
+  const double thermalCoefficient = wavenumberConversionCoefficient * 1e-2 / temperature * Constants::bohr_per_meter; // unit: bohr
 
   bool isLinear = getWavenumbers().size() == 3 * elements_.size() - 5;
 
@@ -115,23 +123,27 @@ ThermochemicalContainer ThermochemistryCalculator::calculateRotationalPart(doubl
     return rotationalTC;
   }
   else if (isLinear) {
-    double rotationalConstant = principalMomentsOfInertia_.eigenvalues(2) * invCm_per_AngstromSquaredAndAmu;
-    rotationalTC.enthalpy = R * rotationalTC.temperature;
+    double rotationalConstant = principalMomentsOfInertia_.eigenvalues(2) * Constants::electronRestMass_per_u;
+    rotationalTC.enthalpy = R * temperature;
     rotationalTC.heatCapacityP = R;
     rotationalTC.heatCapacityV = rotationalTC.heatCapacityP * 3. / 5.;
-    rotationalTC.entropy = (R * std::log(1 / (sigma_ * thermalCoefficient * rotationalConstant)) + R);
+    rotationalTC.entropy = R * (std::log(4.0 * Constants::pi * rotationalConstant *
+                                         Constants::inverseFineStructureConstant / (sigma_ * thermalCoefficient)) +
+                                1.0);
   }
   else {
-    Eigen::Vector3d rotConst = principalMomentsOfInertia_.eigenvalues.array() * invCm_per_AngstromSquaredAndAmu;
-    rotationalTC.enthalpy = 1.5 * R * rotationalTC.temperature;
+    // Convert from amu * bohr^2 to m_e * bohr^2
+    Eigen::Vector3d rotConst = principalMomentsOfInertia_.eigenvalues.array() * Constants::electronRestMass_per_u;
+
+    rotationalTC.enthalpy = 1.5 * R * temperature;
     rotationalTC.heatCapacityP = 1.5 * R;
     rotationalTC.heatCapacityV = rotationalTC.heatCapacityP * 3. / 5.;
-    rotationalTC.entropy = 0.5 * R *
-                           (std::log(Constants::pi / (sigma_ * sigma_ * rotConst(0) * rotConst(1) * rotConst(2) *
-                                                      std::pow(thermalCoefficient, 3))) +
-                            3);
+    rotationalTC.entropy =
+        0.5 * R *
+        (constantPartForRotational +
+         std::log(rotConst(0) * rotConst(1) * rotConst(2) / (sigma_ * sigma_ * std::pow(thermalCoefficient, 3))) + 3.0);
   }
-  rotationalTC.gibbsFreeEnergy = rotationalTC.enthalpy - rotationalTC.temperature * rotationalTC.entropy;
+  rotationalTC.gibbsFreeEnergy = rotationalTC.enthalpy - temperature * rotationalTC.entropy;
 
   return rotationalTC;
 }
@@ -143,27 +155,24 @@ ThermochemicalContainer ThermochemistryCalculator::calculateTranslationalPart(do
     molecularMass += mass;
   }
   // From MOPAC manual
-  translationalTC.temperature = temperature;
-  translationalTC.enthalpy = 2.5 * translationalTC.temperature * R;
-  translationalTC.entropy =
-      (9.93608e-4 * (5 * std::log(translationalTC.temperature) + 3 * std::log(molecularMass)) - 2.31482e-3) *
-      Constants::hartree_per_kCalPerMol;
+  translationalTC.enthalpy = 2.5 * temperature * R;
+  translationalTC.entropy = (9.93608e-4 * (5 * std::log(temperature) + 3 * std::log(molecularMass)) - 2.31482e-3) *
+                            Constants::hartree_per_kCalPerMol;
   translationalTC.heatCapacityP = 2.5 * R;
   translationalTC.heatCapacityV = translationalTC.heatCapacityP * 3. / 5.;
-  translationalTC.gibbsFreeEnergy = translationalTC.enthalpy - translationalTC.temperature * translationalTC.entropy;
+  translationalTC.gibbsFreeEnergy = translationalTC.enthalpy - temperature * translationalTC.entropy;
   return translationalTC;
 }
 
 ThermochemicalContainer ThermochemistryCalculator::calculateElectronicPart(double temperature) const {
   ThermochemicalContainer electronicTC{};
-  electronicTC.temperature = temperature;
   electronicTC.enthalpy = electronicEnergy_;
   electronicTC.entropy = R * std::log(spinMultiplicity_);
-  electronicTC.gibbsFreeEnergy = electronicTC.enthalpy - electronicTC.temperature * electronicTC.entropy;
+  electronicTC.gibbsFreeEnergy = electronicTC.enthalpy - temperature * electronicTC.entropy;
   return electronicTC;
 }
 
-void ThermochemistryCalculator::calculateSigmaForLinearMolecule() {
+void ThermochemistryCalculator::calculateSigmaForDiatomicMolecule() {
   if (elements_.size() == 2) {
     if (elements_[1] == elements_[0]) {
       setMolecularSymmetryNumber(2);

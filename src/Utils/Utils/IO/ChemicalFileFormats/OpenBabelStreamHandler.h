@@ -3,7 +3,7 @@
  * @brief Implements a StreamHandler leveraging OpenBabel for access to more
  *   file formats
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef SCINE_OPENBABEL_FILEHANDLER_H
@@ -14,7 +14,6 @@
 #include <string>
 
 namespace Scine {
-
 namespace Utils {
 
 /**
@@ -63,9 +62,6 @@ class OpenBabelStreamHandler : public FormattedStreamHandler {
    */
   static int indirect(std::istream& is, std::ostream& os, const std::string& inFormat, const std::string& outFormat);
 
-  OpenBabelStreamHandler() = default;
-  ~OpenBabelStreamHandler() final = default;
-
   std::pair<AtomCollection, BondOrderCollection> read(std::istream& is, const std::string& format) const final;
 
   void write(std::ostream& os, const std::string& format, const AtomCollection& atoms) const final;
@@ -84,7 +80,6 @@ class OpenBabelStreamHandler : public FormattedStreamHandler {
 };
 
 } // namespace Utils
-
 } // namespace Scine
 
 #endif /* DFT_DFTCALCULATOR_H_ */

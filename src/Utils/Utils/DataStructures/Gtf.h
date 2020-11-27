@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -16,30 +16,18 @@ namespace Utils {
  * of a ,f.i., STO-nG expansion
  */
 
-class Gtf {
- public:
+struct Gtf {
+  // Empty constructor
   Gtf() = default;
+  // Constructor setting exponent, coefficient and normalized coefficient
+  Gtf(int l, double expo, double coef);
 
-  Gtf(int l, double a, double c) {
-    set(l, a, c);
-  }
-  void set(int l, double a, double c);
-  double getExponent() const {
-    return exponent_;
-  }
-  double getCoefficient() const {
-    return coefficient_;
-  }
-  double getNormalizedCoefficient() const {
-    return normalizedCoefficient_;
-  }
+  double exponent = 0;
+  double coefficient = 0;
+  double normalizedCoefficient = 0;
 
- private:
-  void normalizeCoefficient(int l, double c);
-
-  double exponent_;
-  double coefficient_;
-  double normalizedCoefficient_;
+  // Sets the normalized coefficient from exponent and coefficient
+  void setNormalized(int l);
 };
 
 } // namespace Utils

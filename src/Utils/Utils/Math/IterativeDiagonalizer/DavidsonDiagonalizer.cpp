@@ -1,40 +1,41 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "DavidsonDiagonalizer.h"
 #include "IndirectPreconditionerEvaluator.h"
 #include "IndirectSigmaVectorEvaluator.h"
-#include <Utils/IO/Logger.h>
+#include <Core/Log.h>
 #include <Eigen/Eigenvalues>
 
 namespace Scine {
 namespace Utils {
 
 template<class MatrixType, DavidsonBalancedType s>
-DavidsonDiagonalizer<MatrixType, s>::DavidsonDiagonalizer(int eigenvaluesToCompute, int numberGuessVectors, int totalDimension)
+DavidsonDiagonalizer<MatrixType, s>::DavidsonDiagonalizer(int eigenvaluesToCompute, int numberGuessVectors,
+                                                          int totalDimension, Core::Log& log)
   : eigenvaluesToCompute_(eigenvaluesToCompute), blockSize_(numberGuessVectors), subspaceDimension_(numberGuessVectors) {
   assert(eigenvaluesToCompute > 0 &&
          "Unintended behaviour: calculate negative amount of eigenvalues in Davidson diagonalizer.");
   if (eigenvaluesToCompute_ > blockSize_)
     throw InvalidDavidsonInputException();
-  initialize(totalDimension);
+  initialize(totalDimension, log);
 }
 
 template<class MatrixType, DavidsonBalancedType s>
-void DavidsonDiagonalizer<MatrixType, s>::initialize(int dimension) {
+void DavidsonDiagonalizer<MatrixType, s>::initialize(int dimension, Core::Log& log) {
   if (eigenvaluesToCompute_ > dimension) {
     eigenvaluesToCompute_ = dimension;
-    Utils::Log::warning() << "Too many eigenvalues requested (" << eigenvaluesToCompute_ << "), they were set to "
-                          << dimension << ".";
+    log.warning << "Too many eigenvalues requested (" << eigenvaluesToCompute_ << "), they were set to " << dimension
+                << "." << Core::Log::nl;
   }
   if (subspaceDimension_ > dimension) {
     subspaceDimension_ = eigenvaluesToCompute_;
     blockSize_ = subspaceDimension_;
-    Utils::Log::warning() << "Initial subspace dimension too big (" << subspaceDimension_ << "), it was reduced to "
-                          << eigenvaluesToCompute_ << ".";
+    log.warning << "Initial subspace dimension too big (" << subspaceDimension_ << "), it was reduced to "
+                << eigenvaluesToCompute_ << "." << Core::Log::nl;
   }
   assert(dimension >= blockSize_ && "Matrix dimension cannot be smaller than number of guess vectors!");
   guessVectors_ = Eigen::MatrixXd::Zero(dimension, subspaceDimension_);
@@ -59,13 +60,13 @@ void DavidsonDiagonalizer<MatrixType, s>::setMaxIterations(int maxIterations) {
 }
 
 template<class MatrixType, DavidsonBalancedType s>
-void DavidsonDiagonalizer<MatrixType, s>::setMatrixToDiagonalize(const MatrixType& matrix) {
+void DavidsonDiagonalizer<MatrixType, s>::setMatrixToDiagonalize(const MatrixType& matrix, Core::Log& log) {
   if (type_ == DavidsonDirectType::direct) { // if a direct method is in use, no matrix is needed.
     return;
   }
   matrixToDiagonalize_ = matrix;
   originalDiagonal_ = matrixToDiagonalize_.diagonal();
-  initialize(matrixToDiagonalize_.cols());
+  initialize(matrixToDiagonalize_.cols(), log);
 }
 
 template<class MatrixType, DavidsonBalancedType s>
@@ -94,16 +95,16 @@ void DavidsonDiagonalizer<MatrixType, s>::setPreconditionerEvaluator(std::unique
 }
 
 template<class MatrixType, DavidsonBalancedType s>
-EigenContainer DavidsonDiagonalizer<MatrixType, s>::solve() {
+EigenContainer DavidsonDiagonalizer<MatrixType, s>::solve(Core::Log& log) {
   checkEvaluators();
 
   // Set initial size of guess matrix
   subspaceDimension_ = blockSize_;
   for (int i = 0; i < maxIterations_; ++i) {
     performIteration();
-    Log::info() << "Iteration number: " << i << "\tSubspace dimension: " << subspaceDimension_ << ".";
+    log.output << "Iteration number: " << i << "\tSubspace dimension: " << subspaceDimension_ << ".";
     if (converged_) { // if full matrix still calculate everything
-      Log::info() << "Converged in " << i << " iterations, dimensionality " << subspaceDimension_ << ".";
+      log.output << "Converged in " << i << " iterations, dimensionality " << subspaceDimension_ << ".";
       return eigenPairs_;
     }
   }

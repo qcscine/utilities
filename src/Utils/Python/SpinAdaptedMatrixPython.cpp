@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -15,13 +15,15 @@
 using namespace Scine::Utils;
 
 void init_spin_adapted_matrix(pybind11::module& m) {
-  pybind11::class_<SpinAdaptedMatrix> spinAdaptedMatrix(m, "SpinAdaptedMatrix");
+  pybind11::class_<SpinAdaptedMatrix> spin_adapted_matrix(m, "SpinAdaptedMatrix");
 
-  spinAdaptedMatrix.def(
-      "alpha", [](const SpinAdaptedMatrix& matrix, unsigned i, unsigned j) -> double { return matrix.alpha(i, j); });
-  spinAdaptedMatrix.def(
-      "beta", [](const SpinAdaptedMatrix& matrix, unsigned i, unsigned j) -> double { return matrix.beta(i, j); });
-  spinAdaptedMatrix.def("restricted", [](const SpinAdaptedMatrix& matrix, unsigned i, unsigned j) -> double {
-    return matrix.restricted(i, j);
-  });
+  spin_adapted_matrix.def_property_readonly(
+      "alpha_matrix", pybind11::overload_cast<>(&SpinAdaptedMatrix::alphaMatrix, pybind11::const_),
+      "Returns the two-electron matrix of all electrons with alpha spin from an unrestricted calculation.");
+  spin_adapted_matrix.def_property_readonly(
+      "beta_matrix", pybind11::overload_cast<>(&SpinAdaptedMatrix::betaMatrix, pybind11::const_),
+      "Returns the two-electron matrix of all electrons with beta spin from an unrestricted calculation.");
+  spin_adapted_matrix.def_property_readonly(
+      "restricted_matrix", pybind11::overload_cast<>(&SpinAdaptedMatrix::restrictedMatrix, pybind11::const_),
+      "Returns the two-electron matrix for all electrons from a restricted calculation.");
 }

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_GAUSSIANCALCULATOR_H
@@ -18,7 +18,7 @@ namespace Scine {
 namespace Utils {
 namespace ExternalQC {
 
-class GaussianCalculator : public Utils::CloneInterface<GaussianCalculator, Core::Calculator> {
+class GaussianCalculator final : public Utils::CloneInterface<GaussianCalculator, Core::Calculator> {
  public:
   static constexpr const char* model = "GAUSSIAN";
   /// @brief Default Constructor.

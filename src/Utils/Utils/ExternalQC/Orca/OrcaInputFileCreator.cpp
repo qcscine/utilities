@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "OrcaInputFileCreator.h"
@@ -34,23 +34,45 @@ void OrcaInputFileCreator::printCalculationType(std::ostream& out, const Setting
                                                 const PropertyList& requiredProperties) {
   out << "! " << settings.getString(Utils::SettingsNames::method) << " "
       << settings.getString(Utils::SettingsNames::basisSet) << std::endl;
+
+  auto solvent = settings.getString(Utils::SettingsNames::solvent);
+  if (!solvent.empty()) {
+    out << "! CPCM(" << solvent << ")" << std::endl;
+  }
   if (requiredProperties.containsSubSet(Property::Gradients)) {
-    out << "! EnGrad" << std::endl;
+    out << "! EnGrad TightSCF" << std::endl;
   }
   if (requiredProperties.containsSubSet(Property::Hessian)) {
     out << "! AnFreq" << std::endl;
   }
   // Number of processes and memory per core
-  int numProcs = settings.getInt(SettingsNames::orcaNumProcs);
-  out << "%maxcore " << settings.getInt(SettingsNames::externalQCMemory) / numProcs << std::endl;
+  int numProcs = settings.getInt(Utils::SettingsNames::externalProgramNProcs);
+  out << "%maxcore " << settings.getInt(Utils::SettingsNames::externalProgramMemory) / numProcs << std::endl;
   if (numProcs != 1)
     out << "%pal\nnprocs " << numProcs << "\nend" << std::endl;
-  // Print Mayer bond orders if required
-  if (requiredProperties.containsSubSet(Utils::Property::BondOrderMatrix))
+
+  // Print Mayer bond orders and/or Hirshfeld charges if required
+  bool bondOrdersRequired = requiredProperties.containsSubSet(Utils::Property::BondOrderMatrix);
+  bool atomicChargesRequired = requiredProperties.containsSubSet(Utils::Property::AtomicCharges);
+  if (bondOrdersRequired && atomicChargesRequired)
+    out << "%output\nprint[P_Mayer] 1\nprint[P_Hirshfeld] 1\nend" << std::endl;
+  else if (bondOrdersRequired)
     out << "%output\nprint[P_Mayer] 1\nend" << std::endl;
+  else if (atomicChargesRequired)
+    out << "%output\nprint[P_Hirshfeld] 1\nend" << std::endl;
+  // Set temperature if thermochemistry is to be calculated
+  if (requiredProperties.containsSubSet(Utils::Property::Thermochemistry))
+    out << "%freq\nTemp " << settings.getDouble(Utils::SettingsNames::temperature) << "\nend" << std::endl;
   // Scf convergence and Scf max iterations
-  out << "%SCF\nTolE " << settings.getDouble(Scine::Utils::SettingsNames::selfConsistanceCriterion) << std::endl
+  double tolE = settings.getDouble(Scine::Utils::SettingsNames::selfConsistanceCriterion);
+  if (requiredProperties.containsSubSet(Property::Gradients) && tolE > 1e-8)
+    tolE = 1e-8;
+  out << "%SCF\nTolE " << tolE << std::endl
       << "MaxIter " << settings.getInt(Scine::Utils::SettingsNames::maxIterations) << "\nend" << std::endl;
+  // Write name of point charges file if it was set
+  auto pointChargesFile = settings.getString(SettingsNames::pointChargesFile);
+  if (!pointChargesFile.empty())
+    out << "%pointcharges \"" << pointChargesFile << "\"" << std::endl;
 }
 
 void OrcaInputFileCreator::printTitle(std::ostream& out) {

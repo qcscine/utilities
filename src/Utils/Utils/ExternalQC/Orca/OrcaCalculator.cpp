@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/ExternalQC/Orca/OrcaCalculator.h"
@@ -10,6 +10,7 @@
 #include "Utils/ExternalQC/Orca/OrcaHessianOutputParser.h"
 #include "Utils/ExternalQC/Orca/OrcaInputFileCreator.h"
 #include "Utils/ExternalQC/Orca/OrcaMainOutputParser.h"
+#include "Utils/ExternalQC/Orca/OrcaPointChargesGradientsFileParser.h"
 #include "Utils/ExternalQC/Orca/OrcaState.h"
 #include "Utils/IO/FilesystemHelpers.h"
 #include "Utils/IO/NativeFilenames.h"
@@ -73,6 +74,10 @@ OrcaCalculator::OrcaCalculator(const OrcaCalculator& rhs) {
 }
 
 void OrcaCalculator::applySettings() {
+  if (settings_->getDouble(Utils::SettingsNames::electronicTemperature) > 0.0) {
+    throw Core::InitializationException(
+        "ORCA calculations with an electronic temperature above 0.0 K are not supported.");
+  }
   if (settings_->check()) {
     fileNameBase_ = settings_->getString(SettingsNames::orcaFilenameBase);
     baseWorkingDirectory_ = settings_->getString(SettingsNames::baseWorkingDirectory);
@@ -109,7 +114,8 @@ PropertyList OrcaCalculator::getRequiredProperties() const {
 }
 
 Utils::PropertyList OrcaCalculator::possibleProperties() const {
-  return Property::Energy | Property::Gradients | Property::Hessian | Property::BondOrderMatrix | Property::Thermochemistry;
+  return Property::Energy | Property::Gradients | Property::Hessian | Property::BondOrderMatrix |
+         Property::Thermochemistry | Property::AtomicCharges;
 }
 
 const Results& OrcaCalculator::calculate(std::string description) {
@@ -164,9 +170,12 @@ const Results& OrcaCalculator::calculateImpl(std::string description) {
   if (requiredProperties_.containsSubSet(Property::BondOrderMatrix)) {
     results_.set<Property::BondOrderMatrix>(parser.getBondOrders());
   }
+  if (requiredProperties_.containsSubSet(Property::AtomicCharges)) {
+    results_.set<Property::AtomicCharges>(parser.getHirshfeldCharges());
+  }
   if (requiredProperties_.containsSubSet(Property::Thermochemistry)) {
     ThermochemicalContainer thermochemicalContainer;
-    thermochemicalContainer.temperature = parser.getTemperature();
+    thermochemicalContainer.symmetryNumber = parser.getSymmetryNumber();
     thermochemicalContainer.enthalpy = parser.getEnthalpy();
     thermochemicalContainer.entropy = parser.getEntropy();
     thermochemicalContainer.zeroPointVibrationalEnergy = parser.getZeroPointVibrationalEnergy();
@@ -177,6 +186,11 @@ const Results& OrcaCalculator::calculateImpl(std::string description) {
     ThermochemicalComponentsContainer thermochemistry;
     thermochemistry.overall = thermochemicalContainer;
     results_.set<Property::Thermochemistry>(thermochemistry);
+  }
+  if (requiredProperties_.containsSubSet(Property::PointChargesGradients)) {
+    std::string pcGradientsFile = externalProgram.generateFullFilename(fileNameBase_ + ".pcgrad");
+    OrcaPointChargesGradientsFileParser pcParser(pcGradientsFile);
+    results_.set<Property::PointChargesGradients>(pcParser.getPointChargesGradients());
   }
   results_.set<Property::SuccessfulCalculation>(true);
   results_.set<Property::ProgramName>("orca");

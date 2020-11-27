@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/Geometry/AtomCollection.h>
@@ -41,6 +41,10 @@ void init_atom_collection(pybind11::module& m) {
   // Comparison operators
   atom_collection.def(pybind11::self == pybind11::self);
   atom_collection.def(pybind11::self != pybind11::self);
+
+  // Addition operators
+  atom_collection.def(pybind11::self + pybind11::self);
+  atom_collection.def(pybind11::self += pybind11::self);
 
   // Sequence magic methods
   atom_collection.def(

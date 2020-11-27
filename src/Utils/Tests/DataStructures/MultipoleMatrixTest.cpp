@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -99,94 +99,101 @@ TEST_F(AMultipoleMatrixTest, AfterResetAllMatrixEntriesAreZero) {
 }
 
 TEST_F(AMultipoleMatrixTest, MatricesAreCorrectlyAssignedWithZeroDerivative) {
-  dipoleMatrix.x().get<derivOrder::zero>() = randomXMatrix;
-  dipoleMatrix.y().get<derivOrder::zero>() = randomYMatrix;
-  dipoleMatrix.z().get<derivOrder::zero>() = randomZMatrix;
-  quadrupoleMatrix.xx().get<derivOrder::zero>() = randomXMatrix;
-  quadrupoleMatrix.yy().get<derivOrder::zero>() = randomYMatrix;
-  quadrupoleMatrix.zz().get<derivOrder::zero>() = randomZMatrix;
-  quadrupoleMatrix.xy().get<derivOrder::zero>() = randomXYMatrix;
-  quadrupoleMatrix.xz().get<derivOrder::zero>() = randomXZMatrix;
-  quadrupoleMatrix.yz().get<derivOrder::zero>() = randomYZMatrix;
-  octupoleMatrix.xxx().get<derivOrder::zero>() = randomXMatrix;
-  octupoleMatrix.yyy().get<derivOrder::zero>() = randomYMatrix;
-  octupoleMatrix.zzz().get<derivOrder::zero>() = randomZMatrix;
-  octupoleMatrix.xxy().get<derivOrder::zero>() = randomXYMatrix;
-  octupoleMatrix.xxz().get<derivOrder::zero>() = randomXZMatrix;
-  octupoleMatrix.xyz().get<derivOrder::zero>() = randomYZMatrix;
-  octupoleMatrix.xyy().get<derivOrder::zero>() = randomXYYMatrix;
-  octupoleMatrix.xzz().get<derivOrder::zero>() = randomXZZMatrix;
-  octupoleMatrix.yyz().get<derivOrder::zero>() = randomYYZMatrix;
-  octupoleMatrix.yzz().get<derivOrder::zero>() = randomYZZMatrix;
-  EXPECT_EQ(dipoleMatrix.x().get<derivOrder::zero>(), randomXMatrix);
-  EXPECT_EQ(dipoleMatrix.y().get<derivOrder::zero>(), randomYMatrix);
-  EXPECT_EQ(dipoleMatrix.z().get<derivOrder::zero>(), randomZMatrix);
-  EXPECT_EQ(quadrupoleMatrix.xx().get<derivOrder::zero>(), randomXMatrix);
-  EXPECT_EQ(quadrupoleMatrix.yy().get<derivOrder::zero>(), randomYMatrix);
-  EXPECT_EQ(quadrupoleMatrix.zz().get<derivOrder::zero>(), randomZMatrix);
-  EXPECT_EQ(quadrupoleMatrix.xy().get<derivOrder::zero>(), randomXYMatrix);
-  EXPECT_EQ(quadrupoleMatrix.xz().get<derivOrder::zero>(), randomXZMatrix);
-  EXPECT_EQ(quadrupoleMatrix.yz().get<derivOrder::zero>(), randomYZMatrix);
-  EXPECT_EQ(octupoleMatrix.xxx().get<derivOrder::zero>(), randomXMatrix);
-  EXPECT_EQ(octupoleMatrix.yyy().get<derivOrder::zero>(), randomYMatrix);
-  EXPECT_EQ(octupoleMatrix.zzz().get<derivOrder::zero>(), randomZMatrix);
-  EXPECT_EQ(octupoleMatrix.xxy().get<derivOrder::zero>(), randomXYMatrix);
-  EXPECT_EQ(octupoleMatrix.xxz().get<derivOrder::zero>(), randomXZMatrix);
-  EXPECT_EQ(octupoleMatrix.xyz().get<derivOrder::zero>(), randomYZMatrix);
-  EXPECT_EQ(octupoleMatrix.xyy().get<derivOrder::zero>(), randomXYYMatrix);
-  EXPECT_EQ(octupoleMatrix.xzz().get<derivOrder::zero>(), randomXZZMatrix);
-  EXPECT_EQ(octupoleMatrix.yyz().get<derivOrder::zero>(), randomYYZMatrix);
-  EXPECT_EQ(octupoleMatrix.yzz().get<derivOrder::zero>(), randomYZZMatrix);
+  dipoleMatrix.x().get<DerivativeOrder::Zero>() = randomXMatrix;
+  dipoleMatrix.y().get<DerivativeOrder::Zero>() = randomYMatrix;
+  dipoleMatrix.z().get<DerivativeOrder::Zero>() = randomZMatrix;
+  quadrupoleMatrix.xx().get<DerivativeOrder::Zero>() = randomXMatrix;
+  quadrupoleMatrix.yy().get<DerivativeOrder::Zero>() = randomYMatrix;
+  quadrupoleMatrix.zz().get<DerivativeOrder::Zero>() = randomZMatrix;
+  quadrupoleMatrix.xy().get<DerivativeOrder::Zero>() = randomXYMatrix;
+  quadrupoleMatrix.xz().get<DerivativeOrder::Zero>() = randomXZMatrix;
+  quadrupoleMatrix.yz().get<DerivativeOrder::Zero>() = randomYZMatrix;
+  octupoleMatrix.xxx().get<DerivativeOrder::Zero>() = randomXMatrix;
+  octupoleMatrix.yyy().get<DerivativeOrder::Zero>() = randomYMatrix;
+  octupoleMatrix.zzz().get<DerivativeOrder::Zero>() = randomZMatrix;
+  octupoleMatrix.xxy().get<DerivativeOrder::Zero>() = randomXYMatrix;
+  octupoleMatrix.xxz().get<DerivativeOrder::Zero>() = randomXZMatrix;
+  octupoleMatrix.xyz().get<DerivativeOrder::Zero>() = randomYZMatrix;
+  octupoleMatrix.xyy().get<DerivativeOrder::Zero>() = randomXYYMatrix;
+  octupoleMatrix.xzz().get<DerivativeOrder::Zero>() = randomXZZMatrix;
+  octupoleMatrix.yyz().get<DerivativeOrder::Zero>() = randomYYZMatrix;
+  octupoleMatrix.yzz().get<DerivativeOrder::Zero>() = randomYZZMatrix;
+  EXPECT_EQ(dipoleMatrix.x().get<DerivativeOrder::Zero>(), randomXMatrix);
+  EXPECT_EQ(dipoleMatrix.y().get<DerivativeOrder::Zero>(), randomYMatrix);
+  EXPECT_EQ(dipoleMatrix.z().get<DerivativeOrder::Zero>(), randomZMatrix);
+  EXPECT_EQ(quadrupoleMatrix.xx().get<DerivativeOrder::Zero>(), randomXMatrix);
+  EXPECT_EQ(quadrupoleMatrix.yy().get<DerivativeOrder::Zero>(), randomYMatrix);
+  EXPECT_EQ(quadrupoleMatrix.zz().get<DerivativeOrder::Zero>(), randomZMatrix);
+  EXPECT_EQ(quadrupoleMatrix.xy().get<DerivativeOrder::Zero>(), randomXYMatrix);
+  EXPECT_EQ(quadrupoleMatrix.xz().get<DerivativeOrder::Zero>(), randomXZMatrix);
+  EXPECT_EQ(quadrupoleMatrix.yz().get<DerivativeOrder::Zero>(), randomYZMatrix);
+  EXPECT_EQ(octupoleMatrix.xxx().get<DerivativeOrder::Zero>(), randomXMatrix);
+  EXPECT_EQ(octupoleMatrix.yyy().get<DerivativeOrder::Zero>(), randomYMatrix);
+  EXPECT_EQ(octupoleMatrix.zzz().get<DerivativeOrder::Zero>(), randomZMatrix);
+  EXPECT_EQ(octupoleMatrix.xxy().get<DerivativeOrder::Zero>(), randomXYMatrix);
+  EXPECT_EQ(octupoleMatrix.xxz().get<DerivativeOrder::Zero>(), randomXZMatrix);
+  EXPECT_EQ(octupoleMatrix.xyz().get<DerivativeOrder::Zero>(), randomYZMatrix);
+  EXPECT_EQ(octupoleMatrix.xyy().get<DerivativeOrder::Zero>(), randomXYYMatrix);
+  EXPECT_EQ(octupoleMatrix.xzz().get<DerivativeOrder::Zero>(), randomXZZMatrix);
+  EXPECT_EQ(octupoleMatrix.yyz().get<DerivativeOrder::Zero>(), randomYYZMatrix);
+  EXPECT_EQ(octupoleMatrix.yzz().get<DerivativeOrder::Zero>(), randomYZZMatrix);
 }
 
 TEST_F(AMultipoleMatrixTest, MatricesAreCorrectlyAssignedWithZeroDerivativeAndBlockMethod) {
   dipoleMatrix.reset(randomXMatrix.rows());
-  dipoleMatrix.x().get<derivOrder::zero>().block(0, 0, 5, 5) = randomXMatrix.block(0, 0, 5, 5);
+  dipoleMatrix.x().get<DerivativeOrder::Zero>().block(0, 0, 5, 5) = randomXMatrix.block(0, 0, 5, 5);
 
-  EXPECT_EQ(dipoleMatrix.x().get<derivOrder::zero>().block(0, 0, 5, 5), randomXMatrix.block(0, 0, 5, 5));
+  EXPECT_EQ(dipoleMatrix.x().get<DerivativeOrder::Zero>().block(0, 0, 5, 5), randomXMatrix.block(0, 0, 5, 5));
 }
 
 TEST_F(AMultipoleMatrixTest, MatricesAreCorrectlyAssignedWithDerivatives) {
-  dipoleMatrix.x().get<derivOrder::one>() = randomXderivatives;
-  dipoleMatrix.y().get<derivOrder::one>() = randomYderivatives;
-  dipoleMatrix.z().get<derivOrder::one>() = randomZderivatives;
-  quadrupoleMatrix.xx().get<derivOrder::one>() = randomXderivatives;
-  quadrupoleMatrix.yy().get<derivOrder::one>() = randomYderivatives;
-  quadrupoleMatrix.zz().get<derivOrder::one>() = randomZderivatives;
-  quadrupoleMatrix.xy().get<derivOrder::one>() = randomXYderivatives;
-  quadrupoleMatrix.xz().get<derivOrder::one>() = randomXZderivatives;
-  quadrupoleMatrix.yz().get<derivOrder::one>() = randomYZderivatives;
-  octupoleMatrix.xxx().get<derivOrder::one>() = randomXderivatives;
-  octupoleMatrix.yyy().get<derivOrder::one>() = randomYderivatives;
-  octupoleMatrix.zzz().get<derivOrder::one>() = randomZderivatives;
-  octupoleMatrix.xxy().get<derivOrder::one>() = randomXYderivatives;
-  octupoleMatrix.xxz().get<derivOrder::one>() = randomXZderivatives;
-  octupoleMatrix.xyz().get<derivOrder::one>() = randomYZderivatives;
-  octupoleMatrix.xyy().get<derivOrder::one>() = randomXYYderivatives;
-  octupoleMatrix.xzz().get<derivOrder::one>() = randomXZZderivatives;
-  octupoleMatrix.yyz().get<derivOrder::one>() = randomYYZderivatives;
-  octupoleMatrix.yzz().get<derivOrder::one>() = randomYZZderivatives;
+  dipoleMatrix.x().get<DerivativeOrder::One>() = randomXderivatives;
+  dipoleMatrix.y().get<DerivativeOrder::One>() = randomYderivatives;
+  dipoleMatrix.z().get<DerivativeOrder::One>() = randomZderivatives;
+  quadrupoleMatrix.xx().get<DerivativeOrder::One>() = randomXderivatives;
+  quadrupoleMatrix.yy().get<DerivativeOrder::One>() = randomYderivatives;
+  quadrupoleMatrix.zz().get<DerivativeOrder::One>() = randomZderivatives;
+  quadrupoleMatrix.xy().get<DerivativeOrder::One>() = randomXYderivatives;
+  quadrupoleMatrix.xz().get<DerivativeOrder::One>() = randomXZderivatives;
+  quadrupoleMatrix.yz().get<DerivativeOrder::One>() = randomYZderivatives;
+  octupoleMatrix.xxx().get<DerivativeOrder::One>() = randomXderivatives;
+  octupoleMatrix.yyy().get<DerivativeOrder::One>() = randomYderivatives;
+  octupoleMatrix.zzz().get<DerivativeOrder::One>() = randomZderivatives;
+  octupoleMatrix.xxy().get<DerivativeOrder::One>() = randomXYderivatives;
+  octupoleMatrix.xxz().get<DerivativeOrder::One>() = randomXZderivatives;
+  octupoleMatrix.xyz().get<DerivativeOrder::One>() = randomYZderivatives;
+  octupoleMatrix.xyy().get<DerivativeOrder::One>() = randomXYYderivatives;
+  octupoleMatrix.xzz().get<DerivativeOrder::One>() = randomXZZderivatives;
+  octupoleMatrix.yyz().get<DerivativeOrder::One>() = randomYYZderivatives;
+  octupoleMatrix.yzz().get<DerivativeOrder::One>() = randomYZZderivatives;
   for (int i = 0; i < arbitraryDimension; ++i) {
     for (int j = 0; j < arbitraryDimension; ++j) {
-      EXPECT_EQ(dipoleMatrix.x().get<derivOrder::one>()(i, j).derivatives(), randomXderivatives(i, j).derivatives());
-      EXPECT_EQ(dipoleMatrix.y().get<derivOrder::one>()(i, j).derivatives(), randomYderivatives(i, j).derivatives());
-      EXPECT_EQ(dipoleMatrix.z().get<derivOrder::one>()(i, j).derivatives(), randomZderivatives(i, j).derivatives());
-      EXPECT_EQ(quadrupoleMatrix.xx().get<derivOrder::one>()(i, j).derivatives(), randomXderivatives(i, j).derivatives());
-      EXPECT_EQ(quadrupoleMatrix.yy().get<derivOrder::one>()(i, j).derivatives(), randomYderivatives(i, j).derivatives());
-      EXPECT_EQ(quadrupoleMatrix.zz().get<derivOrder::one>()(i, j).derivatives(), randomZderivatives(i, j).derivatives());
-      EXPECT_EQ(quadrupoleMatrix.xy().get<derivOrder::one>()(i, j).derivatives(), randomXYderivatives(i, j).derivatives());
-      EXPECT_EQ(quadrupoleMatrix.xz().get<derivOrder::one>()(i, j).derivatives(), randomXZderivatives(i, j).derivatives());
-      EXPECT_EQ(quadrupoleMatrix.yz().get<derivOrder::one>()(i, j).derivatives(), randomYZderivatives(i, j).derivatives());
-      EXPECT_EQ(octupoleMatrix.xxx().get<derivOrder::one>()(i, j).derivatives(), randomXderivatives(i, j).derivatives());
-      EXPECT_EQ(octupoleMatrix.yyy().get<derivOrder::one>()(i, j).derivatives(), randomYderivatives(i, j).derivatives());
-      EXPECT_EQ(octupoleMatrix.zzz().get<derivOrder::one>()(i, j).derivatives(), randomZderivatives(i, j).derivatives());
-      EXPECT_EQ(octupoleMatrix.xxy().get<derivOrder::one>()(i, j).derivatives(), randomXYderivatives(i, j).derivatives());
-      EXPECT_EQ(octupoleMatrix.xxz().get<derivOrder::one>()(i, j).derivatives(), randomXZderivatives(i, j).derivatives());
-      EXPECT_EQ(octupoleMatrix.xyz().get<derivOrder::one>()(i, j).derivatives(), randomYZderivatives(i, j).derivatives());
-      EXPECT_EQ(octupoleMatrix.xyy().get<derivOrder::one>()(i, j).derivatives(), randomXYYderivatives(i, j).derivatives());
-      EXPECT_EQ(octupoleMatrix.xzz().get<derivOrder::one>()(i, j).derivatives(), randomXZZderivatives(i, j).derivatives());
-      EXPECT_EQ(octupoleMatrix.yyz().get<derivOrder::one>()(i, j).derivatives(), randomYYZderivatives(i, j).derivatives());
-      EXPECT_EQ(octupoleMatrix.yzz().get<derivOrder::one>()(i, j).derivatives(), randomYZZderivatives(i, j).derivatives());
+      EXPECT_EQ(dipoleMatrix.x().get<DerivativeOrder::One>()(i, j).derivatives(), randomXderivatives(i, j).derivatives());
+      EXPECT_EQ(dipoleMatrix.y().get<DerivativeOrder::One>()(i, j).derivatives(), randomYderivatives(i, j).derivatives());
+      EXPECT_EQ(dipoleMatrix.z().get<DerivativeOrder::One>()(i, j).derivatives(), randomZderivatives(i, j).derivatives());
+      EXPECT_EQ(quadrupoleMatrix.xx().get<DerivativeOrder::One>()(i, j).derivatives(), randomXderivatives(i, j).derivatives());
+      EXPECT_EQ(quadrupoleMatrix.yy().get<DerivativeOrder::One>()(i, j).derivatives(), randomYderivatives(i, j).derivatives());
+      EXPECT_EQ(quadrupoleMatrix.zz().get<DerivativeOrder::One>()(i, j).derivatives(), randomZderivatives(i, j).derivatives());
+      EXPECT_EQ(quadrupoleMatrix.xy().get<DerivativeOrder::One>()(i, j).derivatives(),
+                randomXYderivatives(i, j).derivatives());
+      EXPECT_EQ(quadrupoleMatrix.xz().get<DerivativeOrder::One>()(i, j).derivatives(),
+                randomXZderivatives(i, j).derivatives());
+      EXPECT_EQ(quadrupoleMatrix.yz().get<DerivativeOrder::One>()(i, j).derivatives(),
+                randomYZderivatives(i, j).derivatives());
+      EXPECT_EQ(octupoleMatrix.xxx().get<DerivativeOrder::One>()(i, j).derivatives(), randomXderivatives(i, j).derivatives());
+      EXPECT_EQ(octupoleMatrix.yyy().get<DerivativeOrder::One>()(i, j).derivatives(), randomYderivatives(i, j).derivatives());
+      EXPECT_EQ(octupoleMatrix.zzz().get<DerivativeOrder::One>()(i, j).derivatives(), randomZderivatives(i, j).derivatives());
+      EXPECT_EQ(octupoleMatrix.xxy().get<DerivativeOrder::One>()(i, j).derivatives(), randomXYderivatives(i, j).derivatives());
+      EXPECT_EQ(octupoleMatrix.xxz().get<DerivativeOrder::One>()(i, j).derivatives(), randomXZderivatives(i, j).derivatives());
+      EXPECT_EQ(octupoleMatrix.xyz().get<DerivativeOrder::One>()(i, j).derivatives(), randomYZderivatives(i, j).derivatives());
+      EXPECT_EQ(octupoleMatrix.xyy().get<DerivativeOrder::One>()(i, j).derivatives(),
+                randomXYYderivatives(i, j).derivatives());
+      EXPECT_EQ(octupoleMatrix.xzz().get<DerivativeOrder::One>()(i, j).derivatives(),
+                randomXZZderivatives(i, j).derivatives());
+      EXPECT_EQ(octupoleMatrix.yyz().get<DerivativeOrder::One>()(i, j).derivatives(),
+                randomYYZderivatives(i, j).derivatives());
+      EXPECT_EQ(octupoleMatrix.yzz().get<DerivativeOrder::One>()(i, j).derivatives(),
+                randomYZZderivatives(i, j).derivatives());
     }
   }
 }

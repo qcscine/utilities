@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -13,7 +13,7 @@ namespace Scine {
 namespace Utils {
 
 bool GradientBasedCheck::checkConvergence(const Eigen::VectorXd& parameter, double value, const Eigen::VectorXd& gradient) {
-  if (_oldParams.size() == 0) {
+  if (_oldParams.size() != parameter.size()) {
     _oldParams = Eigen::VectorXd::Zero(parameter.size());
   }
   // Generate temporaries
@@ -37,6 +37,11 @@ bool GradientBasedCheck::checkConvergence(const Eigen::VectorXd& parameter, doub
 
 bool GradientBasedCheck::checkMaxIterations(unsigned int currentIteration) {
   return currentIteration >= maxIter;
+};
+
+void GradientBasedCheck::setParametersAndValue(const Eigen::VectorXd& parameter, double value) {
+  _oldParams = parameter;
+  _oldValue = value;
 };
 
 void GradientBasedCheck::addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const {

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/GeometryOptimization/GeometryOptimizer.h"
@@ -140,6 +140,7 @@ class GeoOptMockCalculator : public Core::Calculator {
     h(5, 7) = -h(7, 8);
 
     r_ = Results();
+    r_.set<Property::SuccessfulCalculation>(true);
     r_.set<Property::Energy>(e);
     r_.set<Property::Gradients>(g);
     r_.set<Property::Hessian>(h);
@@ -181,6 +182,11 @@ class GeoOptMockCalculator : public Core::Calculator {
   }
 };
 
+// Define a test logger
+namespace {
+Core::Log logger = Core::Log::silent();
+}
+
 /**
  * @class Scine::Utils::Tests::GeometryOptimizerTests
  * @brief Comprises tests for the class Scine::Utils::GeometryOptimizer.
@@ -203,7 +209,7 @@ TEST(GeometryOptimizerTests, SteepestDescent) {
   positions(0, 0) = -M_PI;
   positions(2, 0) = M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = geo.optimize(atoms);
+  auto nIter = geo.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < geo.check.maxIter);
@@ -232,7 +238,7 @@ TEST(GeometryOptimizerTests, Bfgs) {
   positions(0, 0) = 0.9 * M_PI;
   positions(2, 0) = 0.9 * M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = geo.optimize(atoms);
+  auto nIter = geo.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < geo.check.maxIter);
@@ -262,7 +268,7 @@ TEST(GeometryOptimizerTests, Bfgs_NoDiis) {
   positions(0, 0) = 0.75 * M_PI;
   positions(2, 0) = 0.64 * M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = geo.optimize(atoms);
+  auto nIter = geo.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < geo.check.maxIter);
@@ -291,7 +297,7 @@ TEST(GeometryOptimizerTests, Lbfgs) {
   positions(0, 0) = 0.75 * M_PI;
   positions(2, 0) = 0.64 * M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = geo.optimize(atoms);
+  auto nIter = geo.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < geo.check.maxIter);
@@ -320,7 +326,7 @@ TEST(GeometryOptimizerTests, LbfgsNoLineSearch) {
   positions(0, 0) = 0.75 * M_PI;
   positions(2, 0) = 0.64 * M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = geo.optimize(atoms);
+  auto nIter = geo.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < geo.check.maxIter);
@@ -347,7 +353,7 @@ TEST(GeometryOptimizerTests, NewtonRaphson) {
   positions(0, 0) = -0.76 * M_PI;
   positions(2, 1) = 0.76 * M_PI;
   AtomCollection atoms(elements, positions);
-  auto nIter = geo.optimize(atoms);
+  auto nIter = geo.optimize(atoms, logger);
 
   // Check results
   EXPECT_TRUE(nIter < geo.check.maxIter);
@@ -380,7 +386,7 @@ TEST(GeometryOptimizerTests, TestObserver) {
   auto func = [&](const int&, const double&, const Eigen::VectorXd&) { counter++; };
   // Run
   geo.addObserver(func);
-  auto nIter = geo.optimize(atoms);
+  auto nIter = geo.optimize(atoms, logger);
   // Check
   EXPECT_EQ(nIter, counter);
 }

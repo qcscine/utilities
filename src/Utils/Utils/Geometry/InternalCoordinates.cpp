@@ -1,14 +1,14 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
 #include "Utils/Geometry/InternalCoordinates.h"
 #include "Utils/Geometry/ElementInfo.h"
 #include "Utils/Geometry/GeometryUtilities.h"
-#include <libirc.h>
+#include <libirc/irc.h>
 
 namespace Scine {
 namespace Utils {
@@ -33,7 +33,7 @@ InternalCoordinates::InternalCoordinates(const AtomCollection& atoms, bool rotTr
   }
   this->_pImpl = std::make_unique<InternalCoordinates::Impl>();
 
-  if (atoms.size() > 3) {
+  if (atoms.size() > 3 && !rotTransOnly) {
     try {
       this->_pImpl->irc = std::make_unique<irc::IRC<Eigen::Vector3d, Eigen::VectorXd, Eigen::MatrixXd>>(molecule);
       _oldInternal = this->_pImpl->irc->cartesian_to_irc(_oldCartesian);
@@ -64,7 +64,7 @@ PositionCollection InternalCoordinates::coordinatesToCartesian(const Eigen::Vect
   Eigen::VectorXd deltaInternal = (internals - _oldInternal).eval();
   auto result = this->_pImpl->irc->irc_to_cartesian(_oldInternal, deltaInternal, _oldCartesian, maxIters, tolerance);
   if (!result.converged)
-    throw std::runtime_error("Internal coordinates broke down, please try Cartesians.");
+    throw InternalCoordinatesException();
   _oldCartesian = result.x_c;
   _oldInternal = internals.eval();
   return Eigen::Map<PositionCollection>(_oldCartesian.data(), static_cast<int>(_oldCartesian.size() / 3), 3);

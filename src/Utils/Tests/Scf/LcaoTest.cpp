@@ -1,10 +1,11 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
+#include <Core/Log.h>
 #include <Utils/Scf/MethodInterfaces/LcaoMethod.h>
 #include <gmock/gmock.h>
 
@@ -15,7 +16,7 @@ namespace Tests {
 
 class LcaoTestMethod : public LcaoMethod {
  public:
-  LcaoTestMethod() : LcaoMethod(true, Utils::derivOrder::two, true) {
+  LcaoTestMethod() : LcaoMethod(true, Utils::DerivativeOrder::Two, true) {
   }
   void initialize() final {
     molecularCharge_ = 0;
@@ -32,6 +33,7 @@ class LcaoTestMethod : public LcaoMethod {
 class ALcaoTest : public Test {
  public:
   LcaoTestMethod lcaoMethod_;
+  Core::Log log;
 
  protected:
   void SetUp() override {
@@ -44,7 +46,7 @@ TEST_F(ALcaoTest, CorrectlyChangesUnrestrictedCalculation) {
   lcaoMethod_.setSpinMultiplicity(3);
   lcaoMethod_.setUnrestrictedCalculation(false);
 
-  lcaoMethod_.verifyPesValidity();
+  lcaoMethod_.verifyPesValidity(log);
 
   ASSERT_THAT(lcaoMethod_.getMolecularCharge(), -2);
   ASSERT_THAT(lcaoMethod_.unrestrictedCalculationRunning(), true);
@@ -56,7 +58,7 @@ TEST_F(ALcaoTest, CorrectlyChangesSpinMultiplicity) {
   lcaoMethod_.setSpinMultiplicity(2);
   lcaoMethod_.setUnrestrictedCalculation(true);
 
-  lcaoMethod_.verifyPesValidity();
+  lcaoMethod_.verifyPesValidity(log);
 
   ASSERT_THAT(lcaoMethod_.getMolecularCharge(), -2);
   ASSERT_THAT(lcaoMethod_.unrestrictedCalculationRunning(), true);

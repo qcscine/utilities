@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILSOS_INDIRECTSIGMAVECTOREVALUATOR_H
@@ -23,7 +23,7 @@ namespace Utils {
  * https://doi.org/10.1016/0021-9991(75)90065-0
  */
 template<class MatrixType>
-class IndirectSigmaVectorEvaluator : public SigmaVectorEvaluator<MatrixType> {
+class IndirectSigmaVectorEvaluator final : public SigmaVectorEvaluator<MatrixType> {
  public:
   explicit IndirectSigmaVectorEvaluator(const MatrixType& matrix) : fullMatrixToDiagonalize_(matrix) {
   }

@@ -1,12 +1,12 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
 #include "ScfMethod.h"
-#include <Utils/IO/Logger.h>
+#include <Core/Log.h>
 #include <Utils/Math/AutomaticDifferentiation/Second3D.h>
 #include <Utils/Scf/LcaoUtils/ElectronicOccupationGenerator.h>
 #include <Utils/Scf/LcaoUtils/LcaoUtils.h>
@@ -21,7 +21,7 @@ namespace Utils {
 
 using namespace Utils::AutomaticDifferentiation;
 
-ScfMethod::ScfMethod(bool unrestrictedCalculationPossible, Utils::derivOrder maximalOrder, bool orthogonalBasisSet)
+ScfMethod::ScfMethod(bool unrestrictedCalculationPossible, Utils::DerivativeOrder maximalOrder, bool orthogonalBasisSet)
   : LcaoMethod(unrestrictedCalculationPossible, maximalOrder, orthogonalBasisSet),
     converged(false),
     performedIterations_(0),
@@ -34,6 +34,10 @@ ScfMethod::~ScfMethod() = default;
 
 void ScfMethod::initialize() {
   LcaoMethod::initialize();
+  // Log is silent to prevent having to set it from outside and to avoid
+  // unnecessary logging in the initialization phase.
+  auto silentLog = Core::Log::silent();
+  verifyPesValidity(silentLog);
   reinitializeDensityMatrixGuess();
 }
 
@@ -60,11 +64,15 @@ void ScfMethod::removeModifier(const std::shared_ptr<ScfModifier>& modifier) {
   }
 }
 
+void ScfMethod::calculate(Utils::Derivative d, Core::Log& log) {
+  convergedCalculation(log, d);
+}
+
 /*
  * Perform a converged calculation
  */
-void ScfMethod::convergedCalculation(Utils::derivativeType d) {
-  verifyPesValidity();
+void ScfMethod::convergedCalculation(Core::Log& log, Utils::Derivative d) {
+  verifyPesValidity(log);
   onConvergedCalculationStarts();
   performedIterations_ = 0;
 
@@ -73,14 +81,14 @@ void ScfMethod::convergedCalculation(Utils::derivativeType d) {
     m.second->onOverlapCalculated();
 
   // Perform the first iteration
-  performIteration(d);
+  performIteration(log, d);
   performedIterations_++;
   convergenceChecker_.checkConvergence();
 
   // Loop until convergence
   converged = false;
   while ((!convergenceChecker_.isConverged()) && performedIterations_ < maxIterations) {
-    performIteration(d);
+    performIteration(log, d);
     convergenceChecker_.checkConvergence();
     performedIterations_++;
   }
@@ -97,7 +105,7 @@ void ScfMethod::convergedCalculation(Utils::derivativeType d) {
 /*
  * Invariant part that is performed in every iteration,
  */
-void ScfMethod::performIteration(Utils::derivativeType d) {
+void ScfMethod::performIteration(Core::Log& log, Utils::Derivative d) {
   for (auto& m : modifiers)
     m.second->onIterationStart();
 
@@ -106,7 +114,7 @@ void ScfMethod::performIteration(Utils::derivativeType d) {
   for (auto& m : modifiers)
     m.second->onFockCalculated();
 
-  solveEigenValueProblem();
+  solveEigenValueProblem(log);
   for (auto& m : modifiers)
     m.second->onGEPSolved();
 
@@ -120,7 +128,7 @@ void ScfMethod::resetConvergenceCheck() {
   convergenceChecker_.updateDensityMatrix();
 }
 
-void ScfMethod::evaluateDensity(Utils::derivativeType derivativeOrder) {
+void ScfMethod::evaluateDensity(Utils::Derivative derivativeOrder) {
   calculateDensityIndependentQuantities(derivativeOrder);
   calculateDensityDependentQuantities(derivativeOrder);
   assembleFockMatrix();
@@ -131,10 +139,13 @@ void ScfMethod::evaluateDensity(Utils::derivativeType derivativeOrder) {
 }
 
 void ScfMethod::onConvergedCalculationStarts() {
+  if (densityMatrix_.numberElectrons() != nElectrons_) {
+    reinitializeDensityMatrixGuess();
+  }
   electronicOccupationGenerator_->newScfCycleStarted();
 }
 
-void ScfMethod::solveEigenValueProblem() {
+void ScfMethod::solveEigenValueProblem(Core::Log& log) {
   // Solve just for the occupied manifold, do not solve the virtual space.
   if (solvesOnlyOccupiedManifold()) {
     int alphaElectrons = 0, betaElectrons = 0;
@@ -142,18 +153,18 @@ void ScfMethod::solveEigenValueProblem() {
     if (basisSetIsOrthogonal()) {
       if (unrestrictedCalculationRunning_)
         LcaoUtils::solveOccupiedUnrestrictedEigenvalueProblem(fockMatrix_, eigenvectorMatrix_, singleParticleEnergies_,
-                                                              alphaElectrons, betaElectrons);
+                                                              alphaElectrons, betaElectrons, log);
       else
         LcaoUtils::solveOccupiedRestrictedEigenvalueProblem(fockMatrix_, eigenvectorMatrix_, singleParticleEnergies_,
-                                                            nElectrons_);
+                                                            nElectrons_, log);
     }
     else {
       if (unrestrictedCalculationRunning_)
         LcaoUtils::solveOccupiedUnrestrictedGeneralizedEigenvalueProblem(
-            fockMatrix_, overlapMatrix_, eigenvectorMatrix_, singleParticleEnergies_, alphaElectrons, betaElectrons);
+            fockMatrix_, overlapMatrix_, eigenvectorMatrix_, singleParticleEnergies_, alphaElectrons, betaElectrons, log);
       else
         LcaoUtils::solveOccupiedRestrictedGeneralizedEigenvalueProblem(fockMatrix_, overlapMatrix_, eigenvectorMatrix_,
-                                                                       singleParticleEnergies_, nElectrons_);
+                                                                       singleParticleEnergies_, nElectrons_, log);
     }
   }
   else { // Solve for the whole space.
@@ -175,28 +186,27 @@ void ScfMethod::solveEigenValueProblem() {
 }
 
 void ScfMethod::reinitializeDensityMatrixGuess() {
-  densityMatrixGuess_->setNElectrons(nElectrons_);
   densityMatrix_ = densityMatrixGuess_->calculateGuess();
   if (unrestrictedCalculationRunning() && densityMatrix_.restricted())
     densityMatrix_.setAlphaAndBetaFromRestrictedDensity();
 }
 
-void ScfMethod::calculateDensityDependentQuantities(Utils::derivativeType d) {
-  Utils::derivOrder order = Utils::derivOrder::zero;
-  if (d == Utils::derivativeType::first)
-    order = Utils::derivOrder::one;
-  if (d == Utils::derivativeType::second_atomic || d == Utils::derivativeType::second_full)
-    order = Utils::derivOrder::two;
+void ScfMethod::calculateDensityDependentQuantities(Utils::Derivative d) {
+  Utils::DerivativeOrder order = Utils::DerivativeOrder::Zero;
+  if (d == Utils::Derivative::First)
+    order = Utils::DerivativeOrder::One;
+  if (d == Utils::Derivative::SecondAtomic || d == Utils::Derivative::SecondFull)
+    order = Utils::DerivativeOrder::Two;
 
   electronicPart_->calculateDensityDependentPart(order);
 }
 
-void ScfMethod::finalizeCalculation(Utils::derivativeType d) {
-  Utils::derivOrder order = Utils::derivOrder::zero;
-  if (d == Utils::derivativeType::first)
-    order = Utils::derivOrder::one;
-  if (d == Utils::derivativeType::second_atomic || d == Utils::derivativeType::second_full)
-    order = Utils::derivOrder::two;
+void ScfMethod::finalizeCalculation(Utils::Derivative d) {
+  Utils::DerivativeOrder order = Utils::DerivativeOrder::Zero;
+  if (d == Utils::Derivative::First)
+    order = Utils::DerivativeOrder::One;
+  if (d == Utils::Derivative::SecondAtomic || d == Utils::Derivative::SecondFull)
+    order = Utils::DerivativeOrder::Two;
 
   electronicPart_->finalize(order);
 

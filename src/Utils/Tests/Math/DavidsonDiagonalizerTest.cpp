@@ -1,11 +1,11 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
-#include <Utils/IO/Logger.h>
+#include <Core/Log.h>
 #include <Utils/Math/IterativeDiagonalizer/DavidsonDiagonalizer.h>
 #include <gmock/gmock.h>
 #include <Eigen/Eigenvalues>
@@ -29,6 +29,7 @@ class ADavidsonDiagonalizerTest : public Test {
   int arbitraryDimension = 100;
   Eigen::MatrixXd arbitraryDenseMatrix;
   Eigen::SparseMatrix<double> arbitrarySparseMatrix;
+  Core::Log log;
 
  private:
   void SetUp() final {
@@ -56,13 +57,13 @@ class ADavidsonDiagonalizerTest : public Test {
 };
 
 TEST_F(ADavidsonDiagonalizerTest, DavidsonDiagonalizerCanBeConstructed) {
-  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{arbitraryNumberEigenvalue, arbitraryTrialSubspace, arbitraryDimension};
+  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{arbitraryNumberEigenvalue, arbitraryTrialSubspace, arbitraryDimension, log};
   DavidsonDiagonalizer<Eigen::SparseMatrix<double>> davidsonSparse{arbitraryNumberEigenvalue, arbitraryTrialSubspace,
-                                                                   arbitraryDimension};
+                                                                   arbitraryDimension, log};
   DavidsonDiagonalizer<Eigen::MatrixXd, DavidsonBalancedType::balanced> davidsonBalanced{
-      arbitraryNumberEigenvalue, arbitraryTrialSubspace, arbitraryDimension};
+      arbitraryNumberEigenvalue, arbitraryTrialSubspace, arbitraryDimension, log};
   DavidsonDiagonalizer<Eigen::SparseMatrix<double>, DavidsonBalancedType::balanced> davidsonSparseBalanced{
-      arbitraryNumberEigenvalue, arbitraryTrialSubspace, arbitraryDimension};
+      arbitraryNumberEigenvalue, arbitraryTrialSubspace, arbitraryDimension, log};
 }
 
 TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithStandardMethod) {
@@ -70,9 +71,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithStandardMethod) {
   auto actualEigenvalues = ref.eigenvalues().head(1);
   auto actualEigenvectors = ref.eigenvectors().leftCols(1);
 
-  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{1, 1, arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix);
-  auto result = davidson.solve();
+  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{1, 1, arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix, log);
+  auto result = davidson.solve(log);
 
   ASSERT_THAT(result.first(0), DoubleNear(actualEigenvalues(0), 1e-5));
   for (int j = 0; j < arbitraryDimension; ++j) {
@@ -85,9 +86,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithStandardMethodAndManyEigenva
   auto actualEigenvalues = ref.eigenvalues().head(arbitraryDimension - 3);
   auto actualEigenvectors = ref.eigenvectors().leftCols(arbitraryDimension - 3);
 
-  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{arbitraryDimension - 3, arbitraryDimension - 3, arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix);
-  auto result = davidson.solve();
+  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{arbitraryDimension - 3, arbitraryDimension - 3, arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix, log);
+  auto result = davidson.solve(log);
 
   for (int i = 0; i < arbitraryDimension - 3; ++i) {
     ASSERT_THAT(result.first(i), DoubleNear(actualEigenvalues(i), 1e-5));
@@ -102,9 +103,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithStandardMethodAndManyEigenva
   auto actualEigenvalues = ref.eigenvalues().head(arbitraryNumberEigenvalue);
   auto actualEigenvectors = ref.eigenvectors().leftCols(arbitraryNumberEigenvalue);
 
-  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{arbitraryNumberEigenvalue, arbitraryTrialSubspace, arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix);
-  auto result = davidson.solve();
+  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{arbitraryNumberEigenvalue, arbitraryTrialSubspace, arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix, log);
+  auto result = davidson.solve(log);
 
   for (int i = 0; i < arbitraryNumberEigenvalue; ++i) {
     ASSERT_THAT(result.first(i), DoubleNear(actualEigenvalues(i), 1e-5));
@@ -119,9 +120,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithSparseMatrix) {
   auto actualEigenvalues = ref.eigenvalues().head(1);
   auto actualEigenvectors = ref.eigenvectors().leftCols(1);
 
-  DavidsonDiagonalizer<Eigen::SparseMatrix<double>> davidson{1, 1, arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix);
-  auto result = davidson.solve();
+  DavidsonDiagonalizer<Eigen::SparseMatrix<double>> davidson{1, 1, arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix, log);
+  auto result = davidson.solve(log);
 
   ASSERT_THAT(result.first(0), DoubleNear(actualEigenvalues(0), 1e-5));
   for (int j = 0; j < 1; ++j) {
@@ -134,9 +135,10 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithSparseMatrixAndManyEigenvalu
   auto actualEigenvalues = ref.eigenvalues().head(arbitraryDimension - 3);
   auto actualEigenvectors = ref.eigenvectors().leftCols(arbitraryDimension - 3);
 
-  DavidsonDiagonalizer<Eigen::SparseMatrix<double>> davidson{arbitraryDimension - 3, arbitraryDimension - 3, arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix);
-  auto result = davidson.solve();
+  DavidsonDiagonalizer<Eigen::SparseMatrix<double>> davidson{arbitraryDimension - 3, arbitraryDimension - 3,
+                                                             arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix, log);
+  auto result = davidson.solve(log);
 
   for (int i = 0; i < arbitraryDimension - 3; ++i) {
     ASSERT_THAT(result.first(i), DoubleNear(actualEigenvalues(i), 1e-5));
@@ -152,9 +154,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithSparseMatrixAndManyEigenvalu
   auto actualEigenvectors = ref.eigenvectors().leftCols(arbitraryNumberEigenvalue);
 
   DavidsonDiagonalizer<Eigen::SparseMatrix<double>> davidson{arbitraryNumberEigenvalue, arbitraryTrialSubspace,
-                                                             arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix);
-  auto result = davidson.solve();
+                                                             arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix, log);
+  auto result = davidson.solve(log);
 
   for (int i = 0; i < arbitraryNumberEigenvalue; ++i) {
     ASSERT_THAT(result.first(i), DoubleNear(actualEigenvalues(i), 1e-5));
@@ -168,9 +170,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeMatrixOfSizeOne) {
   Eigen::MatrixXd matrix(1, 1);
   matrix << 13.0;
 
-  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{1, 1, 1};
-  davidson.setMatrixToDiagonalize(matrix);
-  auto result = davidson.solve();
+  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{1, 1, 1, log};
+  davidson.setMatrixToDiagonalize(matrix, log);
+  auto result = davidson.solve(log);
 
   ASSERT_THAT(result.first(0), Eq(13.0));
 }
@@ -180,9 +182,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithStandardBalancedMethod) {
   auto actualEigenvalues = ref.eigenvalues().head(1);
   auto actualEigenvectors = ref.eigenvectors().leftCols(1);
 
-  DavidsonDiagonalizer<Eigen::MatrixXd, DavidsonBalancedType::balanced> davidson{1, 1, arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix);
-  auto result = davidson.solve();
+  DavidsonDiagonalizer<Eigen::MatrixXd, DavidsonBalancedType::balanced> davidson{1, 1, arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix, log);
+  auto result = davidson.solve(log);
 
   EXPECT_THAT(result.first(0), DoubleNear(actualEigenvalues(0), 1e-5));
   for (int j = 0; j < arbitraryDimension; ++j) {
@@ -196,9 +198,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithBalancedStandardMethodAndMan
   auto actualEigenvectors = ref.eigenvectors().leftCols(arbitraryDimension - 3);
 
   DavidsonDiagonalizer<Eigen::MatrixXd, DavidsonBalancedType::balanced> davidson{
-      arbitraryDimension - 3, arbitraryDimension - 3, arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix);
-  auto result = davidson.solve();
+      arbitraryDimension - 3, arbitraryDimension - 3, arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix, log);
+  auto result = davidson.solve(log);
 
   for (int i = 0; i < arbitraryDimension - 3; ++i) {
     ASSERT_THAT(result.first(i), DoubleNear(actualEigenvalues(i), 1e-5));
@@ -214,9 +216,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithBalancedStandardMethodAndMan
   auto actualEigenvectors = ref.eigenvectors().leftCols(arbitraryNumberEigenvalue);
 
   DavidsonDiagonalizer<Eigen::MatrixXd, DavidsonBalancedType::balanced> davidson{
-      arbitraryNumberEigenvalue, arbitraryTrialSubspace, arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix);
-  auto result = davidson.solve();
+      arbitraryNumberEigenvalue, arbitraryTrialSubspace, arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitraryDenseMatrix, log);
+  auto result = davidson.solve(log);
 
   for (int i = 0; i < arbitraryNumberEigenvalue; ++i) {
     ASSERT_THAT(result.first(i), DoubleNear(actualEigenvalues(i), 1e-5));
@@ -231,9 +233,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithBalancedMethodSparseMatrix) 
   auto actualEigenvalues = ref.eigenvalues().head(1);
   auto actualEigenvectors = ref.eigenvectors().leftCols(1);
 
-  DavidsonDiagonalizer<Eigen::SparseMatrix<double>, DavidsonBalancedType::balanced> davidson{1, 1, arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix);
-  auto result = davidson.solve();
+  DavidsonDiagonalizer<Eigen::SparseMatrix<double>, DavidsonBalancedType::balanced> davidson{1, 1, arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix, log);
+  auto result = davidson.solve(log);
 
   ASSERT_THAT(result.first(0), DoubleNear(actualEigenvalues(0), 1e-5));
   for (int j = 0; j < 1; ++j) {
@@ -247,9 +249,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithBalancedMethodSparseMatrixAn
   auto actualEigenvectors = ref.eigenvectors().leftCols(arbitraryDimension - 3);
 
   DavidsonDiagonalizer<Eigen::SparseMatrix<double>, DavidsonBalancedType::balanced> davidson{
-      arbitraryDimension - 3, arbitraryDimension - 3, arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix);
-  auto result = davidson.solve();
+      arbitraryDimension - 3, arbitraryDimension - 3, arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix, log);
+  auto result = davidson.solve(log);
 
   for (int i = 0; i < arbitraryDimension - 3; ++i) {
     ASSERT_THAT(result.first(i), DoubleNear(actualEigenvalues(i), 1e-5));
@@ -265,9 +267,9 @@ TEST_F(ADavidsonDiagonalizerTest, CanDiagonalizeWithBalancedMethodSparseMatrixAn
   auto actualEigenvectors = ref.eigenvectors().leftCols(arbitraryNumberEigenvalue);
 
   DavidsonDiagonalizer<Eigen::SparseMatrix<double>, DavidsonBalancedType::balanced> davidson{
-      arbitraryNumberEigenvalue, arbitraryNumberEigenvalue, arbitraryDimension};
-  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix);
-  auto result = davidson.solve();
+      arbitraryNumberEigenvalue, arbitraryNumberEigenvalue, arbitraryDimension, log};
+  davidson.setMatrixToDiagonalize(arbitrarySparseMatrix, log);
+  auto result = davidson.solve(log);
 
   for (int i = 0; i < arbitraryNumberEigenvalue; ++i) {
     ASSERT_THAT(result.first(i), DoubleNear(actualEigenvalues(i), 1e-5));
@@ -281,9 +283,9 @@ TEST_F(ADavidsonDiagonalizerTest, BalancedMethodCanDiagonalizeMatrixOfSizeOne) {
   Eigen::MatrixXd matrix(1, 1);
   matrix << 13.0;
 
-  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{1, 1, 1};
-  davidson.setMatrixToDiagonalize(matrix);
-  auto result = davidson.solve();
+  DavidsonDiagonalizer<Eigen::MatrixXd> davidson{1, 1, 1, log};
+  davidson.setMatrixToDiagonalize(matrix, log);
+  auto result = davidson.solve(log);
 
   ASSERT_THAT(result.first(0), Eq(13.0));
 }

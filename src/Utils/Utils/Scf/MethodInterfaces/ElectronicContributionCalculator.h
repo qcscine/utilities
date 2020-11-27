@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -15,7 +15,7 @@ namespace Scine {
 
 namespace Utils {
 
-enum class derivOrder;
+enum class DerivativeOrder;
 class SpinAdaptedMatrix;
 class AdditiveElectronicContribution;
 
@@ -31,11 +31,11 @@ class ElectronicContributionCalculator {
   virtual void initialize() = 0;
 
   /** This function will be called only once per single-point calculation. */
-  virtual void calculateDensityIndependentPart(Utils::derivOrder order) = 0;
+  virtual void calculateDensityIndependentPart(Utils::DerivativeOrder order) = 0;
   /** This function will be called once per SCF iteration. */
-  virtual void calculateDensityDependentPart(Utils::derivOrder order) = 0;
+  virtual void calculateDensityDependentPart(Utils::DerivativeOrder order) = 0;
   /** This function will be called after the last iteration has run. */
-  virtual void finalize(Utils::derivOrder order) = 0;
+  virtual void finalize(Utils::DerivativeOrder order) = 0;
   /**
    * This function adds an additive electronic contribution to the
    * Hamiltonian that will be evaluated each SCF iteration.
@@ -51,11 +51,11 @@ class ElectronicContributionCalculator {
 
   virtual double calculateElectronicEnergy() const = 0;
   virtual void
-  addDerivatives(Utils::AutomaticDifferentiation::DerivativeContainerType<Utils::derivativeType::first>& derivatives) const = 0;
-  virtual void addDerivatives(
-      Utils::AutomaticDifferentiation::DerivativeContainerType<Utils::derivativeType::second_atomic>& derivatives) const = 0;
-  virtual void addDerivatives(
-      Utils::AutomaticDifferentiation::DerivativeContainerType<Utils::derivativeType::second_full>& derivatives) const = 0;
+  addDerivatives(Utils::AutomaticDifferentiation::DerivativeContainerType<Utils::Derivative::First>& derivatives) const = 0;
+  virtual void
+  addDerivatives(Utils::AutomaticDifferentiation::DerivativeContainerType<Utils::Derivative::SecondAtomic>& derivatives) const = 0;
+  virtual void
+  addDerivatives(Utils::AutomaticDifferentiation::DerivativeContainerType<Utils::Derivative::SecondFull>& derivatives) const = 0;
 };
 
 } // namespace Utils

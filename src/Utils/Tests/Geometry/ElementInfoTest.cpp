@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/Constants.h>
@@ -36,6 +36,7 @@ TEST(ElementInfoTest, CanReadMassesInParallel) {
 }
 
 TEST(ElementInfoTest, CanConvertSymbolStringToElementType) {
+  ASSERT_THAT(ElementInfo::elementTypeForSymbol("h"), Eq(ElementType::H));
   ASSERT_THAT(ElementInfo::elementTypeForSymbol("H"), Eq(ElementType::H));
   ASSERT_THAT(ElementInfo::elementTypeForSymbol("1H"), Eq(ElementType::H1));
   ASSERT_THAT(ElementInfo::elementTypeForSymbol("H1"), Eq(ElementType::H1));
@@ -62,6 +63,13 @@ TEST(ElementInfoTest, CanGetVdwRadiusForElementInAtomicUnits) {
   double vdwInAngstrom = vdwInPicometers / 100.0;
   double vdwInAtomicUnits = vdwInAngstrom * Constants::bohr_per_angstrom;
   ASSERT_THAT(ElementInfo::vdwRadius(ElementType::Si), Eq(vdwInAtomicUnits));
+}
+
+TEST(ElementInfoTest, CanGetCovalentRadiusForElementInAtomicUnits) {
+  double covalentInPicometers = 134.0;
+  double covalentInAngstrom = covalentInPicometers / 100.0;
+  double covalentInAtomicUnits = covalentInAngstrom * Constants::bohr_per_angstrom;
+  ASSERT_THAT(ElementInfo::covalentRadius(ElementType::Hs), Eq(covalentInAtomicUnits));
 }
 
 TEST(ElementInfoTest, IsotopeMasses) {

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -62,6 +62,13 @@ class Gdiis {
    * @return Eigen::VectorXd The extrapolated best parameters.
    */
   Eigen::VectorXd update(Eigen::VectorXd& parameters, Eigen::VectorXd& gradients) {
+    /*
+     * If the GDIIS is supposed to extrapolate with a sufficient cache,
+     *   exit and return the original parameters.
+     */
+    if (_maxm < 2) {
+      return parameters;
+    }
     unsigned int current = _cycle % _maxm;
     Eigen::VectorXd ref = -_invH * gradients;
     _parmeters.col(current) = parameters;

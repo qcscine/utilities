@@ -1,3 +1,8 @@
+__copyright__ = """This code is licensed under the 3-clause BSD license.
+Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.
+See LICENSE.txt for details.
+"""
+
 import pytest
 import scine_utilities as scine
 import os
@@ -172,14 +177,14 @@ M  END"""
     with open("sample.xyz", "w") as xyz_file:
         xyz_file.write(sample_XYZ)
 
-    (xyz_atoms, xyz_BO) = scine.IO.read("sample.xyz")
+    (xyz_atoms, xyz_BO) = scine.io.read("sample.xyz")
     assert xyz_BO.empty()
     assert xyz_atoms.size() == 50
     assert xyz_atoms.elements[0] == scine.ElementType.Fe
 
     # Write the read atoms into a file and re-read
-    scine.IO.write("out.xyz", xyz_atoms)
-    (reread_xyz_atoms, reread_xyz_BO) = scine.IO.read("out.xyz")
+    scine.io.write("out.xyz", xyz_atoms)
+    (reread_xyz_atoms, reread_xyz_BO) = scine.io.read("out.xyz")
     assert xyz_atoms == reread_xyz_atoms
 
     # Clean up
@@ -190,14 +195,14 @@ M  END"""
     with open("sample.mol", "w") as mol_file:
         mol_file.write(sample_MOL)
 
-    (mol_atoms, mol_BO) = scine.IO.read("sample.mol")
+    (mol_atoms, mol_BO) = scine.io.read("sample.mol")
     assert mol_atoms.size() == 50
     assert mol_atoms.elements[0] == scine.ElementType.Fe
     assert mol_BO.get_system_size() == 50
 
     # Write the read info into a file and re-read
-    scine.IO.write_topology("out.mol", mol_atoms, mol_BO)
-    (reread_mol_atoms, reread_mol_BO) = scine.IO.read("out.mol")
+    scine.io.write_topology("out.mol", mol_atoms, mol_BO)
+    (reread_mol_atoms, reread_mol_BO) = scine.io.read("out.mol")
     assert mol_atoms == reread_mol_atoms
     assert mol_BO == reread_mol_BO
 

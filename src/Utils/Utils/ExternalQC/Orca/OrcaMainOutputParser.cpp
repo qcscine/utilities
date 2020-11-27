@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "OrcaMainOutputParser.h"
@@ -158,6 +158,38 @@ Utils::BondOrderCollection OrcaMainOutputParser::getBondOrders() const {
   return bondOrders;
 }
 
+std::vector<double> OrcaMainOutputParser::getHirshfeldCharges() const {
+  int nAtoms = getNumberAtoms();
+  std::vector<double> charges;
+
+  // First go to section about Hirshfeld charges
+  std::regex r1(R"(HIRSHFELD +ANALYSIS)");
+  std::smatch m1;
+  bool b = std::regex_search(content_, m1, r1);
+  if (!b)
+    throw OutputFileParsingError("Hirshfeld charges section could not be found in ORCA output.");
+  // Set iterator where to start search for Hirshfeld charges
+  auto it = m1[0].second;
+
+  /* Format:
+   * [atom index] [ElementType] [HirshfeldCharge] [uselessFloatingPointNumber]
+   */
+  std::regex r2(R"(\d+ +[A-Za-z]+ +([-\.0-9]+) +[-\.0-9]+)");
+  std::smatch m2;
+  for (int i = 0; i < nAtoms; ++i) {
+    if (std::regex_search(it, content_.end(), m2, r2)) {
+      double charge = std::stod(m2[1]);
+      charges.push_back(charge);
+      it = m2[0].second;
+    }
+    else {
+      throw OutputFileParsingError("Hirshfeld charges could not be found in ORCA output.");
+    }
+  }
+
+  return charges;
+}
+
 double OrcaMainOutputParser::getTemperature() const {
   std::string regexString = "Temperature+\\s+...\\s+" + Regex::capturingFloatingPointNumber();
   std::regex regex(regexString);
@@ -175,7 +207,7 @@ double OrcaMainOutputParser::getEnthalpy() const {
   bool b = std::regex_search(content_, matches, regex);
   if (!b)
     throw OutputFileParsingError("Enthalpy could not be read from ORCA output.");
-  return std::stod(matches[1]) - getEnergy();
+  return std::stod(matches[1]);
 }
 
 double OrcaMainOutputParser::getEntropy() const {
@@ -206,7 +238,17 @@ double OrcaMainOutputParser::getGibbsFreeEnergy() const {
   bool b = std::regex_search(content_, matches, regex);
   if (!b)
     throw OutputFileParsingError("Gibbs free energy could not be read from ORCA output.");
-  return std::stod(matches[1]) - getEnergy();
+  return std::stod(matches[1]);
+}
+
+double OrcaMainOutputParser::getSymmetryNumber() const {
+  std::string regexString = "Point Group:\\s+[a-zA-Z0-9]*\\s*,\\s+Symmetry Number:\\s+" + Regex::capturingIntegerNumber();
+  std::regex regex(regexString);
+  std::smatch matches;
+  bool b = std::regex_search(content_, matches, regex);
+  if (!b)
+    throw OutputFileParsingError("Symmetry number could not be read from ORCA output.");
+  return std::stod(matches[1]);
 }
 
 } // namespace ExternalQC

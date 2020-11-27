@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILSOS_OCTUPOLEMATRIX_H
@@ -63,36 +63,36 @@ namespace Utils {
      }
    }
    // Fill with the zero-th derivative integrals
-   octupoleMatrixZero.xxx().get<derivOrder::zero>(XXXXMatrix);
-   octupoleMatrixZero.yyy().get<derivOrder::zero>(YYYMatrix);
-   octupoleMatrixZero.zzz().get<derivOrder::zero>(ZZZMatrix);
-   octupoleMatrixZero.xxy().get<derivOrder::zero>(XXYMatrix);
-   octupoleMatrixZero.xxz().get<derivOrder::zero>(XXZMatrix);
-   octupoleMatrixZero.xyz().get<derivOrder::zero>(XYZMatrix);
-   octupoleMatrixZero.xyy().get<derivOrder::zero>(XYYMatrix);
-   octupoleMatrixZero.xzz().get<derivOrder::zero>(XZZMatrix);
-   octupoleMatrixZero.yyz().get<derivOrder::zero>(YYZMatrix);
-   octupoleMatrixZero.yzz().get<derivOrder::zero>(YZZMatrix);
+   octupoleMatrixZero.xxx().get<DerivativeOrder::Zero>(XXXXMatrix);
+   octupoleMatrixZero.yyy().get<DerivativeOrder::Zero>(YYYMatrix);
+   octupoleMatrixZero.zzz().get<DerivativeOrder::Zero>(ZZZMatrix);
+   octupoleMatrixZero.xxy().get<DerivativeOrder::Zero>(XXYMatrix);
+   octupoleMatrixZero.xxz().get<DerivativeOrder::Zero>(XXZMatrix);
+   octupoleMatrixZero.xyz().get<DerivativeOrder::Zero>(XYZMatrix);
+   octupoleMatrixZero.xyy().get<DerivativeOrder::Zero>(XYYMatrix);
+   octupoleMatrixZero.xzz().get<DerivativeOrder::Zero>(XZZMatrix);
+   octupoleMatrixZero.yyz().get<DerivativeOrder::Zero>(YYZMatrix);
+   octupoleMatrixZero.yzz().get<DerivativeOrder::Zero>(YZZMatrix);
 
    // Fill with the first derivative integrals
-   octupoleMatrixFirst.xxx().get<derivOrder::one>(XXXderivatives);
-   octupoleMatrixFirst.yyy().get<derivOrder::one>(YYYderivatives);
-   octupoleMatrixFirst.zzz().get<derivOrder::one>(ZZZderivatives);
-   octupoleMatrixFirst.xxy().get<derivOrder::one>(XXYderivatives);
-   octupoleMatrixFirst.xxz().get<derivOrder::one>(XXZderivatives);
-   octupoleMatrixFirst.xyz().get<derivOrder::one>(XYZderivatives);
-   octupoleMatrixFirst.xyy().get<derivOrder::one>(XYYderivatives);
-   octupoleMatrixFirst.xzz().get<derivOrder::one>(XZZderivatives);
-   octupoleMatrixFirst.yyz().get<derivOrder::one>(YYZderivatives);
-   octupoleMatrixFirst.yzz().get<derivOrder::one>(YZZderivatives);
+   octupoleMatrixFirst.xxx().get<DerivativeOrder::One>(XXXderivatives);
+   octupoleMatrixFirst.yyy().get<DerivativeOrder::One>(YYYderivatives);
+   octupoleMatrixFirst.zzz().get<DerivativeOrder::One>(ZZZderivatives);
+   octupoleMatrixFirst.xxy().get<DerivativeOrder::One>(XXYderivatives);
+   octupoleMatrixFirst.xxz().get<DerivativeOrder::One>(XXZderivatives);
+   octupoleMatrixFirst.xyz().get<DerivativeOrder::One>(XYZderivatives);
+   octupoleMatrixFirst.xyy().get<DerivativeOrder::One>(XYYderivatives);
+   octupoleMatrixFirst.xzz().get<DerivativeOrder::One>(XZZderivatives);
+   octupoleMatrixFirst.yyz().get<DerivativeOrder::One>(YYZderivatives);
+   octupoleMatrixFirst.yzz().get<DerivativeOrder::One>(YZZderivatives);
 
    // Get the zeroth and first derivatives of the first element of the first derivative matrix
-   octupoleMatrixZero.xxx().get<derivOrder::zero>()(0, 0);
+   octupoleMatrixZero.xxx().get<DerivativeOrder::Zero>()(0, 0);
    // Get the zeroth and first derivatives of the first element of the first derivative matrix
-   octupoleMatrixFirst.xxx().get<derivOrder::one>()(0, 0).value();
+   octupoleMatrixFirst.xxx().get<DerivativeOrder::One>()(0, 0).value();
    // or
-   AutomaticDifferentiation::getValue3DAsDouble(octupoleMatrixFirst.xxx().get<derivOrder::one>()(0, 0));
-   octupoleMatrixFirst.xxx().get<derivOrder::one>()(0, 0).derivatives();
+   AutomaticDifferentiation::getValue3DAsDouble(octupoleMatrixFirst.xxx().get<DerivativeOrder::One>()(0, 0));
+   octupoleMatrixFirst.xxx().get<DerivativeOrder::One>()(0, 0).derivatives();
  * @endcode
  */
 class OctupoleMatrix {

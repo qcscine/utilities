@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -40,6 +40,8 @@ class Lbfgs : public Optimizer {
    *                        1. const Eigen::VectorXd& parameters\n
    *                        2. double& value\n
    *                        3. Eigen::VectorXd& gradients
+   * @tparam ConvergenceCheckClass The convergence check class, needs to have a check function signature
+   *                               that is the same as the GradientBasedCheck.
    *
    * @param parameters The parameters to be optimized.
    * @param function   The function to be evaluated in order to get values and gradients
@@ -49,10 +51,13 @@ class Lbfgs : public Optimizer {
    * @return int       Returns the number of optimization cycles carried out until the conclusion
    *                   of the optimization function.
    */
-  template<class UpdateFunction>
-  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, GradientBasedCheck& check) {
+  template<class UpdateFunction, class ConvergenceCheckClass>
+  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, ConvergenceCheckClass& check) {
     /* number of parameters treated */
     unsigned int nParams = parameters.size();
+    if (nParams == 0) {
+      throw EmptyOptimizerParametersException();
+    }
     double value = 0.0;
     unsigned int m = 0;
 
@@ -69,11 +74,14 @@ class Lbfgs : public Optimizer {
     Eigen::VectorXd parametersOld(parameters);
     double oldValue = value;
     function(parameters, value, gradients);
+    int cycle = _startCycle;
+    this->triggerObservers(cycle, value, parameters);
+    // Init parameters and value stored in the convergence checker
+    check.setParametersAndValue(parameters, value);
     /* start with one steepest descent step */
     Eigen::VectorXd stepVector = -0.1 * stepLength * gradients;
     double currentStepLength = stepLength;
     bool stop = false;
-    int cycle = 0;
     int btc = 0; // a counter for the number of consecutive backtracking steps
     while (!stop) {
       cycle++;
@@ -98,6 +106,16 @@ class Lbfgs : public Optimizer {
       stop = check.checkMaxIterations(cycle);
       if (!stop) {
         stop = check.checkConvergence(parameters, value, gradients);
+      }
+      // Check oscillation, perform new calculation if oscillating
+      if (!stop && this->isOscillating(value)) {
+        stepVector -= 0.5 * currentStepLength * stepVector;
+        parametersOld.noalias() = parameters;
+        gradientsOld.noalias() = gradients;
+        this->oscillationCorrection(currentStepLength * stepVector, parameters);
+        function(parameters, value, gradients);
+        cycle++;
+        this->triggerObservers(cycle, value, parameters);
       }
       if (stop)
         break;
@@ -277,7 +295,7 @@ class Lbfgs : public Optimizer {
   /// @brief The maximum number of consecutive backtracking steps allowed.
   int maxBacktracking = 5;
   /// @brief TODO A possible Hessian projection
-  // std::unique_ptr<std::function<void(Eigen::MatrixXd&)>> projection = nullptr;
+  // std::function<void(Eigen::MatrixXd&)> projection;
 };
 
 } // namespace Utils

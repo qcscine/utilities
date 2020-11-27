@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -21,15 +21,28 @@ static constexpr const char* selfConsistanceCriterion = "self_consistence_criter
 static constexpr const char* maxIterations = "max_scf_iterations";
 static constexpr const char* mixer = "scf_mixer";
 static constexpr const char* loggerVerbosity = "log";
-static constexpr const char* temperature = "temperature";
+static constexpr const char* symmetryNumber = "symmetry_number";
 static constexpr const char* davidsonForGroundState = "davidson_for_ground_state";
-
+static constexpr const char* methodParameters = "method_parameters";
 static constexpr const char* NDDODipoleApproximation = "nddo_dipole";
-static constexpr const char* parameterFile = "parameter_file";
-static constexpr const char* parameterRootDirectory = "parameter_root";
 
+// Model
 static constexpr const char* method = "method";
+static constexpr const char* methodFamily = "method_family";
+static constexpr const char* spinMode = "spin_mode";
+static constexpr const char* program = "program";
+static constexpr const char* version = "version";
 static constexpr const char* basisSet = "basis_set";
+static constexpr const char* temperature = "temperature";
+static constexpr const char* electronicTemperature = "electronic_temperature";
+static constexpr const char* solvation = "solvation";
+static constexpr const char* solvent = "solvent";
+static constexpr const char* embedding = "embedding";
+static constexpr const char* periodicBoundaries = "periodic_boundaries";
+static constexpr const char* externalField = "external_field";
+
+static constexpr const char* externalProgramMemory = "external_program_memory";
+static constexpr const char* externalProgramNProcs = "external_program_nprocs";
 
 //! @brief Struct to contain the name of the mixers available.
 struct ScfMixers {
@@ -37,17 +50,6 @@ struct ScfMixers {
   static constexpr const char* diis = "diis";
   static constexpr const char* ediis = "ediis";
   static constexpr const char* ediisDiis = "ediis_diis";
-};
-
-//! @brief Struct to contain the name of the level of verbosity for the logger.
-struct LogLevels {
-  static constexpr const char* none = "none";
-  static constexpr const char* trace = "trace";
-  static constexpr const char* debug = "debug";
-  static constexpr const char* info = "info";
-  static constexpr const char* warning = "warning";
-  static constexpr const char* error = "error";
-  static constexpr const char* fatal = "fatal";
 };
 
 //! @@brief Settings for linear response time dependent methods.

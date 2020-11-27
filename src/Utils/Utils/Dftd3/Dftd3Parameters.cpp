@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Dftd3Parameters.h"
@@ -14,7 +14,8 @@ namespace Scine {
 namespace Utils {
 namespace Dftd3 {
 
-// Constructor, which allows you to pass a1, s8 and a2 parameters that belong to the DFT functional used.
+// Constructor which allows you to pass a1, s8 and a2 parameters that correspond to the method (or density functional)
+// used.
 Dftd3Parameters::Dftd3Parameters(double a1, double s8, double a2) : a1_(a1), s8_(s8), a2_(a2) {
 }
 

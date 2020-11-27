@@ -1,7 +1,7 @@
 /**
  * @file NumericalHessianCalculator.h
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -45,22 +45,35 @@ class NumericalHessianCalculator {
   explicit NumericalHessianCalculator(Core::Calculator& calculator);
 
   /**
-   * @brief Calcualtes the hessian matrix and, if needed, the dipole gradient.
+   * @brief Calculates the hessian matrix and, if needed, the dipole gradient.
    * @param delta The step size for the numerical derivative.
    * @return A Results class with an hessian matrix and, if needed, a dipole gradient.
    */
   Results calculate(double delta = defaultDelta);
+  /**
+   * @brief Calculates the hessian matrix and, if needed, the dipole gradient from a subset of atoms.
+   * @param indices A vector containing the indices of the atom from which to calculate the Hessian and dipole Gradient.
+   * @param delta The step size for the numerical derivative.
+   * @return A Results class with an hessian matrix and, if needed, a dipole gradient of a subset of atoms.
+   */
+  Results calculate(const std::vector<int>& indices, double delta = defaultDelta);
 
   /**
    * This method can ONLY calculate the hessian matrix, not the dipole gradient.
    */
   HessianMatrix calculateFromEnergyDifferences(double delta);
   /**
-   * This method calculated the hessian matrix from the gradient differences and the dipole
+   * This method calculates the hessian matrix from the gradient differences and the dipole
    * gradient as dipole difference for each displacement.
    */
   Results calculateFromGradientDifferences(double delta);
 
+  /**
+   * This method modifies ONLY the columns/rows of the hessian matrix corresponding to the indices
+   * given as argument from the gradient differences and the dipole
+   * gradient as dipole difference for each displacement.
+   */
+  Results calculateFromGradientDifferences(double delta, const std::vector<int>& atomsToUpdate);
   /**
    * @brief Sets whether the dipole gradient is also calculated.
    */

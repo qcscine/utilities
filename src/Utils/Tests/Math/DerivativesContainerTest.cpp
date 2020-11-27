@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/Math/AutomaticDifferentiation/AutomaticDifferentiationHelpers.h>
@@ -59,7 +59,7 @@ TEST_F(DerivativesContainerTest, AddDerivativeCorrectlyToContainer) {
 
   // Assume, E = 5*r^2
   auto energy = 5 * r * r;
-  Second3D v = get3Dfrom1D<derivOrder::two>(energy, rVector);
+  Second3D v = get3Dfrom1D<DerivativeOrder::Two>(energy, rVector);
 
   // Function to be tested
   collection.addDerivative(0, 1, v);

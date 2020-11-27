@@ -1,11 +1,12 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/Geometry/ElementInfo.h"
 #include "Utils/Geometry/ElementData.h"
+#include <algorithm>
 
 namespace Scine {
 namespace Utils {
@@ -38,8 +39,12 @@ std::pair<std::string, unsigned> isotopeInterpret(const std::string& symbol) {
 ElementType ElementInfo::elementTypeForSymbol(const std::string& symbol) {
   auto interpretPair = detail::isotopeInterpret(symbol);
 
-  auto it = stringToElementType.find(interpretPair.first);
-  if (it == stringToElementType.end())
+  // Make all characters of the symbol lowercase if it isn't yet
+  std::transform(std::begin(interpretPair.first), std::end(interpretPair.first), std::begin(interpretPair.first),
+                 [](const auto c) { return std::tolower(c); });
+
+  auto it = stringToElementType().find(interpretPair.first);
+  if (it == stringToElementType().end())
     throw ElementSymbolNotFound(symbol);
 
   if (interpretPair.second != 0) {
@@ -83,7 +88,7 @@ double ElementInfo::abundance(ElementType e) {
   if (findIter == std::end(isotopeMap)) {
     throw std::out_of_range("No data found for that isotope");
   }
-  return findIter->second.mass;
+  return findIter->second.abundance;
 }
 
 ElementType ElementInfo::element(unsigned z) {
@@ -201,6 +206,14 @@ double ElementInfo::vdwRadius(ElementType e) {
   return Constants::ElementDataSingleton::instance()[e].vdWRadius();
 }
 
+double ElementInfo::covalentRadius(ElementType e) {
+  if (A(e) != 0) {
+    e = base(e);
+  }
+
+  return Constants::ElementDataSingleton::instance()[e].covalentRadius();
+}
+
 int ElementInfo::valElectrons(ElementType e) {
   if (A(e) != 0) {
     e = base(e);
@@ -233,36 +246,39 @@ int ElementInfo::dElectrons(ElementType e) {
   return Constants::ElementDataSingleton::instance()[e].dElectrons();
 }
 
-std::unordered_map<std::string, ElementType> ElementInfo::stringToElementType = {
-    {"H", ElementType::H},   {"D", ElementType::D},   {"T", ElementType::T},       {"He", ElementType::He},
-    {"Li", ElementType::Li}, {"Be", ElementType::Be}, {"B", ElementType::B},       {"C", ElementType::C},
-    {"N", ElementType::N},   {"O", ElementType::O},   {"F", ElementType::F},       {"Ne", ElementType::Ne},
-    {"Na", ElementType::Na}, {"Mg", ElementType::Mg}, {"Al", ElementType::Al},     {"Si", ElementType::Si},
-    {"P", ElementType::P},   {"S", ElementType::S},   {"Cl", ElementType::Cl},     {"Ar", ElementType::Ar},
-    {"K", ElementType::K},   {"Ca", ElementType::Ca}, {"Sc", ElementType::Sc},     {"Ti", ElementType::Ti},
-    {"V", ElementType::V},   {"Cr", ElementType::Cr}, {"Mn", ElementType::Mn},     {"Fe", ElementType::Fe},
-    {"Co", ElementType::Co}, {"Ni", ElementType::Ni}, {"Cu", ElementType::Cu},     {"Zn", ElementType::Zn},
-    {"Ga", ElementType::Ga}, {"Ge", ElementType::Ge}, {"As", ElementType::As},     {"Se", ElementType::Se},
-    {"Br", ElementType::Br}, {"Kr", ElementType::Kr}, {"Rb", ElementType::Rb},     {"Sr", ElementType::Sr},
-    {"Y", ElementType::Y},   {"Zr", ElementType::Zr}, {"Nb", ElementType::Nb},     {"Mo", ElementType::Mo},
-    {"Tc", ElementType::Tc}, {"Ru", ElementType::Ru}, {"Rh", ElementType::Rh},     {"Pd", ElementType::Pd},
-    {"Ag", ElementType::Ag}, {"Cd", ElementType::Cd}, {"In", ElementType::In},     {"Sn", ElementType::Sn},
-    {"Sb", ElementType::Sb}, {"Te", ElementType::Te}, {"I", ElementType::I},       {"Xe", ElementType::Xe},
-    {"Cs", ElementType::Cs}, {"Ba", ElementType::Ba}, {"La", ElementType::La},     {"Ce", ElementType::Ce},
-    {"Pr", ElementType::Pr}, {"Nd", ElementType::Nd}, {"Pm", ElementType::Pm},     {"Sm", ElementType::Sm},
-    {"Eu", ElementType::Eu}, {"Gd", ElementType::Gd}, {"Tb", ElementType::Tb},     {"Dy", ElementType::Dy},
-    {"Ho", ElementType::Ho}, {"Er", ElementType::Er}, {"Tm", ElementType::Tm},     {"Yb", ElementType::Yb},
-    {"Lu", ElementType::Lu}, {"Hf", ElementType::Hf}, {"Ta", ElementType::Ta},     {"W", ElementType::W},
-    {"Re", ElementType::Re}, {"Os", ElementType::Os}, {"Ir", ElementType::Ir},     {"Pt", ElementType::Pt},
-    {"Au", ElementType::Au}, {"Hg", ElementType::Hg}, {"Tl", ElementType::Tl},     {"Pb", ElementType::Pb},
-    {"Bi", ElementType::Bi}, {"Po", ElementType::Po}, {"At", ElementType::At},     {"Rn", ElementType::Rn},
-    {"Fr", ElementType::Fr}, {"Ra", ElementType::Ra}, {"Ac", ElementType::Ac},     {"Th", ElementType::Th},
-    {"Pa", ElementType::Pa}, {"U", ElementType::U},   {"Np", ElementType::Np},     {"Pu", ElementType::Pu},
-    {"Am", ElementType::Am}, {"Cm", ElementType::Cm}, {"Bk", ElementType::Bk},     {"Cf", ElementType::Cf},
-    {"Es", ElementType::Es}, {"Fm", ElementType::Fm}, {"Md", ElementType::Md},     {"No", ElementType::No},
-    {"Lr", ElementType::Lr}, {"Rf", ElementType::Rf}, {"Db", ElementType::Db},     {"Sg", ElementType::Sg},
-    {"Bh", ElementType::Bh}, {"Hs", ElementType::Hs}, {"Mt", ElementType::Mt},     {"Ds", ElementType::Ds},
-    {"Rg", ElementType::Rg}, {"Cn", ElementType::Cn}, {"None", ElementType::none}, {"none", ElementType::none}};
+const std::unordered_map<std::string, ElementType>& ElementInfo::stringToElementType() {
+  static std::unordered_map<std::string, ElementType> map{
+      {"h", ElementType::H},   {"d", ElementType::D},   {"t", ElementType::T},      {"he", ElementType::He},
+      {"li", ElementType::Li}, {"be", ElementType::Be}, {"b", ElementType::B},      {"c", ElementType::C},
+      {"n", ElementType::N},   {"o", ElementType::O},   {"f", ElementType::F},      {"ne", ElementType::Ne},
+      {"na", ElementType::Na}, {"mg", ElementType::Mg}, {"al", ElementType::Al},    {"si", ElementType::Si},
+      {"p", ElementType::P},   {"s", ElementType::S},   {"cl", ElementType::Cl},    {"ar", ElementType::Ar},
+      {"k", ElementType::K},   {"ca", ElementType::Ca}, {"sc", ElementType::Sc},    {"ti", ElementType::Ti},
+      {"v", ElementType::V},   {"cr", ElementType::Cr}, {"mn", ElementType::Mn},    {"fe", ElementType::Fe},
+      {"co", ElementType::Co}, {"ni", ElementType::Ni}, {"cu", ElementType::Cu},    {"zn", ElementType::Zn},
+      {"ga", ElementType::Ga}, {"ge", ElementType::Ge}, {"as", ElementType::As},    {"se", ElementType::Se},
+      {"br", ElementType::Br}, {"kr", ElementType::Kr}, {"rb", ElementType::Rb},    {"sr", ElementType::Sr},
+      {"y", ElementType::Y},   {"zr", ElementType::Zr}, {"nb", ElementType::Nb},    {"mo", ElementType::Mo},
+      {"tc", ElementType::Tc}, {"ru", ElementType::Ru}, {"rh", ElementType::Rh},    {"pd", ElementType::Pd},
+      {"ag", ElementType::Ag}, {"cd", ElementType::Cd}, {"in", ElementType::In},    {"sn", ElementType::Sn},
+      {"sb", ElementType::Sb}, {"te", ElementType::Te}, {"i", ElementType::I},      {"xe", ElementType::Xe},
+      {"cs", ElementType::Cs}, {"ba", ElementType::Ba}, {"la", ElementType::La},    {"ce", ElementType::Ce},
+      {"pr", ElementType::Pr}, {"nd", ElementType::Nd}, {"pm", ElementType::Pm},    {"sm", ElementType::Sm},
+      {"eu", ElementType::Eu}, {"gd", ElementType::Gd}, {"tb", ElementType::Tb},    {"dy", ElementType::Dy},
+      {"ho", ElementType::Ho}, {"er", ElementType::Er}, {"tm", ElementType::Tm},    {"yb", ElementType::Yb},
+      {"lu", ElementType::Lu}, {"hf", ElementType::Hf}, {"ta", ElementType::Ta},    {"w", ElementType::W},
+      {"re", ElementType::Re}, {"os", ElementType::Os}, {"ir", ElementType::Ir},    {"pt", ElementType::Pt},
+      {"au", ElementType::Au}, {"hg", ElementType::Hg}, {"tl", ElementType::Tl},    {"pb", ElementType::Pb},
+      {"bi", ElementType::Bi}, {"po", ElementType::Po}, {"at", ElementType::At},    {"rn", ElementType::Rn},
+      {"fr", ElementType::Fr}, {"ra", ElementType::Ra}, {"ac", ElementType::Ac},    {"th", ElementType::Th},
+      {"pa", ElementType::Pa}, {"u", ElementType::U},   {"np", ElementType::Np},    {"pu", ElementType::Pu},
+      {"am", ElementType::Am}, {"cm", ElementType::Cm}, {"bk", ElementType::Bk},    {"cf", ElementType::Cf},
+      {"es", ElementType::Es}, {"fm", ElementType::Fm}, {"md", ElementType::Md},    {"no", ElementType::No},
+      {"lr", ElementType::Lr}, {"rf", ElementType::Rf}, {"db", ElementType::Db},    {"sg", ElementType::Sg},
+      {"bh", ElementType::Bh}, {"hs", ElementType::Hs}, {"mt", ElementType::Mt},    {"ds", ElementType::Ds},
+      {"rg", ElementType::Rg}, {"cn", ElementType::Cn}, {"none", ElementType::none}};
+  return map;
+}
 
 std::unordered_map<ElementType, ElementInfo::IsotopeData> ElementInfo::isotopeMap = {
     {ElementType::H1, {1.00782503223, 0.999885}},

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -12,16 +12,16 @@ namespace Scine {
 namespace Utils {
 
 /**
- * @class derivOrder DerivOrderEnum.h
+ * @class DerivativeOrder DerivOrderEnum.h
  * @brief Enum for the order up to which derivatives need to be calculated for a value.
  */
-enum class derivOrder { zero, one, two };
+enum class DerivativeOrder { Zero, One, Two };
 
 /**
- * @class derivativeType DerivOrderEnum.h
+ * @class Derivative DerivOrderEnum.h
  * @brief Enum for the derivatives to be calculated for molecular systems.
  */
-enum class derivativeType { none, first, second_atomic, second_full };
+enum class Derivative { None, First, SecondAtomic, SecondFull };
 
 } // namespace Utils
 } // namespace Scine

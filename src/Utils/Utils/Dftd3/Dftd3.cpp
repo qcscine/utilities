@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -49,12 +49,12 @@ double Dftd3::getEnergy() {
   return energy_;
 }
 
-// Getter for the structure. Note, that this is a vector of Dftd3Atoms, not a Delib::AtomCollection.
+// Getter for the structure. Note, that this is a vector of Dftd3Atoms, not an AtomCollection.
 std::vector<Dftd3Atom> Dftd3::getStructure() {
   return structure_;
 }
 
-// Setter for the structure. Note, that this is a vector of Dftd3Atoms, not a Delib::AtomCollection.
+// Setter for the structure. Note, that this is a vector of Dftd3Atoms, not an AtomCollection.
 void Dftd3::setStructure(std::vector<Dftd3Atom> structure) {
   structure_ = structure;
 }
@@ -115,7 +115,7 @@ double Dftd3::calculateCoordinationNumber(Dftd3Atom centralAtom) {
   return coordinationNumber;
 }
 
-// Derivative of the coord. number of atom 1 w.r.t. the distance between atom1 and atom 2
+// Derivative of the coord. number of atom 1 w.r.t. the distance between atom 1 and atom 2
 double Dftd3::evaluateGradientOfCoordNumberWrtDistance(Dftd3Atom& atom1, Dftd3Atom& atom2) {
   // Make coordination number a Second1D object from the automatic differentiation library.
   AutomaticDifferentiation::Second1D coordinationNumber(0, 0, 0);
@@ -166,7 +166,7 @@ double Dftd3::calculateC6Coefficient(Dftd3Atom atom1, Dftd3Atom atom2) {
 
 // Derivative of the C6 coefficient for the atom pair atom 1 and atom 2 w.r.t. the coordination number of atom 1.
 // The implementation is the same as in the "calculateC6Coefficient" function, but the values w, z and a
-// are represented by a Second1D object. Thus, the c6 coefficient is obtained as a Second1D object.
+// are represented by a Second1D object. Thus, the C6 coefficient is obtained as a Second1D object.
 // Only the first derivative part is returned.
 double Dftd3::evaluateGradientOfC6WrtCoordNumber(Dftd3Atom& atom1, Dftd3Atom& atom2) {
   double k3 = parameters_.getK3();
@@ -236,7 +236,7 @@ double Dftd3::evaluateEnergyDividedByC6(Dftd3Atom& atom1, Dftd3Atom& atom2) {
   return evaluateEnergy(atom1, atom2) / c6;
 }
 
-// Evaluate the partial derivative of the D3 energy for one atom pair w.r.t their distance.
+// Evaluate the partial derivative of the D3 energy for one atom pair w.r.t. their distance.
 double Dftd3::evaluateGradientsWrtDistances(Dftd3Atom& atom1, Dftd3Atom& atom2) {
   // Get a1, s8 and a2 parameters.
   double a1 = parameters_.getA1();
@@ -280,7 +280,7 @@ void Dftd3::evaluateGradients(Dftd3Atom& atom1, Dftd3Atom& atom2, double& dE_dri
   // Define difference vector.
   auto rVector = atom2.getPosition() - atom1.getPosition();
   // Get a Second3D object from the Second1D object under consideration of the difference vector.
-  auto v = AutomaticDifferentiation::get3Dfrom1D<derivOrder::two>(energySecond1D, rVector);
+  auto v = AutomaticDifferentiation::get3Dfrom1D<DerivativeOrder::Two>(energySecond1D, rVector);
 
   // Transfer the gradient contributions for atom 1 and atom 2 into the UpToSecondDerivatives container.
   UpToSecondDerivatives[atom2.getIndex()] += v;
@@ -288,7 +288,7 @@ void Dftd3::evaluateGradients(Dftd3Atom& atom1, Dftd3Atom& atom2, double& dE_dri
 }
 
 // This function does a D3 calculation. The derivative type (none or first) is given as an argument.
-void Dftd3::calculate(derivativeType d) {
+void Dftd3::calculate(Derivative d) {
   // Calculate and set coordination numbers for all atoms
   for (auto& atom : structure_) {
     double coordinationNumber = calculateCoordinationNumber(atom);
@@ -301,7 +301,7 @@ void Dftd3::calculate(derivativeType d) {
   // Set matrices dC6/dCN and dCN/drij.
   // (dC6/dCN)ij = dC6(ij)/dCN(i)
   // (dCN/drij)ij = dCN(i)/drij
-  if (d != derivativeType::none) {
+  if (d != Derivative::None) {
     dC6_dCN_.resize(structure_.size(), structure_.size());
     dCN_drij_.resize(structure_.size(), structure_.size());
     // Loop over all atom pairs.
@@ -319,7 +319,7 @@ void Dftd3::calculate(derivativeType d) {
   // Definition of a dc6 value:
   // dc6(i) = sum over all (j != i) of dC6(ij)/dCN(i) * dE(ij)/dC6(ij)
   std::vector<double> dc6(structure_.size(), 0.0);
-  if (d != derivativeType::none) {
+  if (d != Derivative::None) {
     // Loop over all atom pairs only once
     for (auto& atom1 : structure_) {
       for (auto& atom2 : structure_) {
@@ -340,7 +340,7 @@ void Dftd3::calculate(derivativeType d) {
       // Calculate the energy for this atom pair.
       energy_ += evaluateEnergy(atom1, atom2);
       // If a first derivative is required, calculate it.
-      if (d != derivativeType::none) {
+      if (d != Derivative::None) {
         // Calculate the partial derivatives of the energy w.r.t. the distance for one atom pair.
         double dE_drij = evaluateGradientsWrtDistances(atom1, atom2);
         // Evaluate the contribution of the atom pair atom 1 and atom 2 to the total gradients.
@@ -351,7 +351,7 @@ void Dftd3::calculate(derivativeType d) {
   }
 
   // Convert the UpToSecondDerivatives matrix to the GradientCollection once it is complete.
-  if (d != derivativeType::none) {
+  if (d != Derivative::None) {
 #pragma omp parallel for
     for (int i = 0; i < structure_.size(); ++i) {
       gradients_.row(i) = Gradient(UpToSecondDerivatives_[i].deriv());

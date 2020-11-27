@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef SCINE_DFTD3ATOM_H
@@ -14,14 +14,14 @@ namespace Utils {
 namespace Dftd3 {
 /**
  * @class Dftd3Atom Dftd3Atom.h
- * @brief Describes and atom for a D3 semi-classical dispersion correction calculation.
+ * @brief Describes an atom for a D3 semi-classical dispersion correction calculation.
  */
 class Dftd3Atom : public Atom {
  public:
   using Atom::Atom;
   /**
    * @brief Setter for the coordination number (fractional value) for an atom.
-   * @param coordinationNumber Coordination number as double
+   * @param coordinationNumber Coordination number
    */
   void setCoordinationNumber(double coordinationNumber);
   /**
@@ -42,9 +42,9 @@ class Dftd3Atom : public Atom {
   int getIndex() const;
 
  private:
-  /// @brief coordination number of the atom (double).
+  /// @brief coordination number of the atom.
   double coordinationNumber_;
-  /// @brief index of the atom (int).
+  /// @brief index of the atom.
   int index_;
 };
 

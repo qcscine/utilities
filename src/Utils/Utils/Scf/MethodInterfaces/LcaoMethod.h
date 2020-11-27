@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -20,6 +20,10 @@
 #include <memory>
 
 namespace Scine {
+namespace Core {
+struct Log;
+} // namespace Core
+
 namespace Utils {
 
 namespace LcaoUtils {
@@ -43,17 +47,18 @@ class UnrestrictedCalculationNotAvailableException : public std::exception {
  */
 class LcaoMethod : public SinglePointMethod {
  public:
-  explicit LcaoMethod(bool unrestrictedCalculationPossible, Utils::derivOrder maximalOrder, bool orthogonalBasisSet = false);
+  explicit LcaoMethod(bool unrestrictedCalculationPossible, Utils::DerivativeOrder maximalOrder,
+                      bool orthogonalBasisSet = false);
   virtual ~LcaoMethod() override;
 
   /*! Initialize the method <b>after</b> the parameters have been set or loaded. */
   virtual void initialize();
 
-  void calculate(Utils::derivativeType d) override;
+  void calculate(Utils::Derivative d, Core::Log& log) override;
 
-  void calculateDensityIndependentQuantities(Utils::derivativeType d = Utils::derivativeType::first);
+  void calculateDensityIndependentQuantities(Utils::Derivative d = Utils::Derivative::First);
   void assembleFockMatrix();
-  void computeEnergyAndDerivatives(Utils::derivativeType d = Utils::derivativeType::first);
+  void computeEnergyAndDerivatives(Utils::Derivative d = Utils::Derivative::First);
 
   /*! \return true if the basis set is orthogonal and the electronic structure is optimized in
       a normal eigenvalue problem, false if it is a generalized eigenvalue problem. */
@@ -117,7 +122,7 @@ class LcaoMethod : public SinglePointMethod {
   /** @brief Adds an electronic contribution to the Fock matrix. */
   void addElectronicContribution(std::shared_ptr<AdditiveElectronicContribution> contribution);
 
-  void verifyPesValidity();
+  void verifyPesValidity(Core::Log& log);
 
   void calculateDensity();
 
@@ -156,11 +161,11 @@ class LcaoMethod : public SinglePointMethod {
   double electronicEnergy_, repulsionEnergy_;
 
  private:
-  void verifyChargeValidity();
-  void verifyMultiplicityValidity();
-  void verifyUnrestrictedValidity();
+  void verifyChargeValidity(Core::Log& log);
+  void verifyMultiplicityValidity(Core::Log& log);
+  void verifyUnrestrictedValidity(Core::Log& log);
   void calculateOccupationAndDensity();
-  template<Utils::derivativeType O>
+  template<Utils::Derivative O>
   void calculateDerivatives(Utils::AutomaticDifferentiation::DerivativeContainerType<O>& derivatives);
 
   const bool basisSetIsOrthogonal_;

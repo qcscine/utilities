@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_INTERNALCOORDINATES_H_
@@ -124,6 +124,19 @@ class InternalCoordinates {
   // The initial cartesian coordinates needed for the back transformation
   mutable Eigen::VectorXd _oldCartesian;
   mutable Eigen::VectorXd _oldInternal;
+};
+
+/**
+ * @brief Exception thrown when internal coordinates break down
+ *
+ * This exception is thrown if the interconversion between internal
+ * and cartesian coordinates breaks down.
+ */
+class InternalCoordinatesException : public std::runtime_error {
+ public:
+  explicit InternalCoordinatesException()
+    : std::runtime_error("Internal coordinates broke down, please try cartesians.") {
+  }
 };
 
 } /* namespace Utils */

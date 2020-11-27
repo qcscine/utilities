@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -9,6 +9,8 @@
 #define UTILS_NORMALMODESCONTAINER_H
 
 #include "Utils/GeometricDerivatives/NormalMode.h"
+#include "Utils/Geometry/AtomCollection.h"
+#include "Utils/MolecularTrajectory.h"
 #include <vector>
 
 namespace Scine {

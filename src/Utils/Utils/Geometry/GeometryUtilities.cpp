@@ -1,14 +1,16 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory for Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/Geometry/GeometryUtilities.h"
 #include "Utils/Geometry/AtomCollection.h"
 #include "Utils/Geometry/ElementInfo.h"
 #include "Utils/Math/QuaternionFit.h"
+#include "Utils/MolecularTrajectory.h"
 #include <Eigen/Eigenvalues>
+#include <chrono>
 #include <limits>
 
 namespace Scine {
@@ -23,6 +25,63 @@ PositionCollection translatePositions(const PositionCollection& positions, const
 
 void translatePositionsInPlace(PositionCollection& positions, const Eigen::Ref<Eigen::RowVector3d>& translation) {
   positions.rowwise() += translation;
+}
+
+PositionCollection rotatePositions(const PositionCollection& positions, const Eigen::Ref<Eigen::RowVector3d>& startOrientation,
+                                   const Eigen::Ref<Eigen::RowVector3d>& endOrientation,
+                                   const Eigen::Ref<Eigen::RowVector3d>& pointOfRotation) {
+  // set up Quaternion
+  Eigen::Quaterniond rotationQuat = Eigen::Quaterniond().setFromTwoVectors(startOrientation, endOrientation);
+
+  PositionCollection rotPos = positions;
+  rotatePositionsInPlace(rotPos, rotationQuat, pointOfRotation);
+
+  return rotPos;
+}
+
+PositionCollection rotatePositions(const PositionCollection& positions, const Eigen::Ref<Eigen::RowVector3d>& rotAxisOrientation,
+                                   double angle, const Eigen::Ref<Eigen::RowVector3d>& pointOfRotation) {
+  // set up AngleAxis
+  Eigen::AngleAxisd rotAxis(angle, rotAxisOrientation.normalized());
+  // set up Quaternion
+  Eigen::Quaterniond rotationQuat(rotAxis);
+
+  PositionCollection rotPos = positions;
+  rotatePositionsInPlace(rotPos, rotationQuat, pointOfRotation);
+  return rotPos;
+}
+
+void rotatePositionsInPlace(PositionCollection& pc, const Eigen::Quaterniond& rotation,
+                            const Eigen::Ref<Eigen::RowVector3d>& pointOfRotation) {
+  Eigen::RowVector3d pointOfRotationToOrigin = pointOfRotation * -1;
+  // translate position to origin
+  translatePositionsInPlace(pc, pointOfRotationToOrigin);
+  for (int i = 0; i < pc.rows(); i++) {
+    pc.row(i) = rotation * pc.row(i);
+  }
+  // translate position back to point of rotation
+  translatePositionsInPlace(pc, pointOfRotation);
+}
+
+PositionCollection randomDisplacement(const PositionCollection& positions, const double maxDisplacement, const double seed) {
+  srand(seed);
+  return positions + (maxDisplacement * DisplacementCollection::Random(positions.rows(), positions.cols()));
+}
+
+void randomDisplacementInPlace(PositionCollection& positions, const double maxDisplacement, const double seed) {
+  srand(seed);
+  positions += (maxDisplacement * DisplacementCollection::Random(positions.rows(), positions.cols()));
+}
+
+MolecularTrajectory randomDisplacementTrajectory(const AtomCollection& atoms, const int numFrames, const double maxDisplacement) {
+  auto result = MolecularTrajectory();
+  result.setElementTypes(atoms.getElements());
+  for (int i = 0; i < numFrames; ++i) {
+    double seed = static_cast<double>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+    seed *= i + 1;
+    result.push_back(randomDisplacement(atoms.getPositions(), maxDisplacement, seed));
+  }
+  return result;
 }
 
 int getIndexOfClosestAtom(const PositionCollection& positions, const Position& targetPosition,
@@ -87,6 +146,24 @@ Eigen::VectorXd positionMatrixToVector(const Eigen::MatrixXd& m) {
 void alignPositions(const PositionCollection& reference, PositionCollection& positions) {
   QuaternionFit fit(reference, positions);
   positions = fit.getFittedData();
+}
+
+void alignPositions(const PositionCollection& reference, PositionCollection& positions, const ElementTypeCollection& elements) {
+  QuaternionFit fit(reference, positions, elements);
+  positions = fit.getFittedData();
+}
+
+std::vector<int> getListOfDivergingAtoms(const PositionCollection& reference, PositionCollection positions,
+                                         double threshold, const ElementTypeCollection& elements) {
+  std::vector<int> indices;
+  indices.reserve(positions.rows());
+  elements.empty() ? alignPositions(reference, positions) : alignPositions(reference, positions, elements);
+  Eigen::VectorXd difference = (reference - positions).rowwise().norm();
+  for (int i = 0; i < difference.size(); ++i) {
+    if (difference[i] > threshold)
+      indices.push_back(i);
+  }
+  return indices;
 }
 
 std::vector<double> getMasses(const ElementTypeCollection& elements) {
