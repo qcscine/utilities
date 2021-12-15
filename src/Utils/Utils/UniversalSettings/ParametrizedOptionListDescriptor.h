@@ -29,6 +29,7 @@ class ParametrizedOptionListDescriptor : public SettingDescriptor {
  public:
   using OptionAndSettings = std::pair<std::string, DescriptorCollection>;
 
+  ParametrizedOptionListDescriptor() = default;
   /**
    * @brief Constructor
    *
@@ -39,6 +40,7 @@ class ParametrizedOptionListDescriptor : public SettingDescriptor {
   std::unique_ptr<SettingDescriptor> clone() const override;
   GenericValue getDefaultGenericValue() const override;
   bool validValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const GenericValue& v) const override;
 
   //! Returns the number of available options
   int optionCount() const;

@@ -14,8 +14,7 @@ namespace Utils {
 
 namespace BSplines {
 
-InterpolationGenerator::InterpolationGenerator(const Eigen::Ref<const Eigen::MatrixXd>& dataPoints,
-                                               const unsigned degree, const bool uniformKnotVector)
+InterpolationGenerator::InterpolationGenerator(const Eigen::MatrixXd& dataPoints, const unsigned degree, const bool uniformKnotVector)
   : Generator(dataPoints, degree), uniformKnotVector_(uniformKnotVector) {
 }
 
@@ -23,11 +22,10 @@ Eigen::VectorXd InterpolationGenerator::generateKnotVector() {
   if (uniformKnotVector_) {
     return GeneratorUtils::generateKnotVectorByUniformMethod(p_, n_);
   }
-  else {
-    // generateParametersByChordLengthMethod();
-    uBar_ = GeneratorUtils::generateParametersByCentripetalMethod(dataPoints_);
-    return GeneratorUtils::generateKnotVectorByKnotAveraging(p_, n_, uBar_);
-  }
+
+  // generateParametersByChordLengthMethod();
+  uBar_ = GeneratorUtils::generateParametersByCentripetalMethod(dataPoints_);
+  return GeneratorUtils::generateKnotVectorByKnotAveraging(p_, n_, uBar_);
 }
 
 Eigen::MatrixXd InterpolationGenerator::generateControlPoints() {

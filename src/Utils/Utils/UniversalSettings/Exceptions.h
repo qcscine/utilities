@@ -9,6 +9,7 @@
 /* Internal Headers */
 #include "Utils/UniversalSettings/SettingDescriptor.h"
 /* External Headers */
+#include <map>
 #include <stdexcept>
 
 namespace Scine {
@@ -18,76 +19,70 @@ namespace UniversalSettings {
 /*!
  * Base class for UniversalSettings exceptions.
  */
-class Exception : public std::runtime_error {
- public:
+struct Exception : public std::runtime_error {
   explicit Exception(const std::string& s) : std::runtime_error(s) {
   }
 };
 
-class InvalidDescriptorConversionException : public Exception {
- public:
+struct InvalidDescriptorConversionException : public Exception {
   explicit InvalidDescriptorConversionException(const SettingDescriptor& d)
     : Exception("Error when trying to convert setting descriptor \"" + d.getPropertyDescription() + "\".") {
   }
 };
 
-class AlreadyExistingDescriptorException : public Exception {
- public:
+struct AlreadyExistingDescriptorException : public Exception {
   explicit AlreadyExistingDescriptorException(const std::string& name)
     : Exception("A GenericDescriptor with name \"" + name + "\" already exists in the DescriptorCollection.") {
   }
 };
 
-class InexistingDescriptorException : public Exception {
- public:
+struct InexistingDescriptorException : public Exception {
   explicit InexistingDescriptorException(const std::string& name)
     : Exception("No GenericDescriptor with name \"" + name + "\" exists in the DescriptorCollection.") {
   }
 };
 
-class InvalidValueConversionException : public Exception {
- public:
+struct InvalidValueConversionException : public Exception {
   InvalidValueConversionException() : Exception("Error when trying to convert a setting value.") {
   }
 };
 
-class AlreadyExistingValueException : public Exception {
- public:
+struct InvalidSettingsException : public Exception {
+  InvalidSettingsException(const std::string& explanation) : Exception(explanation) {
+  }
+};
+
+struct AlreadyExistingValueException : public Exception {
   explicit AlreadyExistingValueException(const std::string& name)
     : Exception("A GenericValue with name \"" + name + "\" already exists in the ValueCollection.") {
   }
 };
 
-class InexistingValueException : public Exception {
- public:
+struct InexistingValueException : public Exception {
   explicit InexistingValueException(const std::string& name)
     : Exception("No GenericValue with name \"" + name + "\" exists in the ValueCollection.") {
   }
 };
 
-class ValueHasDifferentTypeException : public Exception {
- public:
+struct ValueHasDifferentTypeException : public Exception {
   explicit ValueHasDifferentTypeException(const std::string& propertyDescription)
     : Exception("The GenericValue \"" + propertyDescription + "\" has a different type than required.") {
   }
 };
 
-class EmptyOptionListException : public Exception {
- public:
+struct EmptyOptionListException : public Exception {
   explicit EmptyOptionListException(const std::string& propertyDescription)
     : Exception("The OptionList property \"" + propertyDescription + "\" has no items.") {
   }
 };
 
-class OptionAlreadyExistsException : public Exception {
- public:
+struct OptionAlreadyExistsException : public Exception {
   OptionAlreadyExistsException(const std::string& option, const std::string& propertyDescription)
     : Exception("The OptionList property \"" + propertyDescription + "\" already contains an option called \"" + option + "\"") {
   }
 };
 
-class OptionDoesNotExistException : public Exception {
- public:
+struct OptionDoesNotExistException : public Exception {
   OptionDoesNotExistException(const std::string& option, const std::string& propertyDescription)
     : Exception("The OptionList property \"" + propertyDescription + "\" contains no option called \"" + option + "\"") {
   }

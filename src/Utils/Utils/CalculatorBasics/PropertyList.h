@@ -16,6 +16,7 @@
 #include <Utils/DataStructures/MolecularOrbitals.h>
 #include <Utils/DataStructures/SingleParticleEnergies.h>
 #include <Utils/DataStructures/SpinAdaptedMatrix.h>
+#include <Utils/Math/AtomicSecondDerivativeCollection.h>
 #include <Utils/Math/IterativeDiagonalizer/SpinAdaptedEigenContainer.h>
 #include <Utils/Properties/Thermochemistry/ThermochemistryCalculator.h>
 #include <Utils/Scf/LcaoUtils/ElectronicOccupation.h>
@@ -33,27 +34,29 @@ enum class Property : unsigned {
   Energy = (1 << 0),
   Gradients = (1 << 1),
   Hessian = (1 << 2),
-  Dipole = (1 << 3),
-  DipoleGradient = (1 << 4),
-  DipoleMatrixAO = (1 << 5),
-  DipoleMatrixMO = (1 << 6),
-  DensityMatrix = (1 << 7),
-  OneElectronMatrix = (1 << 8),
-  TwoElectronMatrix = (1 << 9),
-  OverlapMatrix = (1 << 10),
-  CoefficientMatrix = (1 << 11),
-  OrbitalEnergies = (1 << 12),
-  ElectronicOccupation = (1 << 13),
-  Thermochemistry = (1 << 14),
-  ExcitedStates = (1 << 15),
-  AOtoAtomMapping = (1 << 16),
-  AtomicCharges = (1 << 17),
-  BondOrderMatrix = (1 << 18),
-  Description = (1 << 19),
-  SuccessfulCalculation = (1 << 20),
-  ProgramName = (1 << 21),
-  PointChargesGradients = (1 << 22),
-  AtomicGtos = (1 << 23)
+  AtomicHessians = (1 << 3),
+  Dipole = (1 << 4),
+  DipoleGradient = (1 << 5),
+  DipoleMatrixAO = (1 << 6),
+  DipoleMatrixMO = (1 << 7),
+  DensityMatrix = (1 << 8),
+  OneElectronMatrix = (1 << 9),
+  TwoElectronMatrix = (1 << 10),
+  OverlapMatrix = (1 << 11),
+  CoefficientMatrix = (1 << 12),
+  OrbitalEnergies = (1 << 13),
+  ElectronicOccupation = (1 << 14),
+  Thermochemistry = (1 << 15),
+  ExcitedStates = (1 << 16),
+  AOtoAtomMapping = (1 << 17),
+  AtomicCharges = (1 << 18),
+  BondOrderMatrix = (1 << 19),
+  Description = (1 << 20),
+  SuccessfulCalculation = (1 << 21),
+  ProgramName = (1 << 22),
+  PointChargesGradients = (1 << 23),
+  AtomicGtos = (1 << 24),
+  GridOccupation = (1 << 25)
 };
 
 // clang-format off
@@ -62,6 +65,7 @@ using PropertyTypeTuple =
     double, /*Property::Energy*/
     GradientCollection, /*Property::Gradients*/
     HessianMatrix, /*Property::Hessian*/
+    AtomicSecondDerivativeCollection, /*Property::AtomicHessians*/
     Dipole, /*Property::Dipole*/
     DipoleGradient, /*Property::DipoleGradient*/
     DipoleMatrix, /*Property::DipoleMatrixAO*/
@@ -82,16 +86,18 @@ using PropertyTypeTuple =
     bool, /*Property::SuccessfulCalculation*/
     std::string, /*Property::ProgramName*/
     GradientCollection, /*Property::PointChargesGradients*/
-    std::unordered_map<int, AtomicGtos> /*Property::AtomicGtos*/
+    std::unordered_map<int, AtomicGtos>, /*Property::AtomicGtos*/
+    std::vector<int> /*Property::GridOccupation*/
     >;
 // clang-format on
 
-static_assert(std::tuple_size<PropertyTypeTuple>::value == 24,
+static_assert(std::tuple_size<PropertyTypeTuple>::value == 26,
               "Tuple does not contain as many elements as there are properties");
 
 constexpr std::array<Property, std::tuple_size<PropertyTypeTuple>::value> allProperties{{Property::Energy,
                                                                                          Property::Gradients,
                                                                                          Property::Hessian,
+                                                                                         Property::AtomicHessians,
                                                                                          Property::Dipole,
                                                                                          Property::DipoleGradient,
                                                                                          Property::DipoleMatrixAO,
@@ -112,12 +118,14 @@ constexpr std::array<Property, std::tuple_size<PropertyTypeTuple>::value> allPro
                                                                                          Property::SuccessfulCalculation,
                                                                                          Property::ProgramName,
                                                                                          Property::PointChargesGradients,
-                                                                                         Property::AtomicGtos}};
+                                                                                         Property::AtomicGtos,
+                                                                                         Property::GridOccupation}};
 
 // Python binding names
 constexpr std::array<const char*, std::tuple_size<PropertyTypeTuple>::value> allPropertyNames{"energy",
                                                                                               "gradients",
                                                                                               "hessian",
+                                                                                              "atomic_hessian",
                                                                                               "dipole",
                                                                                               "dipole_gradient",
                                                                                               "ao_dipole_matrix",
@@ -138,7 +146,8 @@ constexpr std::array<const char*, std::tuple_size<PropertyTypeTuple>::value> all
                                                                                               "successful_calculation",
                                                                                               "program_name",
                                                                                               "point_charges_gradients",
-                                                                                              "atomic_gtos"};
+                                                                                              "atomic_gtos",
+                                                                                              "grid_occupation"};
 
 /* other variants of doing this:
  * - Use a constexpr map datatype

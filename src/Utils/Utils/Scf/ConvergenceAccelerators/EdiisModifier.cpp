@@ -15,16 +15,15 @@ namespace Utils {
 
 void EdiisModifier::onOverlapCalculated() {
   mixer_.setNAOs(m->getNumberAtomicOrbitals());
-  mixer_.restart();
+  mixer_.setUnrestricted(m->unrestrictedCalculationRunning());
 
-  if (m->unrestrictedCalculationRunning()) {
-    mixer_.setUnrestricted(true);
-  }
+  mixer_.restart();
 }
 
 void EdiisModifier::onFockCalculated() {
-  if (!sameNumberOfElectronsInMethodAndInDensityMatrix())
+  if (!sameNumberOfElectronsInMethodAndInDensityMatrix()) {
     return;
+  }
   m->computeEnergyAndDerivatives(Utils::Derivative::None);
   mixer_.addMatrices(m->getEnergy(), m->getFockMatrix(), m->getDensityMatrix());
   m->setFockMatrix(mixer_.getMixedFockMatrix());

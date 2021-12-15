@@ -36,6 +36,8 @@ TEST(ElementInfoTest, CanReadMassesInParallel) {
 }
 
 TEST(ElementInfoTest, CanConvertSymbolStringToElementType) {
+  ASSERT_THAT(ElementInfo::elementTypeForSymbol("none"), Eq(ElementType::none));
+  ASSERT_THAT(ElementInfo::elementTypeForSymbol("None"), Eq(ElementType::none));
   ASSERT_THAT(ElementInfo::elementTypeForSymbol("h"), Eq(ElementType::H));
   ASSERT_THAT(ElementInfo::elementTypeForSymbol("H"), Eq(ElementType::H));
   ASSERT_THAT(ElementInfo::elementTypeForSymbol("1H"), Eq(ElementType::H1));
@@ -51,6 +53,7 @@ TEST(ElementInfoTest, CanConvertSymbolStringToElementType) {
 }
 
 TEST(ElementInfoTest, CanConvertElementTypeToSymbol) {
+  ASSERT_THAT(ElementInfo::symbol(ElementType::none), Eq(std::string("None")));
   ASSERT_THAT(ElementInfo::symbol(ElementType::H), Eq(std::string("H")));
   ASSERT_THAT(ElementInfo::symbol(ElementType::H1), Eq(std::string("H")));
   ASSERT_THAT(ElementInfo::symbol(ElementType::C), Eq(std::string("C")));
@@ -112,6 +115,26 @@ TEST(ElementInfoTest, ComposeElements) {
 
   ASSERT_THAT(ElementInfo::isotope(98, 251), Eq(ElementType::Cf251));
   ASSERT_THAT(ElementInfo::isotope(1, 1), Eq(ElementType::H1));
+}
+
+TEST(ElementInfoTest, ValenceElectrons) {
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::none), Eq(0));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::H), Eq(1));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::D), Eq(1));
+  ASSERT_THAT(ElementInfo::sElectrons(ElementType::D), Eq(1));
+  ASSERT_THAT(ElementInfo::pElectrons(ElementType::H), Eq(0));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::C), Eq(4));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::N), Eq(5));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::P), Eq(5));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::Y), Eq(3));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::La), Eq(3));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::Rh), Eq(9));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::As), Eq(5));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::I), Eq(7));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::Xe), Eq(8));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::Cd), Eq(12));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::Lu), Eq(3));
+  ASSERT_THAT(ElementInfo::valElectrons(ElementType::Os), Eq(8));
 }
 
 } /* namespace Tests */

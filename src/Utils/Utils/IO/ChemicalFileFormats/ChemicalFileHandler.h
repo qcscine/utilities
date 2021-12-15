@@ -73,6 +73,7 @@ class ChemicalFileHandler {
    *
    * @param filename The path to the file to write
    * @param atoms The atom collection to commit to a file
+   * @param comment An optional comment to insert into the written file
    *
    * @throws FormatUnsupportedException if the file suffix cannot be matched
    *   to a supported file format
@@ -80,7 +81,7 @@ class ChemicalFileHandler {
    *
    * @note Overwrites existing files
    */
-  static void write(const std::string& filename, const AtomCollection& atoms);
+  static void write(const std::string& filename, const AtomCollection& atoms, const std::string& comment = "");
 
   /**
    * @brief Writes an atom collection and a bond order collection to a file
@@ -90,6 +91,7 @@ class ChemicalFileHandler {
    *
    * @param filename The path to the file to write
    * @param atoms The atom collection to commit to a file
+   * @param comment An optional comment to insert into the written file
    *
    * @throws FormatUnsupportedException if the file suffix cannot be matched
    *   to a supported file format
@@ -97,7 +99,8 @@ class ChemicalFileHandler {
    *
    * @note Overwrites existing files
    */
-  static void write(const std::string& filename, const AtomCollection& atoms, const BondOrderCollection& bondOrders);
+  static void write(const std::string& filename, const AtomCollection& atoms, const BondOrderCollection& bondOrders,
+                    const std::string& comment = "");
 };
 
 } // namespace Utils

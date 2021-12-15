@@ -17,6 +17,8 @@ import_yamlcpp()
 include(ImportIRC)
 import_irc()
 include(AddEigen)
+include(ImportGTest)
+import_gtest()
 
 if(NOT TARGET Boost::filesystem OR NOT TARGET Boost::system)
   find_package(Boost REQUIRED COMPONENTS filesystem system)
@@ -24,7 +26,7 @@ endif()
 
 # Only look for OpenMP if parallelization is sought
 if(SCINE_PARALLELIZE)
-  find_package(OpenMP)
+  find_package(OpenMP REQUIRED)
 endif()
 
 # Obey standard CMake behavior regarding shared/static libraries
@@ -100,6 +102,7 @@ if(SCINE_BUILD_TESTS)
     Scine::Core
     yaml-cpp
     ${CMAKE_DL_LIBS}
+    $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>
   )
   target_include_directories(UtilsOS_tests PRIVATE ${YAML_CPP_INCLUDE_DIR})
   add_test(
@@ -128,6 +131,7 @@ if(SCINE_BUILD_PYTHON_BINDINGS)
   set_target_properties(scine_utilities PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/scine_utilities
   )
+  target_include_directories(scine_utilities PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Python)
   target_link_libraries(scine_utilities PRIVATE Scine::UtilsOS Scine::Core yaml-cpp)
   target_include_directories(scine_utilities PRIVATE ${YAML_CPP_INCLUDE_DIR})
   install(CODE
@@ -160,23 +164,46 @@ if(SCINE_BUILD_PYTHON_BINDINGS)
     ${CMAKE_CURRENT_BINARY_DIR}/scine_utilities/__init__.py
   )
   file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/Python/README.rst DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-  set(LIBNAME_CORE "'${CMAKE_SHARED_LIBRARY_PREFIX}core${CMAKE_SHARED_LIBRARY_SUFFIX}'")
   add_custom_command(TARGET UtilsOSModule POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:UtilsOSModule> ${CMAKE_CURRENT_BINARY_DIR}/scine_utilities
     COMMENT "Copying UtilsOS module into python package directory"
   )
+  add_dependencies(scine_utilities UtilsOSModule)
+
+  # Figure out which targets need to be copied along
+  set(_py_targets_to_copy Scine::Core)  # Core is always shared
+  include(TargetLibName)
+  target_lib_filename(Scine::Core _core_name)
   if(BUILD_SHARED_LIBS)
-    add_custom_command(TARGET UtilsOS POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:UtilsOS> $<TARGET_FILE:Scine::Core> ${CMAKE_CURRENT_BINARY_DIR}/scine_utilities
-      COMMENT "Copying dependent shared libraries into python package directory"
+    list(APPEND _py_targets_to_copy Scine::UtilsOS)
+  endif()
+
+  # Generate generator expressions for each target and figure out filenames
+  # for the python setup file
+  set(utils_PY_DEPS "")
+  foreach(target ${_py_targets_to_copy})
+    list(APPEND _py_target_gen_exprs "\$<TARGET_FILE:${target}>")
+    target_lib_filename(${target} _target_filename)
+    string(APPEND utils_PY_DEPS ", \"${_target_filename}\"")
+  endforeach()
+
+  add_custom_command(TARGET UtilsOS POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy ${_py_target_gen_exprs} ${CMAKE_CURRENT_BINARY_DIR}/scine_utilities
+    COMMENT "Copying dependent shared libraries into python package directory"
+  )
+  message(STATUS "Targets to copy for python bindings: ${_py_targets_to_copy}")
+  unset(_py_targets_to_copy)
+
+  # Typing stubs
+  include(FindPythonModule)
+  find_python_module(pybind11_stubgen)
+  if(PY_PYBIND11_STUBGEN)
+    add_custom_command(TARGET scine_utilities POST_BUILD
+      COMMAND ${PYTHON_EXECUTABLE} -m pybind11_stubgen -o . --root-module-suffix \"\" --no-setup-py --bare-numpy-ndarray scine_utilities
+      COMMENT "Generating python package typechecking stubs with pybind11-stubgen"
     )
-    set(_utils_name "${CMAKE_SHARED_LIBRARY_PREFIX}utilsos${CMAKE_SHARED_LIBRARY_SUFFIX}")
-    include(TargetLibName)
-    target_lib_filename(Scine::Core _core_name)
-    message(STATUS "deduced library names: ${_utils_name}, ${_core_name}")
-    set(utils_PY_DEPS ", \"${_utils_name}\", \"${_core_name}\"")
-    unset(_utils_name)
-    unset(_core_name)
+  else()
+    message(STATUS "Not generating typechecking stubs for python package as pybind11-stubgen was not found")
   endif()
 
   # Add setuptools file

@@ -50,7 +50,17 @@ std::string integerNumber();
  */
 std::string capturingIntegerNumber();
 /**
- * @brief Adds capture paranteses to any string.
+ * @brief Regex code for an element symbol.
+ * @return std::string Returns Regex code for an element symbol.
+ */
+std::string elementSymbol();
+/**
+ * @brief Regex code for an element symbol including capture.
+ * @return std::string Returns Regex code for an element symbol including capture.
+ */
+std::string capturingElementSymbol();
+/**
+ * @brief Adds capture parentheses to any string.
  * @param s The Regex string describing the type to be captured.
  * @return std::string Returns the string s with capture parenthesis added.
  */

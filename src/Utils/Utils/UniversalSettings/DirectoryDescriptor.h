@@ -20,6 +20,7 @@ namespace UniversalSettings {
  */
 class DirectoryDescriptor : public SettingDescriptor {
  public:
+  DirectoryDescriptor() = default;
   /**
    * @brief Constructor
    *
@@ -30,6 +31,7 @@ class DirectoryDescriptor : public SettingDescriptor {
   std::unique_ptr<SettingDescriptor> clone() const override;
   GenericValue getDefaultGenericValue() const override;
   bool validValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const GenericValue& v) const override;
 
   //! Gets the default value of the directory path
   const std::string& getDefaultValue() const;
@@ -63,6 +65,10 @@ inline GenericValue DirectoryDescriptor::getDefaultGenericValue() const {
 
 inline bool DirectoryDescriptor::validValue(const GenericValue& v) const {
   return v.isString();
+}
+
+inline std::string DirectoryDescriptor::explainInvalidValue(const GenericValue& /* v */) const {
+  return "Generic value for string setting '" + getPropertyDescription() + "' is not a string!";
 }
 
 } /* namespace UniversalSettings */

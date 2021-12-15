@@ -19,23 +19,26 @@ int BSplineTools::findIdxOfLeftOrEqualDomainKnot(const double u, const int p, co
 
   while ((u >= U(i + 1)) && (i + 1 < U.size() - p)) {
     ++i;
-    if (U(i + 1) == U(i))
+    if (U(i + 1) == U(i)) {
       break; // stop iteration
+    }
   }
   return i;
 }
 
 int BSplineTools::findIdxOfLeftDomainKnot(const double u, const int p, const Eigen::VectorXd& U) {
   int i = p;
-  while ((u > U(i + 1)) && (i + 1 < U.size() - p))
+  while ((u > U(i + 1)) && (i + 1 < U.size() - p)) {
     ++i;
+  }
   return i;
 }
 
 int BSplineTools::findIdxOfRightDomainKnot(const double u, const int p, const Eigen::VectorXd& U) {
   int i = static_cast<int>(U.size()) - 1 - p;
-  while ((u < U(i - 1)) && (i - 1 > p))
+  while ((u < U(i - 1)) && (i - 1 > p)) {
     --i;
+  }
   return i;
 }
 
@@ -43,8 +46,9 @@ int BSplineTools::findIdxOfRightOrEqualDomainKnot(const double u, const int p, c
   int i = static_cast<int>(U.size()) - 1 - p;
   while ((u <= U(i - 1)) && (i - 1 >= p)) {
     --i;
-    if (U(i - 1) == U(i))
+    if (U(i - 1) == U(i)) {
       break; // stop iteration
+    }
   }
   return i;
 }
@@ -100,10 +104,13 @@ int BSplineTools::differenceOperator(int i, int j, int kappa) {
     return differenceOperator(i + 1, j, kappa - 1) - differenceOperator(i, j, kappa - 1);
   }
   if (kappa == 1) {
-    if (i + 1 == j)
+    if (i + 1 == j) {
       return 1;
-    if (i == j)
+    }
+    if (i == j) {
       return -1;
+    }
+
     return 0;
   }
   return 0;

@@ -62,7 +62,8 @@ BSpline BSpline::reversed() const {
 }
 
 bool BSpline::isClampedAndNormed() const {
-  Eigen::VectorXd head, tail;
+  Eigen::VectorXd head;
+  Eigen::VectorXd tail;
   head = Eigen::VectorXd::Zero(p_ + 1);
   tail = Eigen::VectorXd::Ones(p_ + 1);
 
@@ -74,16 +75,18 @@ const Eigen::VectorXd& BSpline::getKnotVector() const {
 }
 
 const Eigen::VectorXd& BSpline::getKnotVectorDerivative(int derivativeOrder) const {
-  if (derivativeOrder > highestCalculatedDerivative_)
+  if (derivativeOrder > highestCalculatedDerivative_) {
     calculateDerivatives(derivativeOrder);
+  }
 
   return Uk_[derivativeOrder];
 }
 
 const Eigen::VectorXd& BSpline::deriveAndGetKnotVector(int derivativeOrder) {
   assert((0 <= derivativeOrder && derivativeOrder < p_) && "This derivative does not exist.");
-  if (derivativeOrder > highestCalculatedDerivative_)
+  if (derivativeOrder > highestCalculatedDerivative_) {
     calculateDerivatives(derivativeOrder);
+  }
   return getKnotVectorDerivative(derivativeOrder);
 }
 
@@ -92,16 +95,18 @@ const Eigen::MatrixXd& BSpline::getControlPointMatrix() const {
 }
 
 const Eigen::MatrixXd& BSpline::getControlPointMatrix(int k) const {
-  if (k > highestCalculatedDerivative_)
+  if (k > highestCalculatedDerivative_) {
     calculateDerivatives(k);
+  }
 
   return Pk_[k];
 }
 
 const Eigen::MatrixXd& BSpline::deriveAndGetControlPointMatrix(int derivativeOrder) {
   assert((0 <= derivativeOrder && derivativeOrder < p_) && "This derivative does not exist.");
-  if (derivativeOrder > highestCalculatedDerivative_)
+  if (derivativeOrder > highestCalculatedDerivative_) {
     calculateDerivatives(derivativeOrder);
+  }
   return getControlPointMatrix(derivativeOrder);
 }
 
@@ -140,11 +145,13 @@ void BSpline::calculateDerivatives(int highestDerivativeToCalculate) const {
 }
 
 Eigen::VectorXd BSpline::deriveControlPoint(int i, int highestDerivativeToCalculate) const {
-  if (highestDerivativeToCalculate == 0)
+  if (highestDerivativeToCalculate == 0) {
     return Pk_[0].row(i);
+  }
 
-  if (Uk_[0](i + p_ + 1) == Uk_[0](i + highestDerivativeToCalculate))
+  if (Uk_[0](i + p_ + 1) == Uk_[0](i + highestDerivativeToCalculate)) {
     return Eigen::VectorXd(Eigen::VectorXd::Zero(dim_));
+  }
 
   return double(p_ - highestDerivativeToCalculate + 1) / (Uk_[0](i + p_ + 1) - Uk_[0](i + highestDerivativeToCalculate)) *
          (deriveControlPoint(i + 1, highestDerivativeToCalculate - 1) -
@@ -154,8 +161,9 @@ Eigen::VectorXd BSpline::deriveControlPoint(int i, int highestDerivativeToCalcul
 Eigen::VectorXd BSpline::evaluateNaive(double u, int derivativeOrder) const {
   assert((0.0 <= u) && (u <= 1.0));
 
-  if (derivativeOrder > highestCalculatedDerivative_)
+  if (derivativeOrder > highestCalculatedDerivative_) {
     calculateDerivatives(derivativeOrder);
+  }
 
   Eigen::VectorXd C(dim_);
   C.setZero();
@@ -175,8 +183,9 @@ Eigen::VectorXd BSpline::calculateBSplineCoefficientVector(double u, int derivat
 }
 
 Coefficients BSpline::calculateBSplineCoefficients(double u, int derivativeOrder) const {
-  if (derivativeOrder > highestCalculatedDerivative_)
+  if (derivativeOrder > highestCalculatedDerivative_) {
     calculateDerivatives(derivativeOrder);
+  }
 
   int l = findIdxOfLowerOrEqualDomainKnot(u, derivativeOrder);
   Eigen::VectorXd allCoefficients = deBoorCoefficient(u, l, p_ - derivativeOrder, derivativeOrder);
@@ -229,8 +238,9 @@ int BSpline::findIdxOfLowerOrEqualDomainKnot(double u, int k) const {
 
   // start at the beginning of the domain [u_{p-k}^{(k)},u_{n+1-k}^{(k)}]
   int i = p_ - k;
-  while ((u >= Uk_[k](i + 1)) && ((i + 1) < (n_ + 1 - k)))
+  while ((u >= Uk_[k](i + 1)) && ((i + 1) < (n_ + 1 - k))) {
     ++i;
+  }
   return i;
 }
 

@@ -20,7 +20,7 @@ bool AfirConvergenceCheck::checkConvergence(const Eigen::VectorXd& parameter, do
   bool exceedsDistanceThreshold = false;
   if (afirUseMaxFragmentDistance) {
     Utils::PositionCollection positions;
-    if (this->transformCoordinates) {
+    if (this->transformation) {
       positions = this->transformation->coordinatesToCartesian(parameter);
     }
     else {
@@ -30,21 +30,21 @@ bool AfirConvergenceCheck::checkConvergence(const Eigen::VectorXd& parameter, do
   }
   // If either converged or distance threshold exceeded return true
   return gradientConvergence || exceedsDistanceThreshold;
-};
+}
 
 bool AfirConvergenceCheck::checkExceedsDistanceThreshold(Utils::PositionCollection& positions) {
   return this->calculateMinFragmentDistance(positions) >= afirMaxFragmentDistance;
-};
+}
 
 double AfirConvergenceCheck::calculateMinFragmentDistance(Utils::PositionCollection& positions) {
   double minDistance = std::numeric_limits<double>::max();
   double distance;
-  if (lhsList.size() > 0 && rhsList.size() > 0) {
-    for (unsigned int i = 0; i < lhsList.size(); i++) {
-      for (unsigned int j = 0; j < rhsList.size(); j++) {
-        distance = (positions.row(lhsList[i]) - positions.row(rhsList[j])).norm();
+  if (!lhsList.empty() && !rhsList.empty()) {
+    for (int i : lhsList) {
+      for (int j : rhsList) {
+        distance = (positions.row(i) - positions.row(j)).norm();
         // Set minimum distance to minimum of previous and current value
-        minDistance = (minDistance < distance) ? minDistance : distance;
+        minDistance = std::min(minDistance, distance);
       }
     }
   }
@@ -54,7 +54,7 @@ double AfirConvergenceCheck::calculateMinFragmentDistance(Utils::PositionCollect
         "AFIR LHS and/or RHS list empty. Cannot use a minimum fragment distance without defined fragments.");
   }
   return minDistance;
-};
+}
 
 void AfirConvergenceCheck::addAfirSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const {
   // Add afir specific setting descriptors
@@ -66,15 +66,13 @@ void AfirConvergenceCheck::addAfirSettingsDescriptors(UniversalSettings::Descrip
       "Interfragment distance upon exceeding which the AFIR optimization is stopped.");
   afir_max_fragment_distance.setDefaultValue(afirMaxFragmentDistance);
   collection.push_back(AfirConvergenceCheck::afirMaxFragmentDistanceKey, afir_max_fragment_distance);
-  return;
-};
+}
 
 void AfirConvergenceCheck::applyAfirSettings(const Settings& settings) {
   // Apply AFIR specific convergence settings
   afirUseMaxFragmentDistance = settings.getBool(AfirConvergenceCheck::afirUseMaxFragmentDistanceKey);
   afirMaxFragmentDistance = settings.getDouble(AfirConvergenceCheck::afirMaxFragmentDistanceKey);
-  return;
-};
+}
 
 } // namespace Utils
 } // namespace Scine

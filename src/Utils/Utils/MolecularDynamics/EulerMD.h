@@ -22,8 +22,16 @@ namespace Utils {
  * and the velocities with
  * \f$ v_i(t + \Delta t) = v_i(t) + \frac{\Delta t}{m_i} f_i(t) + O(\Delta t^2) \f$
  *
+ * This integrator can be combined with the Berendsen thermostat.
  */
 class EulerMD : public MDIntegrator {
+  /**
+   * @brief Checks whether the set integrator and thermostat algortihm are compatible.
+   * @return true If the thermostat is available.
+   * @return false If the thermostat is not available.
+   */
+  bool checkThermostatAlgorithm() const override;
+
   /**
    * @brief Calculates the displacements from the gradients.
    */

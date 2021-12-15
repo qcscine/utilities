@@ -14,10 +14,12 @@ namespace Utils {
 
 OccupiedMolecularOrbitals::OccupiedMolecularOrbitals(const MolecularOrbitals& allOrbitals,
                                                      const LcaoUtils::ElectronicOccupation& occupation) {
-  if (allOrbitals.isRestricted())
+  if (allOrbitals.isRestricted()) {
     constructRestricted(allOrbitals, occupation);
-  else
+  }
+  else {
     constructUnrestricted(allOrbitals, occupation);
+  }
 }
 
 void OccupiedMolecularOrbitals::constructRestricted(const MolecularOrbitals& allOrbitals,
@@ -59,8 +61,9 @@ Eigen::MatrixXd OccupiedMolecularOrbitals::calculateMatrixForFilledOrbitals(cons
 }
 
 void OccupiedMolecularOrbitals::makeUnrestricted() {
-  if (unrestricted_)
+  if (unrestricted_) {
     return;
+  }
   // Set alpha by copy, set beta by move.
   matrix_.setAlphaMatrix(matrix_.restrictedMatrix());
   matrix_.setBetaMatrix(std::move(matrix_.restrictedMatrix()));

@@ -26,9 +26,9 @@ Results& Results::operator=(const Results& rhs) {
 PropertyList Results::allContainedProperties() const {
   PropertyList propertyList;
   // Loop over all possible properties and check whether they are available
-  for (unsigned i = 0; i < allProperties.size(); ++i) {
-    if (resultsMap_.find(allProperties.at(i)) != resultsMap_.end()) {
-      propertyList.addProperty(allProperties.at(i));
+  for (auto property : allProperties) {
+    if (resultsMap_.find(property) != resultsMap_.end()) {
+      propertyList.addProperty(property);
     }
   }
   return propertyList;

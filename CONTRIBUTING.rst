@@ -1,9 +1,8 @@
-===========================================
 Contributing to SCINE Open Source Utilities
 ===========================================
 
 Contribution Process
-====================
+--------------------
 
 The development for this code is done in a private repository maintained by the 
 Reiher Research Group. GitHub is only used for the official releases.
@@ -19,16 +18,14 @@ and/or issues on GitHub.
 Please note that contributing a small change does in no way mean that you will
 be added to the author list of a future paper and/or Zenodo entry!
 
-
 Main Contributors
-=================
+-----------------
 
 Almost all contributions to SCINE in general and this repository in specific come 
 from members of the Reiher research group.
 
-
 Further Contributors
-====================
+--------------------
 
 - Eric Hermes, Sandia National Laboratories
   (https://github.com/qcscine/utilities/pull/1)

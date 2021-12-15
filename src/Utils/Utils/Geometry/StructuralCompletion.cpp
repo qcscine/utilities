@@ -10,8 +10,7 @@
 namespace Scine {
 namespace Utils {
 
-void StructuralCompletion::generate3TetrahedronCornersFrom1Other(const Eigen::Ref<Eigen::Vector3d> v1,
-                                                                 Eigen::Ref<Eigen::Vector3d> v2,
+void StructuralCompletion::generate3TetrahedronCornersFrom1Other(const Eigen::Vector3d& v1, Eigen::Ref<Eigen::Vector3d> v2,
                                                                  Eigen::Ref<Eigen::Vector3d> v3,
                                                                  Eigen::Ref<Eigen::Vector3d> v4) {
   /*
@@ -22,8 +21,9 @@ void StructuralCompletion::generate3TetrahedronCornersFrom1Other(const Eigen::Re
   // Get a perpendicular vector;
   Eigen::Vector3d perpendicularVector = v1.cross(Eigen::Vector3d(1, 0, 0));
   // Check that it was different enough from {1,0,0}; if not, create it from {0,1,0}
-  if (perpendicularVector.squaredNorm() < 0.00001)
+  if (perpendicularVector.squaredNorm() < 0.00001) {
     perpendicularVector = v1.cross(Eigen::Vector3d(0, 1, 0));
+  }
   perpendicularVector.normalize();
 
   Eigen::AngleAxisd t(tetrahedronAngle, perpendicularVector);
@@ -36,8 +36,7 @@ void StructuralCompletion::generate3TetrahedronCornersFrom1Other(const Eigen::Re
   v4 = R * v3;
 }
 
-void StructuralCompletion::generate2TetrahedronCornersFrom2Others(const Eigen::Ref<Eigen::Vector3d> v1,
-                                                                  const Eigen::Ref<Eigen::Vector3d> v2,
+void StructuralCompletion::generate2TetrahedronCornersFrom2Others(const Eigen::Vector3d& v1, const Eigen::Vector3d& v2,
                                                                   Eigen::Ref<Eigen::Vector3d> v3,
                                                                   Eigen::Ref<Eigen::Vector3d> v4) {
   /*
@@ -55,20 +54,19 @@ void StructuralCompletion::generate2TetrahedronCornersFrom2Others(const Eigen::R
   v4 = R * v3;
 }
 
-void StructuralCompletion::generate1TetrahedronCornerFrom3Others(const Eigen::Ref<Eigen::Vector3d> v1,
-                                                                 const Eigen::Ref<Eigen::Vector3d> v2,
-                                                                 const Eigen::Ref<Eigen::Vector3d> v3,
-                                                                 Eigen::Ref<Eigen::Vector3d> v4) {
+void StructuralCompletion::generate1TetrahedronCornerFrom3Others(const Eigen::Vector3d& v1, const Eigen::Vector3d& v2,
+                                                                 const Eigen::Vector3d& v3, Eigen::Ref<Eigen::Vector3d> v4) {
   Eigen::Vector3d res = -(v1 + v2 + v3);
   // check that the three vectors were non-planar enough
-  if (res.squaredNorm() < 0.4 * 0.4)
+  if (res.squaredNorm() < 0.4 * 0.4) {
     res = v1.cross(v2);
+  }
 
   v4 = res.normalized();
 }
 
-void StructuralCompletion::generate2TriangleCornersFrom1Other(const Eigen::Ref<Eigen::Vector3d> v1,
-                                                              Eigen::Ref<Eigen::Vector3d> v2, Eigen::Ref<Eigen::Vector3d> v3) {
+void StructuralCompletion::generate2TriangleCornersFrom1Other(const Eigen::Vector3d& v1, Eigen::Ref<Eigen::Vector3d> v2,
+                                                              Eigen::Ref<Eigen::Vector3d> v3) {
   /*
    * Generate a vector perpendicular to the given one and then perform rotation around this vector to generate v2 and
    * v3.
@@ -77,8 +75,9 @@ void StructuralCompletion::generate2TriangleCornersFrom1Other(const Eigen::Ref<E
   // Get a perpendicular vector;
   auto perpendicularVector = v1.cross(Eigen::Vector3d(1, 0, 0));
   // Check that it was different enough from {1,0,0}; if not, create it from {0,1,0}
-  if (perpendicularVector.squaredNorm() < 0.00001)
+  if (perpendicularVector.squaredNorm() < 0.00001) {
     perpendicularVector = v1.cross(Eigen::Vector3d(0, 1, 0));
+  }
   perpendicularVector.normalize();
 
   Eigen::AngleAxisd t(120 * Constants::rad_per_degree, perpendicularVector);
@@ -87,8 +86,7 @@ void StructuralCompletion::generate2TriangleCornersFrom1Other(const Eigen::Ref<E
   v3 = R * v2;
 }
 
-void StructuralCompletion::generate1TriangleCornerFrom2Others(const Eigen::Ref<Eigen::Vector3d> v1,
-                                                              const Eigen::Ref<Eigen::Vector3d> v2,
+void StructuralCompletion::generate1TriangleCornerFrom2Others(const Eigen::Vector3d& v1, const Eigen::Vector3d& v2,
                                                               Eigen::Ref<Eigen::Vector3d> v3) {
   v3 = -(v1 + v2).normalized();
 }

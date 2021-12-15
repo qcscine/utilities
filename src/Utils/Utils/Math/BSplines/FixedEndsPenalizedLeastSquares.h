@@ -37,7 +37,7 @@ class FixedEndsPenalizedLeastSquares {
 
   /*! eq. (9.66) in the NURBS book */
   Eigen::MatrixXd calculateCoefficientMatrix();
-  Eigen::MatrixXd calculateFiniteDifferenceMatrix();
+  Eigen::MatrixXd calculateFiniteDifferenceMatrix() const;
   void initializeSolver(const Eigen::MatrixXd& Nmat);
   Eigen::MatrixXd generateControlPointMatrix(const Eigen::MatrixXd& Qmat);
 

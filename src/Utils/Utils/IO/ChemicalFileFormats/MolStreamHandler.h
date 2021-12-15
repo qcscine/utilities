@@ -12,7 +12,6 @@
 #include "boost/optional/optional_fwd.hpp"
 
 namespace Scine {
-
 namespace Utils {
 
 class AtomCollection;
@@ -35,11 +34,6 @@ class MolStreamHandler : public FormattedStreamHandler {
   //!@name Static members
   //!@{
   /**
-   * @brief Strings matching MOL format versions
-   */
-  static const std::vector<std::string> versionStrings;
-
-  /**
    * @brief Writes to an output stream in MOL format
    *
    * @param os The stream to write to
@@ -47,17 +41,17 @@ class MolStreamHandler : public FormattedStreamHandler {
    * @param bondOrdersOption An optional BondOrderCollection
    * @param formatVersion The string (matching an entry in versionStrings)
    *   specifying which MOL format version should be written
+   * @param comment An optional comment to insert into the written file
    *
    * @note Currently only implements the V2000 format.
    */
-  static void write(std::ostream& os, const AtomCollection& atoms,
-                    const boost::optional<BondOrderCollection>& bondOrdersOption, const std::string& formatVersion);
+  static void write(std::ostream& os, const AtomCollection& atoms, const boost::optional<BondOrderCollection>& bondOrdersOption,
+                    const std::string& formatVersion, const std::string& comment = "");
 
   /**
    * @brief Reads from an input stream in MOL format
    *
    * @param is The stream to read from
-   * @param skipBonds Whether to skip bond information
    *
    * @return Elemental and positional data. Optionally also bond order
    *   information.
@@ -69,10 +63,10 @@ class MolStreamHandler : public FormattedStreamHandler {
   //!@{
   std::pair<AtomCollection, BondOrderCollection> read(std::istream& is, const std::string& format) const final;
 
-  void write(std::ostream& os, const std::string& format, const AtomCollection& atoms) const final;
+  void write(std::ostream& os, const std::string& format, const AtomCollection& atoms, const std::string& comment = "") const final;
 
   void write(std::ostream& os, const std::string& format, const AtomCollection& atoms,
-             const BondOrderCollection& bondOrders) const final;
+             const BondOrderCollection& bondOrders, const std::string& comment = "") const final;
 
   std::vector<FormatSupportPair> formats() const final;
 
@@ -83,7 +77,6 @@ class MolStreamHandler : public FormattedStreamHandler {
 };
 
 } // namespace Utils
-
 } // namespace Scine
 
 #endif

@@ -24,6 +24,9 @@ namespace Utils {
  *   communicates 'at arms length' with OpenBabel
  *   (https://www.gnu.org/licenses/old-licenses/gpl-2.0-faq.en.html#TOCGPLInProprietarySystem)
  *   by merely calling it via system process-level interaction, if present.
+ *
+ *   The StreamHandler has been tested to work with the following versions of OpenBabel: 2.4.1,
+ *   3.1.0, 3.1.1. It does not work with OpenBabel 2.4.0.
  */
 class OpenBabelStreamHandler : public FormattedStreamHandler {
  public:
@@ -64,10 +67,10 @@ class OpenBabelStreamHandler : public FormattedStreamHandler {
 
   std::pair<AtomCollection, BondOrderCollection> read(std::istream& is, const std::string& format) const final;
 
-  void write(std::ostream& os, const std::string& format, const AtomCollection& atoms) const final;
+  void write(std::ostream& os, const std::string& format, const AtomCollection& atoms, const std::string& comment = "") const final;
 
   void write(std::ostream& os, const std::string& format, const AtomCollection& atoms,
-             const BondOrderCollection& bondOrders) const final;
+             const BondOrderCollection& bondOrders, const std::string& comment = "") const final;
 
   std::vector<FormatSupportPair> formats() const final;
 

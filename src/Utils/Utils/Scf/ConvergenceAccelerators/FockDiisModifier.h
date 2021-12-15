@@ -33,8 +33,6 @@ class FockDiisModifier : public ScfModifier {
  private:
   bool sameNumberOfElectronsInMethodAndInDensityMatrix();
   FockDiis mixer_;
-
-  bool initialized{false};
 };
 
 } // namespace Utils

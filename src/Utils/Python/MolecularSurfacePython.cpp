@@ -8,12 +8,23 @@
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <fstream>
 
 using namespace Scine::Utils;
 using namespace Scine::Utils::MolecularSurface;
 
+namespace {
+
+void writeSurfaceToFile(const std::string& filename, const std::vector<MolecularSurface::SurfaceSite>& surface) {
+  std::ofstream out(filename);
+  writeSurface(out, surface);
+}
+
+} // namespace
+
 void init_molecular_surface(pybind11::module& m) {
-  auto molecular_surface_submodule = m.def_submodule("MolecularSurface");
+  auto molecular_surface_submodule = m.def_submodule("molsurf");
+  molecular_surface_submodule.doc() = "Molecular surface submodule";
 
   pybind11::class_<SurfaceSite> surface_site(molecular_surface_submodule, "SurfaceSite");
 
@@ -39,5 +50,6 @@ void init_molecular_surface(pybind11::module& m) {
                                   "Finds surface sites of molecule in complex which do not 'see' other atoms.");
 
   molecular_surface_submodule.def(
-      "write_surface", &writeSurface, "Write molecular surface into an xyz file with the surface points represented by H atoms.");
+      "write_surface", &writeSurfaceToFile, pybind11::arg("filename"), pybind11::arg("surface"),
+      "Write molecular surface into an xyz file with the surface points represented by H atoms.");
 }

@@ -30,15 +30,18 @@ class OrcaHessianOutputParser {
    * @brief Parse the Hessian matrix from the output file.
    * @return The Hessian matrix.
    */
-  HessianMatrix getHessian() const;
+  [[deprecated("Prefer static variant with filename arg")]] HessianMatrix getHessian() const;
+
+  static HessianMatrix getHessian(const std::string& outputFileName);
 
  private:
+  static HessianMatrix extractHessian(const std::string& content);
   // Helper function for parsing the Hessian matrix
-  void extractContent(const std::string& filename);
-  void readUntilHessianKeyword(std::istream& in) const;
-  int getNumberAtomsFromHessianOutput(std::istream& in) const;
-  void ignoreFirstBlockLine(std::istream& in) const;
-  void readOneBlock(std::istream& in, Eigen::MatrixXd& m, int atomCount, int firstBlockColumnIndex) const;
+  static std::string extractContent(const std::string& filename);
+  static void readUntilHessianKeyword(std::istream& in);
+  static int getNumberAtomsFromHessianOutput(std::istream& in);
+  static void ignoreFirstBlockLine(std::istream& in);
+  static void readOneBlock(std::istream& in, Eigen::MatrixXd& m, int atomCount, int firstBlockColumnIndex);
 
   std::string content_;
 };

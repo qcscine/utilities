@@ -21,6 +21,12 @@ void NormalModesContainer::add(NormalMode mode) {
 }
 
 const DisplacementCollection& NormalModesContainer::getMode(int modeIndex) const {
+  if (modeIndex < 0) {
+    throw std::runtime_error("The requested mode index " + std::to_string(modeIndex) + " is negative, which is not possible.");
+  }
+  if (modeIndex >= static_cast<int>(modes_.size())) {
+    throw std::runtime_error("The requested mode index " + std::to_string(modeIndex) + " is too large.");
+  }
   return modes_[modeIndex].getMode();
 }
 
@@ -47,9 +53,18 @@ MolecularTrajectory NormalModesContainer::getModeAsMolecularTrajectory(int modeI
 
 std::vector<double> NormalModesContainer::getWaveNumbers() const {
   std::vector<double> waveNumbers;
-  for (const auto& m : modes_)
+  for (const auto& m : modes_) {
     waveNumbers.push_back(m.getWaveNumber());
+  }
   return waveNumbers;
+}
+
+Eigen::MatrixXd NormalModesContainer::getNormalModes() const {
+  Eigen::MatrixXd normalModes(modes_[0].getMode().size(), modes_.size());
+  for (unsigned int mode = 0; mode < modes_.size(); ++mode) {
+    normalModes.col(mode) = Eigen::Map<const Eigen::VectorXd>(modes_[mode].getMode().data(), modes_[mode].getMode().size());
+  }
+  return normalModes;
 }
 
 } // namespace Utils

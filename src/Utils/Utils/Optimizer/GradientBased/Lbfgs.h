@@ -93,32 +93,30 @@ class Lbfgs : public Optimizer {
       oldValue = value;
       /* Check trust radius */
       if (useTrustRadius) {
-        double rms = sqrt((stepVector * currentStepLength).squaredNorm() / stepVector.size());
-        if (rms > trustRadius) {
-          stepVector *= trustRadius / rms;
+        double maxVal = stepVector.array().abs().maxCoeff();
+        if (maxVal * currentStepLength > trustRadius) {
+          stepVector *= trustRadius / (maxVal * currentStepLength);
         }
       }
       /* Update the parameters */
-      parameters.noalias() += (currentStepLength * stepVector);
+      constrainedAdd(parameters, currentStepLength * stepVector);
       /* Update gradients/value and check convergence */
       function(parameters, value, gradients);
       this->triggerObservers(cycle, value, parameters);
-      stop = check.checkMaxIterations(cycle);
-      if (!stop) {
-        stop = check.checkConvergence(parameters, value, gradients);
-      }
+      stop = check.checkMaxIterations(cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
       // Check oscillation, perform new calculation if oscillating
       if (!stop && this->isOscillating(value)) {
         stepVector -= 0.5 * currentStepLength * stepVector;
         parametersOld.noalias() = parameters;
         gradientsOld.noalias() = gradients;
-        this->oscillationCorrection(currentStepLength * stepVector, parameters);
+        oscillationCorrection(currentStepLength * stepVector, parameters);
         function(parameters, value, gradients);
         cycle++;
         this->triggerObservers(cycle, value, parameters);
       }
-      if (stop)
+      if (stop) {
         break;
+      }
 
       /*===========================*
        *  Generate new stepVector
@@ -158,7 +156,8 @@ class Lbfgs : public Optimizer {
           btc++;
           continue;
         }
-        else if (armijo && !curvature) {
+
+        if (armijo && !curvature) {
           /* Check need for backtracking */
           parameters = parametersOld;
           gradients = gradientsOld;
@@ -168,9 +167,8 @@ class Lbfgs : public Optimizer {
           btc++;
           continue;
         }
-        else {
-          btc = 0;
-        }
+
+        btc = 0;
       }
 
       /* Normal L-BFGS update, with possibly adjusted step size. */
@@ -212,14 +210,15 @@ class Lbfgs : public Optimizer {
       }
     }
     return cycle;
-  };
+  }
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection
    *        thus expanding it to include the L-BFGS's options.
    * @param collection The DescriptorCollection to which new fields shall be added.
    */
-  virtual void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
+  void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
     UniversalSettings::IntDescriptor lbfgs_maxm("The maximum number of old steps stored.");
+    lbfgs_maxm.setMinimum(0);
     lbfgs_maxm.setDefaultValue(maxm);
     collection.push_back(Lbfgs::lbfgsMaxm, lbfgs_maxm);
     UniversalSettings::BoolDescriptor lbfgs_linesearch("Switch to turn on and off the use of a linesearch.");
@@ -232,16 +231,19 @@ class Lbfgs : public Optimizer {
     lbfgs_c2.setDefaultValue(c2);
     collection.push_back(Lbfgs::lbfgsC2, lbfgs_c2);
     UniversalSettings::DoubleDescriptor lbfgs_stepLength("The initial step length used in the L-BFGS.");
+    lbfgs_stepLength.setMinimum(0.0);
     lbfgs_stepLength.setDefaultValue(stepLength);
     collection.push_back(Lbfgs::lbfgsStepLength, lbfgs_stepLength);
     UniversalSettings::BoolDescriptor lbfgs_useTrustRadius("Enable the use of a trust radius for all steps.");
     lbfgs_useTrustRadius.setDefaultValue(useTrustRadius);
     collection.push_back(Lbfgs::lbfgsUseTrustRadius, lbfgs_useTrustRadius);
     UniversalSettings::DoubleDescriptor lbfgs_trustRadius("The maximum size (RMS) of a taken step.");
+    lbfgs_trustRadius.setMinimum(0.0);
     lbfgs_trustRadius.setDefaultValue(trustRadius);
     collection.push_back(Lbfgs::lbfgsTrustRadius, lbfgs_trustRadius);
     UniversalSettings::IntDescriptor lbfgs_maxBacktracking(
         "The maximum number of consecutive backtracking steps allowed.");
+    lbfgs_maxBacktracking.setMinimum(0);
     lbfgs_maxBacktracking.setDefaultValue(maxBacktracking);
     collection.push_back(Lbfgs::lbfgsMaxBacktracking, lbfgs_maxBacktracking);
   };
@@ -250,7 +252,7 @@ class Lbfgs : public Optimizer {
    * @brief Updates the L-BFGS's options with those values given in the Settings.
    * @param settings The settings to update the option of the L-BFGS with.
    */
-  virtual void applySettings(const Settings& settings) final {
+  void applySettings(const Settings& settings) final {
     maxm = (unsigned int)(settings.getInt(Lbfgs::lbfgsMaxm));
     linesearch = settings.getBool(Lbfgs::lbfgsLinesearch);
     c1 = settings.getDouble(Lbfgs::lbfgsC1);
@@ -259,6 +261,10 @@ class Lbfgs : public Optimizer {
     useTrustRadius = settings.getBool(Lbfgs::lbfgsUseTrustRadius);
     trustRadius = settings.getDouble(Lbfgs::lbfgsTrustRadius);
     maxBacktracking = settings.getInt(Lbfgs::lbfgsMaxBacktracking);
+    if (!useTrustRadius && std::fabs(trustRadius - 0.1) > 1e-6) {
+      throw std::logic_error("A trust radius was specified, but the trust radius was not activated. "
+                             "Please also set the setting 'lbfgs_use_trust_radius': true, if you specify a radius.");
+    }
   };
   /**
    * @brief The maximum number of old steps stored.

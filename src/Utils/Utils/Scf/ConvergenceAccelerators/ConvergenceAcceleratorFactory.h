@@ -56,7 +56,7 @@ class ConvergenceAcceleratorFactory {
   /**
    * @brief Returns the enum class member corresponding to the default convergence accelerator
    */
-  static scf_mixer_t defaultMixer;
+  static constexpr scf_mixer_t defaultMixer = scf_mixer_t::fock_diis;
 
   static const std::vector<MixerDescriptor>& getAvailableMixers();
 
@@ -66,10 +66,6 @@ class ConvergenceAcceleratorFactory {
    * @return A std::unique_ptr<ScfModifier> representing a polymorphic pointer to a convergence accelerator.
    */
   static std::unique_ptr<ScfModifier> createMixer(scf_mixer_t mixerID);
-
- private:
-  static void setAvailableMixers();
-  static std::vector<MixerDescriptor> availableMixers;
 };
 
 } // namespace Utils

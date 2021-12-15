@@ -10,8 +10,6 @@ ModuleManager
 -------------
 
 .. autoclass:: scine_utilities.core.ModuleManager
-   :members:
-   :undoc-members:
 
 Interfaces
 ----------
@@ -20,8 +18,6 @@ Calculator
 ~~~~~~~~~~
 
 .. autoclass:: scine_utilities.core.Calculator
-   :members:
-   :undoc-members:
 
 .. autofunction:: scine_utilities.core.get_available_settings
 
@@ -35,7 +31,5 @@ Logging
 -------
 
 .. autoclass:: scine_utilities.core.Log
-   :members:
-   :undoc-members:
 
 .. autoclass:: scine_utilities.core.Sink

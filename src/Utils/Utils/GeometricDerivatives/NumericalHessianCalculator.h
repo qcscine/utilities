@@ -83,8 +83,9 @@ class NumericalHessianCalculator {
   double hessianElementSameFromEnergy(int i, const PositionCollection& referencePositions, double delta);
   double hessianElementDifferentFromEnergy(int i, int j, const PositionCollection& referencePositions, double delta);
 
-  Eigen::VectorXd addGradientContribution(DipoleGradient& dipoleDiff, int i, const Utils::PositionCollection& referencePositions,
-                                          double delta, Core::Calculator& calculator, std::shared_ptr<Core::State> state);
+  Eigen::VectorXd addGradientContribution(DipoleGradient& dipoleDiff, int i,
+                                          const Utils::PositionCollection& referencePositions, double delta,
+                                          Core::Calculator& calculator, std::shared_ptr<Core::State> state) const;
   Core::Calculator& calculator_;
 
   // A step width of 0.01 bohr is also the default setting in MoViPac (see its manual for a study of this parameter)

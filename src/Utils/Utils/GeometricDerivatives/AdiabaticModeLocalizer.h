@@ -141,8 +141,8 @@ class AdiabaticModeLocalizer {
    * @param bondingThreshold The bond order threshold beyond which bonds are analyzed in terms of localized modes.
    * (default: 0.5)
    */
-  AdiabaticModeLocalizer(const Eigen::MatrixXd& hessian, const AtomCollection& atoms,
-                         const BondOrderCollection& bondOrders, const double bondingThreshold = 0.5);
+  AdiabaticModeLocalizer(const Eigen::MatrixXd& hessian, AtomCollection atoms, const BondOrderCollection& bondOrders,
+                         double bondingThreshold = 0.5);
 
   /**
    * @brief Constructor for the AdiabaticModeLocalizer class processing indices of atom pairs as internal coordinates.
@@ -151,8 +151,8 @@ class AdiabaticModeLocalizer {
    * @param atoms The atom collection of interest.
    * @param internalCoordinates  The internal coordinates of interest.
    */
-  AdiabaticModeLocalizer(const Eigen::MatrixXd& hessian, const AtomCollection& atoms,
-                         const std::vector<std::pair<int, int>>& internalCoordinates);
+  AdiabaticModeLocalizer(const Eigen::MatrixXd& hessian, AtomCollection atoms,
+                         std::vector<std::pair<int, int>> internalCoordinates);
 
   /**
    * @brief Calculates the adiabatic localized modes corresponding to the given internal coordinates.

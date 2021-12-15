@@ -32,8 +32,8 @@ class OrcaInputFileCreator {
    * @param settings Settings of the calculation.
    * @param requiredProperties All the required properties (energy, gradients,...)
    */
-  void createInputFile(const std::string& filename, const AtomCollection& atoms, const Settings& settings,
-                       const PropertyList& requiredProperties);
+  static void createInputFile(const std::string& filename, const AtomCollection& atoms, const Settings& settings,
+                              const PropertyList& requiredProperties);
   /**
    * @brief Create the ORCA input file with the filename 'filename'
    * @param out std::ostream.
@@ -41,13 +41,13 @@ class OrcaInputFileCreator {
    * @param settings Settings of the calculation.
    * @param requiredProperties All the required properties (energy, gradients,...)
    */
-  void createInputFile(std::ostream& out, const AtomCollection& atoms, const Settings& settings,
-                       const PropertyList& requiredProperties);
+  static void createInputFile(std::ostream& out, const AtomCollection& atoms, const Settings& settings,
+                              const PropertyList& requiredProperties);
 
  private:
-  void printCalculationType(std::ostream& out, const Settings& settings, const PropertyList& requiredProperties);
-  void printTitle(std::ostream& out);
-  void printStructure(std::ostream& out, const AtomCollection& atoms, const Settings& settings);
+  static void printCalculationType(std::ostream& out, const Settings& settings, const PropertyList& requiredProperties);
+  static void printTitle(std::ostream& out);
+  static void printStructure(std::ostream& out, const AtomCollection& atoms, const Settings& settings);
 };
 
 } // namespace ExternalQC

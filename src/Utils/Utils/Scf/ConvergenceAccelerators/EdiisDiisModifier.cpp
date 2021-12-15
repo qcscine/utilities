@@ -16,36 +16,20 @@ EdiisDiisModifier::EdiisDiisModifier() {
   setSpaceSize(6);
 }
 
-void EdiisDiisModifier::setSpaceSize(unsigned n) {
+void EdiisDiisModifier::setSpaceSize(int n) {
   diis_.setSubspaceSize(n);
   ediis_.setSubspaceSize(n);
 }
 
 void EdiisDiisModifier::onOverlapCalculated() {
-  if (!initialized) {
-    initialize();
-    initialized = true;
-  }
-
-  diis_.setNAOs(m->getNumberAtomicOrbitals());
-  ediis_.setNAOs(m->getNumberAtomicOrbitals());
-  ediis_.restart();
-  diis_.setOverlapMatrix(m->getOverlapMatrix());
-
-  if (m->unrestrictedCalculationRunning()) {
-    ediis_.setUnrestricted(true);
-    diis_.setUnrestricted(true);
-  }
-  else {
-    diis_.setUnrestricted(false);
-    ediis_.setUnrestricted(false);
-  }
+  initialize();
 }
 
 void EdiisDiisModifier::onFockCalculated() {
   if (m->unrestrictedCalculationRunning()) {
-    if (!sameNumberOfElectronsInMethodAndInDensityMatrix())
+    if (!sameNumberOfElectronsInMethodAndInDensityMatrix()) {
       return;
+    }
   }
   m->computeEnergyAndDerivatives(Utils::Derivative::None);
   ediis_.addMatrices(m->getEnergy(), m->getFockMatrix(), m->getDensityMatrix());
@@ -55,8 +39,17 @@ void EdiisDiisModifier::onFockCalculated() {
 }
 
 void EdiisDiisModifier::initialize() {
-  if (m->basisSetIsOrthogonal())
+  if (m->basisSetIsOrthogonal()) {
     setOrthogonal(true);
+  }
+
+  diis_.setNAOs(m->getNumberAtomicOrbitals());
+  ediis_.setNAOs(m->getNumberAtomicOrbitals());
+  ediis_.restart();
+  diis_.setOverlapMatrix(m->getOverlapMatrix());
+
+  ediis_.setUnrestricted(m->unrestrictedCalculationRunning());
+  diis_.setUnrestricted(m->unrestrictedCalculationRunning());
 }
 
 void EdiisDiisModifier::setOrthogonal(bool o) {
@@ -78,10 +71,12 @@ SpinAdaptedMatrix EdiisDiisModifier::getCombinedFockMatrix() {
   double errMin = diis_.getMinError();
   double errLast = diis_.getLastError();
 
-  if (errMax > 1e-1 || errLast > 1.1 * errMin)
+  if (errMax > 1e-1 || errLast > 1.1 * errMin) {
     return ediis_.getMixedFockMatrix();
-  if (errMax < 1e-4)
+  }
+  if (errMax < 1e-4) {
     return diis_.getMixedFockMatrix();
+  }
 
   // Else: linear combination
   return mixedFockMatrix(errMax);
@@ -92,11 +87,12 @@ SpinAdaptedMatrix EdiisDiisModifier::mixedFockMatrix(double errMax) {
   double cDiis = (1. - 10 * errMax);
   auto fEdiis = ediis_.getMixedFockMatrix();
   auto fDiis = diis_.getMixedFockMatrix();
-  if (m->unrestrictedCalculationRunning())
+  if (m->unrestrictedCalculationRunning()) {
     return SpinAdaptedMatrix::createUnrestricted(fDiis.alphaMatrix() * cDiis + fEdiis.alphaMatrix() * cEdiis,
                                                  fDiis.betaMatrix() * cDiis + fEdiis.betaMatrix() * cEdiis);
-  else
-    return SpinAdaptedMatrix::createRestricted(fDiis.restrictedMatrix() * cDiis + fEdiis.restrictedMatrix() * cEdiis);
+  }
+
+  return SpinAdaptedMatrix::createRestricted(fDiis.restrictedMatrix() * cDiis + fEdiis.restrictedMatrix() * cEdiis);
 }
 } // namespace Utils
 } // namespace Scine

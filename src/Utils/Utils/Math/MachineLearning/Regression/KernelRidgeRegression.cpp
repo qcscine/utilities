@@ -12,8 +12,9 @@ namespace Utils {
 namespace MachineLearning {
 
 void KernelRidgeRegression::trainModel(const Eigen::MatrixXd& featureValues, const Eigen::MatrixXd& targetValues) {
-  if (targetValues.rows() != featureValues.rows())
+  if (targetValues.rows() != featureValues.rows()) {
     throw std::runtime_error("The number of data points do not match between the feature and target matrices.");
+  }
 
   // Transpose the feature and target matrices since they are column-major.
   targetValues_ = targetValues.transpose();
@@ -39,8 +40,9 @@ void KernelRidgeRegression::trainModel(const Eigen::MatrixXd& featureValues, con
 }
 
 Eigen::VectorXd KernelRidgeRegression::predict(const Eigen::VectorXd& data) const {
-  if (invertedRegularizedKernelMatrix_.size() == 0)
+  if (invertedRegularizedKernelMatrix_.size() == 0) {
     throw std::runtime_error("The model has not been trained yet!");
+  }
 
   // Calculate kernel vector
   Eigen::VectorXd kernelVector(numDataPoints_);
@@ -54,10 +56,11 @@ Eigen::VectorXd KernelRidgeRegression::predict(const Eigen::VectorXd& data) cons
   Eigen::VectorXd prediction = targetValues_ * kernelProduct;
 
   for (int k = 0; k < prediction.size(); ++k) {
-    if (std::isnan(prediction(k)))
+    if (std::isnan(prediction(k))) {
       throw std::runtime_error(
           "One of the predicted results could not be obtained. The reason is probably that the regularization factor "
           "is too small and therefore causes problems during the inversion of the kernel matrix.");
+    }
   }
 
   return prediction;
@@ -71,7 +74,7 @@ void KernelRidgeRegression::setKernel(
     std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const std::vector<double>&)> kernel,
     std::vector<double> hyperparameters) {
   kernel_ = std::move(kernel);
-  hyperparameters_ = hyperparameters;
+  hyperparameters_ = std::move(hyperparameters);
 }
 
 } // namespace MachineLearning

@@ -119,7 +119,7 @@ class AtomCollection {
    */
   Position getPosition(int i) const;
   /**
-   * @brief Getter for thw collection size.
+   * @brief Getter for the collection size.
    * @return int Returns the number of atoms in the collection.
    */
   int size() const;
@@ -138,12 +138,12 @@ class AtomCollection {
    */
   void clear();
   /**
-   * @brief Resizes the data obejects to the given size.
+   * @brief Resizes the data objects to the given size.
    * @param n The number of atoms to resize to.
    */
   void resize(int n);
   /**
-   * @brief Appends one atom to the collectio via copy.
+   * @brief Appends one atom to the collection via copy.
    * @param atom The atom.
    */
   void push_back(const Atom& atom);
@@ -168,7 +168,7 @@ class AtomCollection {
    * @note The positions are fuzzy-compared with Eigen's isApprox function and
    *   must therefore not be exactly equal.
    *
-   * @return Whether both atomcollection contain the same information
+   * @return Whether both AtomCollections contain the same information
    */
   bool operator==(const AtomCollection& other) const;
 

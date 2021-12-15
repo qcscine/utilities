@@ -35,7 +35,9 @@ class SingleParticleEnergies {
   int getUnrestrictedNLevels() const;
 
   void setRestricted(const Eigen::VectorXd& values);
+  void setRestricted(const std::vector<double>& values);
   void setUnrestricted(const Eigen::VectorXd& alpha, const Eigen::VectorXd& beta);
+  void setUnrestricted(const std::vector<double>& alpha, const std::vector<double>& beta);
 
   double getRestrictedLevelEnergy(int index) const;
   double getAlphaLevelEnergy(int index) const;

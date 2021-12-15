@@ -162,8 +162,54 @@ TEST_F(AResultsAutoCompleterTest, CanComputeThermochemistry) {
   // Read in Hessian from ORCA output given in ExternalQC test
   auto pathToResources = boost::dll::program_location().parent_path();
   pathToResources /= "Resources";
-  ExternalQC::OrcaHessianOutputParser hessianParser((pathToResources / "orca_test_calc.hess").string());
-  HessianMatrix hessian = hessianParser.getHessian();
+  const auto hessianFile = (pathToResources / "orca_test_calc.hess").string();
+  HessianMatrix hessian = ExternalQC::OrcaHessianOutputParser::getHessian(hessianFile);
+  arbitraryResults.set<Property::Hessian>(hessian);
+
+  // Should be able to compute Thermochemistry
+  ASSERT_TRUE(arbitraryResultsAutoCompleter->propertyGeneratable(arbitraryResults, Property::Thermochemistry));
+  // Launch calculation
+  arbitraryResultsAutoCompleter->generateProperties(arbitraryResults, structure);
+
+  // Should have computed thermochemical properties
+  ASSERT_TRUE(arbitraryResults.has<Property::Thermochemistry>());
+  // Insufficient information for calculating Atomic Charges so they should not be there
+  ASSERT_FALSE(arbitraryResults.has<Property::AtomicCharges>());
+
+  // Check whether computed Thermochemical properties match orca_test_calc.out
+  ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().vibrationalComponent.zeroPointVibrationalEnergy,
+              DoubleNear(0.02101209, 1e-5));
+  ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().overall.enthalpy, DoubleNear(-75.79347127, 1e-5));
+  ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().overall.entropy * 298.15, DoubleNear(0.02210368, 1e-5));
+  ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().overall.gibbsFreeEnergy, DoubleNear(-75.81557495, 1e-5));
+}
+
+TEST_F(AResultsAutoCompleterTest, CanComputeThermochemistryReverseOccupation) {
+  // Generate AtomCollection corresponding to H2O+ as given in ORCA input
+  std::stringstream stream("3\n\n"
+                           "H      0.7493682000    0.0000000000    0.4424329000\n"
+                           "O      0.0000000000    0.0000000000   -0.1653507000\n"
+                           "H     -0.7493682000    0.0000000000    0.4424329000\n");
+  auto structure = XyzStreamHandler::read(stream);
+  arbitraryResultsAutoCompleter = std::make_unique<ResultsAutoCompleter>(structure);
+  // C2v symmetry
+  arbitraryResultsAutoCompleter->setMolecularSymmetryNumber(2);
+
+  arbitraryResults.set<Property::SuccessfulCalculation>(true);
+  // Set electronic occupation
+  // Only thing that is really needed from occupation is multiplicity so make sure it is correct
+  LcaoUtils::ElectronicOccupation unrestrictedOccupation;
+  // Reverse occupation w.r.t. CanComputeThermochemistry
+  unrestrictedOccupation.fillLowestUnrestrictedOrbitals(4, 5);
+  arbitraryResults.set<Property::ElectronicOccupation>(unrestrictedOccupation);
+  // Electronic energy from Resources/orca_test_calc.out
+  arbitraryResults.set<Property::Energy>(-75.818269296087);
+
+  // Read in Hessian from ORCA output given in ExternalQC test
+  auto pathToResources = boost::dll::program_location().parent_path();
+  pathToResources /= "Resources";
+  const auto hessianFile = (pathToResources / "orca_test_calc.hess").string();
+  HessianMatrix hessian = ExternalQC::OrcaHessianOutputParser::getHessian(hessianFile);
   arbitraryResults.set<Property::Hessian>(hessian);
 
   // Should be able to compute Thermochemistry

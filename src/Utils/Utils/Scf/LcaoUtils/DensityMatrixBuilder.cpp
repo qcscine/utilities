@@ -29,15 +29,17 @@ DensityMatrix DensityMatrixBuilder::generateRestrictedForNumberElectrons(int nEl
   const auto& C = coefficientMatrix_.restrictedMatrix();
   Eigen::MatrixXd P = 2 * calculateDensityMatrix(C, nElectrons / 2);
 
-  if ((nElectrons % 2) != 0) // if odd number of electrons
+  // if odd number of electrons
+  if ((nElectrons % 2) != 0) {
     P += calculateSingleOrbitalDensity(C.col(nElectrons / 2));
+  }
 
   DensityMatrix densityMatrix;
   densityMatrix.setDensity(std::move(P), nElectrons);
   return densityMatrix;
 }
 
-Eigen::MatrixXd DensityMatrixBuilder::calculateDensityMatrix(const Eigen::MatrixXd& coefficientMatrix, int nOccupiedLevels) const {
+Eigen::MatrixXd DensityMatrixBuilder::calculateDensityMatrix(const Eigen::MatrixXd& coefficientMatrix, int nOccupiedLevels) {
   auto nAOs = coefficientMatrix.cols();
   assert(nAOs >= nOccupiedLevels && "More electrons than atomic orbitals.");
 
@@ -141,18 +143,18 @@ DensityMatrix DensityMatrixBuilder::generateUnrestrictedWithSwaps(
   return densityMatrix;
 }
 
-Eigen::MatrixXd DensityMatrixBuilder::calculateSingleOrbitalDensity(const Eigen::VectorXd& eigenvector) const {
+Eigen::MatrixXd DensityMatrixBuilder::calculateSingleOrbitalDensity(const Eigen::VectorXd& eigenvector) {
   return eigenvector * eigenvector.transpose();
 }
 
-Eigen::MatrixXd DensityMatrixBuilder::calculateBlockOrbitalDensity(const Eigen::MatrixXd& eigenvectors) const {
+Eigen::MatrixXd DensityMatrixBuilder::calculateBlockOrbitalDensity(const Eigen::MatrixXd& eigenvectors) {
   return eigenvectors * eigenvectors.transpose();
 }
 
 Eigen::MatrixXd
 DensityMatrixBuilder::calculateDifferenceSwapDensity(const Eigen::MatrixXd& coefficientMatrix,
                                                      const std::vector<MolecularOrbitalsManipulation::DeprecatedSwap>& swaps,
-                                                     int homoIndex) const {
+                                                     int homoIndex) {
   auto dim = coefficientMatrix.rows();
   Eigen::MatrixXd dP = Eigen::MatrixXd::Zero(dim, dim);
 
@@ -242,7 +244,7 @@ DensityMatrix DensityMatrixBuilder::generateUnrestrictedWithMixing(
 Eigen::MatrixXd
 DensityMatrixBuilder::calculateDifferenceMixDensity(const Eigen::MatrixXd& coefficientMatrix,
                                                     const std::vector<MolecularOrbitalsManipulation::DeprecatedMix>& mix,
-                                                    int homoIndex) const {
+                                                    int homoIndex) {
   auto dim = coefficientMatrix.rows();
   Eigen::MatrixXd dP = Eigen::MatrixXd::Zero(dim, dim);
 

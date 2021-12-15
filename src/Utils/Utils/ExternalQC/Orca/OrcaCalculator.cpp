@@ -15,6 +15,8 @@
 #include "Utils/IO/FilesystemHelpers.h"
 #include "Utils/IO/NativeFilenames.h"
 #include "Utils/Properties/Thermochemistry/ThermochemistryCalculator.h"
+#include "Utils/Scf/LcaoUtils/SpinMode.h"
+#include "Utils/Solvation/ImplicitSolvation.h"
 #include <boost/process.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -34,19 +36,11 @@ std::string OrcaCalculator::name() const {
 
 bool OrcaCalculator::supportsMethodFamily(const std::string& methodFamily) const {
   if (std::getenv("ORCA_BINARY_PATH")) {
-    if (methodFamily == "DFT")
-      return true;
-    else if (methodFamily == "CC")
-      return true;
-    else if (methodFamily == "PM3")
-      return true;
-    else if (methodFamily == "AM1")
-      return true;
-    return false;
+    return std::find(availableMethodFamilies_.begin(), availableMethodFamilies_.end(), methodFamily) !=
+           availableMethodFamilies_.end();
   }
-  else {
-    return false;
-  }
+
+  return false;
 }
 
 OrcaCalculator::OrcaCalculator() {
@@ -67,8 +61,8 @@ OrcaCalculator::OrcaCalculator(const OrcaCalculator& rhs) {
   this->settings_ =
       std::make_unique<Utils::Settings>(Utils::Settings(valueCollection, rhs.settings().getDescriptorCollection()));
   applySettings();
-  this->results() = rhs.results();
   this->setStructure(rhs.atoms_);
+  this->results() = rhs.results();
   this->orcaExecutable_ = rhs.orcaExecutable_;
   this->binaryHasBeenChecked_ = rhs.binaryHasBeenChecked_;
 }
@@ -78,12 +72,28 @@ void OrcaCalculator::applySettings() {
     throw Core::InitializationException(
         "ORCA calculations with an electronic temperature above 0.0 K are not supported.");
   }
-  if (settings_->check()) {
+  if (settings_->valid()) {
     fileNameBase_ = settings_->getString(SettingsNames::orcaFilenameBase);
     baseWorkingDirectory_ = settings_->getString(SettingsNames::baseWorkingDirectory);
+    // throws error for wrong input and updates 'any' entries */
+    // information if solvation is performed is deduced from settings from InputFileCreator and therefore discarded here
+    Solvation::ImplicitSolvation::solvationNeededAndPossible(availableSolvationModels_, *settings_);
+    if (requiredProperties_.containsSubSet(Property::Gradients) &&
+        settings_->getDouble(Utils::SettingsNames::selfConsistenceCriterion) > 1e-8) {
+      settings_->modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-8);
+      this->getLog().warning << "Warning: Energy accuracy was increased to 1e-8 to ensure valid gradients as "
+                                "recommended by ORCA developers."
+                             << Core::Log::nl;
+    }
+    if (requiredProperties_.containsSubSet(Property::Hessian) &&
+        std::find(numFreqMethods_.begin(), numFreqMethods_.end(), settings_->getString(Utils::SettingsNames::method)) !=
+            numFreqMethods_.end()) {
+      settings_->modifyString(SettingsNames::hessianCalculationType, "numerical");
+      this->getLog().output << "Calculating Hessian numerically." << Core::Log::nl;
+    }
   }
   else {
-    throw Core::InitializationException("Settings are invalid!");
+    settings_->throwIncorrectSettings();
   }
 }
 
@@ -91,6 +101,7 @@ void OrcaCalculator::setStructure(const Utils::AtomCollection& structure) {
   applySettings();
   atoms_ = structure;
   calculationDirectory_ = createNameForCalculationDirectory();
+  results_ = Results{};
 }
 
 std::unique_ptr<Utils::AtomCollection> OrcaCalculator::getStructure() const {
@@ -99,6 +110,7 @@ std::unique_ptr<Utils::AtomCollection> OrcaCalculator::getStructure() const {
 
 void OrcaCalculator::modifyPositions(Utils::PositionCollection newPositions) {
   atoms_.setPositions(std::move(newPositions));
+  results_ = Results{};
 }
 
 const Utils::PositionCollection& OrcaCalculator::getPositions() const {
@@ -115,19 +127,19 @@ PropertyList OrcaCalculator::getRequiredProperties() const {
 
 Utils::PropertyList OrcaCalculator::possibleProperties() const {
   return Property::Energy | Property::Gradients | Property::Hessian | Property::BondOrderMatrix |
-         Property::Thermochemistry | Property::AtomicCharges;
+         Property::Thermochemistry | Property::AtomicCharges | Property::PointChargesGradients | Property::OrbitalEnergies;
 }
 
 const Results& OrcaCalculator::calculate(std::string description) {
   applySettings();
-
   try {
     return calculateImpl(description);
   }
   catch (std::runtime_error& e) {
     // Delete all of the .tmp files in the calculation directory if requested
-    if (settings_->getBool(SettingsNames::deleteTemporaryFiles))
+    if (settings_->getBool(SettingsNames::deleteTemporaryFiles)) {
       deleteTemporaryFiles();
+    }
     throw Core::UnsuccessfulCalculationException(e.what());
   }
 }
@@ -139,8 +151,7 @@ const Results& OrcaCalculator::calculateImpl(std::string description) {
   std::string inputFile = externalProgram.generateFullFilename(fileNameBase_ + ".inp");
   std::string outputFile = externalProgram.generateFullFilename(fileNameBase_ + ".out");
 
-  OrcaInputFileCreator inputFileCreator;
-  inputFileCreator.createInputFile(inputFile, atoms_, *settings_, requiredProperties_);
+  OrcaInputFileCreator::createInputFile(inputFile, atoms_, *settings_, requiredProperties_);
 
   // Check whether the given binary is valid
   if (!binaryIsValid()) {
@@ -157,15 +168,16 @@ const Results& OrcaCalculator::calculateImpl(std::string description) {
   OrcaMainOutputParser parser(outputFile);
   parser.checkForErrors();
 
-  results_.set<Property::Description>(description);
-  if (requiredProperties_.containsSubSet(Property::Energy))
+  results_.set<Property::Description>(std::move(description));
+  if (requiredProperties_.containsSubSet(Property::Energy)) {
     results_.set<Property::Energy>(parser.getEnergy());
-  if (requiredProperties_.containsSubSet(Property::Gradients))
+  }
+  if (requiredProperties_.containsSubSet(Property::Gradients)) {
     results_.set<Property::Gradients>(parser.getGradients());
+  }
   if (requiredProperties_.containsSubSet(Property::Hessian)) {
     std::string hessianFile = externalProgram.generateFullFilename(fileNameBase_ + ".hess");
-    OrcaHessianOutputParser hessianParser(hessianFile);
-    results_.set<Property::Hessian>(hessianParser.getHessian());
+    results_.set<Property::Hessian>(OrcaHessianOutputParser::getHessian(hessianFile));
   }
   if (requiredProperties_.containsSubSet(Property::BondOrderMatrix)) {
     results_.set<Property::BondOrderMatrix>(parser.getBondOrders());
@@ -192,8 +204,16 @@ const Results& OrcaCalculator::calculateImpl(std::string description) {
     OrcaPointChargesGradientsFileParser pcParser(pcGradientsFile);
     results_.set<Property::PointChargesGradients>(pcParser.getPointChargesGradients());
   }
+  if (requiredProperties_.containsSubSet(Property::OrbitalEnergies)) {
+    results_.set<Property::OrbitalEnergies>(parser.getOrbitalEnergies());
+  }
   results_.set<Property::SuccessfulCalculation>(true);
   results_.set<Property::ProgramName>("orca");
+  if (SpinMode::Any == SpinModeInterpreter::getSpinModeFromString(settings_->getString(Utils::SettingsNames::spinMode))) {
+    int multiplicity = settings_->getInt(Utils::SettingsNames::spinMultiplicity);
+    auto spinMode = multiplicity == 1 ? SpinMode::Restricted : SpinMode::Unrestricted;
+    settings_->modifyString(Utils::SettingsNames::spinMode, SpinModeInterpreter::getStringFromSpinMode(spinMode));
+  }
 
   return results_;
 }
@@ -223,7 +243,7 @@ void OrcaCalculator::copyBackupFile(const std::string& from, const std::string& 
     FilesystemHelpers::copyFile(fromFile, toFile);
   }
   catch (std::runtime_error& e) {
-    throw StateSavingException();
+    throw OrcaStateSavingException();
   }
 }
 
@@ -255,11 +275,13 @@ std::string OrcaCalculator::getCalculationDirectory() const {
 }
 
 bool OrcaCalculator::binaryIsValid() {
-  if (binaryHasBeenChecked_)
+  if (binaryHasBeenChecked_) {
     return true;
+  }
 
-  if (orcaExecutable_.empty())
+  if (orcaExecutable_.empty()) {
     return false;
+  }
 
   bp::ipstream out;
   std::error_code ec;
@@ -278,8 +300,9 @@ bool OrcaCalculator::binaryIsValid() {
   }
 
   bool isValid = std::regex_search(outputString, matches, regex);
-  if (isValid)
+  if (isValid) {
     binaryHasBeenChecked_ = true;
+  }
   return isValid;
 }
 

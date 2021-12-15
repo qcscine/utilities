@@ -5,14 +5,19 @@
  *            See LICENSE.txt for details.
  */
 
+#include "Cp2kModule.h"
 #include "GaussianModule.h"
+#include "LennardJonesModule.h"
 #include "OrcaModule.h"
+#include "TestModule.h"
+#include "TurbomoleModule.h"
 
 namespace Scine {
 namespace Utils {
 
 std::vector<std::shared_ptr<Scine::Core::Module>> moduleFactory() {
-  return {OrcaModule::make(), GaussianModule::make()};
+  return {Cp2kModule::make(),      OrcaModule::make(), GaussianModule::make(),
+          TurbomoleModule::make(), TestModule::make(), LennardJonesModule::make()};
 }
 
 } // namespace Utils

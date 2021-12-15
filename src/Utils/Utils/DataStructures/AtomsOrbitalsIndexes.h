@@ -29,20 +29,20 @@ class AtomsOrbitalsIndexes {
   /*! Sets the new number of atoms and resizes members. It is advised to call clear() before. */
   void setSize(int nAtoms);
   /*! Get the total number of atoms. */
-  int getNAtoms() const {
+  inline int getNAtoms() const {
     return nAtoms_;
   }
   /*! Get the total number of atomic orbitals. */
-  int getNAtomicOrbitals() const {
+  inline int getNAtomicOrbitals() const {
     return nAtomicOrbitals_;
   }
   /*! Get the number of atomic orbitals for a given atom index. */
-  int getNOrbitals(int atomicIndex) const {
-    return numberOrbitals_[atomicIndex];
+  inline int getNOrbitals(int atomicIndex) const {
+    return numberOrbitals_.at(atomicIndex);
   }
   /*! Get the index of the first atomic orbital for a given atom index. */
-  int getFirstOrbitalIndex(int atomicIndex) const {
-    return firstAOIndexes_[atomicIndex];
+  inline int getFirstOrbitalIndex(int atomicIndex) const {
+    return firstAOIndexes_.at(atomicIndex);
   }
 
  private:

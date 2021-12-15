@@ -23,16 +23,18 @@ namespace Utils {
  * https://doi.org/10.1016/0021-9991(75)90065-0
  */
 template<class MatrixType>
-class IndirectSigmaVectorEvaluator final : public SigmaVectorEvaluator<MatrixType> {
+class IndirectSigmaVectorEvaluator final : public SigmaVectorEvaluator {
  public:
   explicit IndirectSigmaVectorEvaluator(const MatrixType& matrix) : fullMatrixToDiagonalize_(matrix) {
   }
   ~IndirectSigmaVectorEvaluator() final = default;
 
-  Eigen::MatrixXd evaluateSigmaVector(const Eigen::MatrixXd& guessVectors) const final;
+  const Eigen::MatrixXd& evaluate(const Eigen::MatrixXd& guessVectors) const final;
+  void collapsed(int newSubspaceDimension) final;
 
  private:
   MatrixType fullMatrixToDiagonalize_;
+  mutable Eigen::MatrixXd cachedSigmaMatrix_;
 };
 
 } // namespace Utils

@@ -8,9 +8,9 @@
 #include "Utils/GeometryOptimization/AfirOptimizerBase.h"
 #include "Utils/Geometry/AtomCollection.h"
 #include "Utils/Geometry/ElementInfo.h"
-#include <math.h>
 #include <Eigen/Dense>
 #include <array>
+#include <cmath>
 
 namespace Scine {
 namespace Utils {
@@ -35,17 +35,17 @@ void AfirOptimizerBase::evaluateArtificialForces(const AtomCollection& atoms, do
   // Gather data
   auto positions = atoms.getPositions();
   auto elements = atoms.getElements();
-  const unsigned int nAtoms = atoms.size();
+  const int nAtoms = atoms.size();
   const auto& lhs = this->lhsList;
   const auto& rhs = this->rhsList;
 
   // Check lists
-  for (auto& i : lhs) {
+  for (const auto& i : lhs) {
     if (i >= nAtoms) {
       throw std::logic_error("Index greater than number of atoms requested in AFIR atom list.");
     }
   }
-  for (auto& i : rhs) {
+  for (const auto& i : rhs) {
     if (i >= nAtoms) {
       throw std::logic_error("Index greater than number of atoms requested in AFIR atom list.");
     }
@@ -59,13 +59,14 @@ void AfirOptimizerBase::evaluateArtificialForces(const AtomCollection& atoms, do
   const double epsilon = 0.00038320319; // 1.0061 kJ/mol in a.u.
   const double r0 = 7.21195078;         // 3.8164 Angstrom in a.u.
   const double gamma = this->energyAllowance / 2625.5;
-  const double tmp = 1.0 + sqrt(1.0 + gamma / epsilon);
-  const double prefactor = (this->attractive ? 1.0 : -1.0) * gamma / ((pow(2.0, -1.0 / 6.0) - pow(tmp, -1.0 / 6.0)) * r0);
+  const double tmp = 1.0 + std::sqrt(1.0 + gamma / epsilon);
+  const double prefactor =
+      (this->attractive ? 1.0 : -1.0) * gamma / ((std::pow(2.0, -1.0 / 6.0) - std::pow(tmp, -1.0 / 6.0)) * r0);
   const double gammaWeak = 10.0 / ((nAtoms - 1.0) * 2625.5);
-  const double tmpWeak = 1.0 + sqrt(1.0 + gammaWeak / epsilon);
-  const double prefactorWeak = gammaWeak / ((pow(2.0, -1.0 / 6.0) - pow(tmpWeak, -1.0 / 6.0)) * r0);
+  const double tmpWeak = 1.0 + std::sqrt(1.0 + gammaWeak / epsilon);
+  const double prefactorWeak = gammaWeak / ((std::pow(2.0, -1.0 / 6.0) - std::pow(tmpWeak, -1.0 / 6.0)) * r0);
 
-  if (this->lhsList.size() > 0 && this->rhsList.size() > 0) {
+  if (!this->lhsList.empty() && !this->rhsList.empty()) {
     // Generate distances and weights
     Eigen::MatrixXd distances = Eigen::MatrixXd::Zero(this->lhsList.size(), this->rhsList.size());
     Eigen::MatrixXd weights = Eigen::MatrixXd::Zero(this->lhsList.size(), this->rhsList.size());
@@ -127,8 +128,8 @@ void AfirOptimizerBase::evaluateArtificialForces(const AtomCollection& atoms, do
     // Generate distances and weights
     Eigen::MatrixXd fullDistances = Eigen::MatrixXd::Zero(nAtoms, nAtoms);
     Eigen::MatrixXd fullWeights = Eigen::MatrixXd::Zero(nAtoms, nAtoms);
-    for (unsigned int i = 0; i < nAtoms; i++) {
-      for (unsigned int j = 0; j < i; j++) {
+    for (int i = 0; i < nAtoms; i++) {
+      for (int j = 0; j < i; j++) {
         fullDistances(i, j) = (positions.row(i) - positions.row(j)).norm();
         fullDistances(j, i) = fullDistances(i, j);
         double radi = covalentRadii[ElementInfo::Z(elements[i])] * 0.0188971616463207;
@@ -151,10 +152,12 @@ void AfirOptimizerBase::evaluateArtificialForces(const AtomCollection& atoms, do
     // Calculate the gradient contributions
     auto weakGradients(gradients);
     weakGradients.setZero();
-    for (unsigned int i = 0; i < nAtoms; i++) {
-      for (unsigned int j = 0; j < nAtoms; j++) {
-        if (i == j)
+    for (int i = 0; i < nAtoms; i++) {
+      for (int j = 0; j < nAtoms; j++) {
+        if (i == j) {
           continue;
+        }
+
         const double tmpPow6 = fullPow6(i, j);
         const double tmpPow7 = fullPow6(i, j) / fullDistances(i, j);
         const double dEdr = ((6.0 * tmpPow7 * fullPow5sum) - (5.0 * tmpPow6 * fullPow6sum)) / (fullPow6sum * fullPow6sum);

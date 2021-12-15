@@ -12,7 +12,7 @@
 
 using namespace Scine::Utils;
 
-namespace detail {
+namespace {
 
 void setBOMatrix(BondOrderCollection& bo, Eigen::SparseMatrix<double> matr) {
   bo.setMatrix(std::move(matr));
@@ -30,7 +30,7 @@ double getBOOrder(const BondOrderCollection& bo, int i, int j) {
   return bo.getOrder(i, j);
 }
 
-} // namespace detail
+} // namespace
 
 void init_bond_order_collection(pybind11::module& m) {
   pybind11::class_<BondOrderCollection> bond_order_collection(m, "BondOrderCollection",
@@ -55,15 +55,15 @@ void init_bond_order_collection(pybind11::module& m) {
     )delim");
   bond_order_collection.def(pybind11::init<>());
   bond_order_collection.def(pybind11::init<int>(), "Initialize a bond order collection to a particular size");
-  bond_order_collection.def_property("matrix", &BondOrderCollection::getMatrix, &detail::setBOMatrix, "Underlying matrix");
+  bond_order_collection.def_property("matrix", &BondOrderCollection::getMatrix, &setBOMatrix, "Underlying matrix");
   bond_order_collection.def("resize", &BondOrderCollection::resize, pybind11::arg("N"), R"delim(
     Resize the matrix
 
     Resizing the matrix does not preserve any existing values
   )delim");
   bond_order_collection.def("set_zero", &BondOrderCollection::setZero, "Set all bond orders to zero");
-  bond_order_collection.def("get_system_size", &detail::getBOSystemSize, "Get the system size");
-  bond_order_collection.def("set_order", &detail::setBOOrder, pybind11::arg("i"), pybind11::arg("j"), pybind11::arg("order"),
+  bond_order_collection.def("get_system_size", &getBOSystemSize, "Get the system size");
+  bond_order_collection.def("set_order", &setBOOrder, pybind11::arg("i"), pybind11::arg("j"), pybind11::arg("order"),
                             R"delim(
       Set a bond order
 
@@ -73,7 +73,7 @@ void init_bond_order_collection(pybind11::module& m) {
       :param j: Second matrix index
       :param order: Order to set
     )delim");
-  bond_order_collection.def("get_order", &detail::getBOOrder, pybind11::arg("i"), pybind11::arg("j"), "Get a bond order");
+  bond_order_collection.def("get_order", &getBOOrder, pybind11::arg("i"), pybind11::arg("j"), "Get a bond order");
   bond_order_collection.def("empty", &BondOrderCollection::empty, "Checks whether there are no entries in the BO matrix");
 
   // Operators

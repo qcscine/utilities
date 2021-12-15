@@ -254,6 +254,18 @@ TEST_F(XyzStreamHandlerTest, SelfConsistent) {
   ASSERT_THAT(atoms, Eq(secondTime));
 }
 
+TEST_F(XyzStreamHandlerTest, CommentIsCorrect) {
+  std::stringstream in(dimethylbutaneXYZ), out;
+  AtomCollection atoms = XyzStreamHandler::read(in);
+  XyzStreamHandler::write(out, atoms, "comment");
+  std::string line;
+  std::istringstream f(out.str());
+  /* Ignore first line */
+  std::getline(f, line);
+  std::getline(f, line);
+  ASSERT_THAT(line, Eq("comment"));
+}
+
 } /* namespace Tests */
 } /* namespace Utils */
 } /* namespace Scine */

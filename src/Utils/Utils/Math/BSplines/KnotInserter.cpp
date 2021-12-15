@@ -14,12 +14,10 @@ namespace Utils {
 
 namespace BSplines {
 
-KnotInserter::KnotInserter() = default;
-
 /*!
  * Boehm's algorithm for knot insertion
  * the knot must be >0 and <1 */
-void KnotInserter::insertKnotByReference(const double uInsert, BSpline& bs) const {
+void KnotInserter::insertKnotByReference(const double uInsert, BSpline& bs) {
   assert((uInsert > 0.0) && (uInsert < 1.0));
 
   int p = bs.getDegree();
@@ -53,7 +51,7 @@ void KnotInserter::insertKnotByReference(const double uInsert, BSpline& bs) cons
   bs = BSpline(Unew, Pnew, p);
 }
 
-BSpline KnotInserter::insertKnotByCopy(const double u, const BSpline& bs) const {
+BSpline KnotInserter::insertKnotByCopy(const double u, const BSpline& bs) {
   auto bsCopy = bs;
   KnotInserter::insertKnotByReference(u, bsCopy);
   return bsCopy;

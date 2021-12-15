@@ -36,25 +36,6 @@ namespace LcaoUtils {
 /*! Calculate the numbers of alpha and beta electrons from the total number of electrons and the spin multiplicity. */
 void getNumberUnrestrictedElectrons(int& nAlpha, int& nBeta, int nElectrons, int spinMultiplicity);
 
-void solveOccupiedRestrictedEigenvalueProblem(const SpinAdaptedMatrix& fockMatrix, MolecularOrbitals& coefficientMatrix,
-                                              SingleParticleEnergies& singleParticleEnergies, int nElectrons, Core::Log& log);
-
-void solveOccupiedRestrictedGeneralizedEigenvalueProblem(const SpinAdaptedMatrix& fockMatrix,
-                                                         const Eigen::MatrixXd& overlapMatrix,
-                                                         MolecularOrbitals& coefficientMatrix,
-                                                         SingleParticleEnergies& singleParticleEnergies, int nElectrons,
-                                                         Core::Log& log);
-
-void solveOccupiedUnrestrictedEigenvalueProblem(const SpinAdaptedMatrix& fockMatrix, MolecularOrbitals& coefficientMatrix,
-                                                SingleParticleEnergies& singleParticleEnergies, int nAlphaElectrons,
-                                                int nBetaElectrons, Core::Log& log);
-
-void solveOccupiedUnrestrictedGeneralizedEigenvalueProblem(const SpinAdaptedMatrix& fockMatrix,
-                                                           const Eigen::MatrixXd& overlapMatrix,
-                                                           MolecularOrbitals& coefficientMatrix,
-                                                           SingleParticleEnergies& singleParticleEnergies,
-                                                           int nAlphaElectrons, int nBetaElectrons, Core::Log& log);
-
 void solveRestrictedEigenvalueProblem(const SpinAdaptedMatrix& fockMatrix, MolecularOrbitals& coefficientMatrix,
                                       SingleParticleEnergies& singleParticleEnergies);
 

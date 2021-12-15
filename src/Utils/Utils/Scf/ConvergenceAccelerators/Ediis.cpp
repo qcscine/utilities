@@ -26,8 +26,9 @@ void Ediis::setSubspaceSize(int n) {
 
   subspaceSize_ = n;
 
-  if (resizeNeeded)
+  if (resizeNeeded) {
     resizeMembers();
+  }
 }
 
 void Ediis::setNAOs(int n) {
@@ -35,8 +36,9 @@ void Ediis::setNAOs(int n) {
 
   nAOs_ = n;
 
-  if (resizeNeeded)
+  if (resizeNeeded) {
     resizeMembers();
+  }
 }
 
 void Ediis::resizeMembers() {
@@ -75,8 +77,9 @@ void Ediis::updateBMatrix() {
 
   // Bij elements
   for (int i = 0; i < activeSize; i++) {
-    if (i == lastAdded_)
+    if (i == lastAdded_) {
       continue;
+    }
     double v = getBMatrixElement(lastAdded_, i);
     B(lastAdded_, i) = v;
     B(i, lastAdded_) = B(lastAdded_, i);
@@ -93,29 +96,28 @@ double Ediis::getBMatrixElement(int i, int j) const {
                     .trace();
     return (va + vb) / 2;
   }
-  else {
-    double v = ((fockMatrices[i].restrictedMatrix() - fockMatrices[j].restrictedMatrix()).selfadjointView<Eigen::Lower>() *
-                (densityMatrices[i].restrictedMatrix() - densityMatrices[j].restrictedMatrix()))
-                   .trace();
-    // Divide v by two because density matrix is RHF
-    return v / 2;
-  }
+
+  double v = ((fockMatrices[i].restrictedMatrix() - fockMatrices[j].restrictedMatrix()).selfadjointView<Eigen::Lower>() *
+              (densityMatrices[i].restrictedMatrix() - densityMatrices[j].restrictedMatrix()))
+                 .trace();
+  // Divide v by two because density matrix is RHF
+  return v / 2;
 }
 
 SpinAdaptedMatrix Ediis::getMixedFockMatrix() {
-  if (iterationNo_ > subspaceSize_)
+  if (iterationNo_ > subspaceSize_) {
     iterationNo_ = subspaceSize_;
+  }
 
   // If we have only one Fock matrix
   if (iterationNo_ < 2) {
     return fockMatrices[0];
   }
-  else {
-    EdiisCoefficientOptimizer opt(energies, B.block(0, 0, iterationNo_, iterationNo_));
-    auto coefs = opt.getCoefficients();
 
-    return calculateLinearCombination(coefs);
-  }
+  EdiisCoefficientOptimizer opt(energies, B.block(0, 0, iterationNo_, iterationNo_));
+  auto coefs = opt.getCoefficients();
+
+  return calculateLinearCombination(coefs);
 }
 
 SpinAdaptedMatrix Ediis::calculateLinearCombination(const Eigen::VectorXd& coefs) {
@@ -128,12 +130,13 @@ SpinAdaptedMatrix Ediis::calculateLinearCombination(const Eigen::VectorXd& coefs
     }
     return SpinAdaptedMatrix::createUnrestricted(std::move(FAlpha), std::move(FBeta));
   }
-  else {
-    Eigen::MatrixXd Fsol = Eigen::MatrixXd::Zero(nAOs_, nAOs_);
-    for (int i = 0; i < iterationNo_; i++)
-      Fsol += coefs[i] * fockMatrices[i].restrictedMatrix();
-    return SpinAdaptedMatrix::createRestricted(std::move(Fsol));
+
+  Eigen::MatrixXd Fsol = Eigen::MatrixXd::Zero(nAOs_, nAOs_);
+  for (int i = 0; i < iterationNo_; i++) {
+    Fsol += coefs[i] * fockMatrices[i].restrictedMatrix();
   }
+
+  return SpinAdaptedMatrix::createRestricted(std::move(Fsol));
 }
 } // namespace Utils
 } // namespace Scine

@@ -10,10 +10,20 @@
 
 #include "Utils/Settings.h"
 #include <Eigen/Core>
+#include <Eigen/Dense>
 #include <deque>
 
 namespace Scine {
 namespace Utils {
+
+/**
+ * @brief Exception thrown when the Hessian has no negative eigenvalues.
+ */
+struct NoNegativeEigenValueException : public std::runtime_error {
+  explicit NoNegativeEigenValueException() : std::runtime_error("No more negative eigenvalues, optimization failed.") {
+  }
+};
+
 /**
  * @brief The base class for all Optimizers.
  *
@@ -52,7 +62,7 @@ class Optimizer {
    *                 parameters.
    */
   void addObserver(std::function<void(const int&, const double&, const Eigen::VectorXd&)> function) {
-    _observers.push_back(function);
+    _observers.push_back(std::move(function));
   }
   /**
    * @brief Clear all existing observer functions.
@@ -99,10 +109,10 @@ class Optimizer {
    *
    * @param cycleNumber The cycle number the optimizer starts with.
    */
-  virtual void prepareRestart(const int& cycleNumber) {
+  virtual void prepareRestart(const int cycleNumber) {
     _startCycle = cycleNumber;
-    _initializedValueMemory = false;
     _valueMemory.clear();
+    _prevFollowedEigenvector.resize(0);
   }
   /**
    * @brief checks if value has been oscillating over the last maxValueMemory steps
@@ -113,26 +123,25 @@ class Optimizer {
    */
   bool isOscillating(const double value) {
     /* possibility to disable check by setting to zero, and storing less than 3 does not work */
-    if (maxValueMemory < 3)
+    if (maxValueMemory < 3) {
       return false;
-    /* initialize deque with null, if first function call */
-    if (!_initializedValueMemory) {
-      for (int i = 0; i < maxValueMemory; ++i) {
-        _valueMemory.push_back(nullptr);
-      }
-      _initializedValueMemory = true;
     }
-    _valueMemory.pop_front();
-    _valueMemory.push_back(std::make_shared<double>(value));
-    /* fill deque until full, no comparisons done yet, therefore always return false */
-    if (!_valueMemory[0])
+    // Pop the oldest value if the deque is at memory capacity
+    if (_valueMemory.size() == maxValueMemory) {
+      _valueMemory.pop_front();
+    }
+    _valueMemory.push_back(value);
+    /* wait to judge until memory is full, therefore always return false */
+    if (_valueMemory.size() < maxValueMemory) {
       return false;
+    }
     /* return false as soon as the difference of values is not alternating signs */
-    bool previousPositive = ((*_valueMemory[0] - *_valueMemory[1]) > 0.0);
-    for (int i = 2; i < maxValueMemory; ++i) {
-      bool thisPositive = ((*_valueMemory[i - 1] - *_valueMemory[i]) > 0.0);
-      if (previousPositive == thisPositive)
+    bool previousPositive = ((_valueMemory[0] - _valueMemory[1]) > 0.0);
+    for (unsigned i = 2; i < maxValueMemory; ++i) {
+      const bool thisPositive = ((_valueMemory[i - 1] - _valueMemory[i]) > 0.0);
+      if (previousPositive == thisPositive) {
         return false;
+      }
       previousPositive = thisPositive;
     }
     /* the sign of the value is alternating in saved range --> system is oscillating */
@@ -147,11 +156,113 @@ class Optimizer {
    * @return void
    */
   void oscillationCorrection(const Eigen::VectorXd& steps, Eigen::VectorXd& parameters) {
-    parameters -= (steps / 2);
+    constrainedAdd(parameters, -steps / 2);
   };
 
-  // @brief the number of saved last values during optimization to check for oscillations, setting to < 3 corresponds to
-  // turning the check off
+  /**
+   * @brief Determine stepvector to maximize energy along an eigenvector and minimize along all others
+   *
+   * @param gradients          The gradients.
+   * @param hessian            The Hessian.
+   * @param modeToMaximize     The number of the eigenvector that shall be maximized starting from zero with the
+   *                           lowest eigenvalue. This number can be adjusted based on a previously followed eigenvector
+   *                           based on cosine similarity between eigenvectors.
+   * @return Eigen::VectorXd   Returns the stepvector.
+   */
+  Eigen::VectorXd modeMaximizationWithHessian(const Eigen::VectorXd& gradients, const Eigen::MatrixXd& hessian,
+                                              int& modeToMaximize) {
+    /* Decompose Hessian */
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
+    es.compute(hessian);
+    const unsigned int nEV = es.eigenvalues().size();
+    if (modeToMaximize < 0) {
+      throw std::runtime_error("The requested mode index " + std::to_string(modeToMaximize) +
+                               " is negative, which is not possible.");
+    }
+    if (static_cast<unsigned>(modeToMaximize) >= nEV) {
+      throw std::runtime_error("The requested mode index " + std::to_string(modeToMaximize) + " is too large for " +
+                               std::to_string(nEV) + " eigenvectors.");
+    }
+
+    Eigen::VectorXd minstep = es.eigenvectors().transpose() * gradients;
+    /* determine followed EV */
+    Eigen::VectorXd overlaps = Eigen::VectorXd::Zero(nEV);
+    if (_prevFollowedEigenvector.size() != 0) {
+      /* estimate overlap of EVs to previous EV, which was followed, by cosine similarity */
+      for (unsigned i = 0; i < nEV; ++i) {
+        /* only evaluate EVs with negative eigenvalues */
+        if (es.eigenvalues()[i] >= 0.0) {
+          if (i == 0) {
+            throw NoNegativeEigenValueException();
+          }
+          break;
+        }
+        overlaps.row(i) = (_prevFollowedEigenvector.transpose() * es.eigenvectors().col(i)) /
+                          (_prevFollowedEigenvector.norm() * es.eigenvectors().col(i).norm());
+      }
+      /* use absolute values of cosine */
+      Eigen::VectorXd absOverlaps = overlaps.cwiseAbs();
+      absOverlaps.maxCoeff(&modeToMaximize);
+    }
+    _prevFollowedEigenvector = es.eigenvectors().col(modeToMaximize);
+    /* Generate lambda P */
+    Eigen::Matrix2d tmp1;
+    tmp1 << es.eigenvalues()[modeToMaximize], minstep[modeToMaximize], minstep[modeToMaximize], 0;
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es2;
+    es2.compute(tmp1);
+    const double lambdaP = es2.eigenvalues()[1]; // corresponds to highest eigenvalue
+    /* set of eigenvalues and steps without followed EV */
+    Eigen::VectorXd notFollowingMinstep(nEV - 1);
+    Eigen::VectorXd notFollowingEigenvalues(nEV - 1);
+    bool skipped = false;
+    for (int i = 0; i < static_cast<int>(nEV); ++i) {
+      if (i != modeToMaximize) {
+        /* followed mode is not inserted, therefore shift by one once the mode was skipped */
+        notFollowingMinstep.row(skipped ? i - 1 : i) = minstep.row(i);
+        notFollowingEigenvalues.row(skipped ? i - 1 : i) = es.eigenvalues().row(i);
+      }
+      else {
+        skipped = true;
+      }
+    }
+    /* Generate lambda N */
+    Eigen::MatrixXd tmp2(nEV, nEV);
+    tmp2.block(0, 0, nEV - 1, nEV - 1) = notFollowingEigenvalues.asDiagonal();
+    tmp2.block(nEV - 1, 0, 1, nEV - 1) = notFollowingMinstep.transpose();
+    tmp2.block(0, nEV - 1, nEV - 1, 1) = notFollowingMinstep;
+    tmp2(nEV - 1, nEV - 1) = 0;
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es3;
+    es3.compute(tmp2);
+    const double lambdaN = es3.eigenvalues()[0]; // corresponds to lowest eigenvalue
+    /* Contribution from followed eigenvalue to step */
+    Eigen::VectorXd steps =
+        (-minstep[modeToMaximize] / (es.eigenvalues()[modeToMaximize] - lambdaP)) * es.eigenvectors().col(modeToMaximize);
+    if (steps != steps) {
+      throw std::runtime_error("Step size in optimizer is nan.");
+    }
+    /* Contribution from other eigenvalues to step */
+    for (int i = 0; i < static_cast<int>(nEV); ++i) {
+      if (i != modeToMaximize) {
+        steps -= (minstep[i] / (es.eigenvalues()[i] - lambdaN)) * es.eigenvectors().col(i);
+      }
+    }
+    if (steps.hasNaN()) {
+      throw std::runtime_error("Step size in optimizer is nan.");
+    }
+    return steps;
+  };
+
+  /*! @brief Screening vector for constraining.
+   *
+   * An empty mask indicates all parameters may change. True values indicate
+   * a parameter is not constrained. Must be either empty or have the same
+   * length as the parameter vector.
+   */
+  Eigen::Matrix<bool, Eigen::Dynamic, 1> mask;
+
+  /*! @brief saved iteration values to check for oscillations
+   * @note setting to < 3 corresponds to turning the check off
+   */
   unsigned int maxValueMemory = 10;
 
  protected:
@@ -166,16 +277,41 @@ class Optimizer {
       function(cycle, value, parameters);
     }
   }
-  // The cycle number the optimize function starts counting with
+
+  /**
+   * @brief Alter parameters by steps, zeroing out changes to constrained parameters
+   *
+   * @param parameters Function parameters
+   * @param steps Eigen template expression of delta to parameters
+   */
+  template<typename Derived>
+  void constrainedAdd(Eigen::VectorXd& parameters, const Eigen::DenseBase<Derived>& steps) {
+    if (mask.size() == 0) {
+      parameters += steps;
+    }
+    else {
+      parameters += mask.select(steps, 0);
+    }
+  }
+
+  Eigen::VectorXd constrainGradient(const Eigen::VectorXd& gradient) {
+    if (mask.size() == 0) {
+      return gradient;
+    }
+
+    return mask.select(gradient, 0);
+  }
+
+  //! The cycle number the optimize function starts counting with
   int _startCycle = 1;
-  // A deque of the last values
-  std::deque<std::shared_ptr<double>> _valueMemory;
-  // if the _valueMemory has been initialized with null pointers
-  bool _initializedValueMemory = false;
+  //! Last iteration function values for oscillation testing
+  std::deque<double> _valueMemory;
 
  private:
-  // A vector of all registered observers.
+  //! A vector of all registered observers.
   std::vector<std::function<void(const int&, const double&, const Eigen::VectorXd&)>> _observers;
+  //! The previously followed eigenvector
+  Eigen::VectorXd _prevFollowedEigenvector;
 };
 
 /**

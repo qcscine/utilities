@@ -27,21 +27,24 @@ Eigen::VectorXd Ecqpp::calculateOptimalCoefficients() {
 
 void Ecqpp::solveAllConstrainedProblems() {
   bestSolutionEnergy_ = std::numeric_limits<double>::max();
-  for (unsigned i = 0; i < dimension_; ++i)
+  for (unsigned i = 0; i < dimension_; ++i) {
     solveAllConstrainedProblemsForNumberZeros(i);
+  }
 }
 
 void Ecqpp::solveAllConstrainedProblemsForNumberZeros(unsigned int numberZeros) {
   std::vector<bool> indexConsidered(dimension_, true);
-  for (unsigned i = 0; i < numberZeros; ++i)
+  for (unsigned i = 0; i < numberZeros; ++i) {
     indexConsidered[i] = false;
+  }
 
   do {
     generatePreviousIndexesVector(indexConsidered, numberZeros);
     generateReducedObjects();
     solveConstrainedProblem();
-    if (solutionIsValid())
+    if (solutionIsValid()) {
       addSolution();
+    }
   } while (std::next_permutation(indexConsidered.begin(), indexConsidered.end()));
 }
 
@@ -89,10 +92,7 @@ void Ecqpp::solveConstrainedProblem() {
 }
 
 bool Ecqpp::solutionIsValid() const {
-  for (unsigned i = 0; i < reducedSolution_.size(); ++i)
-    if (reducedSolution_[i] < 0)
-      return false;
-  return true;
+  return (reducedSolution_.array() >= 0).all();
 }
 
 void Ecqpp::addSolution() {

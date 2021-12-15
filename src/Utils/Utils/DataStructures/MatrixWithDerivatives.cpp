@@ -11,8 +11,9 @@ namespace Scine {
 namespace Utils {
 
 Eigen::MatrixXd MatrixWithDerivatives::getMatrixXd() const {
-  if (order_ == Utils::DerivativeOrder::Zero)
+  if (order_ == Utils::DerivativeOrder::Zero) {
     return val;
+  }
 
   if (order_ == Utils::DerivativeOrder::One) {
     Matrix0 m(der.rows(), der.cols());

@@ -61,7 +61,7 @@ class CrossValidation {
   /*
    * @brief Calculates the mean and the standard deviation of the given vector of absolute errors
    */
-  std::pair<double, double> calculateStatistics(const std::vector<double>& absoluteErrors);
+  static std::pair<double, double> calculateStatistics(const std::vector<double>& absoluteErrors);
   // Regression model
   const RegressionModel& model_;
   // Number of subsets k.

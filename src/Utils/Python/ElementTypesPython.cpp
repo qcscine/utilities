@@ -6,7 +6,7 @@
  */
 #include <Utils/Geometry/ElementInfo.h>
 #include <Utils/Geometry/ElementTypes.h>
-#include <pybind11/pybind11.h>
+#include <Utils/Pybind.h>
 
 using namespace Scine::Utils;
 
@@ -482,5 +482,33 @@ void init_element_type(pybind11::module& m) {
       .value("Rg280", ElementType::Rg280)
       .value("Cn285", ElementType::Cn285);
 
-  element_type.def("__str__", &ElementInfo::symbol);
+  element_type.def(
+      "__repr__",
+      [](const pybind11::object o) -> std::string {
+        // Generate a qualified literal for the enum: ElementType.H1
+        auto typehandle = pybind11::type::handle_of(o);
+        auto qualifiedName =
+            typehandle.attr("__qualname__").cast<std::string>() + "." + o.attr("name")().cast<std::string>();
+        return qualifiedName;
+      },
+      pybind11::prepend());
+
+  element_type.def(
+      "__str__",
+      [](const pybind11::object o) -> std::string {
+        /* Since we have no function to string-represent isotopes, we're going to
+         * just lookup the enum name in its members dictionary. Not particularly
+         * efficient.
+         */
+        ElementType e = o.cast<ElementType>();
+        // Get the members dict: str -> Utils.ElementType
+        pybind11::dict dict = o.attr("__members__");
+        for (auto pair : dict) {
+          if (pair.second.cast<ElementType>() == e) {
+            return pair.first.cast<std::string>();
+          }
+        }
+        throw std::runtime_error("No such element type");
+      },
+      pybind11::prepend());
 }

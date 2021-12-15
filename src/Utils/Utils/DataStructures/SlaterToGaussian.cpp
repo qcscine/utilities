@@ -16,7 +16,7 @@ GtoExpansion SlaterToGaussian::getGTOExpansion(unsigned int N, unsigned int n, u
   gtos.angularMomentum = l;
 
   gtos.gtfs.resize(N);
-  for (int i = 0; i < N; i++) {
+  for (unsigned int i = 0; i < N; i++) {
     gtos.gtfs[i] = Gtf{static_cast<int>(l), values[i].first, values[i].second};
   }
 

@@ -35,11 +35,25 @@ void SingleParticleEnergies::setRestricted(const Eigen::VectorXd& values) {
   assignStdVectorFromEigenVectorXd(restrictedEnergies_, values);
 }
 
+void SingleParticleEnergies::setRestricted(const std::vector<double>& values) {
+  restricted_ = true;
+  alphaEnergies_.clear();
+  betaEnergies_.clear();
+  restrictedEnergies_ = values;
+}
+
 void SingleParticleEnergies::setUnrestricted(const Eigen::VectorXd& alpha, const Eigen::VectorXd& beta) {
   restricted_ = false;
   restrictedEnergies_.clear();
   assignStdVectorFromEigenVectorXd(alphaEnergies_, alpha);
   assignStdVectorFromEigenVectorXd(betaEnergies_, beta);
+}
+
+void SingleParticleEnergies::setUnrestricted(const std::vector<double>& alpha, const std::vector<double>& beta) {
+  restricted_ = false;
+  restrictedEnergies_.clear();
+  alphaEnergies_ = alpha;
+  betaEnergies_ = beta;
 }
 
 SingleParticleEnergies SingleParticleEnergies::createEmptyUnrestrictedEnergies() {

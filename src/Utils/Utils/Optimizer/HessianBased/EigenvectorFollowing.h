@@ -11,8 +11,6 @@
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
 #include <Eigen/Core>
-#include <Eigen/Dense>
-#include <iostream>
 
 namespace Scine {
 namespace Utils {
@@ -26,6 +24,7 @@ namespace Utils {
 class EigenvectorFollowing : public Optimizer {
  public:
   static constexpr const char* evTrustRadius = "ev_trust_radius";
+  static constexpr const char* evMode = "ev_follow_mode";
   /// @brief Default constructor.
   EigenvectorFollowing() = default;
   /**
@@ -69,122 +68,54 @@ class EigenvectorFollowing : public Optimizer {
     prevFollowedEigenvector.resize(nParams);
     while (!stop) {
       cycle++;
-      /* Decompose Hessian */
-      Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
-      es.compute(*hessian);
-      const unsigned int nEV = es.eigenvalues().size();
-      Eigen::VectorXd minstep = es.eigenvectors().transpose() * gradients;
-      /* determine followed EV */
-      /* for first step lowest eigenvalue is followed; could be changed to user-defined value */
-      unsigned int modeToFollow = 0;
-      Eigen::VectorXd overlaps = Eigen::VectorXd::Zero(nEV);
-      if (cycle != _startCycle + 1) {
-        /* estimate overlap of EVs to previous EV, which was followed, by cosine similarity */
-        for (int i = 0; i < nEV; ++i) {
-          /* only evaluate EVs with negative eigenvalues */
-          if (es.eigenvalues()[i] < 0) {
-            overlaps.row(i) = (prevFollowedEigenvector.transpose() * es.eigenvectors().col(i)) /
-                              (prevFollowedEigenvector.norm() * es.eigenvectors().col(i).norm());
-          }
-          else
-            break;
-        }
-        /* use absolute values of cosine */
-        Eigen::VectorXd absOverlaps = overlaps.cwiseAbs();
-        if (absOverlaps.size() > 0) {
-          absOverlaps.maxCoeff(&modeToFollow);
-        }
-        else {
-          std::cout
-              << "WARNING: Did not find negative eigenvalue, trying to maximize along mode of the lowest eigenvalue."
-              << std::endl;
-          modeToFollow = 0;
-        }
+      Eigen::VectorXd steps = modeMaximizationWithHessian(gradients, *hessian, modeToFollow);
+      // Check trustradius and take a step
+      const double maxVal = steps.array().abs().maxCoeff();
+      if (maxVal > trustRadius) {
+        steps *= trustRadius / maxVal;
       }
-      prevFollowedEigenvector = es.eigenvectors().col(modeToFollow);
-      /* Generate lambda P */
-      Eigen::Matrix2d tmp1;
-      tmp1 << es.eigenvalues()[modeToFollow], minstep[modeToFollow], minstep[modeToFollow], 0;
-      Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es2;
-      es2.compute(tmp1);
-      const double lambdaP = es2.eigenvalues()[1]; // corresponds to highest eigenvalue
-      /* set of eigenvalues and steps without followed EV */
-      Eigen::VectorXd notFollowingMinstep(nEV - 1);
-      Eigen::VectorXd notFollowingEigenvalues(nEV - 1);
-      bool skipped = false;
-      for (int i = 0; i < nEV; ++i) {
-        if (i != modeToFollow) {
-          /* followed mode is not inserted, therefore shift by one once the mode was skipped */
-          notFollowingMinstep.row(skipped ? i - 1 : i) = minstep.row(i);
-          notFollowingEigenvalues.row(skipped ? i - 1 : i) = es.eigenvalues().row(i);
-        }
-        else {
-          skipped = true;
-        }
-      }
-      /* Generate lambda N */
-      Eigen::MatrixXd tmp2(nEV, nEV);
-      tmp2.block(0, 0, nEV - 1, nEV - 1) = notFollowingEigenvalues.asDiagonal();
-      tmp2.block(nEV - 1, 0, 1, nEV - 1) = notFollowingMinstep.transpose();
-      tmp2.block(0, nEV - 1, nEV - 1, 1) = notFollowingMinstep;
-      tmp2(nEV - 1, nEV - 1) = 0;
-      Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es3;
-      es3.compute(tmp2);
-      const double lambdaN = es3.eigenvalues()[0]; // corresponds to lowest eigenvalue
-      /* Contribution from followed eigenvalue to step */
-      Eigen::VectorXd steps =
-          (-minstep[modeToFollow] / (es.eigenvalues()[modeToFollow] - lambdaP)) * es.eigenvectors().col(modeToFollow);
-      if (steps != steps) {
-        throw std::runtime_error("Step size in EVF optimizer is nan.");
-      }
-      /* Contribution from other eigenvalues to step */
-      for (int i = 0; i < nEV; ++i) {
-        if (i != modeToFollow) {
-          steps -= (minstep[i] / (es.eigenvalues()[i] - lambdaN)) * es.eigenvectors().col(i);
-        }
-      }
-      /* Take a step */
-      double rms = sqrt(steps.squaredNorm() / steps.size());
-      if (rms > trustRadius) {
-        steps *= trustRadius / rms;
-      }
-      parameters += steps;
       // Update and check convergence
+      constrainedAdd(parameters, steps);
       function(parameters, value, gradients, *hessian, true);
       this->triggerObservers(cycle, value, parameters);
-      stop = check.checkMaxIterations(cycle);
-      if (!stop) {
-        stop = check.checkConvergence(parameters, value, gradients);
-      }
+      stop = check.checkMaxIterations(cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
       // Check oscillation, if oscillating modify step and calculate new Hessian
       if (!stop && this->isOscillating(value)) {
-        this->oscillationCorrection(steps, parameters);
+        oscillationCorrection(steps, parameters);
         function(parameters, value, gradients, *hessian, true);
         cycle++;
         this->triggerObservers(cycle, value, parameters);
       }
     }
     return cycle;
-  };
+  }
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection
    *        thus expanding it to include the optimizers's options.
    * @param collection The DescriptorCollection to which new fields shall be added.
    */
-  virtual void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
+  void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
     UniversalSettings::DoubleDescriptor ev_trust_radius("The maximum RMS of a taken step.");
+    ev_trust_radius.setMinimum(0.0);
     ev_trust_radius.setDefaultValue(trustRadius);
     collection.push_back(EigenvectorFollowing::evTrustRadius, ev_trust_radius);
+    UniversalSettings::IntDescriptor ev_follow_mode("The number of the mode that should be followed starting with 0.");
+    ev_follow_mode.setMinimum(0);
+    ev_follow_mode.setDefaultValue(modeToFollow);
+    collection.push_back(EigenvectorFollowing::evMode, ev_follow_mode);
   };
   /**
-   * @brief Updates theoptimizers's options with those values given in the Settings.
+   * @brief Updates the optimizers's options with those values given in the Settings.
    * @param settings The settings to update the option of the steepest descent with.
    */
-  virtual void applySettings(const Settings& settings) final {
+  void applySettings(const Settings& settings) final {
     trustRadius = settings.getDouble(EigenvectorFollowing::evTrustRadius);
+    modeToFollow = settings.getInt(EigenvectorFollowing::evMode);
   };
   /// @brief The maximum RMS of a taken step.
-  double trustRadius = 0.3;
+  double trustRadius = 1.0e-1;
+  /// @brief The number of the mode to follow
+  int modeToFollow = 0;
 };
 
 } // namespace Utils

@@ -13,8 +13,9 @@ namespace Scine {
 namespace Utils {
 namespace Dftd3 {
 
-// Intialization of a D3 calculation.
-void Dftd3::initialize(AtomCollection atomCollection, double a1, double s8, double a2) {
+// Initialization of a D3 calculation.
+void Dftd3::initialize(const AtomCollection& atomCollection, double s6, double s8, double dampingParam1,
+                       double dampingParam2, Damping damping) {
   // initialize energy and gradients and the AtomicSecondDerivativesCollection, which holds
   // the gradients during the calculation.
   energy_ = 0.0;
@@ -22,8 +23,22 @@ void Dftd3::initialize(AtomCollection atomCollection, double a1, double s8, doub
   gradients_.setZero();
   UpToSecondDerivatives_ = AtomicSecondDerivativeCollection(atomCollection.size());
   UpToSecondDerivatives_.setZero();
-  // intialize D3 Parameters.
-  parameters_ = Dftd3Parameters(a1, s8, a2);
+  damping_ = damping;
+  // Initialize D3 Parameters.
+  parameters_ = Dftd3Parameters();
+  parameters_.setS6(s6);
+  parameters_.setS8(s8);
+  if (damping_ == BJ) {
+    parameters_.setA1(dampingParam1);
+    parameters_.setA2(dampingParam2);
+  }
+  else if (damping_ == Zero) {
+    parameters_.setSr(dampingParam1);
+    parameters_.setA(dampingParam2);
+  }
+  else {
+    throw std::runtime_error("Damping function not supported");
+  }
   structure_.clear();
 
   // This loop converts the AtomCollection into a vector of Dftd3Atoms.
@@ -45,7 +60,7 @@ Eigen::MatrixXd Dftd3::getC6Matrix() const {
 }
 
 // Getter for the energy
-double Dftd3::getEnergy() {
+double Dftd3::getEnergy() const {
   return energy_;
 }
 
@@ -56,7 +71,7 @@ std::vector<Dftd3Atom> Dftd3::getStructure() {
 
 // Setter for the structure. Note, that this is a vector of Dftd3Atoms, not an AtomCollection.
 void Dftd3::setStructure(std::vector<Dftd3Atom> structure) {
-  structure_ = structure;
+  structure_ = std::move(structure);
 }
 
 // Getter for the Gradients.
@@ -73,13 +88,24 @@ void Dftd3::calculateValuesForConstants() {
   // Loop over all atom pairs only once
   for (const auto& atom1 : structure_) {
     for (const auto& atom2 : structure_) {
-      if (atom1.getIndex() <= atom2.getIndex())
+      if (atom1.getIndex() <= atom2.getIndex()) {
         continue;
+      }
 
       // Calculate the values
       double c6 = calculateC6Coefficient(atom1, atom2);
       double c8 = calculateC8Coefficient(atom1, atom2, c6);
-      double r0 = sqrt(c8 / c6);
+      double r0;
+
+      if (damping_ == BJ) {
+        r0 = std::sqrt(c8 / c6);
+      }
+      else if (damping_ == Zero) {
+        r0 = parameters_.getR0Zero(atom1.getElementType(), atom2.getElementType());
+      }
+      else {
+        throw std::runtime_error("Damping function not supported");
+      }
 
       // Store the values into the Eigen matrices. Note, that C6_(i,j) = C6_(j,i).
       C6_(atom1.getIndex(), atom2.getIndex()) = c6;
@@ -93,7 +119,7 @@ void Dftd3::calculateValuesForConstants() {
 }
 
 // Calculation of coordination numbers for each atom. Those are fractional values in the Grimme D3 scheme.
-double Dftd3::calculateCoordinationNumber(Dftd3Atom centralAtom) {
+double Dftd3::calculateCoordinationNumber(const Dftd3Atom& centralAtom) {
   double coordinationNumber = 0.0;
   // Get some parameters for the Dftd3 parameters.
   double k1 = parameters_.getK1();
@@ -134,7 +160,7 @@ double Dftd3::evaluateGradientOfCoordNumberWrtDistance(Dftd3Atom& atom1, Dftd3At
 }
 
 // Calculation of the C6 coefficient for the atom pair atom 1 and atom 2.
-double Dftd3::calculateC6Coefficient(Dftd3Atom atom1, Dftd3Atom atom2) {
+double Dftd3::calculateC6Coefficient(const Dftd3Atom& atom1, const Dftd3Atom& atom2) {
   double k3 = parameters_.getK3();
 
   // calculate W and Z
@@ -149,8 +175,9 @@ double Dftd3::calculateC6Coefficient(Dftd3Atom atom1, Dftd3Atom atom2) {
   // referencePairs[i][2] = C6 Coefficient
   for (int i = 0; i < 25; i++) {
     // Stop the for loop if one gets to the placeholder values.
-    if (referencePairs[i][0] == Dftd3ReferencePairs::placeholder)
+    if (referencePairs[i][0] == Dftd3ReferencePairs::placeholder) {
       break;
+    }
     // Implementation of the formula presented in the reference mentioned in the header file.
     double a = atom1.getCoordinationNumber() - referencePairs[i][0];
     double b = atom2.getCoordinationNumber() - referencePairs[i][1];
@@ -180,8 +207,9 @@ double Dftd3::evaluateGradientOfC6WrtCoordNumber(Dftd3Atom& atom1, Dftd3Atom& at
   // referencePairs[i][1] = Coordination Number 2
   // referencePairs[i][2] = C6 Coefficient
   for (int i = 0; i < 25; i++) {
-    if (referencePairs[i][0] == Dftd3ReferencePairs::placeholder)
+    if (referencePairs[i][0] == Dftd3ReferencePairs::placeholder) {
       break;
+    }
     AutomaticDifferentiation::Second1D a(atom1.getCoordinationNumber() - referencePairs[i][0], 1, 0);
     double b = atom2.getCoordinationNumber() - referencePairs[i][1];
     auto l = exp(-k3 * (a * a + b * b));
@@ -197,7 +225,7 @@ double Dftd3::evaluateGradientOfC6WrtCoordNumber(Dftd3Atom& atom1, Dftd3Atom& at
 
 // Calculation of the C8 coefficient for the atom pair atom 1 and atom 2. The C6 coefficient
 // is needed as an argument.
-double Dftd3::calculateC8Coefficient(Dftd3Atom atom1, Dftd3Atom atom2, double c6) {
+double Dftd3::calculateC8Coefficient(const Dftd3Atom& atom1, const Dftd3Atom& atom2, double c6) {
   // Get some parameters for the element types of atom 1 and atom 2.
   double r2r41 = parameters_.getR2r4(atom1.getElementType());
   double r2r42 = parameters_.getR2r4(atom2.getElementType());
@@ -208,24 +236,37 @@ double Dftd3::calculateC8Coefficient(Dftd3Atom atom1, Dftd3Atom atom2, double c6
 
 // Evaluation of the D3 energy for just one atom pair (atom1, atom2).
 double Dftd3::evaluateEnergy(Dftd3Atom& atom1, Dftd3Atom& atom2) {
-  // Get a1, s8 and a2 parameters.
-  double a1 = parameters_.getA1();
-  double s8 = parameters_.getS8();
-  double a2 = parameters_.getA2();
   // Get the C6 and C8 coefficients as well as the cutoff radius, since they were pre-calculated for each atom pair.
   auto c6 = C6_(atom1.getIndex(), atom2.getIndex());
   auto c8 = C8_(atom1.getIndex(), atom2.getIndex());
   auto r0 = getR0(atom1.getIndex(), atom2.getIndex());
+  // Get the scaling parameters
+  auto s6 = parameters_.getS6();
+  auto s8 = parameters_.getS8();
 
   // Calculate the distance between atom 1 and atom 2.
   double r = (atom1.getPosition() - atom2.getPosition()).norm();
 
   // Calculate the r^6 and r^8 terms of the energy expression separately.
-  double e6 = c6 / (pow(r, 6) + pow(a1 * r0 + a2, 6));
-  double e8 = c8 / (pow(r, 8) + pow(a1 * r0 + a2, 8));
+  double damping6 = 0.0;
+  double damping8 = 0.0;
+  if (damping_ == BJ) {
+    damping6 = evaluateBjDamping(r, r0, 6);
+    damping8 = evaluateBjDamping(r, r0, 8);
+  }
+  else if (damping_ == Zero) {
+    damping6 = evaluateZeroDamping(r, r0, 6);
+    damping8 = evaluateZeroDamping(r, r0, 8);
+  }
+  else {
+    throw std::runtime_error("Damping function not supported");
+  }
+
+  double e6 = s6 * damping6 * c6 / std::pow(r, 6);
+  double e8 = s8 * damping8 * c8 / std::pow(r, 8);
 
   // Final step of the energy evaluation and return.
-  return -(e6 + s8 * e8);
+  return -(e6 + e8);
 }
 
 // This function evaluates the derivative of the energy w.r.t. the C6 coefficient.
@@ -238,14 +279,13 @@ double Dftd3::evaluateEnergyDividedByC6(Dftd3Atom& atom1, Dftd3Atom& atom2) {
 
 // Evaluate the partial derivative of the D3 energy for one atom pair w.r.t. their distance.
 double Dftd3::evaluateGradientsWrtDistances(Dftd3Atom& atom1, Dftd3Atom& atom2) {
-  // Get a1, s8 and a2 parameters.
-  double a1 = parameters_.getA1();
-  double s8 = parameters_.getS8();
-  double a2 = parameters_.getA2();
   // Get the C6 and C8 coefficients as well as the cutoff radius, since they were pre-calculated for each atom pair.
   auto c6 = C6_(atom1.getIndex(), atom2.getIndex());
   auto c8 = C8_(atom1.getIndex(), atom2.getIndex());
   auto r0 = getR0(atom1.getIndex(), atom2.getIndex());
+  // Get the scaling parameters
+  auto s6 = parameters_.getS6();
+  auto s8 = parameters_.getS8();
 
   Displacement rVector = atom2.getPosition() - atom1.getPosition();
 
@@ -258,11 +298,21 @@ double Dftd3::evaluateGradientsWrtDistances(Dftd3Atom& atom1, Dftd3Atom& atom2) 
   auto r8 = r6 * r2;
 
   // Calculate the r^6 and r^8 terms of the energy expression separately.
-  auto e6 = c6 / (r6 + pow(a1 * r0 + a2, 6));
-  auto e8 = c8 / (r8 + pow(a1 * r0 + a2, 8));
+  auto damping6 = AutomaticDifferentiation::Second1D(0, 1, 0);
+  auto damping8 = AutomaticDifferentiation::Second1D(0, 1, 0);
+  if (damping_ == BJ) {
+    damping6 = evaluateBjDamping(r, r0, 6);
+    damping8 = evaluateBjDamping(r, r0, 8);
+  }
+  else if (damping_ == Zero) {
+    damping6 = evaluateZeroDamping(r, r0, 6);
+    damping8 = evaluateZeroDamping(r, r0, 8);
+  }
+  auto e6 = s6 * damping6 * c6 / r6;
+  auto e8 = s8 * damping8 * c8 / r8;
 
   // Obtain the energy as a Second1D object.
-  AutomaticDifferentiation::Second1D final = -(e6 + s8 * e8);
+  AutomaticDifferentiation::Second1D final = -(e6 + e8);
 
   // Return only the first derivative.
   return final.first();
@@ -307,8 +357,10 @@ void Dftd3::calculate(Derivative d) {
     // Loop over all atom pairs.
     for (auto& atom1 : structure_) {
       for (auto& atom2 : structure_) {
-        if (atom1.getIndex() == atom2.getIndex())
+        if (atom1.getIndex() == atom2.getIndex()) {
           continue;
+        }
+
         dC6_dCN_(atom1.getIndex(), atom2.getIndex()) = evaluateGradientOfC6WrtCoordNumber(atom1, atom2);
         dCN_drij_(atom1.getIndex(), atom2.getIndex()) = evaluateGradientOfCoordNumberWrtDistance(atom1, atom2);
       }
@@ -323,8 +375,10 @@ void Dftd3::calculate(Derivative d) {
     // Loop over all atom pairs only once
     for (auto& atom1 : structure_) {
       for (auto& atom2 : structure_) {
-        if (atom1.getIndex() >= atom2.getIndex())
+        if (atom1.getIndex() >= atom2.getIndex()) {
           continue;
+        }
+
         dc6[atom1.getIndex()] += dC6_dCN_(atom1.getIndex(), atom2.getIndex()) * evaluateEnergyDividedByC6(atom1, atom2);
         dc6[atom2.getIndex()] += dC6_dCN_(atom2.getIndex(), atom1.getIndex()) * evaluateEnergyDividedByC6(atom1, atom2);
       }
@@ -352,8 +406,9 @@ void Dftd3::calculate(Derivative d) {
 
   // Convert the UpToSecondDerivatives matrix to the GradientCollection once it is complete.
   if (d != Derivative::None) {
+    const unsigned N = structure_.size();
 #pragma omp parallel for
-    for (int i = 0; i < structure_.size(); ++i) {
+    for (unsigned i = 0; i < N; ++i) {
       gradients_.row(i) = Gradient(UpToSecondDerivatives_[i].deriv());
     }
   }

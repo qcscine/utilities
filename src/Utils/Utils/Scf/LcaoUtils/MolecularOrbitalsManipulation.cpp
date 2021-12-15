@@ -71,8 +71,9 @@ void MolecularOrbitalsManipulation::mixUnrestricted(MolecularOrbitals& orbitals,
 
 void MolecularOrbitalsManipulation::swapOrbitalCoefficients(Eigen::MatrixXd& coefficientMatrix,
                                                             const std::vector<MolecularOrbitalsManipulation::Swap>& swaps) {
-  for (const auto& s : swaps)
+  for (const auto& s : swaps) {
     coefficientMatrix.col(s.orbital1_).swap(coefficientMatrix.col(s.orbital2_));
+  }
 }
 
 void MolecularOrbitalsManipulation::mixOrbitalCoefficients(Eigen::MatrixXd& coefficientMatrix,

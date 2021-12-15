@@ -34,9 +34,9 @@ class DiisError {
                                                    const Eigen::MatrixXd& overlap) const;
   Eigen::MatrixXd calculateRestrictedErrorMatrix(const SpinAdaptedMatrix& fock, const DensityMatrix& density,
                                                  const Eigen::MatrixXd& overlap) const;
-  Eigen::MatrixXd calculateErrorMatrix(const Eigen::MatrixXd& fock, const Eigen::MatrixXd& overlap,
-                                       const Eigen::MatrixXd& density) const;
-  Eigen::MatrixXd calculateOrthogonalErrorMatrix(const Eigen::MatrixXd& fock, const Eigen::MatrixXd& density) const;
+  static Eigen::MatrixXd calculateErrorMatrix(const Eigen::MatrixXd& fock, const Eigen::MatrixXd& overlap,
+                                              const Eigen::MatrixXd& density);
+  static Eigen::MatrixXd calculateOrthogonalErrorMatrix(const Eigen::MatrixXd& fock, const Eigen::MatrixXd& density);
 
   bool orthogonal_ = false;
   bool unrestricted_ = false;

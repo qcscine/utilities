@@ -21,6 +21,7 @@ class NativeFilenames {
  public:
   static char getDirectorySeparatorChar();
   static std::string getDirectorySeparatorString();
+  static std::string getParentDirectory(const std::string& path);
 
   /*! concatenates path segments by adding a separator if necessary. */
   template<typename T, typename U>

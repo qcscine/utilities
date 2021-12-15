@@ -5,7 +5,6 @@
  *            See LICENSE.txt for details.
  */
 #include <Core/Interfaces/Calculator.h>
-#include <Core/Interfaces/CalculatorWithReference.h>
 #include <Core/ModuleManager.h>
 #include <Utils/CalculatorBasics/PropertyList.h>
 #include <Utils/CalculatorBasics/Results.h>
@@ -18,17 +17,26 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <yaml-cpp/yaml.h>
+#include <algorithm>
 #include <iostream>
 
-std::shared_ptr<Scine::Core::Calculator> getCalculator(std::string method_family, std::string program) {
+void inputPreparation(std::string& method_family, std::string& program) {
+  if (!program.empty()) {
+    std::transform(std::begin(program) + 1, std::end(program), std::begin(program) + 1,
+                   [](unsigned char x) { return std::tolower(x); });
+
+    program[0] = std::toupper(program[0]);
+  }
+
+  std::transform(std::begin(method_family), std::end(method_family), std::begin(method_family),
+                 [](unsigned char x) { return std::toupper(x); });
+}
+
+bool hasCalculator(std::string method_family, std::string program) {
   // Load module manager
   auto& manager = Scine::Core::ModuleManager::getInstance();
 
-  for (auto& x : program)
-    x = std::tolower(x);
-  program[0] = std::toupper(program[0]);
-  for (auto& x : method_family)
-    x = std::toupper(x);
+  inputPreparation(method_family, program);
 
   // Generate Calculator
   std::shared_ptr<Scine::Core::Calculator> calc;
@@ -36,32 +44,50 @@ std::shared_ptr<Scine::Core::Calculator> getCalculator(std::string method_family
     calc = manager.get<Scine::Core::Calculator>(Scine::Core::Calculator::supports(method_family), program);
   }
   catch (...) {
-    if (program.empty()) {
+    return false;
+  }
+  return true;
+}
+
+std::shared_ptr<Scine::Core::Calculator> getCalculator(std::string method_family, std::string program) {
+  // Load module manager
+  auto& manager = Scine::Core::ModuleManager::getInstance();
+
+  inputPreparation(method_family, program);
+
+  // Generate Calculator
+  std::shared_ptr<Scine::Core::Calculator> calc;
+  try {
+    calc = manager.get<Scine::Core::Calculator>(Scine::Core::Calculator::supports(method_family), program);
+  }
+  catch (...) {
+    if (program.empty() || program == "any") {
       std::cout << "No SCINE module providing '" << method_family << "' is currently loaded.\n";
       std::cout << "Please add the module to the SCINE_MODULE_PATH\n";
       std::cout << "or load the corresponding Python module in order for it to be accessible.\n";
       throw std::runtime_error("Failed to load method/program.");
     }
-    else {
-      std::cout << "No SCINE module named '" << program << "' providing '" << method_family << "' is currently loaded.\n";
-      std::cout << "Please add the module to the SCINE_MODULE_PATH\n";
-      std::cout << "or load the corresponding Python module in order for it to be accessible.\n";
-      throw std::runtime_error("Failed to load method/program.");
-    }
+
+    std::cout << "No SCINE module named '" << program << "' providing '" << method_family << "' is currently loaded.\n";
+    std::cout << "Please add the module to the SCINE_MODULE_PATH\n";
+    std::cout << "or load the corresponding Python module in order for it to be accessible.\n";
+    throw std::runtime_error("Failed to load method/program.");
   }
   // Return Calculator
   return calc;
 }
 
-std::shared_ptr<Scine::Core::Calculator> loadSystem(std::string path, std::string method_family, pybind11::kwargs kwargs) {
+std::shared_ptr<Scine::Core::Calculator> loadSystem(const std::string& path, std::string method_family,
+                                                    const pybind11::kwargs& kwargs) {
   // Read all optional arguments and turn them into a node
-  std::string program = "";
+  std::string program;
   YAML::Node settingsnode;
+
   for (auto item : kwargs) {
-    std::string key = item.first.cast<std::string>();
+    const std::string key = item.first.cast<std::string>();
     std::string value = pybind11::str(item.second).cast<std::string>();
-    if (!key.compare("program")) {
-      program = value;
+    if (key == "program") {
+      program = std::move(value);
     }
     else {
       settingsnode[key] = value;
@@ -71,7 +97,7 @@ std::shared_ptr<Scine::Core::Calculator> loadSystem(std::string path, std::strin
   // Load molecule
   auto readResults = Scine::Utils::ChemicalFileHandler::read(path);
   // Generate Calculator
-  auto calc = getCalculator(method_family, program);
+  auto calc = getCalculator(std::move(method_family), program);
   // Apply settings to Calculator
   nodeToSettings(calc->settings(), settingsnode);
   // Set initial structure
@@ -81,7 +107,7 @@ std::shared_ptr<Scine::Core::Calculator> loadSystem(std::string path, std::strin
 
 std::vector<std::string> getAvailableSettings(std::string method_family, std::string program) {
   // Get the correct Calculator
-  auto calc = getCalculator(method_family, program);
+  auto calc = getCalculator(std::move(method_family), std::move(program));
   // Get the names of the available settings from the calculator's settings
   std::vector<std::string> availableSettings;
   Scine::Utils::UniversalSettings::DescriptorCollection settings = calc->settings().getDescriptorCollection();
@@ -93,14 +119,16 @@ std::vector<std::string> getAvailableSettings(std::string method_family, std::st
 
 Scine::Utils::PropertyList getPossiblePropertiesByStrings(std::string method_family, std::string program) {
   // Get the correct Calculator
-  auto calc = getCalculator(method_family, program);
+  auto calc = getCalculator(std::move(method_family), std::move(program));
   return calc->possibleProperties();
 }
 
-void setRequiredProperties(Scine::Core::Calculator& calculator, std::vector<Scine::Utils::Property> list) {
+void setRequiredProperties(Scine::Core::Calculator& calculator, const std::vector<Scine::Utils::Property>& list) {
   Scine::Utils::PropertyList properties;
-  for (auto& p : list)
+  for (const auto& p : list) {
     properties.addProperty(p);
+  }
+
   calculator.setRequiredProperties(properties);
 }
 
@@ -141,6 +169,11 @@ void init_calculator(pybind11::module& m) {
       [](Scine::Core::Calculator& calc, Scine::Utils::Settings settings) { calc.settings() = std::move(settings); },
       pybind11::return_value_policy::reference, "Settings of the calculator");
 
+  calculator.def_property(
+      "log", [](Scine::Core::Calculator& self) -> Scine::Core::Log& { return self.getLog(); },
+      [](Scine::Core::Calculator& self, Scine::Core::Log log) -> void { self.setLog(std::move(log)); },
+      pybind11::return_value_policy::reference, "Logger of the calculator.");
+
   calculator.def("set_required_properties", &Scine::Core::Calculator::setRequiredProperties, "Set the required properties");
   calculator.def("set_required_properties", &setRequiredProperties, "Set the required properties");
 
@@ -156,6 +189,11 @@ void init_calculator(pybind11::module& m) {
   calculator.def("name", &Scine::Core::Calculator::name, "Yields the name of the calculator");
 
   // Some static helper functions
+
+  m.def("has_calculator", &hasCalculator, pybind11::arg("method_family"), pybind11::arg("program"),
+        "Checks if a calculator with the given method and the given program is available.");
+  m.def("get_calculator", &getCalculator, pybind11::arg("method_family"), pybind11::arg("program"),
+        "Generates a calculator with the given method and from the given program.");
   m.def("load_system", &loadSystem, pybind11::arg("path"), pybind11::arg("method_family"),
         "Loads a single system (xyz-file) into a Calculator with the given method and optional settings. (Deprecated)");
   m.def("load_system_into_calculator", &loadSystem, pybind11::arg("path"), pybind11::arg("method_family"),

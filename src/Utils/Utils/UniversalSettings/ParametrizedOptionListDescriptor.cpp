@@ -72,8 +72,9 @@ const DescriptorCollection& ParametrizedOptionListDescriptor::getDefaultSettings
 int ParametrizedOptionListDescriptor::getIndex(const std::string& option) const {
   int index = -1;
   for (int i = 0; i < optionCount(); ++i) {
-    if (options_[i].first == option)
+    if (options_[i].first == option) {
       index = i;
+    }
   }
   return index;
 }
@@ -99,6 +100,21 @@ bool ParametrizedOptionListDescriptor::validValue(const GenericValue& v) const {
 
   auto settings = getSettings(optionWithSettings.selectedOption);
   return settings.validValue(optionWithSettings.optionSettings);
+}
+
+inline std::string ParametrizedOptionListDescriptor::explainInvalidValue(const GenericValue& v) const {
+  assert(!validValue(v));
+  if (!v.isOptionWithSettings()) {
+    return "Generic value for parametrized option list setting '" + getPropertyDescription() +
+           "' is not a parametrized option list!";
+  }
+  auto optionWithSettings = v.toOptionWithSettings();
+  if (!optionExists(optionWithSettings.selectedOption)) {
+    return "Value " + optionWithSettings.selectedOption + " for parametrized option list setting '" +
+           getPropertyDescription() + "' does not exist as an option!";
+  }
+  auto settings = getSettings(optionWithSettings.selectedOption);
+  return settings.explainInvalidValue(optionWithSettings.optionSettings);
 }
 
 } /* namespace UniversalSettings */

@@ -6,6 +6,7 @@
  */
 
 #include "AtomsOrbitalsIndexes.h"
+#include "cassert"
 
 namespace Scine {
 namespace Utils {
@@ -15,10 +16,16 @@ AtomsOrbitalsIndexes::AtomsOrbitalsIndexes(int nAtoms)
 }
 
 void AtomsOrbitalsIndexes::addAtom(int nAOs) {
-  firstAOIndexes_[nextAtom_] = nextAO_;
-  numberOrbitals_[nextAtom_] = nAOs;
+  if (firstAOIndexes_.size() == static_cast<unsigned long>(nextAtom_)) {
+    firstAOIndexes_.push_back(nextAO_);
+    numberOrbitals_.push_back(nAOs);
+    ++nAtoms_;
+  }
+  else {
+    firstAOIndexes_[nextAtom_] = nextAO_;
+    numberOrbitals_[nextAtom_] = nAOs;
+  }
   nAtomicOrbitals_ += nAOs;
-
   nextAO_ += nAOs;
   ++nextAtom_;
 }

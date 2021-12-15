@@ -13,7 +13,7 @@ namespace Scine {
 namespace Utils {
 
 namespace {
-const double pi = 4.0 * atan(1.0);
+const double pi = 4.0 * std::atan(1.0);
 }
 
 Gtf::Gtf(int l, double expo, double coef) : exponent(expo), coefficient(coef) {
@@ -22,14 +22,17 @@ Gtf::Gtf(int l, double expo, double coef) : exponent(expo), coefficient(coef) {
 
 void Gtf::setNormalized(int l) {
   if (l == 0) {
-    normalizedCoefficient = coefficient * pow(2 * exponent / pi, 0.75);
+    normalizedCoefficient = coefficient * std::pow(2 * exponent / pi, 0.75);
   }
   else if (l == 1) {
-    normalizedCoefficient = coefficient * pow(2, 1.75) * pow(exponent, 1.25) / pow(pi, 0.75);
+    normalizedCoefficient = coefficient * std::pow(2, 1.75) * std::pow(exponent, 1.25) / std::pow(pi, 0.75);
   }
   else if (l == 2) {
-    normalizedCoefficient = coefficient * pow(2, 2.75) * pow(exponent, 1.75) / pow(pi, 0.75); // for xy,yz,xz orbitals
-    // normalizedCoefficient2_ = coefficient*pow(2,2.75)*pow(exponent,1.75)/(pow(pi,0.75)*sqrt(3.0));//for z2, r2-3z2
+    normalizedCoefficient = coefficient * std::pow(2, 2.75) * std::pow(exponent, 1.75) / std::pow(pi, 0.75); // for
+                                                                                                             // xy,yz,xz
+                                                                                                             // orbitals
+    // normalizedCoefficient2_ =
+    // coefficient*std::pow(2,2.75)*std::pow(exponent,1.75)/(std::pow(pi,0.75)*std::sqrt(3.0));//for z2, r2-3z2
   }
 }
 

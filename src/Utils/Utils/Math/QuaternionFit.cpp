@@ -18,7 +18,7 @@ namespace Utils {
 
 Eigen::VectorXd QuaternionFit::makeWeightsVector(const ElementTypeCollection& elements) {
   Eigen::VectorXd vec(elements.size());
-  for (int i = 0; i < elements.size(); ++i) {
+  for (unsigned i = 0; i < elements.size(); ++i) {
     vec(i) = ElementInfo::mass(elements[i]);
   }
   return vec;
@@ -108,8 +108,10 @@ double QuaternionFit::getRotRMSD() const {
   double rotRMSD = (fitMat_.rowwise() - fitCenter_.transpose()).rowwise().squaredNorm().sum();
   rotRMSD += (refMat_.rowwise() - refCenter_.transpose()).rowwise().squaredNorm().sum();
   rotRMSD -= 2.0 * abs(maxEigenvalue_);
-  if (rotRMSD > 0)
+  if (rotRMSD > 0) {
     return sqrt(rotRMSD / refMat_.rows());
+  }
+
   return 0.0;
 }
 

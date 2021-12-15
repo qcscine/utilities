@@ -71,15 +71,15 @@ class DensityMatrixBuilder {
                                                int nAlpha, int nBeta) const;
 
  private:
-  Eigen::MatrixXd calculateSingleOrbitalDensity(const Eigen::VectorXd& eigenvector) const;
-  Eigen::MatrixXd calculateBlockOrbitalDensity(const Eigen::MatrixXd& eigenvectors) const;
-  Eigen::MatrixXd calculateDensityMatrix(const Eigen::MatrixXd& coefficientMatrix, int nOccupiedLevels) const;
-  Eigen::MatrixXd calculateDifferenceSwapDensity(const Eigen::MatrixXd& coefficientMatrix,
-                                                 const std::vector<MolecularOrbitalsManipulation::DeprecatedSwap>& swaps,
-                                                 int homoIndex) const;
-  Eigen::MatrixXd calculateDifferenceMixDensity(const Eigen::MatrixXd& coefficientMatrix,
-                                                const std::vector<MolecularOrbitalsManipulation::DeprecatedMix>& mix,
-                                                int homoIndex) const;
+  static Eigen::MatrixXd calculateSingleOrbitalDensity(const Eigen::VectorXd& eigenvector);
+  static Eigen::MatrixXd calculateBlockOrbitalDensity(const Eigen::MatrixXd& eigenvectors);
+  static Eigen::MatrixXd calculateDensityMatrix(const Eigen::MatrixXd& coefficientMatrix, int nOccupiedLevels);
+  static Eigen::MatrixXd calculateDifferenceSwapDensity(const Eigen::MatrixXd& coefficientMatrix,
+                                                        const std::vector<MolecularOrbitalsManipulation::DeprecatedSwap>& swaps,
+                                                        int homoIndex);
+  static Eigen::MatrixXd calculateDifferenceMixDensity(const Eigen::MatrixXd& coefficientMatrix,
+                                                       const std::vector<MolecularOrbitalsManipulation::DeprecatedMix>& mix,
+                                                       int homoIndex);
   const MolecularOrbitals& coefficientMatrix_;
 };
 

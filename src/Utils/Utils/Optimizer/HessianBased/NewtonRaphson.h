@@ -71,38 +71,38 @@ class NewtonRaphson : public Optimizer {
       svd.setThreshold(svdThreshold);
       Eigen::VectorXd steps = svd.solve(gradients);
       // Take a step
-      double rms = sqrt(steps.squaredNorm() / steps.size());
-      if (rms > trustRadius) {
-        steps *= trustRadius / rms;
+      const double maxVal = steps.array().abs().maxCoeff();
+      if (maxVal > trustRadius) {
+        steps *= trustRadius / maxVal;
       }
-      parameters -= steps;
+      constrainedAdd(parameters, -steps);
       // Update and check convergence
       function(parameters, value, gradients, *hessian, true);
       this->triggerObservers(cycle, value, parameters);
-      stop = check.checkMaxIterations(cycle);
-      if (!stop) {
-        stop = check.checkConvergence(parameters, value, gradients);
-      }
+      stop = check.checkMaxIterations(cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
+
       // Check oscillation, if oscillating modify step and calculate new Hessian
       if (!stop && this->isOscillating(value)) {
-        this->oscillationCorrection(steps, parameters);
+        oscillationCorrection(steps, parameters);
         function(parameters, value, gradients, *hessian, true);
         cycle++;
         this->triggerObservers(cycle, value, parameters);
       }
     }
     return cycle;
-  };
+  }
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection
    *        thus expanding it to include the Newton-Raphson's options.
    * @param collection The DescriptorCollection to which new fields shall be added.
    */
-  virtual void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
+  void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
     UniversalSettings::DoubleDescriptor nr_svd_threshold("The SVD threshold for the decomopsition of the Hessian.");
+    nr_svd_threshold.setMinimum(0.0);
     nr_svd_threshold.setDefaultValue(svdThreshold);
     collection.push_back(NewtonRaphson::nrSvdThreshold, nr_svd_threshold);
     UniversalSettings::DoubleDescriptor nr_trust_radius("The maximum RMS of a taken step.");
+    nr_trust_radius.setMinimum(0.0);
     nr_trust_radius.setDefaultValue(trustRadius);
     collection.push_back(NewtonRaphson::nrTrustRadius, nr_trust_radius);
   };
@@ -110,7 +110,7 @@ class NewtonRaphson : public Optimizer {
    * @brief Updates the Newton-Raphson's options with those values given in the Settings.
    * @param settings The settings to update the option of the steepest descent with.
    */
-  virtual void applySettings(const Settings& settings) final {
+  void applySettings(const Settings& settings) final {
     svdThreshold = settings.getDouble(NewtonRaphson::nrSvdThreshold);
     trustRadius = settings.getDouble(NewtonRaphson::nrTrustRadius);
   };

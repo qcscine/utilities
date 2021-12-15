@@ -17,7 +17,7 @@ Eigen::VectorXd ControlPointDerivatives::oneDerivative(const BSpline& spline, do
                                                        int curveDerivative) {
   // The derivative for controlPointIndex is actually as if the control point matrix is zero everywhere but for
   // the considered control point.
-  auto& cp = spline.getControlPointMatrix();
+  const auto& cp = spline.getControlPointMatrix();
 
   Eigen::MatrixXd newCpMatrix = Eigen::MatrixXd::Zero(cp.rows(), cp.cols());
   newCpMatrix.row(controlPointIndex).setOnes();

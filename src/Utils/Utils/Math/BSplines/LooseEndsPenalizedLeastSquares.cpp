@@ -48,7 +48,7 @@ Eigen::MatrixXd LooseEndsPenalizedLeastSquares::calculateCoefficientMatrix() {
   return Nmat;
 }
 
-Eigen::MatrixXd LooseEndsPenalizedLeastSquares::calculateFiniteDifferenceMatrix() {
+Eigen::MatrixXd LooseEndsPenalizedLeastSquares::calculateFiniteDifferenceMatrix() const {
   assert(kappa_ <= n_);
   assert(uniformKnotVector_ && "For penalization, the knot vector must be equidistant according to Eilers. The "
                                "equations for non-equidistant knot vectors is not yet implemented.");

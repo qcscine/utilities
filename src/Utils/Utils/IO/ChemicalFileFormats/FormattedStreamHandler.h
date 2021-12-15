@@ -93,7 +93,8 @@ class FormattedStreamHandler {
    * @param atoms The element type and positional information to write to a file
    * @throws FormatUnsupportedException If the desired format is unsupported
    */
-  virtual void write(std::ostream& os, const std::string& format, const Utils::AtomCollection& atoms) const = 0;
+  virtual void write(std::ostream& os, const std::string& format, const Utils::AtomCollection& atoms,
+                     const std::string& comment = "") const = 0;
 
   /**
    * @brief Writes element types and positional information to an arbitrary
@@ -107,7 +108,7 @@ class FormattedStreamHandler {
    *   contain bond order information
    */
   virtual void write(std::ostream& os, const std::string& format, const Utils::AtomCollection& atoms,
-                     const Utils::BondOrderCollection& bondOrders) const = 0;
+                     const Utils::BondOrderCollection& bondOrders, const std::string& comment = "") const = 0;
 
   /**
    * @brief Returns a list of supported file formats.

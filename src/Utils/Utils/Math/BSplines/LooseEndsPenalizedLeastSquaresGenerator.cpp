@@ -34,10 +34,9 @@ Eigen::VectorXd LooseEndsPenalizedLeastSquaresGenerator::generateKnotVector() {
     // generateKnotVectorByKnotAveraging();
     return GeneratorUtils::generateKnotVectorByDeBoorsMethod(p_, n_, uBar_);
   }
-  else {
-    uBar_ = GeneratorUtils::generateParametersByEquallySpacedMethod(dataPoints_);
-    return GeneratorUtils::generateKnotVectorByUniformMethod(p_, n_);
-  }
+
+  uBar_ = GeneratorUtils::generateParametersByEquallySpacedMethod(dataPoints_);
+  return GeneratorUtils::generateKnotVectorByUniformMethod(p_, n_);
 }
 
 Eigen::MatrixXd LooseEndsPenalizedLeastSquaresGenerator::generateControlPoints() {

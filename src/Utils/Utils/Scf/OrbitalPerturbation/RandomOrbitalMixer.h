@@ -8,6 +8,7 @@
 #ifndef UTILS_MULTIPLESCFSOLUTIONS_ORBITALMIXER_H
 #define UTILS_MULTIPLESCFSOLUTIONS_ORBITALMIXER_H
 
+#include <Core/Log.h>
 #include <Utils/Scf/LcaoUtils/MolecularOrbitalsManipulation.h>
 #include <cassert>
 #include <random>
@@ -28,7 +29,7 @@ class RandomOrbitalMixer {
   RandomOrbitalMixer(MolecularOrbitals& orbitals, int nRestrictedElectrons);
   /*! Constructor for the unrestricted case. */
   RandomOrbitalMixer(MolecularOrbitals& orbitals, int nAlphaElectrons, int nBetaElectrons);
-  void mix();
+  void mix(Core::Log& log);
   void setNumberMixes(int numberMixes);
   void setMaximalMixAngle(double maxAngle);
   void setMinimalMixAngle(double minAngle);
@@ -47,7 +48,7 @@ class RandomOrbitalMixer {
                                                                          const std::vector<int>& virt) const;
   int calculateMaximalVirtualIndex(int homoIndex) const;
   int calculateMinimalOccupiedIndex(int homoIndex) const;
-  bool invalidMolecularOrbitals(const MolecularOrbitals& mo) const;
+  static bool invalidMolecularOrbitals(const MolecularOrbitals& mo);
 
   MolecularOrbitals& orbitals_;
   const int alphaHomo_;

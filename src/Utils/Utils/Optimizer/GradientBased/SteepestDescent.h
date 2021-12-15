@@ -61,16 +61,14 @@ class SteepestDescent : public Optimizer {
     bool stop = false;
     while (!stop) {
       cycle++;
-      parameters.array() -= factor * gradients.array();
+      constrainedAdd(parameters, -factor * gradients);
       function(parameters, value, gradients);
       this->triggerObservers(cycle, value, parameters);
-      stop = check.checkMaxIterations(cycle);
-      if (!stop) {
-        stop = check.checkConvergence(parameters, value, gradients);
-      }
+      stop = check.checkMaxIterations(cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
+
       // Check oscillation, perform new calculation if oscillating and lower factor
       if (!stop && this->isOscillating(value)) {
-        this->oscillationCorrection(-factor * gradients, parameters);
+        oscillationCorrection(-factor * gradients, parameters);
         function(parameters, value, gradients);
         cycle++;
         this->triggerObservers(cycle, value, parameters);
@@ -79,18 +77,18 @@ class SteepestDescent : public Optimizer {
       }
       else {
         // reset factor
-        factor /= pow(0.95, _oscillationCounter);
+        factor /= std::pow(0.95, _oscillationCounter);
         _oscillationCounter = 0;
       }
     }
     return cycle;
-  };
+  }
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection
    *        thus expanding it to include the steepest descent options.
    * @param collection The DescriptorCollection to which new fields shall be added.
    */
-  virtual void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
+  void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
     UniversalSettings::DoubleDescriptor sd_factor("The steepest descent scaling factor.");
     sd_factor.setDefaultValue(factor);
     collection.push_back(SteepestDescent::sdFactorKey, sd_factor);
@@ -99,7 +97,7 @@ class SteepestDescent : public Optimizer {
    * @brief Updates the steepest descent's options with those values given in the Settings.
    * @param settings The settings to update the option of the steepest descent with.
    */
-  virtual void applySettings(const Settings& settings) final {
+  void applySettings(const Settings& settings) final {
     factor = settings.getDouble(SteepestDescent::sdFactorKey);
   };
   /**

@@ -30,8 +30,9 @@ std::string ExternalProgram::generateFullFilename(const std::string& filename) c
 }
 
 void ExternalProgram::createWorkingDirectory() {
-  if (!workingDirectory_.empty())
+  if (!workingDirectory_.empty()) {
     FilesystemHelpers::createDirectories(workingDirectory_);
+  }
 }
 
 void ExternalProgram::executeCommand(const std::string& command) const {
@@ -64,18 +65,16 @@ int ExternalProgram::executeCommandImpl(const std::string& command, const std::s
   if (hasInput && hasOutput) {
     return bp::system(command, bp::std_out > outputFile, bp::std_in < inputFile, workingDirectory);
   }
-  else if (hasInput) {
+  if (hasInput) {
     return bp::system(command, bp::std_in < inputFile, workingDirectory);
   }
-  else if (hasOutput) {
+  if (hasOutput) {
     return bp::system(command, bp::std_out > outputFile);
   }
-  else if (hasOutput) {
+  if (hasOutput) {
     return bp::system(command, bp::std_out > outputFile, workingDirectory);
   }
-  else {
-    return bp::system(command, workingDirectory);
-  }
+  return bp::system(command, workingDirectory);
 }
 
 } // namespace ExternalQC

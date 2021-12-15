@@ -18,12 +18,9 @@ class BSpline;
  * Implementation of the knot insertion algorithm by Böhm.
  * doi: 10.1016/0010-4485(80)90154-2
  */
-class KnotInserter {
- public:
-  KnotInserter();
-
-  void insertKnotByReference(double uInsert, BSpline& bs) const;
-  BSpline insertKnotByCopy(double u, const BSpline& bs) const;
+struct KnotInserter {
+  static void insertKnotByReference(double uInsert, BSpline& bs);
+  static BSpline insertKnotByCopy(double u, const BSpline& bs);
 };
 
 } // namespace BSplines

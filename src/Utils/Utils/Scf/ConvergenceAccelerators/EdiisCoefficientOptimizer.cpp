@@ -16,8 +16,9 @@ EdiisCoefficientOptimizer::EdiisCoefficientOptimizer(const std::vector<double>& 
   dimension_ = static_cast<unsigned>(B_.rows());
 
   energies_.resize(dimension_);
-  for (unsigned i = 0; i < dimension_; ++i)
+  for (unsigned i = 0; i < dimension_; ++i) {
     energies_[i] = energies[i];
+  }
 }
 
 Eigen::VectorXd EdiisCoefficientOptimizer::getCoefficients() {

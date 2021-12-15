@@ -21,7 +21,7 @@ class NormalMode {
    * @brief Construct a new Normal Mode object
    *
    * @param waveNumber The wave number, in cm^-1
-   * @param mode       The mode.
+   * @param mode       The mode, obtained from a mass-weighted Hessian, back-scaled to cartesian coordinates.
    */
   explicit NormalMode(double waveNumber, DisplacementCollection mode);
   /**

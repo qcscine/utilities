@@ -17,26 +17,45 @@ namespace Scine {
 namespace Utils {
 namespace NormalModeAnalysis {
 
-NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
-                                          const PositionCollection& positions) {
-  int nAtoms = elements.size();
-
-  HessianUtilities diagonalizer(hessian, elements, positions, true);
-
+inline NormalModesContainer calculate(HessianUtilities& diagonalizer, int nAtoms) {
   Eigen::VectorXd eigenvalues = diagonalizer.getInternalEigenvalues();
   Eigen::MatrixXd cartesianDisplacements = diagonalizer.getBackTransformedInternalEigenvectors();
 
   NormalModesContainer modesContainer;
   DisplacementCollection dc(nAtoms, 3);
   for (int i = 0; i < cartesianDisplacements.cols(); ++i) {
-    for (int j = 0; j < nAtoms; ++j)
+    for (int j = 0; j < nAtoms; ++j) {
       dc.row(j) = cartesianDisplacements.col(i).segment(3 * j, 3);
+    }
 
     double freq = getWaveNumber(eigenvalues[i]);
     NormalMode m(freq, dc);
     modesContainer.add(std::move(m));
   }
   return modesContainer;
+}
+
+NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const AtomCollection& atoms) {
+  return calculateNormalModes(hessian, atoms.getElements(), atoms.getPositions());
+}
+
+NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
+                                          const PositionCollection& positions) {
+  int nAtoms = elements.size();
+
+  HessianUtilities diagonalizer(hessian, elements, positions, true);
+
+  return calculate(diagonalizer, nAtoms);
+}
+
+NormalModesContainer calculateOrthogonalNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
+                                                    const PositionCollection& positions, const GradientCollection& gradient) {
+  assert(gradient.size() == hessian.rows() && "Gradient dimension and hessian dimension do not match! (must be 3*N)");
+  int nAtoms = elements.size();
+
+  HessianUtilities diagonalizer(hessian, elements, positions, gradient, true);
+
+  return calculate(diagonalizer, nAtoms);
 }
 
 double getWaveNumber(double value) {

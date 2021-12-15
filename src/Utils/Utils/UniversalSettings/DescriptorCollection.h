@@ -10,6 +10,7 @@
 #include "Utils/UniversalSettings/GenericDescriptor.h"
 #include "Utils/UniversalSettings/SettingDescriptor.h"
 /* External Headers */
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,11 +30,16 @@ class ValueCollection;
  */
 class DescriptorCollection : public SettingDescriptor {
  public:
+  DescriptorCollection() = default;
   explicit DescriptorCollection(std::string description);
 
   std::unique_ptr<SettingDescriptor> clone() const override;
   GenericValue getDefaultGenericValue() const override;
   bool validValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const ValueCollection& v) const;
+  std::map<std::string, std::string> gatherInvalidExplanations(const ValueCollection& v) const;
+  std::map<std::string, std::string> gatherInvalidExplanations(const GenericValue& v) const;
 
   using KeyValuePair = std::pair<std::string, GenericDescriptor>;
   using Container = std::vector<KeyValuePair>;
@@ -84,6 +90,7 @@ class DescriptorCollection : public SettingDescriptor {
   Container descriptors_;
 };
 
+std::string invalidSettingsMapToString(const std::map<std::string, std::string>& invalidSettings);
 ValueCollection createDefaultValueCollection(const DescriptorCollection& descriptors);
 
 } /* namespace UniversalSettings */

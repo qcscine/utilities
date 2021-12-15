@@ -5,8 +5,8 @@
  *            See LICENSE.txt for details.
  */
 
-#ifndef UTILS_LcaoUtils_HOMOLUMOGAPCALCULATOR_H
-#define UTILS_LcaoUtils_HOMOLUMOGAPCALCULATOR_H
+#ifndef UTILS_LCAOUTILS_HOMOLUMOGAPCALCULATOR_H
+#define UTILS_LCAOUTILS_HOMOLUMOGAPCALCULATOR_H
 
 #include <exception>
 #include <string>

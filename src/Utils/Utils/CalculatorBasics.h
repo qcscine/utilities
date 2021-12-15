@@ -8,6 +8,7 @@
 #ifndef UTILS_CALCULATORBASICS_H_
 #define UTILS_CALCULATORBASICS_H_
 
+#include "Utils/CalculatorBasics/CalculationRoutines.h"
 #include "Utils/CalculatorBasics/PropertyList.h"
 #include "Utils/CalculatorBasics/Results.h"
 #include "Utils/CalculatorBasics/StatesHandler.h"

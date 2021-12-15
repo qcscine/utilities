@@ -61,7 +61,7 @@ inline void UpdateFunctionManagerBase::updateJacobian(const Eigen::VectorXd& par
       stepsize = 1e-5;
     }
     else {
-      stepsize = x_temp * pow(epsilon, oneThird); // other values of x
+      stepsize = x_temp * std::pow(epsilon, oneThird); // other values of x
     }
 
     copyOfParameters(i) = x_temp + stepsize;
@@ -77,8 +77,9 @@ inline void UpdateFunctionManagerBase::updateJacobian(const Eigen::VectorXd& par
 
     // against numerical instabilities
     for (int j = 0; j < grad.size(); ++j) {
-      if (std::abs(grad(j)) < 1e-8)
+      if (std::abs(grad(j)) < 1e-8) {
         grad(j) = 0;
+      }
     }
 
     jacobian.block(0, i, numberOfDataPoints, 1) = grad;

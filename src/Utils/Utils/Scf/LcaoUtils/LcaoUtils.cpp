@@ -17,9 +17,12 @@
 #include <Utils/DataStructures/SingleParticleEnergies.h>
 #include <Utils/DataStructures/SpinAdaptedMatrix.h>
 #include <Utils/Math/IterativeDiagonalizer/DavidsonDiagonalizer.h>
+#include <Utils/Math/IterativeDiagonalizer/IndirectPreconditionerEvaluator.h>
+#include <Utils/Math/IterativeDiagonalizer/IndirectSigmaVectorEvaluator.h>
 #include <Utils/Scf/LcaoUtils/LcaoUtils.h>
 #include <Eigen/Eigenvalues>
 #include <cmath>
+#include <iostream>
 
 namespace Scine {
 namespace Utils {
@@ -38,109 +41,6 @@ void getNumberUnrestrictedElectrons(int& nAlpha, int& nBeta, int nElectrons, int
   // nAlpha - nBeta = spinMultiplicity - 1
   nAlpha = (nElectrons + spinMultiplicity - 1) / 2;
   nBeta = nElectrons - nAlpha;
-}
-
-void solveOccupiedRestrictedEigenvalueProblem(const SpinAdaptedMatrix& fockMatrix, MolecularOrbitals& coefficientMatrix,
-                                              SingleParticleEnergies& singleParticleEnergies, int nElectrons, Core::Log& log) {
-  if (fockMatrix.restrictedMatrix().size() == 0) {
-    coefficientMatrix = MolecularOrbitals::createEmptyRestrictedOrbitals();
-    singleParticleEnergies = SingleParticleEnergies::createEmptyRestrictedEnergies();
-    return;
-  }
-
-  int nOccupied = nElectrons / 2;
-  DavidsonDiagonalizer<Eigen::MatrixXd, DavidsonBalancedType::balanced> diagonalizer(
-      nOccupied, nOccupied, fockMatrix.restrictedMatrix().cols(), log);
-  diagonalizer.setMatrixToDiagonalize(fockMatrix.restrictedMatrix(), log);
-  auto eigenPairs = diagonalizer.solve(log);
-  eigenPairs.second.conservativeResize(Eigen::NoChange, fockMatrix.restrictedMatrix().cols());
-  coefficientMatrix = MolecularOrbitals::createFromRestrictedCoefficients(std::move(eigenPairs.second));
-  singleParticleEnergies.setRestricted(eigenPairs.first);
-}
-
-void solveOccupiedRestrictedGeneralizedEigenvalueProblem(const SpinAdaptedMatrix& fockMatrix,
-                                                         const Eigen::MatrixXd& overlapMatrix,
-                                                         MolecularOrbitals& coefficientMatrix,
-                                                         SingleParticleEnergies& singleParticleEnergies, int nElectrons,
-                                                         Core::Log& log) {
-  if (fockMatrix.restrictedMatrix().size() == 0) {
-    coefficientMatrix = MolecularOrbitals::createEmptyRestrictedOrbitals();
-    singleParticleEnergies = SingleParticleEnergies::createEmptyRestrictedEnergies();
-    return;
-  }
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(overlapMatrix);
-  const Eigen::MatrixXd invSqrtS = es.operatorInverseSqrt();
-  const Eigen::MatrixXd modifiedFock =
-      invSqrtS.selfadjointView<Eigen::Upper>() * fockMatrix.restrictedMatrix() * invSqrtS.selfadjointView<Eigen::Upper>();
-  int nOccupied = nElectrons / 2;
-  DavidsonDiagonalizer<Eigen::MatrixXd, DavidsonBalancedType::balanced> diagonalizer(
-      nOccupied, nOccupied, fockMatrix.restrictedMatrix().cols(), log);
-  diagonalizer.setMatrixToDiagonalize(modifiedFock, log);
-  auto eigenPairs = diagonalizer.solve(log);
-  Eigen::MatrixXd deOrthogonalizedCoefficients = invSqrtS.selfadjointView<Eigen::Upper>() * eigenPairs.second;
-  deOrthogonalizedCoefficients.conservativeResize(Eigen::NoChange, fockMatrix.restrictedMatrix().cols());
-  coefficientMatrix = MolecularOrbitals::createFromRestrictedCoefficients(deOrthogonalizedCoefficients);
-  singleParticleEnergies.setRestricted(eigenPairs.first);
-}
-
-void solveOccupiedUnrestrictedEigenvalueProblem(const SpinAdaptedMatrix& fockMatrix, MolecularOrbitals& coefficientMatrix,
-                                                SingleParticleEnergies& singleParticleEnergies, int nAlphaElectrons,
-                                                int nBetaElectrons, Core::Log& log) {
-  if (fockMatrix.alphaMatrix().size() == 0) {
-    coefficientMatrix = MolecularOrbitals::createEmptyUnrestrictedOrbitals();
-    singleParticleEnergies = SingleParticleEnergies::createEmptyUnrestrictedEnergies();
-    return;
-  }
-
-  DavidsonDiagonalizer<Eigen::MatrixXd, DavidsonBalancedType::balanced> diagonalizerAlpha(
-      nAlphaElectrons, nAlphaElectrons, fockMatrix.alphaMatrix().cols(), log);
-  diagonalizerAlpha.setMatrixToDiagonalize(fockMatrix.alphaMatrix(), log);
-  auto alphaEigenPairs = diagonalizerAlpha.solve(log);
-  alphaEigenPairs.second.conservativeResize(Eigen::NoChange, fockMatrix.alphaMatrix().cols());
-  coefficientMatrix = MolecularOrbitals::createFromRestrictedCoefficients(std::move(alphaEigenPairs.second));
-  singleParticleEnergies.setRestricted(alphaEigenPairs.first);
-
-  DavidsonDiagonalizer<Eigen::MatrixXd, DavidsonBalancedType::balanced> diagonalizerBeta(
-      nBetaElectrons, nBetaElectrons, fockMatrix.betaMatrix().cols(), log);
-  diagonalizerBeta.setMatrixToDiagonalize(fockMatrix.betaMatrix(), log);
-  auto betaEigenPairs = diagonalizerBeta.solve(log);
-  betaEigenPairs.second.conservativeResize(Eigen::NoChange, fockMatrix.betaMatrix().cols());
-  coefficientMatrix = MolecularOrbitals::createFromRestrictedCoefficients(std::move(betaEigenPairs.second));
-  singleParticleEnergies.setRestricted(betaEigenPairs.first);
-}
-
-void solveOccupiedUnrestrictedGeneralizedEigenvalueProblem(const SpinAdaptedMatrix& fockMatrix,
-                                                           const Eigen::MatrixXd& overlapMatrix,
-                                                           MolecularOrbitals& coefficientMatrix,
-                                                           SingleParticleEnergies& singleParticleEnergies,
-                                                           int nAlphaElectrons, int nBetaElectrons, Core::Log& log) {
-  if (fockMatrix.alphaMatrix().size() == 0) {
-    coefficientMatrix = MolecularOrbitals::createEmptyUnrestrictedOrbitals();
-    singleParticleEnergies = SingleParticleEnergies::createEmptyUnrestrictedEnergies();
-    return;
-  }
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(overlapMatrix);
-  const Eigen::MatrixXd invSqrtS = es.operatorInverseSqrt();
-  const Eigen::MatrixXd modifiedAlphaFock =
-      invSqrtS.selfadjointView<Eigen::Upper>() * fockMatrix.alphaMatrix() * invSqrtS.selfadjointView<Eigen::Upper>();
-  const Eigen::MatrixXd modifiedBetaFock =
-      invSqrtS.selfadjointView<Eigen::Upper>() * fockMatrix.betaMatrix() * invSqrtS.selfadjointView<Eigen::Upper>();
-
-  DavidsonDiagonalizer<Eigen::MatrixXd, DavidsonBalancedType::balanced> diagonalizerAlpha(
-      nAlphaElectrons, nAlphaElectrons, fockMatrix.alphaMatrix().cols(), log);
-  auto alphaEigenPairs = diagonalizerAlpha.solve(log);
-  Eigen::MatrixXd alphaDeorthogonalizedCoefficients = invSqrtS.selfadjointView<Eigen::Upper>() * alphaEigenPairs.second;
-  alphaDeorthogonalizedCoefficients.conservativeResize(Eigen::NoChange, fockMatrix.alphaMatrix().cols());
-  coefficientMatrix = MolecularOrbitals::createFromRestrictedCoefficients(std::move(alphaDeorthogonalizedCoefficients));
-  singleParticleEnergies.setRestricted(alphaEigenPairs.first);
-
-  DavidsonDiagonalizer<Eigen::MatrixXd, DavidsonBalancedType::balanced> diagonalizerBeta(
-      nBetaElectrons, nBetaElectrons, fockMatrix.betaMatrix().cols(), log);
-  auto betaEigenPairs = diagonalizerBeta.solve(log);
-  Eigen::MatrixXd betaDeorthogonalizedCoefficients = invSqrtS.selfadjointView<Eigen::Upper>() * betaEigenPairs.second;
-  betaDeorthogonalizedCoefficients.conservativeResize(Eigen::NoChange, fockMatrix.betaMatrix().cols());
-  coefficientMatrix = MolecularOrbitals::createFromRestrictedCoefficients(std::move(betaDeorthogonalizedCoefficients));
-  singleParticleEnergies.setRestricted(betaEigenPairs.first);
 }
 
 void solveRestrictedEigenvalueProblem(const SpinAdaptedMatrix& fockMatrix, MolecularOrbitals& coefficientMatrix,
@@ -259,14 +159,17 @@ void calculateRestrictedEnergyWeightedDensityMatrix(Eigen::MatrixXd& energyWeigh
 
   Eigen::MatrixXd CEn(nAOs, (nElectrons + 1) / 2); // Eigenvector matrix multiplied by energy eigenvalues
 
-  for (int i = 0; i < (nElectrons + 1) / 2; i++)
+  for (int i = 0; i < (nElectrons + 1) / 2; i++) {
     CEn.col(i) = C.col(i) * singleParticleEnergies.getRestrictedEnergies()[i];
+  }
 
   energyWeightedDensityMatrix =
       2 * C.block(0, 0, nAOs, (nElectrons) / 2) * CEn.block(0, 0, nAOs, (nElectrons) / 2).transpose();
 
-  if ((nElectrons % 2) != 0) // if odd number of electrons
+  // if odd number of electrons
+  if ((nElectrons % 2) != 0) {
     energyWeightedDensityMatrix += C.col(nElectrons / 2) * CEn.col(nElectrons / 2).transpose();
+  }
 }
 
 void calculateUnrestrictedEnergyWeightedDensityMatrix(Eigen::MatrixXd& energyWeightedDensityMatrix,
@@ -286,10 +189,12 @@ void calculateUnrestrictedEnergyWeightedDensityMatrix(Eigen::MatrixXd& energyWei
   Eigen::MatrixXd CEnAlpha(nAOs, nAlpha); // Alpha Eigenvector matrix multiplied by energy eigenvalues
   Eigen::MatrixXd CEnBeta(nAOs, nBeta);   // Beta Eigenvector matrix multiplied by energy eigenvalues
 
-  for (int i = 0; i < nAlpha; i++)
+  for (int i = 0; i < nAlpha; i++) {
     CEnAlpha.col(i) = cA.col(i) * singleParticleEnergies.getAlphaEnergies()[i];
-  for (int i = 0; i < nBeta; i++)
+  }
+  for (int i = 0; i < nBeta; i++) {
     CEnBeta.col(i) = cB.col(i) * singleParticleEnergies.getBetaEnergies()[i];
+  }
 
   energyWeightedDensityMatrix = cA.block(0, 0, nAOs, nAlpha) * CEnAlpha.block(0, 0, nAOs, nAlpha).transpose() +
                                 cB.block(0, 0, nAOs, nBeta) * CEnBeta.block(0, 0, nAOs, nBeta).transpose();
@@ -297,12 +202,16 @@ void calculateUnrestrictedEnergyWeightedDensityMatrix(Eigen::MatrixXd& energyWei
 
 void calculateBondOrderMatrix(Utils::BondOrderCollection& bondOrderMatrix, const DensityMatrix& densityMatrix,
                               const Eigen::MatrixXd& overlapMatrix, const AtomsOrbitalsIndexes& aoIndexes) {
+  bondOrderMatrix.resize(aoIndexes.getNAtoms());
+  bondOrderMatrix.setZero();
   // Bond order analysis (Mayer bond order)
   Eigen::MatrixXd PS = densityMatrix.restrictedMatrix() * overlapMatrix; // TODO: WHAT IF OVERLAP MATRIX IS ONLY
                                                                          // LOWER-TRIANGULAR?
-  for (int i = 1; i < aoIndexes.getNAtomicOrbitals(); i++)
-    for (int j = 0; j < i; j++)
+  for (int i = 1; i < aoIndexes.getNAtomicOrbitals(); i++) {
+    for (int j = 0; j < i; j++) {
       PS(i, j) = PS(i, j) * PS(j, i);
+    }
+  }
   for (int a = 1; a < aoIndexes.getNAtoms(); a++) {
     for (int b = 0; b < a; b++) {
       double order = PS.block(aoIndexes.getFirstOrbitalIndex(a), aoIndexes.getFirstOrbitalIndex(b),
@@ -315,6 +224,8 @@ void calculateBondOrderMatrix(Utils::BondOrderCollection& bondOrderMatrix, const
 
 void calculateOrthonormalBondOrderMatrix(Utils::BondOrderCollection& bondOrderMatrix,
                                          const DensityMatrix& densityMatrix, const AtomsOrbitalsIndexes& aoIndexes) {
+  bondOrderMatrix.resize(aoIndexes.getNAtoms());
+  bondOrderMatrix.setZero();
   // Bond order analysis (Mayer bond order), no need for overlap since it is no generalized eigenvalue problem
   const auto& P = densityMatrix.restrictedMatrix();
   Eigen::MatrixXd P2 = P.cwiseProduct(P);
@@ -355,8 +266,9 @@ void calculateMullikenAtomicCharges(std::vector<double>& mullikenCharges, const 
     int index = aoIndexes.getFirstOrbitalIndex(a);
 
     for (int mu = 0; mu < nAOsA; mu++) {
-      for (int nu = 0; nu < aoIndexes.getNAtomicOrbitals(); nu++)
+      for (int nu = 0; nu < aoIndexes.getNAtomicOrbitals(); nu++) {
         mullikenCharges[a] -= D(index + mu, nu);
+      }
     }
   }
 }

@@ -7,6 +7,7 @@
 #ifndef UNIVERSALSETTINGS_SETTINGDESCRIPTOR_H
 #define UNIVERSALSETTINGS_SETTINGDESCRIPTOR_H
 /* External Headers */
+#include <cassert>
 #include <memory>
 #include <string>
 
@@ -70,7 +71,19 @@ class SettingDescriptor {
    */
   virtual bool validValue(const GenericValue& v) const = 0;
 
+  /**
+   * @brief Returns an explicit error message why the given value is invalid.
+   *   Implementations assume the given value is invalid.
+   *
+   * @pre `validValue(v) == false`
+   * @param v A type-erased setting representation
+   *
+   * @return The error message
+   */
+  virtual std::string explainInvalidValue(const GenericValue& v) const = 0;
+
  protected:
+  SettingDescriptor();
   /*! Allow instantiation only through derived classes. */
   explicit SettingDescriptor(std::string propertyDescription);
 
@@ -80,6 +93,8 @@ class SettingDescriptor {
    */
   std::string propertyDescription_;
 };
+
+inline SettingDescriptor::SettingDescriptor() = default;
 
 inline SettingDescriptor::SettingDescriptor(std::string propertyDescription)
   : propertyDescription_(std::move(propertyDescription)) {

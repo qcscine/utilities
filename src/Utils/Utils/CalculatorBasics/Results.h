@@ -48,7 +48,7 @@ class Results {
   template<Property property>
   bool has() const {
     return resultsMap_.find(property) != resultsMap_.end();
-  };
+  }
 
   /** \brief Function that returns PropertyList of all Properties contained in the results */
   PropertyList allContainedProperties() const;
@@ -63,7 +63,7 @@ class Results {
   }
   template<Property property>
   void set(typename PropertyType<property>::Type dataToSet) {
-    resultsMap_[property] = dataToSet;
+    resultsMap_[property] = std::move(dataToSet);
   }
   template<Property property>
   typename PropertyType<property>::Type take() {

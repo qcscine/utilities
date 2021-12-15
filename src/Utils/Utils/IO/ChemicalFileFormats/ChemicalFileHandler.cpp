@@ -10,6 +10,7 @@
 #include <Utils/IO/ChemicalFileFormats/ChemicalFileHandler.h>
 #include <Utils/IO/ChemicalFileFormats/MolStreamHandler.h>
 #include <Utils/IO/ChemicalFileFormats/OpenBabelStreamHandler.h>
+#include <Utils/IO/ChemicalFileFormats/PdbStreamHandler.h>
 #include <Utils/IO/ChemicalFileFormats/XyzStreamHandler.h>
 #include <fstream>
 
@@ -23,6 +24,7 @@ auto dispatchRead(const std::string& suffix, IStream& is, Args... args) {
   std::vector<std::unique_ptr<FormattedStreamHandler>> handlers;
   handlers.emplace_back(new MolStreamHandler());
   handlers.emplace_back(new XyzStreamHandler());
+  handlers.emplace_back(new PdbStreamHandler());
   handlers.emplace_back(new OpenBabelStreamHandler());
 
   for (auto& handlerPtr : handlers) {
@@ -41,6 +43,7 @@ auto dispatchWrite(const std::string& suffix, OStream& os, Args... args) {
   handlers.emplace_back(new MolStreamHandler());
   handlers.emplace_back(new XyzStreamHandler());
   handlers.emplace_back(new OpenBabelStreamHandler());
+  handlers.emplace_back(new PdbStreamHandler());
 
   for (auto& handlerPtr : handlers) {
     if (handlerPtr->formatSupported(suffix, FormattedStreamHandler::SupportType::WriteOnly)) {
@@ -88,7 +91,7 @@ std::pair<AtomCollection, BondOrderCollection> ChemicalFileHandler::read(const s
   return data;
 }
 
-void ChemicalFileHandler::write(const std::string& filename, const AtomCollection& atoms) {
+void ChemicalFileHandler::write(const std::string& filename, const AtomCollection& atoms, const std::string& comment) {
   boost::filesystem::path filepath(filename);
 
   std::ofstream file(filename);
@@ -96,12 +99,13 @@ void ChemicalFileHandler::write(const std::string& filename, const AtomCollectio
     throw FileInaccessibleException();
   }
 
-  detail::dispatchWrite(detail::getSuffix(filepath), file, atoms);
+  detail::dispatchWrite(detail::getSuffix(filepath), file, atoms, comment);
 
   file.close();
 }
 
-void ChemicalFileHandler::write(const std::string& filename, const AtomCollection& atoms, const BondOrderCollection& bondOrders) {
+void ChemicalFileHandler::write(const std::string& filename, const AtomCollection& atoms,
+                                const BondOrderCollection& bondOrders, const std::string& comment) {
   boost::filesystem::path filepath(filename);
 
   std::ofstream file(filename);
@@ -109,7 +113,7 @@ void ChemicalFileHandler::write(const std::string& filename, const AtomCollectio
     throw FileInaccessibleException();
   }
 
-  detail::dispatchWrite(detail::getSuffix(filepath), file, atoms, bondOrders);
+  detail::dispatchWrite(detail::getSuffix(filepath), file, atoms, bondOrders, comment);
 
   file.close();
 }

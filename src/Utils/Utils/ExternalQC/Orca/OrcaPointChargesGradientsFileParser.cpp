@@ -23,6 +23,7 @@ void OrcaPointChargesGradientsFileParser::extractContent(const std::string& file
   fin.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   fin.open(filename);
   content_ = std::string(std::istreambuf_iterator<char>{fin}, {});
+  fin.close();
 }
 
 GradientCollection OrcaPointChargesGradientsFileParser::getPointChargesGradients() const {
@@ -39,8 +40,9 @@ GradientCollection OrcaPointChargesGradientsFileParser::getPointChargesGradients
     std::sregex_token_iterator iter(line.begin(), line.end(), rgx, -1);
     std::sregex_token_iterator end;
 
-    if (*iter == "")
+    if (*iter == "") {
       iter++;
+    }
 
     gradients(i, 0) = std::stod(*iter++);
     gradients(i, 1) = std::stod(*iter++);

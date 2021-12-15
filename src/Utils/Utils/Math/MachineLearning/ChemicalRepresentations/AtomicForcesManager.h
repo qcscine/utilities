@@ -39,11 +39,11 @@ class AtomicForcesManager {
   /**
    * @brief Transforms a force from an internal representation to a global representation for a given atom.
    */
-  Eigen::RowVector3d toGlobalRepresentation(const Eigen::Ref<Eigen::RowVector3d> force, int atomIndex);
+  Eigen::RowVector3d toGlobalRepresentation(const Eigen::RowVector3d& force, int atomIndex);
   /**
    * @brief Transforms a force from a global representation to an internal representation for a given atom.
    */
-  Eigen::RowVector3d toInternalRepresentation(const Eigen::Ref<Eigen::RowVector3d> force, int atomIndex);
+  Eigen::RowVector3d toInternalRepresentation(const Eigen::RowVector3d& force, int atomIndex);
   /**
    * @brief Calculates and returns the feature vector for a given atom and the current
    *        set of positions of the molecular system.
@@ -65,7 +65,7 @@ class AtomicForcesManager {
   // Calculates and returns the chemical environment matrix for a given atom
   Eigen::MatrixXd calculateChemicalEnvironment(int atomIndex);
   // Sorts the rows of the feature matrix and returns the sorted matrix
-  Eigen::MatrixXd sortFeatureMatrix(std::vector<std::pair<Eigen::RowVector3d, double>>& unsortedFeatures);
+  static Eigen::MatrixXd sortFeatureMatrix(std::vector<std::pair<Eigen::RowVector3d, double>>& unsortedFeatures);
   // The transformation matrices for all atoms,
   // which convert the internal force representation to the global one
   std::vector<Eigen::MatrixXd> transformationMatrices_;

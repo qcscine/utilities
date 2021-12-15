@@ -61,21 +61,20 @@ void ResultsAutoCompleter::setWantedProperties(PropertyList wantedProperties) {
 }
 
 void ResultsAutoCompleter::setCoreChargesToNuclearCharges(Scine::Utils::AtomCollection& atomCollection) {
-  ElementInfo elementInfo;
   ElementTypeCollection elementTypeCollection = atomCollection.getElements();
   coreCharges_.clear();
   for (auto const& elementType : elementTypeCollection) {
-    coreCharges_.emplace_back(elementInfo.Z(elementType));
+    coreCharges_.emplace_back(ElementInfo::Z(elementType));
   }
 }
 
 void ResultsAutoCompleter::setCoreCharges(std::vector<double> coreCharges) {
-  coreCharges_ = coreCharges;
+  coreCharges_ = std::move(coreCharges);
 }
 
 void ResultsAutoCompleter::setAllPropertiesAsWanted() {
-  for (unsigned int i = 0; i < allProperties.size(); ++i) {
-    wantedProperties_.addProperty(allProperties.at(i));
+  for (auto property : allProperties) {
+    wantedProperties_.addProperty(property);
   }
 }
 
@@ -93,7 +92,7 @@ bool ResultsAutoCompleter::propertyGeneratable(const Results& results, const Pro
 void ResultsAutoCompleter::generateThermochemistry(Results& results, const AtomCollection& atomCollection) {
   // Get spin multiplicity
   LcaoUtils::ElectronicOccupation electronicOccupation = results.get<Property::ElectronicOccupation>();
-  int spinMultiplicity = electronicOccupation.numberAlphaElectrons() - electronicOccupation.numberBetaElectrons() + 1;
+  int spinMultiplicity = abs(electronicOccupation.numberAlphaElectrons() - electronicOccupation.numberBetaElectrons()) + 1;
   double electronicEnergy = results.get<Property::Energy>();
   std::unique_ptr<ThermochemistryCalculator> thermochemistryCalculator =
       std::make_unique<ThermochemistryCalculator>(results.get<Property::Hessian>(), atomCollection.getElements(),
@@ -103,14 +102,13 @@ void ResultsAutoCompleter::generateThermochemistry(Results& results, const AtomC
   thermochemistryCalculator->setMolecularSymmetryNumber(sigma_);
   thermochemistryCalculator->setZPVEInclusion(zpveIncluded_);
   ThermochemicalComponentsContainer thermochemicalComponentsContainer = thermochemistryCalculator->calculate();
-  results.set<Property::Thermochemistry>(thermochemicalComponentsContainer);
+  results.set<Property::Thermochemistry>(std::move(thermochemicalComponentsContainer));
 }
 
 void ResultsAutoCompleter::generateDensityMatrix(Scine::Utils::Results& results) {
-  LcaoUtils::DensityMatrixGenerator densityMatrixGenerator;
-  DensityMatrix densityMatrix = densityMatrixGenerator.generate(results.get<Property::ElectronicOccupation>(),
-                                                                results.get<Property::CoefficientMatrix>());
-  results.set<Property::DensityMatrix>(densityMatrix);
+  DensityMatrix densityMatrix = LcaoUtils::DensityMatrixGenerator::generate(results.get<Property::ElectronicOccupation>(),
+                                                                            results.get<Property::CoefficientMatrix>());
+  results.set<Property::DensityMatrix>(std::move(densityMatrix));
 }
 
 void ResultsAutoCompleter::generateAtomicCharges(Results& results) {
@@ -119,14 +117,14 @@ void ResultsAutoCompleter::generateAtomicCharges(Results& results) {
   LcaoUtils::calculateMullikenAtomicCharges(atomicCharges, coreCharges_, results.get<Property::DensityMatrix>(),
                                             results.get<Property::OverlapMatrix>(),
                                             results.get<Property::AOtoAtomMapping>());
-  results.set<Property::AtomicCharges>(atomicCharges);
+  results.set<Property::AtomicCharges>(std::move(atomicCharges));
 }
 
 void ResultsAutoCompleter::generateBondOrderMatrix(Results& results) {
   BondOrderCollection bondOrderMatrix(coreCharges_.size());
   LcaoUtils::calculateBondOrderMatrix(bondOrderMatrix, results.get<Property::DensityMatrix>(),
                                       results.get<Property::OverlapMatrix>(), results.get<Property::AOtoAtomMapping>());
-  results.set<Property::BondOrderMatrix>(bondOrderMatrix);
+  results.set<Property::BondOrderMatrix>(std::move(bondOrderMatrix));
 }
 
 void ResultsAutoCompleter::generateProperties(Results& results, const AtomCollection& atomCollection) {
@@ -136,8 +134,7 @@ void ResultsAutoCompleter::generateProperties(Results& results, const AtomCollec
   while (calculatedNewProperty) {
     calculatedNewProperty = false;
     // Loop over properties and check whether they are wanted
-    for (unsigned int i = 0; i < allProperties.size(); ++i) {
-      Property propertyToCompute = allProperties.at(i);
+    for (Property propertyToCompute : allProperties) {
       if (wantedProperties_.containsSubSet(propertyToCompute)) {
         // Ensure that property does not yet exist to avoid double effort
         PropertyList availableProperties = results.allContainedProperties();
@@ -151,7 +148,7 @@ void ResultsAutoCompleter::generateProperties(Results& results, const AtomCollec
               this->generateThermochemistry(results, atomCollection);
             }
             else if (propertyToCompute == Property::DensityMatrix) {
-              this->generateDensityMatrix(results);
+              generateDensityMatrix(results);
             }
             else if (propertyToCompute == Property::AtomicCharges) {
               this->generateAtomicCharges(results);
@@ -168,7 +165,6 @@ void ResultsAutoCompleter::generateProperties(Results& results, const AtomCollec
       }     // If: property wanted
     }       // For: over all properties
   }         // While: new property could be derived
-  return;
 }
 
 } // namespace Utils

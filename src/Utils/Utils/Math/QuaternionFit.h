@@ -103,7 +103,7 @@ class QuaternionFit {
   double getWeightedRMSD() const;
 
  private:
-  Eigen::VectorXd makeWeightsVector(const ElementTypeCollection& elements);
+  static Eigen::VectorXd makeWeightsVector(const ElementTypeCollection& elements);
 
   void align();
 

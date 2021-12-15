@@ -34,7 +34,7 @@ class StructuralCompletion {
    * @param v3 A vector to be populated, then connecting the center and a corner.
    * @param v4 A vector to be populated, then connecting the center and a corner.
    */
-  static void generate3TetrahedronCornersFrom1Other(const Eigen::Ref<Eigen::Vector3d> v1, Eigen::Ref<Eigen::Vector3d> v2,
+  static void generate3TetrahedronCornersFrom1Other(const Eigen::Vector3d& v1, Eigen::Ref<Eigen::Vector3d> v2,
                                                     Eigen::Ref<Eigen::Vector3d> v3, Eigen::Ref<Eigen::Vector3d> v4);
   /**
    * @brief Generates two missing position in a tetrahedron.
@@ -47,8 +47,7 @@ class StructuralCompletion {
    * @param v3 A vector to be populated, then connecting the center and a corner.
    * @param v4 A vector to be populated, then connecting the center and a corner.
    */
-  static void generate2TetrahedronCornersFrom2Others(const Eigen::Ref<Eigen::Vector3d> v1,
-                                                     const Eigen::Ref<Eigen::Vector3d> v2,
+  static void generate2TetrahedronCornersFrom2Others(const Eigen::Vector3d& v1, const Eigen::Vector3d& v2,
                                                      Eigen::Ref<Eigen::Vector3d> v3, Eigen::Ref<Eigen::Vector3d> v4);
   /**
    * @brief Generates one missing position in a tetrahedron.
@@ -61,8 +60,8 @@ class StructuralCompletion {
    * @param v3 A vector connecting the center and a known corner.
    * @param v4 A vector to be populated, then connecting the center and a corner.
    */
-  static void generate1TetrahedronCornerFrom3Others(const Eigen::Ref<Eigen::Vector3d> v1, const Eigen::Ref<Eigen::Vector3d> v2,
-                                                    const Eigen::Ref<Eigen::Vector3d> v3, Eigen::Ref<Eigen::Vector3d> v4);
+  static void generate1TetrahedronCornerFrom3Others(const Eigen::Vector3d& v1, const Eigen::Vector3d& v2,
+                                                    const Eigen::Vector3d& v3, Eigen::Ref<Eigen::Vector3d> v4);
   /**
    * @brief Generates two missing position in a triangle.
    *
@@ -73,7 +72,7 @@ class StructuralCompletion {
    * @param v2 A vector to be populated, then connecting the center and a corner.
    * @param v3 A vector to be populated, then connecting the center and a corner.
    */
-  static void generate2TriangleCornersFrom1Other(const Eigen::Ref<Eigen::Vector3d> v1, Eigen::Ref<Eigen::Vector3d> v2,
+  static void generate2TriangleCornersFrom1Other(const Eigen::Vector3d& v1, Eigen::Ref<Eigen::Vector3d> v2,
                                                  Eigen::Ref<Eigen::Vector3d> v3);
   /**
    * @brief Generates a missing position in a triangle.
@@ -85,8 +84,8 @@ class StructuralCompletion {
    * @param v2 A vector connecting the center and a known corner.
    * @param v3 A vector to be populated, then connecting the center and a corner.
    */
-  static void generate1TriangleCornerFrom2Others(const Eigen::Ref<Eigen::Vector3d> v1,
-                                                 const Eigen::Ref<Eigen::Vector3d> v2, Eigen::Ref<Eigen::Vector3d> v3);
+  static void generate1TriangleCornerFrom2Others(const Eigen::Vector3d& v1, const Eigen::Vector3d& v2,
+                                                 Eigen::Ref<Eigen::Vector3d> v3);
 
   /// @brief The standard tetrahedral angel in rad.
   static constexpr double tetrahedronAngle = 109.4712 * Constants::rad_per_degree;

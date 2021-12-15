@@ -18,8 +18,9 @@ void LevenbergMarquardt::optimize(Eigen::VectorXd& parameters, UpdateFunctionMan
   functor.m = functor.updateFunctionManager_.getNumberOfDataPoints(parameters);
   Eigen::LevenbergMarquardt<LMFunctor, double> lm(functor);
   // Set maximum number of function evaluations if it was set to a sensible value
-  if (maxFuncEval > 0)
+  if (maxFuncEval > 0) {
     lm.parameters.maxfev = maxFuncEval;
+  }
   lm.minimize(parameters);
   // Calculate and update covariance matrix if desired
   if (calculateCovarianceMatrix) {

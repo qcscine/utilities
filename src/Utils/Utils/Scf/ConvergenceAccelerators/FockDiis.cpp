@@ -19,6 +19,7 @@ FockDiis::FockDiis() {
 void FockDiis::setUnrestricted(bool b) {
   unrestricted_ = b;
   diisError_.setUnrestricted(b);
+  restart();
 }
 
 void FockDiis::setSubspaceSize(int n) {
@@ -26,8 +27,9 @@ void FockDiis::setSubspaceSize(int n) {
 
   subspaceSize_ = n;
 
-  if (resizeNeeded)
+  if (resizeNeeded) {
     resizeMembers();
+  }
 }
 
 void FockDiis::setNAOs(int n) {
@@ -35,8 +37,9 @@ void FockDiis::setNAOs(int n) {
 
   nAOs_ = n;
 
-  if (resizeNeeded)
+  if (resizeNeeded) {
     resizeMembers();
+  }
 }
 
 void FockDiis::resizeMembers() {
@@ -88,16 +91,18 @@ void FockDiis::updateBMatrix() {
 
   // Bij elements
   for (int i = 1; i < activeSize + 1; i++) {
-    if (i == lastAdded_ + 1)
+    if (i == lastAdded_ + 1) {
       continue;
+    }
     B(lastAdded_ + 1, i) = diisError_.getError(lastAdded_, i - 1);
     B(i, lastAdded_ + 1) = B(lastAdded_ + 1, i);
   }
 }
 
 SpinAdaptedMatrix FockDiis::getMixedFockMatrix() {
-  if (iterationNo_ > subspaceSize_)
+  if (iterationNo_ > subspaceSize_) {
     iterationNo_ = subspaceSize_;
+  }
 
   // If we have only one Fock matrix
   if (iterationNo_ < 2) {
@@ -120,12 +125,11 @@ SpinAdaptedMatrix FockDiis::calculateLinearCombination() {
     }
     return SpinAdaptedMatrix::createUnrestricted(std::move(FAlpha), std::move(FBeta));
   }
-  else {
-    Eigen::MatrixXd Fsol = Eigen::MatrixXd::Zero(nAOs_, nAOs_);
-    for (int i = 0; i < iterationNo_; i++)
-      Fsol += C(i + 1) * fockMatrices[i].restrictedMatrix();
-    return SpinAdaptedMatrix::createRestricted(std::move(Fsol));
+  Eigen::MatrixXd Fsol = Eigen::MatrixXd::Zero(nAOs_, nAOs_);
+  for (int i = 0; i < iterationNo_; i++) {
+    Fsol += C(i + 1) * fockMatrices[i].restrictedMatrix();
   }
+  return SpinAdaptedMatrix::createRestricted(std::move(Fsol));
 }
 
 double FockDiis::getMaxError() const {

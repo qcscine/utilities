@@ -1,9 +1,8 @@
-=============================
 SCINE - Open Source Utilities
 =============================
 
 Introduction
-============
+------------
 
 This repository contains functionality which is used in most SCINE modules.
 It is vital for the correct functioning of all SCINE modules, but it does not
@@ -11,13 +10,13 @@ directly provide any functionality for end users. Therefore, only developers
 of SCINE need to directly interact with this repository.
 
 License and Copyright Information
-=================================
+---------------------------------
 
-For license and copyright information, see the file `LICENSE.txt` in this
+For license and copyright information, see the file ``LICENSE.txt`` in this
 directory.
 
 Installation and Usage
-======================
+----------------------
 
 As a user of one of the SCINE modules (such as Sparrow), you do not need
 to set up Open Source Utilities yourself. Instead, this is done as part of the
@@ -26,7 +25,7 @@ instructions are only necessary for developers of SCINE, or those interfacing
 this library directly.
 
 Dependencies
-------------
+............
 
 Required software, minimum required versions in brackets, for this SCINE project are:
 
@@ -36,7 +35,7 @@ Required software, minimum required versions in brackets, for this SCINE project
 - Eigen3 (3.3.2)
 
 Installation
-------------
+............
 
 In order to compile this as a SCINE developer, execute the following
 commands::
@@ -51,14 +50,21 @@ commands::
     make test
     make install
 
+Known Issues
+------------
+
+Due to a `bug <https://github.com/boostorg/process/issues/62>`_ in boost 
+version 1.69.0, linkage against this version will result in a leakage
+of file handles if the ORCA and Gaussian Calculators are called repeatedly.
+
 Support and Contact
-===================
+-------------------
 
 In case you should encounter problems or bugs, please write a short message
 to scine@phys.chem.ethz.ch.
 
 Third-Party Libraries Used
-==========================
+--------------------------
 
 SCINE Utilities makes use of the following third-party libraries:
 

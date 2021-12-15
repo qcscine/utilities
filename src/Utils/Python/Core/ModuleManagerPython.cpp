@@ -5,41 +5,17 @@
  *            See LICENSE.txt for details.
  */
 #include <Core/Interfaces/Calculator.h>
+#include <Core/Interfaces/CalculatorWithReference.h>
 #include <Core/ModuleManager.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <boost/optional.hpp>
-#include <boost/variant.hpp>
+#include <Utils/Pybind.h>
 
 using namespace Scine::Core;
-
-// Type caster for boost variant
-namespace pybind11 {
-namespace detail {
-
-template<typename T>
-struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
-
-template<typename... Ts>
-struct type_caster<boost::variant<Ts...>> : variant_caster<boost::variant<Ts...>> {};
-
-// Specifies the function used to visit the variant -- `apply_visitor` instead of `visit`
-template<>
-struct visit_helper<boost::variant> {
-  template<typename... Args>
-  static auto call(Args&&... args) -> decltype(boost::apply_visitor(args...)) {
-    return boost::apply_visitor(args...);
-  }
-};
-
-} // namespace detail
-} // namespace pybind11
 
 void module_manager_load(ModuleManager& manager, const std::string& filename) {
   manager.load(filename);
 }
 
-using GetVariantType = boost::variant<std::shared_ptr<Calculator>>;
+using GetVariantType = boost::variant<std::shared_ptr<Calculator>, std::shared_ptr<CalculatorWithReference>>;
 
 using GetReturnType = boost::optional<GetVariantType>;
 
@@ -47,6 +23,9 @@ GetReturnType module_manager_get(ModuleManager& manager, const std::string& inte
   if (manager.has(interface, model)) {
     if (interface == Calculator::interface) {
       return GetVariantType{manager.get<Calculator>(model)};
+    }
+    if (interface == CalculatorWithReference::interface) {
+      return GetVariantType{manager.get<CalculatorWithReference>(model)};
     }
   }
 

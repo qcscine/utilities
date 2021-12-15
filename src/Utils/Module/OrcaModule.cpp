@@ -12,12 +12,12 @@
 namespace Scine {
 namespace Utils {
 
-using InterfaceModelMap =
+using OrcaInterfaceModelMap =
     boost::mpl::map<boost::mpl::pair<Scine::Core::Calculator, boost::mpl::vector<ExternalQC::OrcaCalculator>>>;
 
 std::string OrcaModule::name() const noexcept {
   return "Orca";
-};
+}
 
 bool OrcaModule::orcaFound() {
   return std::getenv("ORCA_BINARY_PATH") != nullptr;
@@ -28,7 +28,7 @@ boost::any OrcaModule::get(const std::string& interface, const std::string& mode
     throw Scine::Core::ClassNotImplementedError();
   }
 
-  boost::any resolved = Scine::Core::DerivedModule::resolve<InterfaceModelMap>(interface, model);
+  boost::any resolved = Scine::Core::DerivedModule::resolve<OrcaInterfaceModelMap>(interface, model);
   // Throw an exception if we could not match an interface or model
   if (resolved.empty()) {
     throw Scine::Core::ClassNotImplementedError();
@@ -43,15 +43,15 @@ bool OrcaModule::has(const std::string& interface, const std::string& model) con
     }
   }
 
-  return Scine::Core::DerivedModule::has<InterfaceModelMap>(interface, model);
+  return Scine::Core::DerivedModule::has<OrcaInterfaceModelMap>(interface, model);
 }
 
 std::vector<std::string> OrcaModule::announceInterfaces() const noexcept {
-  return Scine::Core::DerivedModule::announceInterfaces<InterfaceModelMap>();
+  return Scine::Core::DerivedModule::announceInterfaces<OrcaInterfaceModelMap>();
 }
 
 std::vector<std::string> OrcaModule::announceModels(const std::string& interface) const noexcept {
-  auto models = Scine::Core::DerivedModule::announceModels<InterfaceModelMap>(interface);
+  auto models = Scine::Core::DerivedModule::announceModels<OrcaInterfaceModelMap>(interface);
 
   auto orcaModel = ExternalQC::OrcaCalculator::model;
   if (interface == Scine::Core::Calculator::interface && !orcaFound()) {

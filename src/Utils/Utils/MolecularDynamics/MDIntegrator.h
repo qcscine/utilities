@@ -33,20 +33,40 @@ class MDIntegrator {
   void setElementTypes(const Utils::ElementTypeCollection& elements);
   /// @brief Resets velocities to zero.
   void resetVelocities();
+  /**
+   * @brief Sets the temperature around which the Maxwell-Boltzmann distribution for the initial velocities is centered.
+   * @param T The temperature.
+   */
+  void setGenerationTemperatureInKelvin(double T);
+  /// @brief Method to sample initial velocities from a Maxwell-Boltzmann distribution centered around the generation
+  /// temperature
+  void sampleVelocitiesFromBoltzmannDistribution();
   /// @brief Setter for the velocities.
   void setVelocities(const Utils::DisplacementCollection& velocities);
   /// @brief Getter for the velocities.
   Utils::DisplacementCollection getVelocities() const;
+  /// @brief Calculates the current temperature.
+  double getCurrentTemperature();
   /// @brief Sets the time step in the unit femtoseconds.
   void setTimeStepInFemtoseconds(double fs);
-  /// @brief The temperature bath relaxation time in units of the chosen time step.
-  void setRelaxationTimeFactor(double factor);
+  /// @brief Sets the thermostat algorithm.
+  void setThermostatAlgorithm(std::string thermostatAlgorithm);
+  /// @brief Sets the thermostat time parameter in femtoseconds.
+  void setTemperatureCouplingTimeInFemtoseconds(double fs);
   /// @brief Sets the target temperature in Kelvin.
   void setTargetTemperatureInKelvin(double T);
+  //! @brief Sets the seed for noise generation in stochastic dynamics
+  void setStochasticDynamicsSeed(int seed);
+  /**
+   * @brief Checks whether the integrator and thermostat algortihm are compatible.
+   * @return true If the thermostat is available.
+   * @return false If the thermostat is not available.
+   */
+  virtual bool checkThermostatAlgorithm() const = 0;
   //! @brief Sets a seed for the random initial velocities.
   void setSeed(int seed);
   //! @brief Removes the center of mass motion.
-  void removeCenterOfMassLinearMomentum(const Eigen::MatrixX3d& positions);
+  void removeCenterOfMassLinearMomentum();
   //! @brief Removes the center of mass motion.
   void removeCenterOfMassAngularMomentum(const Eigen::MatrixX3d& positions);
 
@@ -55,10 +75,10 @@ class MDIntegrator {
  protected:
   //! @brief Updates the accelerations according to the given gradients.
   void calculateAccelerationsFromGradients(const Utils::GradientCollection& gradients);
-  //! @brief Berendsen thermostat.
-  void rescaleVelocitiesForTemperatureBath();
-  //! @brief Method to sample initial velocities from a Maxwell-Boltzmann distribution.
-  void sampleVelocitiesFromBoltzmannDistribution();
+  /**
+   * @brief Apply Berendsen velocity scaling.
+   */
+  void rescaleVelocitiesWithBerendsen();
   std::vector<double> masses_;
   Utils::DisplacementCollection velocities_;
   Utils::DisplacementCollection accelerations_;
@@ -66,17 +86,17 @@ class MDIntegrator {
   double timeStep_; // unit of this is not a.u., because masses are in u and not in terms of electron mass
   int seed_ = 42;   // seed for the initial velocities generation.
 
+ protected:
+  std::string thermostatAlgorithm_; // the thermostat algorithm
+  double temperatureCouplingTime_;  // tau in a.u * sqrt(u / m_e)
+  double targetTemperature_;        // k_B T in E_h
+  int stochasticDynamicsSeed_;      // Seed used for noise generation in stochastic dynamics
+
  private:
   // Resets accelerations to zero.
   void resetAccelerations();
-  // Calculates the current temperature.
-  double getCurrentTemperature();
-  // Option to use temperature bath is switched on when a target temperature is set.
-  bool temperatureBath_ = false;
-  double temperatureRelaxationTime_;
-  // Default to room temperature for initial velocities.
-  double targetTemperature_;
-  double relaxationTimeFactor_;
+  // k_B T in E_h around which the initial Maxwell-Boltzmann distribution is centered
+  double generationTemperature_;
 };
 
 } // namespace Utils

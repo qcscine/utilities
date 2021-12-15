@@ -8,6 +8,9 @@
 #ifndef UTILS_AFIROPTIMIZERBASE_H_
 #define UTILS_AFIROPTIMIZERBASE_H_
 
+#include "CoordinateSystem.h"
+#include "Core/Interfaces/Calculator.h"
+#include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Typenames.h"
 #include <Core/Log.h>
 #include <Eigen/Core>
@@ -46,7 +49,7 @@ class AfirOptimizerBase {
   static constexpr const char* afirAttractiveKey = "afir_attractive";
   static constexpr const char* afirEnergyAllowanceKey = "afir_energy_allowance";
   static constexpr const char* afirPhaseInKey = "afir_phase_in";
-  static constexpr const char* afirTransfromCoordinatesKey = "afir_transform_coordinates";
+  static constexpr const char* afirCoordinateSystemKey = "afir_coordinate_system";
 
   /// @brief Default constructor.
   AfirOptimizerBase() = default;
@@ -73,6 +76,11 @@ class AfirOptimizerBase {
    */
   virtual Settings getSettings() const = 0;
   /**
+   * @brief Get the settings of the calculator used for the energy calculations during the optimization.
+   * @return std::shared_ptr<Settings> The settings of the calculator.
+   */
+  virtual const std::shared_ptr<Settings> getCalculatorSettings() const = 0;
+  /**
    * @brief Add an observer function that will be triggered in each iteration.
    *
    * @param function A function to be executed in every loop of the optimization.
@@ -89,6 +97,12 @@ class AfirOptimizerBase {
    * as std::functions and can not be added via templates.
    */
   virtual void clearObservers() = 0;
+  /**
+   * @brief The underlying convergence check
+   *
+   * @return GradientBasedCheck the class holding all convergence thresholds.
+   */
+  virtual const GradientBasedCheck getConvergenceCheck() const = 0;
   /// @brief The list of atoms indices of atoms to be artificially forced onto or away from those in the RHS list.
   std::vector<int> lhsList = {};
   /// @brief The list of atoms indices of atoms to be artificially forced onto or away from those in the LHS list.
@@ -121,14 +135,14 @@ class AfirOptimizerBase {
    * Note that only the force (gradient contribution) is phased in, the energy contribution
    * is always added fully.
    */
-  int phaseIn = 100;
+  int phaseIn = 30;
   /**
-   * @brief Switch to transform the coordinates from Cartesian into an internal space.
+   * @brief Set the coordinate system in which the optimization shall be performed
    *
-   * The optimization will be carried out in the internal coordinate space possibly
-   * accellerating convergence.
+   * The optimization can be carried out in the internal coordinate space or with removed translations and rotations
+   * possibly accelerating convergence.
    */
-  bool transformCoordinates = true;
+  CoordinateSystem coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
   /**
    * @brief The function evaluating all artificial forces for the given set of atoms.
    *

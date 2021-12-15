@@ -150,7 +150,7 @@ class ResultsAutoCompleter {
   /**
    * @brief Calculates DensityMatrix from results and stores it there.
    */
-  void generateDensityMatrix(Results& results);
+  static void generateDensityMatrix(Results& results);
 
   /**
    * @brief Calculates AtomicCharges (Mulliken charges) from results and stores them there.

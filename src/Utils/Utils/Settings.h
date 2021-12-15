@@ -29,25 +29,80 @@ namespace Utils {
  *    that populates the protected _fields member with a set of possible
  *    options and their default/descriptions.
  */
-class Settings : public Scine::Utils::UniversalSettings::ValueCollection {
+class Settings : public UniversalSettings::ValueCollection {
  public:
+  /*! Normalize a string values' case if a case-insensitive option can be
+   *   matched in the corresponding descriptor
+   *
+   * For OptionList- and ParametrizedOptionListDescriptors, if the current
+   * option value identifier does not exactly match any option within the
+   * descriptor, a case-insensitive match is sought. If one is found, the
+   * value identifier is overwritten with the matched descriptor identifier.
+   *
+   * @note Recursively descends into all nested
+   *   DescriptorCollection/ValueCollection pairs.
+   */
+  static void normalizeStringCases(const UniversalSettings::DescriptorCollection& descriptors, ValueCollection& values);
+
+  //!@name Constructors
+  //!@{
+  Settings() = default;
   /**
    * @brief Construct a new Settings object
    *
    * @param name
    */
-  explicit Settings(std::string name) : _name(name), _fields(Utils::UniversalSettings::DescriptorCollection(name)) {
+  explicit Settings(std::string name) : _name(std::move(name)), _fields(UniversalSettings::DescriptorCollection(name)) {
   }
   /**
    * @brief Constructor from ValueCollection and DescriptorCollection.
    */
-  Settings(Utils::UniversalSettings::ValueCollection settings, Utils::UniversalSettings::DescriptorCollection fields)
-    : Utils::UniversalSettings::ValueCollection(std::move(settings)), _fields(std::move(fields)) {
+  Settings(UniversalSettings::ValueCollection settings, UniversalSettings::DescriptorCollection fields)
+    : UniversalSettings::ValueCollection(std::move(settings)),
+      _name(fields.getPropertyDescription()),
+      _fields(std::move(fields)) {
   }
+  //!@}
+
   /**
    * @brief Virtual destructor.
    */
   virtual ~Settings() = default;
+
+  //!@name Modification
+  //!@{
+  /**
+   * @brief Merges values of matching keys from a collection into settings
+   *
+   * @param collection Values to merge if keys match
+   * @param allowSuperfluous If true, the function will ignore value keys that are not present in the descriptors.
+   *                         If false, the function will throw an error if such a case is encountered.
+   */
+  void merge(const Utils::UniversalSettings::ValueCollection& collection, bool allowSuperfluous = false) {
+    for (const auto& keyValuePair : collection) {
+      if (valueExists(keyValuePair.first)) {
+        modifyValue(keyValuePair.first, keyValuePair.second);
+      }
+      else if (!allowSuperfluous) {
+        throw std::logic_error("Error: the key: '" + keyValuePair.first + "' was not recognized.");
+      }
+    }
+  }
+
+  //!@overload
+  void normalizeStringCases();
+
+  /**
+   * @brief Resets the current settings to the default ones.
+   */
+  void resetToDefaults() {
+    UniversalSettings::ValueCollection& self = *this;
+    self = UniversalSettings::createDefaultValueCollection(this->_fields);
+  }
+  //!@}
+
+  //!@name Information
+  //!@{
   /**
    * @brief Getter for the name set in the constructor of the settings object.
    * @return std::string Returns the name.
@@ -55,31 +110,38 @@ class Settings : public Scine::Utils::UniversalSettings::ValueCollection {
   const std::string& name() const {
     return _name;
   }
+
+  [[deprecated("Prefer API-equivalent 'valid' function")]] bool check() const {
+    return valid();
+  }
+
   /**
    * @brief Checks if the current settings are acceptable w.r.t. the
    *        defined boundaries.
    *
-   * @return true  If the settings are valid.
-   * @return false If the settings are not valid.
+   * @returns Whether the settings are valid w.r.t their descriptor bounds
    */
-  bool check() const {
-    const Scine::Utils::UniversalSettings::ValueCollection& self = *this;
-    return _fields.validValue(self);
+  bool valid() const {
+    return _fields.validValue(*this);
   }
 
   /**
-   * @brief Resets the current settings to the default ones.
+   * @brief Throw an exception containing explanations for all setting values
+   *   that violate their descriptor bounds.
+   *
+   * @pre A setting value is invalid w.r.t. descriptor bounds, i.e.
+   *   `this->valid() == false`
    */
-  void resetToDefaults() {
-    Scine::Utils::UniversalSettings::ValueCollection& self = *this;
-    self = Utils::UniversalSettings::createDefaultValueCollection(this->_fields);
+  void throwIncorrectSettings() const {
+    assert(!_fields.validValue(*this));
+    throw UniversalSettings::InvalidSettingsException(_fields.explainInvalidValue(*this));
   }
 
   /**
    * @brief Returns a const reference of the protected member _fields.
-   * @return const Utils::UniversalSettings::DescriptorCollection& Underlying descriptor collection.
+   * @return const UniversalSettings::DescriptorCollection& Underlying descriptor collection.
    */
-  const Utils::UniversalSettings::DescriptorCollection& getDescriptorCollection() const {
+  const UniversalSettings::DescriptorCollection& getDescriptorCollection() const {
     return _fields;
   }
 
@@ -89,34 +151,35 @@ class Settings : public Scine::Utils::UniversalSettings::ValueCollection {
    * @param option The option of which the default ValueCollection should be returned.
    * @return Settings The default settings corresponding to the option.
    */
-  Settings getDefaultSettingsForOptionListWithSettings(const std::string& key, const std::string& option) {
+  Settings getDefaultSettingsForOptionListWithSettings(const std::string& key, const std::string& option) const {
     if (_fields.exists(key)) {
       if (_fields.get(key).relatesToParametrizedOptionList()) {
         auto optionList = _fields.get(key).getParametrizedOptionListDescriptor();
         for (const auto& o : optionList.getAllOptions()) {
-          if (o.first == option)
-            return Settings(Utils::UniversalSettings::createDefaultValueCollection(o.second), o.second);
+          if (o.first == option) {
+            return Settings(UniversalSettings::createDefaultValueCollection(o.second), o.second);
+          }
         }
         throw std::runtime_error("The given option is not a valid option.");
       }
-      else {
-        throw std::runtime_error("The given setting is not an option list with settings.");
-      }
+
+      throw std::runtime_error("The given setting is not an option list with settings.");
     }
-    else {
-      throw Core::SettingsKeyError();
-    }
+
+    throw Core::SettingsKeyError();
   }
+  //!@}
 
  protected:
+  //! Name of the settings object
+  std::string _name;
   /**
    * @brief The blueprint for the allowed options.
    *
    * All derived classes need to populate this collection
    * in their constructor.
    */
-  std::string _name;
-  Utils::UniversalSettings::DescriptorCollection _fields;
+  UniversalSettings::DescriptorCollection _fields;
 };
 
 } // namespace Utils

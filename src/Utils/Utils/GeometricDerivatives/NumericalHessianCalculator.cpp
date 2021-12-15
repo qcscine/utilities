@@ -13,9 +13,6 @@
 namespace Scine {
 namespace Utils {
 
-#pragma omp declare reduction(+ : Eigen::MatrixXd : omp_out += omp_in) initializer(omp_priv = Eigen::MatrixXd::Zero(omp_orig.rows(), omp_orig.cols()))
-#pragma omp declare reduction(+ : DipoleGradient : omp_out += omp_in) initializer(omp_priv = DipoleGradient::Zero(omp_orig.rows(), omp_orig.cols()))
-
 NumericalHessianCalculator::NumericalHessianCalculator(Core::Calculator& calculator) : calculator_(calculator) {
 }
 
@@ -65,22 +62,25 @@ double NumericalHessianCalculator::hessianElementSameFromEnergy(int i, const Pos
 
   calculator_.modifyPositions(modifiedPositions);
   auto r = calculator_.calculate("");
-  if (!r.get<Property::SuccessfulCalculation>())
+  if (!r.get<Property::SuccessfulCalculation>()) {
     throw std::runtime_error("Energy calculation in numerical Hessian evaluation failed.");
+  }
   auto E = r.get<Property::Energy>();
 
   modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - delta;
   calculator_.modifyPositions(modifiedPositions);
   r = calculator_.calculate("");
-  if (!r.get<Property::SuccessfulCalculation>())
+  if (!r.get<Property::SuccessfulCalculation>()) {
     throw std::runtime_error("Energy calculation in numerical Hessian evaluation failed.");
+  }
   auto Em = r.get<Property::Energy>();
 
   modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) + delta;
   calculator_.modifyPositions(std::move(modifiedPositions));
   r = calculator_.calculate("");
-  if (!r.get<Property::SuccessfulCalculation>())
+  if (!r.get<Property::SuccessfulCalculation>()) {
     throw std::runtime_error("Energy calculation in numerical Hessian evaluation failed.");
+  }
   auto Ep = r.get<Property::Energy>();
 
   return (Ep - 2 * E + Em) / (delta * delta);
@@ -100,32 +100,36 @@ double NumericalHessianCalculator::hessianElementDifferentFromEnergy(int i, int 
   modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) + D;
   calculator_.modifyPositions(modifiedPositions);
   auto r = calculator_.calculate("");
-  if (!r.get<Property::SuccessfulCalculation>())
+  if (!r.get<Property::SuccessfulCalculation>()) {
     throw std::runtime_error("Energy calculation in numerical Hessian evaluation failed.");
+  }
   auto Epp = r.get<Property::Energy>();
 
   modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - D;
   modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) + D;
   calculator_.modifyPositions(modifiedPositions);
   r = calculator_.calculate("");
-  if (!r.get<Property::SuccessfulCalculation>())
+  if (!r.get<Property::SuccessfulCalculation>()) {
     throw std::runtime_error("Energy calculation in numerical Hessian evaluation failed.");
+  }
   auto Emp = r.get<Property::Energy>();
 
   modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) + D;
   modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) - D;
   calculator_.modifyPositions(modifiedPositions);
   r = calculator_.calculate("");
-  if (!r.get<Property::SuccessfulCalculation>())
+  if (!r.get<Property::SuccessfulCalculation>()) {
     throw std::runtime_error("Energy calculation in numerical Hessian evaluation failed.");
+  }
   auto Epm = r.get<Property::Energy>();
 
   modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - D;
   modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) - D;
   calculator_.modifyPositions(modifiedPositions);
   r = calculator_.calculate("");
-  if (!r.get<Property::SuccessfulCalculation>())
+  if (!r.get<Property::SuccessfulCalculation>()) {
     throw std::runtime_error("Energy calculation in numerical Hessian evaluation failed.");
+  }
   auto Emm = r.get<Property::Energy>();
 
   return (Epp - Epm - Emp + Emm) / (delta * delta);
@@ -149,14 +153,14 @@ Results NumericalHessianCalculator::calculateFromGradientDifferences(double delt
   DipoleGradient dG = DipoleGradient::Zero(nDimensions, 3);
 
   std::exception_ptr exception = nullptr;
-#pragma omp parallel shared(exception)
+#pragma omp parallel shared(exception, H, dG)
   {
     std::shared_ptr<Core::Calculator> localCalculator;
 #pragma omp critical(clone)
     { localCalculator = calculator_.clone(); }
     localCalculator->setRequiredProperties(p);
 
-#pragma omp for reduction(+ : dG)
+#pragma omp for
     for (int i = 0; i < nDimensions; ++i) {
       if (!exception) {
         try {
@@ -170,8 +174,9 @@ Results NumericalHessianCalculator::calculateFromGradientDifferences(double delt
       }
     }
   }
-  if (exception)
+  if (exception) {
     std::rethrow_exception(exception);
+  }
   // Set a compound result with hessian matrix and, if necessary, dipole gradient.
   results.set<Property::Hessian>(0.5 * (H + H.transpose()));
   if (dipoleGradient_) {
@@ -184,7 +189,7 @@ Results NumericalHessianCalculator::calculateFromGradientDifferences(double delt
 Eigen::VectorXd NumericalHessianCalculator::addGradientContribution(DipoleGradient& dipoleDiff, int i,
                                                                     const Utils::PositionCollection& referencePositions,
                                                                     double delta, Core::Calculator& calculator,
-                                                                    std::shared_ptr<Core::State> state) {
+                                                                    std::shared_ptr<Core::State> state) const {
   calculator.loadState(std::move(state));
   auto modifiedPositions = referencePositions;
   auto D = delta / 2;
@@ -195,8 +200,9 @@ Eigen::VectorXd NumericalHessianCalculator::addGradientContribution(DipoleGradie
   modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) + D;
   calculator.modifyPositions(modifiedPositions);
   const auto& rPlus = calculator.calculate("");
-  if (!rPlus.get<Property::SuccessfulCalculation>())
+  if (!rPlus.get<Property::SuccessfulCalculation>()) {
     throw std::runtime_error("Gradient calculation in semi-numerical Hessian evaluation failed.");
+  }
   auto gradDifference = rPlus.get<Property::Gradients>();
   if (dipoleGradient_) { // plus delta
     dipoleDiff.row(i) = rPlus.get<Property::Dipole>();
@@ -206,8 +212,9 @@ Eigen::VectorXd NumericalHessianCalculator::addGradientContribution(DipoleGradie
   calculator.modifyPositions(std::move(modifiedPositions));
   const auto& rMinus = calculator.calculate("");
   gradDifference -= rMinus.get<Property::Gradients>();
-  if (!rMinus.get<Property::SuccessfulCalculation>())
+  if (!rMinus.get<Property::SuccessfulCalculation>()) {
     throw std::runtime_error("Gradient calculation in semi-numerical Hessian evaluation failed.");
+  }
   if (dipoleGradient_) { // minus delta
     dipoleDiff.row(i) -= rMinus.get<Property::Dipole>();
     dipoleDiff.row(i) /= delta;
@@ -235,14 +242,15 @@ Results NumericalHessianCalculator::calculateFromGradientDifferences(double delt
   DipoleGradient dipoleGradient = DipoleGradient::Zero(nDimensions, 3);
 
   std::exception_ptr exception = nullptr;
-#pragma omp parallel shared(exception)
+#pragma omp parallel shared(exception, hessian, dipoleGradient)
   {
     std::shared_ptr<Core::Calculator> localCalculator;
 #pragma omp critical(clone)
     { localCalculator = calculator_.clone(); }
     localCalculator->setRequiredProperties(p);
-#pragma omp for reduction(+ : dipoleGradient)
-    for (int i = 0; i < atomsToUpdate.size(); ++i) {
+    const int atomsToUpdateSize = atomsToUpdate.size();
+#pragma omp for
+    for (int i = 0; i < atomsToUpdateSize; ++i) {
       for (int dimension = 0; dimension < 3; ++dimension) {
         if (!exception) {
           try {
@@ -257,8 +265,9 @@ Results NumericalHessianCalculator::calculateFromGradientDifferences(double delt
       }
     }
   }
-  if (exception)
+  if (exception) {
     std::rethrow_exception(exception);
+  }
 
   hessian += hessian.transpose().eval();
   for (int i : atomsToUpdate) {

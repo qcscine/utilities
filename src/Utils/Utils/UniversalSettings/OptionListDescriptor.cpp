@@ -54,8 +54,9 @@ void OptionListDescriptor::setDefaultOption(const std::string& def) {
 int OptionListDescriptor::getIndex(const std::string& option) const {
   int index = -1;
   for (int i = 0; i < optionCount(); ++i) {
-    if (options_[i] == option)
+    if (options_[i] == option) {
       index = i;
+    }
   }
   return index;
 }
@@ -77,6 +78,17 @@ bool OptionListDescriptor::validValue(const GenericValue& v) const {
     return false;
   }
   return optionExists(v.toString());
+}
+
+inline std::string OptionListDescriptor::explainInvalidValue(const GenericValue& v) const {
+  assert(!validValue(v));
+  if (!v.isString()) {
+    return "Generic value for string setting '" + getPropertyDescription() + "' is not a string!";
+  }
+  const std::string value = v;
+  std::string explanation =
+      "Option list descriptor '" + getPropertyDescription() + "' does not include an option with value " + value;
+  return explanation;
 }
 
 } /* namespace UniversalSettings */

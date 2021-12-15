@@ -1,0 +1,1508 @@
+ DBCSR| CPU Multiplication driver                                           XSMM
+ DBCSR| Multrec recursion limit                                              512
+ DBCSR| Multiplication stack size                                           1000
+ DBCSR| Maximum elements for images                                    UNLIMITED
+ DBCSR| Multiplicative factor virtual images                                   1
+ DBCSR| Use multiplication densification                                       T
+ DBCSR| Multiplication size stacks                                             3
+ DBCSR| Number of 3D layers                                               SINGLE
+ DBCSR| Use MPI memory allocation                                              T
+ DBCSR| Use RMA algorithm                                                      F
+ DBCSR| Use Communication thread                                               T
+ DBCSR| Communication thread load                                             87
+
+
+  **** **** ******  **  PROGRAM STARTED AT               2021-02-10 12:58:13.595
+ ***** ** ***  *** **   PROGRAM STARTED ON                          ws55.ethz.ch
+ **    ****   ******    PROGRAM STARTED BY                              steinmig
+ ***** **    ** ** **   PROGRAM PROCESS ID                                  7188
+  **** **  *******  **  PROGRAM STARTED IN /home/cds/steinmig/static_calculation
+                                           /sample_output_with_smearing
+
+ CP2K| version string:                    CP2K version 7.0 (Development Version)
+ CP2K| source code revision number:                                  git:a515b01
+ CP2K| cp2kflags: libint fftw3 libxc elpa parallel mpi3 scalapack xsmm spglib   
+ CP2K| is freely available from                            https://www.cp2k.org/
+ CP2K| Program compiled at                          Tue Nov 19 16:50:09 CET 2019
+ CP2K| Program compiled on                                          ws44.ethz.ch
+ CP2K| Program compiled for                                                local
+ CP2K| Data directory path    /data/soft/centos7/qc/cp2k/dcce26e78c21e2aaa0d0cee
+ CP2K| Input file name                                              Si_bulk8.inp
+
+ GLOBAL| Force Environment number                                              1
+ GLOBAL| Basis set file name                                           BASIS_SET
+ GLOBAL| Potential file name                                      GTH_POTENTIALS
+ GLOBAL| MM Potential file name                                     MM_POTENTIAL
+ GLOBAL| Coordinate file name                                      __STD_INPUT__
+ GLOBAL| Method name                                                        CP2K
+ GLOBAL| Project name                                                   Si_bulk8
+ GLOBAL| Preferred FFT library                                             FFTW3
+ GLOBAL| Preferred diagonalization lib.                                     ELPA
+ GLOBAL| Run type                                           VIBRATIONAL_ANALYSIS
+ GLOBAL| All-to-all communication in single precision                          F
+ GLOBAL| FFTs using library dependent lengths                                  F
+ GLOBAL| Global print level                                               MEDIUM
+ GLOBAL| MPI I/O enabled                                                       T
+ GLOBAL| Total number of message passing processes                             1
+ GLOBAL| Number of threads for this process                                    1
+ GLOBAL| This output is from process                                           0
+ GLOBAL| CPU model name                Intel(R) Xeon(R) CPU E3-1245 v5 @ 3.50GHz
+ GLOBAL| CPUID                                                              1002
+
+ MEMORY| system memory details [Kb]
+ MEMORY|                        rank 0           min           max       average
+ MEMORY| MemTotal             16211564      16211564      16211564      16211564
+ MEMORY| MemFree               4018436       4018436       4018436       4018436
+ MEMORY| Buffers                  2280          2280          2280          2280
+ MEMORY| Cached                6870824       6870824       6870824       6870824
+ MEMORY| Slab                  1936400       1936400       1936400       1936400
+ MEMORY| SReclaimable          1562240       1562240       1562240       1562240
+ MEMORY| MemLikelyFree        12453780      12453780      12453780      12453780
+
+
+ *** Fundamental physical constants (SI units) ***
+
+ *** Literature: B. J. Mohr and B. N. Taylor,
+ ***             CODATA recommended values of the fundamental physical
+ ***             constants: 2006, Web Version 5.1
+ ***             http://physics.nist.gov/constants
+
+ Speed of light in vacuum [m/s]                             2.99792458000000E+08
+ Magnetic constant or permeability of vacuum [N/A**2]       1.25663706143592E-06
+ Electric constant or permittivity of vacuum [F/m]          8.85418781762039E-12
+ Planck constant (h) [J*s]                                  6.62606896000000E-34
+ Planck constant (h-bar) [J*s]                              1.05457162825177E-34
+ Elementary charge [C]                                      1.60217648700000E-19
+ Electron mass [kg]                                         9.10938215000000E-31
+ Electron g factor [ ]                                     -2.00231930436220E+00
+ Proton mass [kg]                                           1.67262163700000E-27
+ Fine-structure constant                                    7.29735253760000E-03
+ Rydberg constant [1/m]                                     1.09737315685270E+07
+ Avogadro constant [1/mol]                                  6.02214179000000E+23
+ Boltzmann constant [J/K]                                   1.38065040000000E-23
+ Atomic mass unit [kg]                                      1.66053878200000E-27
+ Bohr radius [m]                                            5.29177208590000E-11
+
+ *** Conversion factors ***
+
+ [u] -> [a.u.]                                              1.82288848426455E+03
+ [Angstrom] -> [Bohr] = [a.u.]                              1.88972613288564E+00
+ [a.u.] = [Bohr] -> [Angstrom]                              5.29177208590000E-01
+ [a.u.] -> [s]                                              2.41888432650478E-17
+ [a.u.] -> [fs]                                             2.41888432650478E-02
+ [a.u.] -> [J]                                              4.35974393937059E-18
+ [a.u.] -> [N]                                              8.23872205491840E-08
+ [a.u.] -> [K]                                              3.15774647902944E+05
+ [a.u.] -> [kJ/mol]                                         2.62549961709828E+03
+ [a.u.] -> [kcal/mol]                                       6.27509468713739E+02
+ [a.u.] -> [Pa]                                             2.94210107994716E+13
+ [a.u.] -> [bar]                                            2.94210107994716E+08
+ [a.u.] -> [atm]                                            2.90362800883016E+08
+ [a.u.] -> [eV]                                             2.72113838565563E+01
+ [a.u.] -> [Hz]                                             6.57968392072181E+15
+ [a.u.] -> [1/cm] (wave numbers)                            2.19474631370540E+05
+ [a.u./Bohr**2] -> [1/cm]                                   5.14048714338585E+03
+ 
+
+ CELL_TOP| Volume [angstrom^3]:                                          160.165
+ CELL_TOP| Vector a [angstrom     5.431     0.000     0.000    |a| =       5.431
+ CELL_TOP| Vector b [angstrom     0.000     5.431     0.000    |b| =       5.431
+ CELL_TOP| Vector c [angstrom     0.000     0.000     5.431    |c| =       5.431
+ CELL_TOP| Angle (b,c), alpha [degree]:                                   90.000
+ CELL_TOP| Angle (a,c), beta  [degree]:                                   90.000
+ CELL_TOP| Angle (a,b), gamma [degree]:                                   90.000
+ CELL_TOP| Numerically orthorhombic:                                         YES
+
+ GENERATE|  Preliminary Number of Bonds generated:                             0
+ GENERATE|  Achieved consistency in connectivity generation.
+
+ CELL| Volume [angstrom^3]:                                              160.165
+ CELL| Vector a [angstrom]:       5.431     0.000     0.000    |a| =       5.431
+ CELL| Vector b [angstrom]:       0.000     5.431     0.000    |b| =       5.431
+ CELL| Vector c [angstrom]:       0.000     0.000     5.431    |c| =       5.431
+ CELL| Angle (b,c), alpha [degree]:                                       90.000
+ CELL| Angle (a,c), beta  [degree]:                                       90.000
+ CELL| Angle (a,b), gamma [degree]:                                       90.000
+ CELL| Numerically orthorhombic:                                             YES
+
+ CELL_REF| Volume [angstrom^3]:                                          160.165
+ CELL_REF| Vector a [angstrom     5.431     0.000     0.000    |a| =       5.431
+ CELL_REF| Vector b [angstrom     0.000     5.431     0.000    |b| =       5.431
+ CELL_REF| Vector c [angstrom     0.000     0.000     5.431    |c| =       5.431
+ CELL_REF| Angle (b,c), alpha [degree]:                                   90.000
+ CELL_REF| Angle (a,c), beta  [degree]:                                   90.000
+ CELL_REF| Angle (a,b), gamma [degree]:                                   90.000
+ CELL_REF| Numerically orthorhombic:                                         YES
+
+ *******************************************************************************
+ *******************************************************************************
+ **                                                                           **
+ **     #####                         ##              ##                      **
+ **    ##   ##            ##          ##              ##                      **
+ **   ##     ##                       ##            ######                    **
+ **   ##     ##  ##   ##  ##   #####  ##  ##   ####   ##    #####    #####    **
+ **   ##     ##  ##   ##  ##  ##      ## ##   ##      ##   ##   ##  ##   ##   **
+ **   ##  ## ##  ##   ##  ##  ##      ####     ###    ##   ######   ######    **
+ **    ##  ###   ##   ##  ##  ##      ## ##      ##   ##   ##       ##        **
+ **     #######   #####   ##   #####  ##  ##  ####    ##    #####   ##        **
+ **           ##                                                    ##        **
+ **                                                                           **
+ **                                                ... make the atoms dance   **
+ **                                                                           **
+ **            Copyright (C) by CP2K developers group (2000 - 2019)           **
+ **                                                                           **
+ *******************************************************************************
+
+ DFT| Spin restricted Kohn-Sham (RKS) calculation                            RKS
+ DFT| Multiplicity                                                             1
+ DFT| Number of spin states                                                    1
+ DFT| Charge                                                                   0
+ DFT| Self-interaction correction (SIC)                                       NO
+ DFT| Cutoffs: density                                              1.000000E-10
+ DFT|          gradient                                             1.000000E-10
+ DFT|          tau                                                  1.000000E-10
+ DFT|          cutoff_smoothing_range                               0.000000E+00
+ DFT| XC density smoothing                                                  NONE
+ DFT| XC derivatives                                                          PW
+ FUNCTIONAL| ROUTINE=NEW
+ FUNCTIONAL| PADE:
+ FUNCTIONAL| S. Goedecker, M. Teter and J. Hutter, Phys. Rev. B 54, 1703 (1996) 
+
+ QS| Method:                                                                 GPW
+ QS| Density plane wave grid type                        NON-SPHERICAL FULLSPACE
+ QS| Number of grid levels:                                                    4
+ QS| Density cutoff [a.u.]:                                                150.0
+ QS| Multi grid cutoff [a.u.]: 1) grid level                               150.0
+ QS|                           2) grid level                                50.0
+ QS|                           3) grid level                                16.7
+ QS|                           4) grid level                                 5.6
+ QS| Grid level progression factor:                                          3.0
+ QS| Relative density cutoff [a.u.]:                                        30.0
+ QS| Consistent realspace mapping and integration 
+ QS| Interaction thresholds: eps_pgf_orb:                                1.0E-05
+ QS|                         eps_filter_matrix:                          0.0E+00
+ QS|                         eps_core_charge:                            1.0E-12
+ QS|                         eps_rho_gspace:                             1.0E-10
+ QS|                         eps_rho_rspace:                             1.0E-10
+ QS|                         eps_gvg_rspace:                             1.0E-05
+ QS|                         eps_ppl:                                    1.0E-02
+ QS|                         eps_ppnl:                                   1.0E-07
+
+
+ ATOMIC KIND INFORMATION
+
+  1. Atomic kind: Si                                    Number of atoms:       8
+
+     Orbital Basis Set                                             DZVP-GTH-PADE
+
+       Number of orbital shell sets:                                           2
+       Number of orbital shells:                                               5
+       Number of primitive Cartesian functions:                                5
+       Number of Cartesian basis functions:                                   14
+       Number of spherical basis functions:                                   13
+       Norm type:                                                              2
+
+       Normalised Cartesian orbitals:
+
+                        Set   Shell   Orbital            Exponent    Coefficient
+
+                          1       1    3s                1.203242       0.269412
+                                                         0.468841      -0.102290
+                                                         0.167986      -0.147195
+                                                         0.057562      -0.015996
+
+                          1       2    4s                1.203242       0.000000
+                                                         0.468841       0.000000
+                                                         0.167986       0.000000
+                                                         0.057562       0.083755
+
+                          1       3    4px               1.203242       0.085242
+                                                         0.468841      -0.143473
+                                                         0.167986      -0.083408
+                                                         0.057562      -0.014565
+                          1       3    4py               1.203242       0.085242
+                                                         0.468841      -0.143473
+                                                         0.167986      -0.083408
+                                                         0.057562      -0.014565
+                          1       3    4pz               1.203242       0.085242
+                                                         0.468841      -0.143473
+                                                         0.167986      -0.083408
+                                                         0.057562      -0.014565
+
+                          1       4    5px               1.203242       0.000000
+                                                         0.468841       0.000000
+                                                         0.167986       0.000000
+                                                         0.057562       0.040189
+                          1       4    5py               1.203242       0.000000
+                                                         0.468841       0.000000
+                                                         0.167986       0.000000
+                                                         0.057562       0.040189
+                          1       4    5pz               1.203242       0.000000
+                                                         0.468841       0.000000
+                                                         0.167986       0.000000
+                                                         0.057562       0.040189
+
+                          2       1    3dx2              0.450000       0.406941
+                          2       1    3dxy              0.450000       0.704842
+                          2       1    3dxz              0.450000       0.704842
+                          2       1    3dy2              0.450000       0.406941
+                          2       1    3dyz              0.450000       0.704842
+                          2       1    3dz2              0.450000       0.406941
+
+     GTH Potential information for                                   GTH-PADE-q4
+
+       Description:                       Goedecker-Teter-Hutter pseudopotential
+                                           Goedecker et al., PRB 54, 1703 (1996)
+                                          Hartwigsen et al., PRB 58, 3641 (1998)
+                                                      Krack, TCA 114, 145 (2005)
+
+       Gaussian exponent of the core charge distribution:               2.582645
+       Electronic configuration (s p d ...):                               2   2
+
+       Parameters of the local part of the GTH pseudopotential:
+
+                          rloc        C1          C2          C3          C4
+                        0.440000   -7.336103
+
+       Parameters of the non-local part of the GTH pseudopotential:
+
+                   l      r(l)      h(i,j,l)
+
+                   0    0.422738    5.906928   -1.261894
+                                   -1.261894    3.258196
+                   1    0.484278    2.727013
+
+
+ MOLECULE KIND INFORMATION
+
+
+ All atoms are their own molecule, skipping detailed information
+
+
+ TOTAL NUMBERS AND MAXIMUM NUMBERS
+
+  Total number of            - Atomic kinds:                                   1
+                             - Atoms:                                          8
+                             - Shell sets:                                    16
+                             - Shells:                                        40
+                             - Primitive Cartesian functions:                 40
+                             - Cartesian basis functions:                    112
+                             - Spherical basis functions:                    104
+
+  Maximum angular momentum of- Orbital basis functions:                        2
+                             - Local part of the GTH pseudopotential:          0
+                             - Non-local part of the GTH pseudopotential:      2
+
+
+ MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom
+
+  Atom  Kind  Element       X           Y           Z          Z(eff)       Mass
+
+       1     1 Si  14    0.000000    0.000000    0.000000      4.00      28.0855
+       2     1 Si  14    0.000000    2.715349    2.715349      4.00      28.0855
+       3     1 Si  14    2.715349    2.715349    0.000000      4.00      28.0855
+       4     1 Si  14    2.715349    0.000000    2.715349      4.00      28.0855
+       5     1 Si  14    4.073023    1.357674    4.073023      4.00      28.0855
+       6     1 Si  14    1.357674    1.357674    1.357674      4.00      28.0855
+       7     1 Si  14    1.357674    4.073023    4.073023      4.00      28.0855
+       8     1 Si  14    4.073023    4.073023    1.357674      4.00      28.0855
+
+
+
+
+ SCF PARAMETERS         Density guess:                                    ATOMIC
+                        --------------------------------------------------------
+                        max_scf:                                             300
+                        max_scf_history:                                       0
+                        max_diis:                                              4
+                        --------------------------------------------------------
+                        eps_scf:                                        1.00E-07
+                        eps_scf_history:                                0.00E+00
+                        eps_diis:                                       1.00E-01
+                        eps_eigval:                                     1.00E-05
+                        --------------------------------------------------------
+                        level_shift [a.u.]:                                 0.00
+                        added MOs                                        10    0
+                        --------------------------------------------------------
+                        Mixing method:                            BROYDEN_MIXING
+                                                charge density mixing in g-space
+                        --------------------------------------------------------
+                        Smear method:                                FERMI_DIRAC
+                        Electronic temperature [K]:                        300.0
+                        Electronic temperature [a.u.]:                  9.50E-04
+                        Accuracy threshold:                             1.00E-10
+                        --------------------------------------------------------
+                        No outer SCF
+
+ PW_GRID| Information for grid number                                          1
+ PW_GRID| Cutoff [a.u.]                                                    150.0
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1            -30      29                Points:          60
+ PW_GRID|   Bounds   2            -30      29                Points:          60
+ PW_GRID|   Bounds   3            -30      29                Points:          60
+ PW_GRID| Volume element (a.u.^3)  0.5004E-02     Volume (a.u.^3)      1080.8451
+ PW_GRID| Grid span                                                    FULLSPACE
+
+ PW_GRID| Information for grid number                                          2
+ PW_GRID| Cutoff [a.u.]                                                     50.0
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1            -18      17                Points:          36
+ PW_GRID|   Bounds   2            -18      17                Points:          36
+ PW_GRID|   Bounds   3            -18      17                Points:          36
+ PW_GRID| Volume element (a.u.^3)  0.2317E-01     Volume (a.u.^3)      1080.8451
+ PW_GRID| Grid span                                                    FULLSPACE
+
+ PW_GRID| Information for grid number                                          3
+ PW_GRID| Cutoff [a.u.]                                                     16.7
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1            -10       9                Points:          20
+ PW_GRID|   Bounds   2            -10       9                Points:          20
+ PW_GRID|   Bounds   3            -10       9                Points:          20
+ PW_GRID| Volume element (a.u.^3)  0.1351         Volume (a.u.^3)      1080.8451
+ PW_GRID| Grid span                                                    FULLSPACE
+
+ PW_GRID| Information for grid number                                          4
+ PW_GRID| Cutoff [a.u.]                                                      5.6
+ PW_GRID| spherical cutoff:                                                   NO
+ PW_GRID|   Bounds   1             -6       5                Points:          12
+ PW_GRID|   Bounds   2             -6       5                Points:          12
+ PW_GRID|   Bounds   3             -6       5                Points:          12
+ PW_GRID| Volume element (a.u.^3)  0.6255         Volume (a.u.^3)      1080.8451
+ PW_GRID| Grid span                                                    FULLSPACE
+
+ POISSON| Solver                                                        PERIODIC
+ POISSON| Periodicity                                                        XYZ
+
+ RS_GRID| Information for grid number                                          1
+ RS_GRID|   Bounds   1            -30      29                Points:          60
+ RS_GRID|   Bounds   2            -30      29                Points:          60
+ RS_GRID|   Bounds   3            -30      29                Points:          60
+
+ RS_GRID| Information for grid number                                          2
+ RS_GRID|   Bounds   1            -18      17                Points:          36
+ RS_GRID|   Bounds   2            -18      17                Points:          36
+ RS_GRID|   Bounds   3            -18      17                Points:          36
+
+ RS_GRID| Information for grid number                                          3
+ RS_GRID|   Bounds   1            -10       9                Points:          20
+ RS_GRID|   Bounds   2            -10       9                Points:          20
+ RS_GRID|   Bounds   3            -10       9                Points:          20
+
+ RS_GRID| Information for grid number                                          4
+ RS_GRID|   Bounds   1             -6       5                Points:          12
+ RS_GRID|   Bounds   2             -6       5                Points:          12
+ RS_GRID|   Bounds   3             -6       5                Points:          12
+
+ *******************************************************************************
+ *******************************************************************************
+ **                                                                           **
+ **  #  #   #    #                  #     #                      ##           **
+ **  #  #        ###   # ##   ###  ####         ##   # #    ###   #           **
+ **  #  #   #    #  #  ##    #  #   #     #    #  #  ## #  #  #   #           **
+ **   ##    #    #  #  #     # ##   #     #    #  #  #  #  # ##   #           **
+ **   ##    #    ###   #      # #    ##   #     ##   #  #   # #  ###          **
+ **                                                                           **
+ **   ##               ##                 #                                   **
+ **  #  #  # #    ###   #    #  #   ###         ###                           **
+ **  #  #  ## #  #  #   #    #  #  ##     #    ##                             **
+ **  ####  #  #  # ##   #     ###    ##   #      ##  N. Replicas:           1 **
+ **  #  #  #  #   # #  ###      #  ###    #    ###   N. Procs/Rep:          1 **
+ **                           ##                                              **
+ **                                       T. Laino  and F. Schiffmann         **
+ **                                       2008 - 2015                         **
+ *******************************************************************************
+ *******************************************************************************
+
+ REPLICA| layout of the replica grid, number of groups                         1
+ REPLICA| layout of the replica grid, size of each group                       1
+ REPLICA| MPI process to grid (group,rank) correspondence:
+  (   0 :    0,   0)
+
+ VIB| Vibrational Analysis Info
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    1  coordinate: X + DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000600036      0.000000005      0.000000005           
+ VIB|      Si                     -0.000788494      0.000000012      0.000000012           
+ VIB|      Si                     -0.000231016      0.000000013      0.000000005           
+ VIB|      Si                     -0.000231016      0.000000005      0.000000013           
+ VIB|      Si                      0.000459972     -0.000515444      0.000515427           
+ VIB|      Si                      0.000465291      0.000523441      0.000523441           
+ VIB|      Si                      0.000465290     -0.000523459     -0.000523459           
+ VIB|      Si                      0.000459972      0.000515427     -0.000515444           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    1  coordinate: Y + DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000004     -0.000600035      0.000000005           
+ VIB|      Si                      0.000000004     -0.000231016      0.000000013           
+ VIB|      Si                      0.000000013     -0.000231015      0.000000005           
+ VIB|      Si                      0.000000012     -0.000788494      0.000000012           
+ VIB|      Si                     -0.000523458      0.000465290     -0.000523459           
+ VIB|      Si                      0.000523442      0.000465291      0.000523441           
+ VIB|      Si                     -0.000515444      0.000459972      0.000515427           
+ VIB|      Si                      0.000515427      0.000459972     -0.000515444           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    1  coordinate: Z + DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005      0.000000005     -0.000600036           
+ VIB|      Si                      0.000000005      0.000000013     -0.000231016           
+ VIB|      Si                      0.000000012      0.000000013     -0.000788494           
+ VIB|      Si                      0.000000013      0.000000005     -0.000231016           
+ VIB|      Si                      0.000515427     -0.000515444      0.000459972           
+ VIB|      Si                      0.000523441      0.000523441      0.000465291           
+ VIB|      Si                     -0.000515445      0.000515427      0.000459972           
+ VIB|      Si                     -0.000523459     -0.000523459      0.000465291           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    2  coordinate: X + DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000788494      0.000000004      0.000000004           
+ VIB|      Si                     -0.000600037      0.000000013      0.000000013           
+ VIB|      Si                     -0.000231016      0.000000013      0.000000004           
+ VIB|      Si                     -0.000231016      0.000000004      0.000000013           
+ VIB|      Si                      0.000459973      0.000515419     -0.000515437           
+ VIB|      Si                      0.000465292     -0.000523466     -0.000523466           
+ VIB|      Si                      0.000465291      0.000523448      0.000523448           
+ VIB|      Si                      0.000459972     -0.000515437      0.000515419           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    2  coordinate: Y + DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005     -0.000231024      0.000000004           
+ VIB|      Si                      0.000000005     -0.000600028      0.000000013           
+ VIB|      Si                      0.000000012     -0.000788485      0.000000004           
+ VIB|      Si                      0.000000012     -0.000231025      0.000000013           
+ VIB|      Si                      0.000515427      0.000459965     -0.000515437           
+ VIB|      Si                     -0.000515444      0.000459965      0.000515420           
+ VIB|      Si                      0.000523441      0.000465298      0.000523449           
+ VIB|      Si                     -0.000523459      0.000465299     -0.000523466           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    2  coordinate: Z + DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005      0.000000004     -0.000231024           
+ VIB|      Si                      0.000000005      0.000000013     -0.000600027           
+ VIB|      Si                      0.000000012      0.000000014     -0.000231025           
+ VIB|      Si                      0.000000012      0.000000004     -0.000788485           
+ VIB|      Si                     -0.000523458     -0.000523466      0.000465299           
+ VIB|      Si                     -0.000515444      0.000515420      0.000459965           
+ VIB|      Si                      0.000523441      0.000523449      0.000465298           
+ VIB|      Si                      0.000515427     -0.000515437      0.000459965           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    3  coordinate: X + DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000231024      0.000000004      0.000000005           
+ VIB|      Si                     -0.000231025      0.000000013      0.000000012           
+ VIB|      Si                     -0.000600027      0.000000013      0.000000005           
+ VIB|      Si                     -0.000788486      0.000000004      0.000000012           
+ VIB|      Si                      0.000465299     -0.000523466     -0.000523459           
+ VIB|      Si                      0.000459965      0.000515420     -0.000515444           
+ VIB|      Si                      0.000459965     -0.000515437      0.000515427           
+ VIB|      Si                      0.000465298      0.000523449      0.000523441           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    3  coordinate: Y + DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000004     -0.000231024      0.000000005           
+ VIB|      Si                      0.000000004     -0.000788485      0.000000012           
+ VIB|      Si                      0.000000013     -0.000600027      0.000000005           
+ VIB|      Si                      0.000000014     -0.000231025      0.000000012           
+ VIB|      Si                     -0.000515437      0.000459965      0.000515427           
+ VIB|      Si                      0.000515420      0.000459965     -0.000515444           
+ VIB|      Si                     -0.000523467      0.000465299     -0.000523459           
+ VIB|      Si                      0.000523449      0.000465298      0.000523441           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    3  coordinate: Z + DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000004      0.000000004     -0.000788494           
+ VIB|      Si                      0.000000004      0.000000013     -0.000231016           
+ VIB|      Si                      0.000000013      0.000000013     -0.000600037           
+ VIB|      Si                      0.000000013      0.000000004     -0.000231016           
+ VIB|      Si                     -0.000515436      0.000515419      0.000459972           
+ VIB|      Si                     -0.000523466     -0.000523466      0.000465291           
+ VIB|      Si                      0.000515419     -0.000515437      0.000459972           
+ VIB|      Si                      0.000523449      0.000523448      0.000465291           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    4  coordinate: X + DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000231024      0.000000005      0.000000004           
+ VIB|      Si                     -0.000231025      0.000000012      0.000000014           
+ VIB|      Si                     -0.000788486      0.000000012      0.000000004           
+ VIB|      Si                     -0.000600027      0.000000005      0.000000013           
+ VIB|      Si                      0.000465298      0.000523441      0.000523449           
+ VIB|      Si                      0.000459965     -0.000515444      0.000515420           
+ VIB|      Si                      0.000459965      0.000515427     -0.000515437           
+ VIB|      Si                      0.000465299     -0.000523459     -0.000523466           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    4  coordinate: Y + DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000004     -0.000788494      0.000000004           
+ VIB|      Si                      0.000000004     -0.000231016      0.000000013           
+ VIB|      Si                      0.000000013     -0.000231016      0.000000004           
+ VIB|      Si                      0.000000013     -0.000600037      0.000000013           
+ VIB|      Si                      0.000523449      0.000465291      0.000523449           
+ VIB|      Si                     -0.000523466      0.000465291     -0.000523466           
+ VIB|      Si                      0.000515419      0.000459972     -0.000515437           
+ VIB|      Si                     -0.000515437      0.000459972      0.000515419           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    4  coordinate: Z + DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000004      0.000000005     -0.000231024           
+ VIB|      Si                      0.000000004      0.000000012     -0.000788485           
+ VIB|      Si                      0.000000013      0.000000012     -0.000231025           
+ VIB|      Si                      0.000000013      0.000000005     -0.000600027           
+ VIB|      Si                      0.000523449      0.000523441      0.000465298           
+ VIB|      Si                      0.000515420     -0.000515444      0.000459965           
+ VIB|      Si                     -0.000523467     -0.000523459      0.000465299           
+ VIB|      Si                     -0.000515437      0.000515427      0.000459965           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    5  coordinate: X + DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000465309     -0.000523449      0.000523459           
+ VIB|      Si                      0.000465307      0.000523466     -0.000523441           
+ VIB|      Si                      0.000459990     -0.000515419     -0.000515428           
+ VIB|      Si                      0.000459990      0.000515436      0.000515445           
+ VIB|      Si                     -0.000600045     -0.000000013     -0.000000005           
+ VIB|      Si                     -0.000231041     -0.000000012     -0.000000012           
+ VIB|      Si                     -0.000231042     -0.000000005     -0.000000005           
+ VIB|      Si                     -0.000788503     -0.000000005     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    5  coordinate: Y + DY
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000515427      0.000459982     -0.000515427           
+ VIB|      Si                      0.000523458      0.000465316     -0.000523441           
+ VIB|      Si                     -0.000523441      0.000465316      0.000523458           
+ VIB|      Si                      0.000515445      0.000459981      0.000515445           
+ VIB|      Si                     -0.000000005     -0.000600054     -0.000000005           
+ VIB|      Si                     -0.000000012     -0.000788511     -0.000000012           
+ VIB|      Si                     -0.000000013     -0.000231034     -0.000000005           
+ VIB|      Si                     -0.000000005     -0.000231034     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    5  coordinate: Z + DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000523459     -0.000523449      0.000465308           
+ VIB|      Si                     -0.000515428     -0.000515419      0.000459990           
+ VIB|      Si                     -0.000523441      0.000523466      0.000465308           
+ VIB|      Si                      0.000515445      0.000515436      0.000459990           
+ VIB|      Si                     -0.000000005     -0.000000013     -0.000600045           
+ VIB|      Si                     -0.000000012     -0.000000012     -0.000231041           
+ VIB|      Si                     -0.000000013     -0.000000005     -0.000788504           
+ VIB|      Si                     -0.000000005     -0.000000005     -0.000231042           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    6  coordinate: X + DX
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000459982      0.000515436      0.000515436           
+ VIB|      Si                      0.000459982     -0.000515419     -0.000515419           
+ VIB|      Si                      0.000465317      0.000523467     -0.000523450           
+ VIB|      Si                      0.000465317     -0.000523449      0.000523467           
+ VIB|      Si                     -0.000231034     -0.000000013     -0.000000005           
+ VIB|      Si                     -0.000600054     -0.000000012     -0.000000012           
+ VIB|      Si                     -0.000788511     -0.000000005     -0.000000005           
+ VIB|      Si                     -0.000231034     -0.000000005     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    6  coordinate: Y + DY
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000515436      0.000459982      0.000515437           
+ VIB|      Si                     -0.000523450      0.000465317      0.000523467           
+ VIB|      Si                      0.000523467      0.000465317     -0.000523449           
+ VIB|      Si                     -0.000515419      0.000459982     -0.000515419           
+ VIB|      Si                     -0.000000005     -0.000788511     -0.000000005           
+ VIB|      Si                     -0.000000012     -0.000600054     -0.000000012           
+ VIB|      Si                     -0.000000013     -0.000231034     -0.000000005           
+ VIB|      Si                     -0.000000005     -0.000231034     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    6  coordinate: Z + DZ
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000515436      0.000515436      0.000459982           
+ VIB|      Si                     -0.000523449      0.000523466      0.000465317           
+ VIB|      Si                     -0.000515419     -0.000515419      0.000459982           
+ VIB|      Si                      0.000523467     -0.000523450      0.000465317           
+ VIB|      Si                     -0.000000005     -0.000000013     -0.000231034           
+ VIB|      Si                     -0.000000012     -0.000000012     -0.000600054           
+ VIB|      Si                     -0.000000013     -0.000000005     -0.000231034           
+ VIB|      Si                     -0.000000005     -0.000000005     -0.000788511           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    7  coordinate: X + DX
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000459982     -0.000515427     -0.000515427           
+ VIB|      Si                      0.000459981      0.000515445      0.000515444           
+ VIB|      Si                      0.000465316     -0.000523441      0.000523458           
+ VIB|      Si                      0.000465316      0.000523458     -0.000523441           
+ VIB|      Si                     -0.000231034     -0.000000013     -0.000000005           
+ VIB|      Si                     -0.000788510     -0.000000012     -0.000000012           
+ VIB|      Si                     -0.000600054     -0.000000005     -0.000000005           
+ VIB|      Si                     -0.000231034     -0.000000005     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    7  coordinate: Y + DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000523449      0.000465309      0.000523459           
+ VIB|      Si                      0.000515436      0.000459990      0.000515445           
+ VIB|      Si                     -0.000515419      0.000459990     -0.000515428           
+ VIB|      Si                      0.000523467      0.000465307     -0.000523441           
+ VIB|      Si                     -0.000000005     -0.000231042     -0.000000005           
+ VIB|      Si                     -0.000000012     -0.000231041     -0.000000012           
+ VIB|      Si                     -0.000000013     -0.000600045     -0.000000005           
+ VIB|      Si                     -0.000000005     -0.000788503     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    7  coordinate: Z + DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000523449      0.000523458      0.000465309           
+ VIB|      Si                      0.000515436      0.000515445      0.000459990           
+ VIB|      Si                      0.000523467     -0.000523441      0.000465307           
+ VIB|      Si                     -0.000515419     -0.000515428      0.000459990           
+ VIB|      Si                     -0.000000005     -0.000000013     -0.000788503           
+ VIB|      Si                     -0.000000012     -0.000000012     -0.000231041           
+ VIB|      Si                     -0.000000013     -0.000000005     -0.000600045           
+ VIB|      Si                     -0.000000005     -0.000000005     -0.000231042           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    8  coordinate: X + DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000465308      0.000523459     -0.000523449           
+ VIB|      Si                      0.000465308     -0.000523441      0.000523466           
+ VIB|      Si                      0.000459990      0.000515445      0.000515436           
+ VIB|      Si                      0.000459990     -0.000515428     -0.000515419           
+ VIB|      Si                     -0.000788503     -0.000000013     -0.000000005           
+ VIB|      Si                     -0.000231041     -0.000000013     -0.000000012           
+ VIB|      Si                     -0.000231042     -0.000000005     -0.000000005           
+ VIB|      Si                     -0.000600045     -0.000000005     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    8  coordinate: Y + DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000523458      0.000465308     -0.000523449           
+ VIB|      Si                     -0.000515428      0.000459990     -0.000515419           
+ VIB|      Si                      0.000515445      0.000459990      0.000515436           
+ VIB|      Si                     -0.000523441      0.000465308      0.000523467           
+ VIB|      Si                     -0.000000005     -0.000231042     -0.000000005           
+ VIB|      Si                     -0.000000012     -0.000231041     -0.000000012           
+ VIB|      Si                     -0.000000013     -0.000788503     -0.000000005           
+ VIB|      Si                     -0.000000004     -0.000600045     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    8  coordinate: Z + DZ
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000515427     -0.000515427      0.000459982           
+ VIB|      Si                      0.000523458     -0.000523441      0.000465316           
+ VIB|      Si                      0.000515445      0.000515445      0.000459981           
+ VIB|      Si                     -0.000523441      0.000523458      0.000465317           
+ VIB|      Si                     -0.000000005     -0.000000013     -0.000231034           
+ VIB|      Si                     -0.000000012     -0.000000012     -0.000788511           
+ VIB|      Si                     -0.000000013     -0.000000005     -0.000231034           
+ VIB|      Si                     -0.000000005     -0.000000005     -0.000600054           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    1  coordinate: X - DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000600045      0.000000005      0.000000005           
+ VIB|      Si                      0.000788502      0.000000013      0.000000013           
+ VIB|      Si                      0.000231042      0.000000013      0.000000004           
+ VIB|      Si                      0.000231042      0.000000004      0.000000013           
+ VIB|      Si                     -0.000465308      0.000523441     -0.000523459           
+ VIB|      Si                     -0.000459990     -0.000515444     -0.000515444           
+ VIB|      Si                     -0.000459990      0.000515427      0.000515427           
+ VIB|      Si                     -0.000465308     -0.000523459      0.000523441           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    1  coordinate: Y - DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005      0.000600045      0.000000005           
+ VIB|      Si                      0.000000004      0.000231042      0.000000013           
+ VIB|      Si                      0.000000013      0.000231042      0.000000004           
+ VIB|      Si                      0.000000013      0.000788502      0.000000013           
+ VIB|      Si                      0.000515427     -0.000459990      0.000515427           
+ VIB|      Si                     -0.000515444     -0.000459990     -0.000515444           
+ VIB|      Si                      0.000523441     -0.000465308     -0.000523459           
+ VIB|      Si                     -0.000523459     -0.000465309      0.000523441           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    1  coordinate: Z - DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005      0.000000005      0.000600045           
+ VIB|      Si                      0.000000004      0.000000013      0.000231042           
+ VIB|      Si                      0.000000013      0.000000013      0.000788502           
+ VIB|      Si                      0.000000013      0.000000004      0.000231042           
+ VIB|      Si                     -0.000523459      0.000523441     -0.000465308           
+ VIB|      Si                     -0.000515444     -0.000515444     -0.000459990           
+ VIB|      Si                      0.000523441     -0.000523459     -0.000465309           
+ VIB|      Si                      0.000515427      0.000515427     -0.000459990           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    2  coordinate: X - DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000788503      0.000000005      0.000000005           
+ VIB|      Si                      0.000600045      0.000000013      0.000000013           
+ VIB|      Si                      0.000231042      0.000000013      0.000000004           
+ VIB|      Si                      0.000231042      0.000000004      0.000000013           
+ VIB|      Si                     -0.000465309     -0.000523466      0.000523449           
+ VIB|      Si                     -0.000459990      0.000515420      0.000515420           
+ VIB|      Si                     -0.000459990     -0.000515437     -0.000515437           
+ VIB|      Si                     -0.000465309      0.000523448     -0.000523466           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    2  coordinate: Y - DY
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005      0.000231034      0.000000005           
+ VIB|      Si                      0.000000004      0.000600054      0.000000013           
+ VIB|      Si                      0.000000013      0.000788511      0.000000004           
+ VIB|      Si                      0.000000013      0.000231033      0.000000013           
+ VIB|      Si                     -0.000523459     -0.000465316      0.000523449           
+ VIB|      Si                      0.000523442     -0.000465316     -0.000523466           
+ VIB|      Si                     -0.000515445     -0.000459982     -0.000515437           
+ VIB|      Si                      0.000515427     -0.000459983      0.000515419           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    2  coordinate: Z - DZ
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005      0.000000005      0.000231034           
+ VIB|      Si                      0.000000004      0.000000013      0.000600054           
+ VIB|      Si                      0.000000013      0.000000013      0.000231033           
+ VIB|      Si                      0.000000013      0.000000004      0.000788511           
+ VIB|      Si                      0.000515427      0.000515419     -0.000459982           
+ VIB|      Si                      0.000523442     -0.000523466     -0.000465316           
+ VIB|      Si                     -0.000515445     -0.000515437     -0.000459982           
+ VIB|      Si                     -0.000523459      0.000523449     -0.000465316           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    3  coordinate: X - DX
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000231034      0.000000005      0.000000005           
+ VIB|      Si                      0.000231033      0.000000013      0.000000013           
+ VIB|      Si                      0.000600054      0.000000013      0.000000004           
+ VIB|      Si                      0.000788511      0.000000004      0.000000013           
+ VIB|      Si                     -0.000459982      0.000515419      0.000515427           
+ VIB|      Si                     -0.000465316     -0.000523466      0.000523442           
+ VIB|      Si                     -0.000465317      0.000523449     -0.000523459           
+ VIB|      Si                     -0.000459982     -0.000515437     -0.000515444           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    3  coordinate: Y - DY
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005      0.000231034      0.000000005           
+ VIB|      Si                      0.000000004      0.000788511      0.000000013           
+ VIB|      Si                      0.000000013      0.000600054      0.000000004           
+ VIB|      Si                      0.000000013      0.000231033      0.000000013           
+ VIB|      Si                      0.000523449     -0.000465316     -0.000523459           
+ VIB|      Si                     -0.000523466     -0.000465316      0.000523441           
+ VIB|      Si                      0.000515419     -0.000459983      0.000515427           
+ VIB|      Si                     -0.000515437     -0.000459982     -0.000515444           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    3  coordinate: Z - DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005      0.000000005      0.000788503           
+ VIB|      Si                      0.000000004      0.000000013      0.000231042           
+ VIB|      Si                      0.000000013      0.000000013      0.000600045           
+ VIB|      Si                      0.000000013      0.000000004      0.000231042           
+ VIB|      Si                      0.000523449     -0.000523466     -0.000465309           
+ VIB|      Si                      0.000515420      0.000515420     -0.000459990           
+ VIB|      Si                     -0.000523467      0.000523449     -0.000465309           
+ VIB|      Si                     -0.000515437     -0.000515437     -0.000459990           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    4  coordinate: X - DX
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000231034      0.000000005      0.000000005           
+ VIB|      Si                      0.000231033      0.000000013      0.000000013           
+ VIB|      Si                      0.000788511      0.000000013      0.000000004           
+ VIB|      Si                      0.000600054      0.000000004      0.000000013           
+ VIB|      Si                     -0.000459982     -0.000515445     -0.000515437           
+ VIB|      Si                     -0.000465316      0.000523441     -0.000523466           
+ VIB|      Si                     -0.000465317     -0.000523459      0.000523449           
+ VIB|      Si                     -0.000459982      0.000515427      0.000515419           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    4  coordinate: Y - DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005      0.000788503      0.000000005           
+ VIB|      Si                      0.000000004      0.000231042      0.000000013           
+ VIB|      Si                      0.000000013      0.000231042      0.000000004           
+ VIB|      Si                      0.000000012      0.000600045      0.000000013           
+ VIB|      Si                     -0.000515437     -0.000459990     -0.000515437           
+ VIB|      Si                      0.000515420     -0.000459989      0.000515419           
+ VIB|      Si                     -0.000523467     -0.000465309      0.000523449           
+ VIB|      Si                      0.000523449     -0.000465309     -0.000523466           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    4  coordinate: Z - DZ
+ VIB|                                     Total Energy:            -31.297884031
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005      0.000000005      0.000231034           
+ VIB|      Si                      0.000000004      0.000000013      0.000788511           
+ VIB|      Si                      0.000000013      0.000000013      0.000231033           
+ VIB|      Si                      0.000000013      0.000000004      0.000600054           
+ VIB|      Si                     -0.000515437     -0.000515444     -0.000459982           
+ VIB|      Si                     -0.000523466      0.000523442     -0.000465316           
+ VIB|      Si                      0.000515419      0.000515427     -0.000459983           
+ VIB|      Si                      0.000523449     -0.000523459     -0.000465316           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    5  coordinate: X - DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000459973      0.000515437     -0.000515427           
+ VIB|      Si                     -0.000459973     -0.000515419      0.000515444           
+ VIB|      Si                     -0.000465291      0.000523467      0.000523458           
+ VIB|      Si                     -0.000465291     -0.000523449     -0.000523441           
+ VIB|      Si                      0.000600036     -0.000000013     -0.000000005           
+ VIB|      Si                      0.000231017     -0.000000013     -0.000000012           
+ VIB|      Si                      0.000231016     -0.000000005     -0.000000005           
+ VIB|      Si                      0.000788494     -0.000000005     -0.000000012           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    5  coordinate: Y - DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000523458     -0.000465299      0.000523458           
+ VIB|      Si                     -0.000515428     -0.000459964      0.000515445           
+ VIB|      Si                      0.000515445     -0.000459965     -0.000515428           
+ VIB|      Si                     -0.000523441     -0.000465299     -0.000523441           
+ VIB|      Si                     -0.000000005      0.000600028     -0.000000005           
+ VIB|      Si                     -0.000000013      0.000788486     -0.000000013           
+ VIB|      Si                     -0.000000013      0.000231024     -0.000000005           
+ VIB|      Si                     -0.000000005      0.000231024     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    5  coordinate: Z - DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000515427      0.000515437     -0.000459973           
+ VIB|      Si                      0.000523458      0.000523467     -0.000465291           
+ VIB|      Si                      0.000515445     -0.000515419     -0.000459973           
+ VIB|      Si                     -0.000523441     -0.000523449     -0.000465291           
+ VIB|      Si                     -0.000000005     -0.000000013      0.000600036           
+ VIB|      Si                     -0.000000012     -0.000000013      0.000231017           
+ VIB|      Si                     -0.000000013     -0.000000005      0.000788493           
+ VIB|      Si                     -0.000000005     -0.000000005      0.000231016           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    6  coordinate: X - DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000465299     -0.000523449     -0.000523449           
+ VIB|      Si                     -0.000465299      0.000523466      0.000523467           
+ VIB|      Si                     -0.000459965     -0.000515419      0.000515436           
+ VIB|      Si                     -0.000459965      0.000515436     -0.000515419           
+ VIB|      Si                      0.000231024     -0.000000013     -0.000000005           
+ VIB|      Si                      0.000600029     -0.000000012     -0.000000013           
+ VIB|      Si                      0.000788485     -0.000000004     -0.000000005           
+ VIB|      Si                      0.000231024     -0.000000005     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    6  coordinate: Y - DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000523449     -0.000465299     -0.000523449           
+ VIB|      Si                      0.000515436     -0.000459965     -0.000515419           
+ VIB|      Si                     -0.000515419     -0.000459965      0.000515436           
+ VIB|      Si                      0.000523466     -0.000465300      0.000523466           
+ VIB|      Si                     -0.000000005      0.000788485     -0.000000005           
+ VIB|      Si                     -0.000000012      0.000600029     -0.000000012           
+ VIB|      Si                     -0.000000013      0.000231024     -0.000000005           
+ VIB|      Si                     -0.000000005      0.000231024     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    6  coordinate: Z - DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000523449     -0.000523449     -0.000465299           
+ VIB|      Si                      0.000515436     -0.000515419     -0.000459965           
+ VIB|      Si                      0.000523466      0.000523467     -0.000465300           
+ VIB|      Si                     -0.000515419      0.000515436     -0.000459965           
+ VIB|      Si                     -0.000000005     -0.000000013      0.000231024           
+ VIB|      Si                     -0.000000012     -0.000000012      0.000600029           
+ VIB|      Si                     -0.000000013     -0.000000005      0.000231024           
+ VIB|      Si                     -0.000000005     -0.000000005      0.000788485           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    7  coordinate: X - DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000465299      0.000523458      0.000523459           
+ VIB|      Si                     -0.000465299     -0.000523441     -0.000523440           
+ VIB|      Si                     -0.000459964      0.000515445     -0.000515428           
+ VIB|      Si                     -0.000459965     -0.000515428      0.000515445           
+ VIB|      Si                      0.000231024     -0.000000013     -0.000000005           
+ VIB|      Si                      0.000788486     -0.000000012     -0.000000012           
+ VIB|      Si                      0.000600027     -0.000000005     -0.000000005           
+ VIB|      Si                      0.000231024     -0.000000005     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    7  coordinate: Y - DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000515437     -0.000459973     -0.000515427           
+ VIB|      Si                     -0.000523449     -0.000465291     -0.000523441           
+ VIB|      Si                      0.000523467     -0.000465291      0.000523458           
+ VIB|      Si                     -0.000515419     -0.000459973      0.000515445           
+ VIB|      Si                     -0.000000005      0.000231016     -0.000000005           
+ VIB|      Si                     -0.000000012      0.000231017     -0.000000012           
+ VIB|      Si                     -0.000000013      0.000600036     -0.000000005           
+ VIB|      Si                     -0.000000005      0.000788493     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    7  coordinate: Z - DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000515437     -0.000515427     -0.000459973           
+ VIB|      Si                     -0.000523449     -0.000523441     -0.000465291           
+ VIB|      Si                     -0.000515419      0.000515445     -0.000459973           
+ VIB|      Si                      0.000523467      0.000523458     -0.000465291           
+ VIB|      Si                     -0.000000005     -0.000000013      0.000788494           
+ VIB|      Si                     -0.000000012     -0.000000012      0.000231017           
+ VIB|      Si                     -0.000000013     -0.000000005      0.000600036           
+ VIB|      Si                     -0.000000005     -0.000000005      0.000231016           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    8  coordinate: X - DX
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000459973     -0.000515427      0.000515437           
+ VIB|      Si                     -0.000459973      0.000515444     -0.000515419           
+ VIB|      Si                     -0.000465291     -0.000523441     -0.000523449           
+ VIB|      Si                     -0.000465291      0.000523458      0.000523467           
+ VIB|      Si                      0.000788494     -0.000000012     -0.000000005           
+ VIB|      Si                      0.000231017     -0.000000012     -0.000000013           
+ VIB|      Si                      0.000231016     -0.000000005     -0.000000005           
+ VIB|      Si                      0.000600036     -0.000000005     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    8  coordinate: Y - DY
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                     -0.000515427     -0.000459973      0.000515437           
+ VIB|      Si                      0.000523458     -0.000465291      0.000523467           
+ VIB|      Si                     -0.000523441     -0.000465291     -0.000523450           
+ VIB|      Si                      0.000515445     -0.000459973     -0.000515419           
+ VIB|      Si                     -0.000000005      0.000231016     -0.000000005           
+ VIB|      Si                     -0.000000012      0.000231017     -0.000000013           
+ VIB|      Si                     -0.000000013      0.000788493     -0.000000005           
+ VIB|      Si                     -0.000000005      0.000600036     -0.000000013           
+ VIB| REPLICA Nr.    1- Energy and Forces for particle:    8  coordinate: Z - DZ
+ VIB|                                     Total Energy:            -31.297884032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000523458      0.000523458     -0.000465299           
+ VIB|      Si                     -0.000515428      0.000515445     -0.000459964           
+ VIB|      Si                     -0.000523441     -0.000523440     -0.000465299           
+ VIB|      Si                      0.000515445     -0.000515428     -0.000459964           
+ VIB|      Si                     -0.000000005     -0.000000013      0.000231024           
+ VIB|      Si                     -0.000000013     -0.000000013      0.000788486           
+ VIB|      Si                     -0.000000013     -0.000000005      0.000231024           
+ VIB|      Si                     -0.000000005     -0.000000005      0.000600028           
+ VIB| 
+  Minimum Structure - Energy and Forces:
+ VIB|                                     Total Energy:            -31.297887032
+ VIB|    ATOM                            X                Y                Z
+ VIB|      Si                      0.000000005      0.000000005      0.000000005           
+ VIB|      Si                      0.000000004      0.000000013      0.000000013           
+ VIB|      Si                      0.000000013      0.000000013      0.000000004           
+ VIB|      Si                      0.000000013      0.000000004      0.000000013           
+ VIB|      Si                     -0.000000005     -0.000000013     -0.000000005           
+ VIB|      Si                     -0.000000012     -0.000000012     -0.000000012           
+ VIB|      Si                     -0.000000013     -0.000000005     -0.000000005           
+ VIB|      Si                     -0.000000005     -0.000000005     -0.000000013           
+ VIB| Hessian in cartesian coordinates
+
+                    1            2            3            4            5
+     1  Si       1.172029     0.000000    -0.000000     1.540134    -0.000000
+     2  Si      -0.000000     1.172028    -0.000001     0.000001     0.451257
+     3  Si      -0.000000    -0.000000     1.172029     0.000001     0.000000
+     4  Si       1.540134    -0.000000    -0.000000     1.172030    -0.000001
+     5  Si       0.000001     0.451257    -0.000000    -0.000000     1.172029
+     6  Si       0.000000     0.000000     0.451257    -0.000000     0.000000
+     7  Si       0.451257    -0.000000     0.000001     0.451257     0.000000
+     8  Si       0.000000     0.451257     0.000001    -0.000000     1.540134
+     9  Si      -0.000000    -0.000000     1.540134     0.000001     0.000000
+    10  Si       0.451257     0.000001    -0.000000     0.451257     0.000001
+    11  Si      -0.000000     1.540134    -0.000000     0.000001     0.451257
+    12  Si       0.000000     0.000001     0.451257    -0.000001    -0.000001
+    13  Si      -0.903652     1.014601    -1.014602    -0.903653    -1.014602
+    14  Si       1.014601    -0.903651     1.014601    -1.014602    -0.903652
+    15  Si      -1.014601     1.014601    -0.903652     1.014601     1.014602
+    16  Si      -0.903652    -1.014601    -1.014601    -0.903653     1.014601
+    17  Si      -1.014601    -0.903652    -1.014601     1.014601    -0.903652
+    18  Si      -1.014601    -1.014601    -0.903653     1.014601    -1.014602
+    19  Si      -0.903652     1.014601     1.014601    -0.903652    -1.014601
+    20  Si       1.014601    -0.903652    -1.014601    -1.014601    -0.903652
+    21  Si       1.014601    -1.014602    -0.903652    -1.014601    -1.014601
+    22  Si      -0.903652    -1.014602     1.014601    -0.903652     1.014601
+    23  Si      -1.014601    -0.903652     1.014602     1.014601    -0.903652
+    24  Si       1.014601     1.014601    -0.903652    -1.014601     1.014601
+
+                    6            7            8            9           10
+     1  Si      -0.000000     0.451257     0.000000     0.000001     0.451257
+     2  Si       0.000000     0.000000     0.451257     0.000001     0.000000
+     3  Si       0.451257    -0.000000    -0.000000     1.540134     0.000000
+     4  Si      -0.000000     0.451257     0.000000     0.000001     0.451257
+     5  Si      -0.000000    -0.000001     1.540134    -0.000000     0.000001
+     6  Si       1.172029     0.000001     0.000001     0.451257    -0.000001
+     7  Si       0.000001     1.172029    -0.000000    -0.000001     1.540134
+     8  Si      -0.000001     0.000000     1.172029    -0.000001     0.000001
+     9  Si       0.451257    -0.000001    -0.000000     1.172030     0.000000
+    10  Si       0.000001     1.540134    -0.000001    -0.000000     1.172029
+    11  Si       0.000000     0.000001     0.451257     0.000000    -0.000000
+    12  Si       1.540134     0.000000     0.000001     0.451257    -0.000000
+    13  Si       1.014601    -0.903652     1.014602     1.014601    -0.903652
+    14  Si       1.014601     1.014601    -0.903653    -1.014601    -1.014601
+    15  Si      -0.903653     1.014602    -1.014602    -0.903652    -1.014601
+    16  Si       1.014601    -0.903652    -1.014602     1.014601    -0.903652
+    17  Si      -1.014602    -1.014602    -0.903652     1.014601     1.014601
+    18  Si      -0.903652     1.014601     1.014601    -0.903652    -1.014601
+    19  Si      -1.014601    -0.903653     1.014601    -1.014602    -0.903653
+    20  Si      -1.014601     1.014602    -0.903652     1.014601    -1.014602
+    21  Si      -0.903652    -1.014602     1.014601    -0.903652     1.014602
+    22  Si      -1.014602    -0.903652    -1.014601    -1.014601    -0.903652
+    23  Si       1.014602    -1.014602    -0.903652    -1.014601     1.014601
+    24  Si      -0.903652    -1.014601    -1.014601    -0.903652     1.014601
+
+                   11           12           13           14           15
+     1  Si       0.000001     0.000001    -0.903653     1.014601    -1.014602
+     2  Si       1.540134    -0.000000     1.014602    -0.903653     1.014602
+     3  Si       0.000001     0.451257    -1.014602     1.014601    -0.903653
+     4  Si       0.000000     0.000000    -0.903652    -1.014601     1.014601
+     5  Si       0.451257     0.000000    -1.014601    -0.903652     1.014602
+     6  Si      -0.000000     1.540134     1.014601     1.014602    -0.903652
+     7  Si      -0.000000    -0.000001    -0.903652     1.014602     1.014601
+     8  Si       0.451257     0.000001     1.014602    -0.903652    -1.014601
+     9  Si       0.000001     0.451257     1.014601    -1.014601    -0.903652
+    10  Si      -0.000001     0.000000    -0.903652    -1.014601    -1.014601
+    11  Si       1.172030    -0.000001    -1.014601    -0.903651    -1.014601
+    12  Si      -0.000000     1.172029    -1.014601    -1.014601    -0.903652
+    13  Si      -1.014601    -1.014601     1.172029    -0.000000    -0.000001
+    14  Si      -0.903653    -1.014601     0.000000     1.172029    -0.000000
+    15  Si      -1.014601    -0.903652    -0.000001     0.000000     1.172029
+    16  Si       1.014601    -1.014602     0.451257    -0.000001     0.000000
+    17  Si      -0.903652     1.014601    -0.000001     1.540134    -0.000001
+    18  Si       1.014601    -0.903652     0.000000    -0.000001     0.451257
+    19  Si      -1.014601     1.014601     0.451257     0.000000     0.000000
+    20  Si      -0.903653     1.014601     0.000000     0.451257    -0.000000
+    21  Si       1.014601    -0.903653     0.000000    -0.000000     1.540134
+    22  Si       1.014601     1.014602     1.540134    -0.000001     0.000001
+    23  Si      -0.903652    -1.014602    -0.000000     0.451257    -0.000000
+    24  Si      -1.014602    -0.903653     0.000001     0.000000     0.451257
+
+                   16           17           18           19           20
+     1  Si      -0.903652    -1.014601    -1.014601    -0.903653     1.014602
+     2  Si      -1.014601    -0.903652    -1.014601     1.014601    -0.903653
+     3  Si      -1.014601    -1.014601    -0.903652     1.014601    -1.014602
+     4  Si      -0.903653     1.014601     1.014601    -0.903651    -1.014601
+     5  Si       1.014601    -0.903653    -1.014601    -1.014601    -0.903652
+     6  Si       1.014601    -1.014602    -0.903653    -1.014601    -1.014601
+     7  Si      -0.903653    -1.014601     1.014601    -0.903652     1.014602
+     8  Si      -1.014602    -0.903653     1.014601     1.014601    -0.903652
+     9  Si       1.014601     1.014601    -0.903653    -1.014601     1.014601
+    10  Si      -0.903653     1.014601    -1.014602    -0.903652    -1.014601
+    11  Si       1.014601    -0.903653     1.014601    -1.014601    -0.903652
+    12  Si      -1.014602     1.014601    -0.903653     1.014602     1.014601
+    13  Si       0.451257     0.000000     0.000000     0.451257    -0.000000
+    14  Si      -0.000000     1.540134    -0.000000     0.000000     0.451257
+    15  Si       0.000000     0.000001     0.451257    -0.000001     0.000001
+    16  Si       1.172030    -0.000000    -0.000000     1.540134    -0.000000
+    17  Si      -0.000000     1.172030    -0.000000    -0.000000     0.451257
+    18  Si      -0.000000    -0.000000     1.172030    -0.000000    -0.000000
+    19  Si       1.540134    -0.000000     0.000000     1.172029     0.000000
+    20  Si       0.000001     0.451257     0.000000     0.000000     1.172029
+    21  Si       0.000001     0.000001     0.451257     0.000000    -0.000000
+    22  Si       0.451257    -0.000000     0.000000     0.451257    -0.000000
+    23  Si       0.000000     0.451257     0.000000    -0.000000     1.540134
+    24  Si      -0.000000    -0.000000     1.540134     0.000000     0.000001
+
+                   21           22           23           24
+     1  Si       1.014601    -0.903653    -1.014602     1.014601
+     2  Si      -1.014601    -1.014602    -0.903653     1.014601
+     3  Si      -0.903653     1.014602     1.014602    -0.903653
+     4  Si      -1.014601    -0.903652     1.014601    -1.014601
+     5  Si      -1.014601     1.014601    -0.903652     1.014602
+     6  Si      -0.903652    -1.014601     1.014601    -0.903652
+     7  Si      -1.014602    -0.903652    -1.014601    -1.014601
+     8  Si       1.014601    -1.014601    -0.903652    -1.014601
+     9  Si      -0.903652    -1.014601    -1.014602    -0.903651
+    10  Si       1.014602    -0.903652     1.014601     1.014601
+    11  Si       1.014602     1.014601    -0.903652    -1.014601
+    12  Si      -0.903652     1.014602    -1.014601    -0.903652
+    13  Si      -0.000000     1.540134     0.000000    -0.000000
+    14  Si       0.000000     0.000001     0.451257    -0.000000
+    15  Si       1.540134    -0.000000     0.000000     0.451257
+    16  Si      -0.000000     0.451257     0.000000    -0.000001
+    17  Si      -0.000000     0.000000     0.451257    -0.000001
+    18  Si       0.451257    -0.000001    -0.000000     1.540134
+    19  Si       0.000000     0.451257     0.000000     0.000000
+    20  Si      -0.000001     0.000000     1.540134    -0.000000
+    21  Si       1.172029    -0.000000     0.000000     0.451257
+    22  Si       0.000000     1.172029    -0.000001     0.000000
+    23  Si       0.000000    -0.000001     1.172029     0.000000
+    24  Si       0.451257     0.000000     0.000000     1.172029
+ VIB| Cartesian Low frequencies --- -4.4265     -4.4265     -4.4265     -4.4265    
+ VIB| Cartesian Low frequencies --- -4.4265     -4.4265     0.67584E-04 0.68243E-04
+ VIB| Cartesian Low frequencies --- 0.68569E-04
+ VIB| Eigenvectors before removal of rotations and translations
+
+                    1            2            3            4            5
+     1  Si       0.309556    -0.116359     0.108285     0.076635     0.055806
+     2  Si       0.066135     0.369428    -0.259974    -0.093393    -0.048089
+     3  Si      -0.375162    -0.053798    -0.006262     0.014350     0.141978
+     4  Si      -0.309556     0.116359    -0.108285    -0.076635    -0.055806
+     5  Si      -0.064140    -0.007543    -0.077610     0.380398    -0.305223
+     6  Si       0.069903    -0.098747    -0.310907     0.198830     0.301462
+     7  Si      -0.007367     0.295435     0.260695     0.225750     0.200935
+     8  Si       0.064140     0.007543     0.077610    -0.380398     0.305223
+     9  Si       0.375162     0.053798     0.006262    -0.014349    -0.141978
+    10  Si       0.007367    -0.295435    -0.260695    -0.225750    -0.200935
+    11  Si      -0.066135    -0.369428     0.259974     0.093393     0.048089
+    12  Si      -0.069903     0.098747     0.310907    -0.198830    -0.301462
+    13  Si      -0.287670    -0.166011     0.243505     0.144655    -0.208309
+    14  Si       0.001535    -0.013266    -0.025905    -0.257782    -0.350091
+    15  Si       0.157464    -0.386839     0.092587    -0.218060     0.104092
+    16  Si      -0.157395     0.210960     0.061140    -0.329136     0.048824
+    17  Si      -0.001535     0.013266     0.025905     0.257782     0.350091
+    18  Si       0.159459    -0.024954    -0.244997     0.068945    -0.249220
+    19  Si       0.157396    -0.210960    -0.061140     0.329136    -0.048824
+    20  Si      -0.303724    -0.165810    -0.343075    -0.044603     0.093349
+    21  Si      -0.157464     0.386839    -0.092587     0.218060    -0.104092
+    22  Si       0.287670     0.166011    -0.243505    -0.144655     0.208309
+    23  Si       0.303724     0.165810     0.343074     0.044603    -0.093349
+    24  Si      -0.159459     0.024954     0.244997    -0.068945     0.249220
+
+                    6            7            8            9           10
+     1  Si       0.346299    -0.215730     0.132010    -0.247050    -0.186955
+     2  Si       0.174722     0.248676    -0.053260    -0.245608     0.378510
+     3  Si       0.293183    -0.128922    -0.323630    -0.060353    -0.263012
+     4  Si      -0.346299    -0.215730     0.132010    -0.247051    -0.186955
+     5  Si       0.044074     0.248676    -0.053260    -0.245609    -0.378510
+     6  Si      -0.091029    -0.128922    -0.323630    -0.060353     0.263012
+     7  Si      -0.058002    -0.215730     0.132010    -0.247051     0.186954
+     8  Si      -0.044074     0.248676    -0.053260    -0.245609    -0.378511
+     9  Si      -0.293183    -0.128922    -0.323631    -0.060353    -0.263012
+    10  Si       0.058002    -0.215730     0.132010    -0.247051     0.186955
+    11  Si      -0.174722     0.248676    -0.053260    -0.245609     0.378511
+    12  Si       0.091029    -0.128922    -0.323630    -0.060353     0.263012
+    13  Si       0.126782    -0.215730     0.132010    -0.247051    -0.006629
+    14  Si      -0.245225     0.248676    -0.053260    -0.245609    -0.043898
+    15  Si       0.092753    -0.128922    -0.323631    -0.060353    -0.025129
+    16  Si       0.257430    -0.215730     0.132010    -0.247051     0.006629
+    17  Si       0.245225     0.248676    -0.053260    -0.245608    -0.043898
+    18  Si       0.311548    -0.128922    -0.323631    -0.060353     0.025129
+    19  Si      -0.257430    -0.215730     0.132010    -0.247051     0.006629
+    20  Si      -0.043071     0.248676    -0.053260    -0.245609     0.043898
+    21  Si      -0.092753    -0.128922    -0.323630    -0.060353    -0.025129
+    22  Si      -0.126782    -0.215730     0.132010    -0.247051    -0.006629
+    23  Si       0.043071     0.248676    -0.053260    -0.245608     0.043898
+    24  Si      -0.311548    -0.128922    -0.323630    -0.060353     0.025129
+
+                   11           12           13           14           15
+     1  Si       0.053861    -0.360796     0.102097     0.065885     0.259247
+     2  Si       0.022748     0.041324     0.021977    -0.019142     0.321956
+     3  Si       0.019403     0.306955    -0.102472    -0.005074     0.275137
+     4  Si       0.053861    -0.360796     0.102097     0.065885     0.259246
+     5  Si      -0.022748    -0.041324    -0.021977     0.019142    -0.321955
+     6  Si      -0.019403    -0.306956     0.102472     0.005074    -0.275137
+     7  Si      -0.053861     0.360796    -0.102097    -0.065885    -0.259246
+     8  Si      -0.022748    -0.041323    -0.021977     0.019142    -0.321955
+     9  Si       0.019403     0.306955    -0.102472    -0.005074     0.275137
+    10  Si      -0.053861     0.360796    -0.102097    -0.065885    -0.259246
+    11  Si       0.022748     0.041324     0.021977    -0.019142     0.321955
+    12  Si      -0.019403    -0.306955     0.102472     0.005075    -0.275137
+    13  Si       0.315657    -0.068100    -0.153101    -0.349257    -0.016083
+    14  Si      -0.318638    -0.014918     0.146389    -0.350495     0.045206
+    15  Si       0.212215     0.137974     0.428629    -0.020971    -0.033666
+    16  Si      -0.315657     0.068100     0.153101     0.349257     0.016083
+    17  Si      -0.318638    -0.014917     0.146389    -0.350495     0.045206
+    18  Si      -0.212216    -0.137974    -0.428629     0.020971     0.033666
+    19  Si      -0.315657     0.068101     0.153101     0.349257     0.016083
+    20  Si       0.318638     0.014918    -0.146389     0.350495    -0.045206
+    21  Si       0.212215     0.137974     0.428629    -0.020971    -0.033666
+    22  Si       0.315657    -0.068101    -0.153101    -0.349257    -0.016083
+    23  Si       0.318638     0.014917    -0.146389     0.350495    -0.045206
+    24  Si      -0.212215    -0.137974    -0.428629     0.020971     0.033666
+
+                   16           17           18           19           20
+     1  Si       0.227067     0.054602     0.213341    -0.137067     0.303338
+     2  Si       0.369478     0.013797     0.007375    -0.057853    -0.105392
+     3  Si       0.225138     0.033797    -0.156152     0.357847    -0.040100
+     4  Si      -0.227068    -0.054602    -0.213341     0.137068    -0.303338
+     5  Si       0.008287    -0.026556    -0.393252    -0.097576     0.281295
+     6  Si       0.039590     0.315464    -0.141737    -0.239573    -0.206028
+     7  Si       0.097993    -0.381396    -0.072881    -0.181370    -0.153937
+     8  Si      -0.008286     0.026556     0.393252     0.097577    -0.281294
+     9  Si      -0.225139    -0.033797     0.156151    -0.357847     0.040100
+    10  Si      -0.097993     0.381396     0.072881     0.181370     0.153937
+    11  Si      -0.369479    -0.013797    -0.007375     0.057852     0.105391
+    12  Si      -0.039590    -0.315465     0.141737     0.239573     0.206027
+    13  Si       0.087822     0.161010     0.207521    -0.278848    -0.276307
+    14  Si       0.294895     0.011234    -0.078715    -0.100081    -0.048363
+    15  Si       0.124345    -0.224379    -0.336049    -0.099866    -0.140686
+    16  Si      -0.273370     0.120657    -0.193106    -0.318572     0.110379
+    17  Si      -0.294895    -0.011234     0.078715     0.100081     0.048363
+    18  Si      -0.253420    -0.211619     0.049828     0.055564    -0.316589
+    19  Si       0.273370    -0.120657     0.193106     0.318572    -0.110379
+    20  Si       0.030166    -0.338028     0.219174    -0.218356     0.197764
+    21  Si      -0.124345     0.224379     0.336049     0.099866     0.140686
+    22  Si      -0.087822    -0.161011    -0.207520     0.278848     0.276307
+    23  Si      -0.030166     0.338028    -0.219174     0.218356    -0.197764
+    24  Si       0.253420     0.211619    -0.049828    -0.055564     0.316589
+
+                   21           22           23           24
+     1  Si      -0.197846     0.127168    -0.275592     0.181321
+     2  Si       0.314303     0.214119     0.216785     0.179324
+     3  Si      -0.210059     0.250961    -0.045311    -0.244878
+     4  Si       0.197846     0.127168    -0.275592     0.181321
+     5  Si       0.077015     0.214119     0.216786     0.179324
+     6  Si      -0.170244     0.250961    -0.045311    -0.244878
+     7  Si      -0.181745     0.127168    -0.275592     0.181321
+     8  Si      -0.077014     0.214119     0.216786     0.179325
+     9  Si       0.210059     0.250961    -0.045311    -0.244878
+    10  Si       0.181745     0.127168    -0.275592     0.181321
+    11  Si      -0.314304     0.214119     0.216786     0.179324
+    12  Si       0.170244     0.250961    -0.045311    -0.244878
+    13  Si       0.138552    -0.127168     0.275592    -0.181321
+    14  Si      -0.379947    -0.214119    -0.216786    -0.179324
+    15  Si       0.203710    -0.250961     0.045311     0.244878
+    16  Si      -0.098737    -0.127168     0.275592    -0.181321
+    17  Si       0.379947    -0.214119    -0.216786    -0.179324
+    18  Si      -0.187608    -0.250961     0.045311     0.244879
+    19  Si       0.098737    -0.127168     0.275592    -0.181321
+    20  Si       0.000356    -0.214119    -0.216786    -0.179324
+    21  Si      -0.203710    -0.250961     0.045311     0.244878
+    22  Si      -0.138552    -0.127168     0.275592    -0.181321
+    23  Si      -0.000356    -0.214119    -0.216786    -0.179324
+    24  Si       0.187608    -0.250961     0.045311     0.244878
+ VIB| Frequencies after removal of the rotations and translations
+ VIB| Internal  Low frequencies --- -4.4265     -4.4265     -4.4265     -4.4265    
+ VIB| Internal  Low frequencies --- 0.78004     0.78004      1.8096      1.8096    
+ VIB| Internal  Low frequencies ---  1.8096      1.8096      1.8097      1.8097    
+ VIB| Internal  Low frequencies ---  3.6903      3.6903      3.6903      5.4849    
+ VIB| Internal  Low frequencies ---  5.4849      7.2293    
+
+ VIB|                        NORMAL MODES - CARTESIAN DISPLACEMENTS
+ VIB|
+ VIB|                         1                    2                    3
+ VIB|Frequency (cm^-1)  -461.758729          -461.758681          -461.758655
+ VIB|Intensities           0.000000             0.000000             0.000000
+ VIB|Red.Masses (a.u.)    28.085500            28.085500            28.085500
+ VIB|Frc consts (a.u.)    -0.003269            -0.003269            -0.003269
+  ATOM  EL             X     Y     Z        X     Y     Z        X     Y     Z  
+     1  Si            0.27 -0.03 -0.28    -0.14  0.34 -0.02    -0.06 -0.22  0.19
+     2  Si           -0.27  0.05  0.23     0.14 -0.19 -0.01     0.06 -0.29  0.27
+     3  Si           -0.21 -0.05  0.28    -0.27  0.19  0.02    -0.07  0.29 -0.19
+     4  Si            0.21  0.03 -0.23     0.27 -0.34  0.01     0.07  0.22 -0.27
+     5  Si           -0.21 -0.01  0.23    -0.27  0.23 -0.01    -0.07 -0.16  0.27
+     6  Si           -0.30  0.01  0.25     0.26 -0.23  0.14    -0.00  0.16 -0.25
+     7  Si            0.30 -0.05 -0.23    -0.26  0.19  0.01     0.00  0.29 -0.27
+     8  Si            0.21  0.05 -0.25     0.27 -0.19 -0.14     0.07 -0.29  0.25
+
+
+ VIB|                         4                    5                    6
+ VIB|Frequency (cm^-1)  -461.758574           193.839660           193.839815
+ VIB|Intensities           0.000000             0.000000             0.000000
+ VIB|Red.Masses (a.u.)    28.085500            28.085500            28.085500
+ VIB|Frc consts (a.u.)    -0.003269             0.000102             0.000102
+  ATOM  EL             X     Y     Z        X     Y     Z        X     Y     Z  
+     1  Si            0.33  0.20  0.31     0.20 -0.05 -0.15    -0.06  0.20 -0.15
+     2  Si           -0.33  0.01  0.04     0.00  0.33  0.18    -0.00  0.19 -0.34
+     3  Si            0.04 -0.01 -0.31     0.00 -0.38 -0.00    -0.38  0.02 -0.00
+     4  Si           -0.04 -0.20 -0.04     0.20 -0.00 -0.33     0.32  0.00  0.19
+     5  Si            0.04 -0.36  0.04    -0.00  0.05 -0.18     0.38 -0.20  0.34
+     6  Si            0.23  0.36  0.25    -0.00  0.00  0.00     0.00 -0.00  0.00
+     7  Si           -0.23 -0.01 -0.04    -0.20  0.38  0.33     0.06 -0.02 -0.19
+     8  Si           -0.04  0.01 -0.25    -0.20 -0.33  0.15    -0.32 -0.19  0.15
+
+
+ VIB|                         7                    8                    9
+ VIB|Frequency (cm^-1)   295.244194           295.244244           295.244284
+ VIB|Intensities           0.000000             0.000000             0.000000
+ VIB|Red.Masses (a.u.)    28.085500            28.085500            28.085500
+ VIB|Frc consts (a.u.)     0.000546             0.000546             0.000546
+  ATOM  EL             X     Y     Z        X     Y     Z        X     Y     Z  
+     1  Si            0.19 -0.38  0.26    -0.05 -0.02 -0.02     0.36 -0.04 -0.31
+     2  Si            0.19  0.38 -0.26    -0.05  0.02  0.02     0.36  0.04  0.31
+     3  Si           -0.19  0.38  0.26     0.05  0.02 -0.02    -0.36  0.04 -0.31
+     4  Si           -0.19 -0.38 -0.26     0.05 -0.02  0.02    -0.36 -0.04  0.31
+     5  Si            0.01  0.04  0.03    -0.32  0.32 -0.21     0.07  0.01 -0.14
+     6  Si           -0.01  0.04 -0.03     0.32  0.32  0.21    -0.07  0.01  0.14
+     7  Si           -0.01 -0.04  0.03     0.32 -0.32 -0.21    -0.07 -0.01 -0.14
+     8  Si            0.01 -0.04 -0.03    -0.32 -0.32  0.21     0.07 -0.01  0.14
+
+
+ VIB|                        10                   11                   12
+ VIB|Frequency (cm^-1)   295.244335           295.244388           295.244454
+ VIB|Intensities           0.000000             0.000000             0.000000
+ VIB|Red.Masses (a.u.)    28.085500            28.085500            28.085500
+ VIB|Frc consts (a.u.)     0.000546             0.000546             0.000546
+  ATOM  EL             X     Y     Z        X     Y     Z        X     Y     Z  
+     1  Si           -0.10 -0.02  0.10    -0.07  0.02  0.01    -0.26 -0.32 -0.28
+     2  Si           -0.10  0.02 -0.10    -0.07 -0.02 -0.01    -0.26  0.32  0.28
+     3  Si            0.10  0.02  0.10     0.07 -0.02  0.01     0.26  0.32 -0.28
+     4  Si            0.10 -0.02 -0.10     0.07  0.02 -0.01     0.26 -0.32  0.28
+     5  Si            0.15 -0.15 -0.43     0.35  0.35  0.02     0.02 -0.05  0.03
+     6  Si           -0.15 -0.15  0.43    -0.35  0.35 -0.02    -0.02 -0.05 -0.03
+     7  Si           -0.15  0.15 -0.43    -0.35 -0.35  0.02    -0.02  0.05  0.03
+     8  Si            0.15  0.15  0.43     0.35 -0.35 -0.02     0.02  0.05 -0.03
+
+
+ VIB|                        13                   14                   15
+ VIB|Frequency (cm^-1)   421.614086           421.614157           421.614193
+ VIB|Intensities           0.000000             0.000000             0.000000
+ VIB|Red.Masses (a.u.)    28.085500            28.085500            28.085500
+ VIB|Frc consts (a.u.)     0.002272             0.002272             0.002272
+  ATOM  EL             X     Y     Z        X     Y     Z        X     Y     Z  
+     1  Si            0.25  0.33  0.25    -0.20  0.02  0.15    -0.16  0.11 -0.20
+     2  Si           -0.25 -0.00  0.09     0.20  0.35  0.21     0.16 -0.05  0.27
+     3  Si            0.09  0.00 -0.25    -0.14 -0.35 -0.15     0.31  0.05  0.20
+     4  Si           -0.09 -0.33 -0.09     0.14 -0.02 -0.21    -0.31 -0.11 -0.27
+     5  Si            0.09  0.33  0.09    -0.14  0.02  0.21     0.31  0.11  0.27
+     6  Si           -0.25 -0.33 -0.25     0.20 -0.02 -0.15     0.16 -0.11  0.20
+     7  Si            0.25  0.00 -0.09    -0.20 -0.35 -0.21    -0.16  0.05 -0.27
+     8  Si           -0.09 -0.00  0.25     0.14  0.35  0.15    -0.31 -0.05 -0.20
+
+
+ VIB|                        16                   17                   18
+ VIB|Frequency (cm^-1)   514.007048           514.007065           590.108730
+ VIB|Intensities           0.000000             0.000000             0.000000
+ VIB|Red.Masses (a.u.)    28.085500            28.085500            28.085500
+ VIB|Frc consts (a.u.)     0.005019             0.005019             0.008719
+  ATOM  EL             X     Y     Z        X     Y     Z        X     Y     Z  
+     1  Si           -0.02 -0.01  0.03     0.03 -0.03  0.01     0.20  0.20  0.20
+     2  Si            0.30  0.02 -0.23    -0.37  0.23  0.02     0.20  0.20  0.20
+     3  Si            0.19  0.13 -0.47    -0.13  0.19 -0.08     0.20  0.20  0.20
+     4  Si            0.10  0.17 -0.21    -0.21  0.45 -0.09     0.20  0.20  0.20
+     5  Si           -0.19  0.01  0.23     0.13  0.03 -0.02    -0.20 -0.20 -0.20
+     6  Si           -0.30 -0.17  0.47     0.37 -0.45  0.08    -0.20 -0.20 -0.20
+     7  Si            0.02 -0.13  0.21    -0.03 -0.19  0.09    -0.20 -0.20 -0.20
+     8  Si           -0.10 -0.02 -0.03     0.21 -0.23 -0.01    -0.20 -0.20 -0.20
+
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                DBCSR STATISTICS                             -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ COUNTER                                    TOTAL       BLAS       SMM       ACC
+ flops    13 x    26 x    13            129359360       0.0%    100.0%      0.0%
+ flops    13 x    13 x    26            215762976       0.0%    100.0%      0.0%
+ flops inhomo. stacks                           0       0.0%      0.0%      0.0%
+ flops total                       345.122336E+06       0.0%    100.0%      0.0%
+ flops max/rank                    345.122336E+06       0.0%    100.0%      0.0%
+ matmuls inhomo. stacks                         0       0.0%      0.0%      0.0%
+ matmuls total                              39272       0.0%    100.0%      0.0%
+ number of processed stacks                   912       0.0%    100.0%      0.0%
+ average stack size                                     0.0      43.1       0.0
+ marketing flops                   453.925888E+06
+ -------------------------------------------------------------------------------
+ # multiplications                            912
+ max memory usage/rank             196.907008E+06
+ # max total images/rank                        1
+ # max 3D layers                                1
+ # MPI messages exchanged                       0
+ MPI messages size (bytes):
+  total size                         0.000000E+00
+  min size                           0.000000E+00
+  max size                           0.000000E+00
+  average size                       0.000000E+00
+ MPI breakdown and total messages size (bytes):
+             size <=      128                   0                        0
+       128 < size <=     8192                   0                        0
+      8192 < size <=    32768                   0                        0
+     32768 < size <=   131072                   0                        0
+    131072 < size <=  4194304                   0                        0
+   4194304 < size <= 16777216                   0                        0
+  16777216 < size                               0                        0
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                      DBCSR MESSAGE PASSING PERFORMANCE                      -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ ROUTINE             CALLS      AVE VOLUME [Bytes]
+ MP_Group              865
+ MP_Bcast                3                     12.
+ MP_Allreduce         5392                      8.
+ MP_Alltoall         23350                  26918.
+ MP_Wait             21888
+ MP_ISend             3648                    301.
+ MP_IRecv             3648                    301.
+ MP_Memory           58656
+ -------------------------------------------------------------------------------
+
+ MEMORY| Estimated peak process memory [MiB]                                 188
+
+ -------------------------------------------------------------------------------
+ ----                             MULTIGRID INFO                            ----
+ -------------------------------------------------------------------------------
+ count for grid        1:            192          cutoff [a.u.]          150.00
+ count for grid        2:            564          cutoff [a.u.]           50.00
+ count for grid        3:            372          cutoff [a.u.]           16.67
+ count for grid        4:             96          cutoff [a.u.]            5.56
+ total gridlevel count  :           1224
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                         MESSAGE PASSING PERFORMANCE                         -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+
+ ROUTINE             CALLS      AVE VOLUME [Bytes]
+ MP_Group                5
+ MP_Allreduce           35                      8.
+ MP_Sync                 4
+ -------------------------------------------------------------------------------
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                           R E F E R E N C E S                               -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ 
+ CP2K version 7.0 (Development Version), the CP2K developers group (2018).
+ CP2K is freely available from https://www.cp2k.org/ .
+
+ Schuett, Ole; Messmer, Peter; Hutter, Juerg; VandeVondele, Joost. 
+ Electronic Structure Calculations on Graphics Processing Units, John Wiley & Sons, Ltd, 173-190 (2016). 
+ GPU-Accelerated Sparse Matrix-Matrix Multiplication for Linear Scaling Density Functional Theory.
+ https://dx.doi.org/10.1002/9781118670712.ch8
+
+
+ Borstnik, U; VandeVondele, J; Weber, V; Hutter, J. 
+ PARALLEL COMPUTING, 40 (5-6), 47-58 (2014). 
+ Sparse matrix multiplication: The distributed block-compressed sparse
+ row library.
+ https://dx.doi.org/10.1016/j.parco.2014.03.012
+
+
+ Hutter, J; Iannuzzi, M; Schiffmann, F; VandeVondele, J. 
+ WILEY INTERDISCIPLINARY REVIEWS-COMPUTATIONAL MOLECULAR SCIENCE, 4 (1), 15-25 (2014). 
+ CP2K: atomistic simulations of condensed matter systems.
+ https://dx.doi.org/10.1002/wcms.1159
+
+
+ Marek, A; Blum, V; Johanni, R; Havu, V; Lang, B; Auckenthaler, T;
+ Heinecke, A; Bungartz, H; Lederer, H. 
+ Journal of Physics: Condensed Matter, 26 (21), (2014). 
+ The ELPA library: scalable parallel eigenvalue solutions for electronic structure
+ theory and computational science.
+ https://dx.doi.org/10.1088/0953-8984/26/21/213201
+
+
+ Krack, M. 
+ THEORETICAL CHEMISTRY ACCOUNTS, 114 (1-3), 145-152 (2005). 
+ Pseudopotentials for H to Kr optimized for gradient-corrected
+ exchange-correlation functionals.
+ https://dx.doi.org/10.1007/s00214-005-0655-y
+
+
+ VandeVondele, J; Krack, M; Mohamed, F; Parrinello, M; Chassaing, T;
+ Hutter, J. COMPUTER PHYSICS COMMUNICATIONS, 167 (2), 103-128 (2005). 
+ QUICKSTEP: Fast and accurate density functional calculations using a
+ mixed Gaussian and plane waves approach.
+ https://dx.doi.org/10.1016/j.cpc.2004.12.014
+
+
+ Frigo, M; Johnson, SG. 
+ PROCEEDINGS OF THE IEEE, 93 (2), 216-231 (2005). 
+ The design and implementation of FFTW3.
+ https://dx.doi.org/10.1109/JPROC.2004.840301
+
+
+ Kolafa, J. 
+ JOURNAL OF COMPUTATIONAL CHEMISTRY, 25 (3), 335-342 (2004). 
+ Time-reversible always stable predictor-corrector method for molecular dynamics of polarizable molecules.
+ https://dx.doi.org/10.1002/jcc.10385
+
+
+ Hartwigsen, C; Goedecker, S; Hutter, J. 
+ PHYSICAL REVIEW B, 58 (7), 3641-3662 (1998). 
+ Relativistic separable dual-space Gaussian pseudopotentials from H to Rn.
+ https://dx.doi.org/10.1103/PhysRevB.58.3641
+
+
+ Lippert, G; Hutter, J; Parrinello, M. 
+ MOLECULAR PHYSICS, 92 (3), 477-487 (1997). 
+ A hybrid Gaussian and plane wave density functional scheme.
+ https://dx.doi.org/10.1080/002689797170220
+
+
+ Goedecker, S; Teter, M; Hutter, J. 
+ PHYSICAL REVIEW B, 54 (3), 1703-1710 (1996). 
+ Separable dual-space Gaussian pseudopotentials.
+ https://dx.doi.org/10.1103/PhysRevB.54.1703
+
+
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                T I M I N G                                  -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ SUBROUTINE                       CALLS  ASD         SELF TIME        TOTAL TIME
+                                MAXIMUM       AVERAGE  MAXIMUM  AVERAGE  MAXIMUM
+ CP2K                                 1  1.0    0.004    0.004  366.332  366.332
+ vb_anal                              1  2.0  366.172  366.172  366.252  366.252
+ -------------------------------------------------------------------------------
+
+ The number of warnings for this run is : 0
+ 
+ -------------------------------------------------------------------------------
+  **** **** ******  **  PROGRAM ENDED AT                 2021-02-10 13:04:20.574
+ ***** ** ***  *** **   PROGRAM RAN ON                              ws55.ethz.ch
+ **    ****   ******    PROGRAM RAN BY                                  steinmig
+ ***** **    ** ** **   PROGRAM PROCESS ID                                  7188
+  **** **  *******  **  PROGRAM STOPPED IN /home/cds/steinmig/static_calculation
+                                           /sample_output_with_smearing
+

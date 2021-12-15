@@ -42,45 +42,118 @@ namespace Utils {
 
 class AThermochemistryTest : public Test {
  public:
-  NormalModesContainer arbitraryNormalModes;
-  Geometry::PrincipalMomentsOfInertia arbitraryPMI;
+  NormalModesContainer formaldehydeNormalModes;
+  NormalModesContainer HFNormalModes;
+  Geometry::Properties::PrincipalMomentsOfInertia formaldehydePMI;
+  Geometry::Properties::PrincipalMomentsOfInertia hfPMI;
   std::unique_ptr<ThermochemistryCalculator> arbitraryTCCalculator;
-  ElementTypeCollection arbitraryElements;
-  int arbitraryMultiplicity = 1;
+  ElementTypeCollection formaldehydeElements;
+  ElementTypeCollection hfElements;
+  PositionCollection hfPositions = Eigen::MatrixX3d::Zero(2, 3);
+  int formaldehydeMultiplicity = 1;
+  int hfMultiplicity = 1;
   double arbitraryEnergy = 1.0;
+  Eigen::MatrixXd hfHessian = Eigen::MatrixXd::Zero(6, 6);
 
  protected:
   void SetUp() final {
-    arbitraryElements = {ElementType::C, ElementType::O, ElementType::H, ElementType::H};
+    formaldehydeElements = {ElementType::C, ElementType::O, ElementType::H, ElementType::H};
     NormalMode m1(1101.75, DisplacementCollection::Random(4, 3));
-    arbitraryNormalModes.add(m1);
+    formaldehydeNormalModes.add(m1);
     NormalMode m2(1157.94, DisplacementCollection::Random(4, 3));
-    arbitraryNormalModes.add(m2);
+    formaldehydeNormalModes.add(m2);
     NormalMode m3(1349.03, DisplacementCollection::Random(4, 3));
-    arbitraryNormalModes.add(m3);
+    formaldehydeNormalModes.add(m3);
     NormalMode m4(1791.24, DisplacementCollection::Random(4, 3));
-    arbitraryNormalModes.add(m4);
+    formaldehydeNormalModes.add(m4);
     NormalMode m5(2614.79, DisplacementCollection::Random(4, 3));
-    arbitraryNormalModes.add(m5);
+    formaldehydeNormalModes.add(m5);
     NormalMode m6(2664.54, DisplacementCollection::Random(4, 3));
-    arbitraryNormalModes.add(m6);
-
+    formaldehydeNormalModes.add(m6);
     Eigen::Vector3d eigenValues(2.8969, 21.7672, 24.6640);
     // Convert from 1e-40 g cm^2 to amu*bohr^2
     eigenValues *= 1e-47 * Constants::u_per_kg * std::pow(Constants::bohr_per_meter, 2);
-    arbitraryPMI.eigenvalues = eigenValues;
-    arbitraryPMI.eigenvectors = Eigen::Matrix3d::Random();
+    formaldehydePMI.eigenvalues = eigenValues;
+    formaldehydePMI.eigenvectors = Eigen::Matrix3d::Random();
+
+    hfElements = {ElementType::H, ElementType::F};
+    // clang-format off
+    hfPositions << 0.0000000000000,    0.0000000000000,    0.0000000000000,
+                   0.9655884052935,    0.0000000000000,   -0.0000001000000;
+    // clang-format on
+    hfPositions *= Constants::bohr_per_angstrom;
+    NormalMode m1HF(3968.7, DisplacementCollection::Random(1, 3));
+    HFNormalModes.add(m1HF);
+    Eigen::Vector3d eigenValuesHF(0.00000000, 1.4818, 1.4818);
+    // Convert from 1e-40 g cm^2 to amu*bohr^2
+    eigenValuesHF *= 1e-47 * Constants::u_per_kg * std::pow(Constants::bohr_per_meter, 2);
+    hfPMI.eigenvalues = eigenValuesHF;
+    hfPMI.eigenvectors = Eigen::Matrix3d::Random();
+    // clang-format off
+    // ref matrix lower triangular in MILLIDYNES/ANGSTROM/SQRT(MASS(I)*MASS(J))
+    std::vector<double> refMatrixTriangular = {
+       8.8120622747042,  0.0000000050605,   0.0047603389882,  -0.0000009019966,  -0.0000000000000,   0.0047603389883,
+      -2.0296809143334, -0.0000000011656,   0.0000002077567,   0.4674960849783,  -0.0000000011656,  -0.0010964357188,
+       0.0000000000000,  0.0000000002685,   0.0002525390079,   0.0000002077567,   0.0000000000000,  -0.0010964357188,
+      -0.0000000478526, -0.0000000000000,   0.0002525390079};
+    // clang-format on
+    int count = 0;
+    for (int i = 0; i < 6; ++i) {
+      for (int j = 0; j <= i; ++j) {
+        hfHessian(i, j) = refMatrixTriangular[count];
+        hfHessian(j, i) = refMatrixTriangular[count];
+        count++;
+      }
+    }
+    // Back-scale the mass-weighted coordinates to Cartesian coordinates.
+    auto masses = Geometry::Properties::getMasses(hfElements);
+    for (unsigned long i = 0; i < masses.size(); ++i) {
+      hfHessian.middleRows(3 * i, 3) *= std::sqrt(masses[i]);
+      hfHessian.middleCols(3 * i, 3) *= std::sqrt(masses[i]);
+    }
+    // unit conversion, original is milliDyn / angstrom
+    hfHessian *= 1e-8;                                      // N / Angstrom = kg m / (s^2 angstrom)
+    hfHessian *= Constants::meter_per_angstrom;             // J / angstrom^2
+    hfHessian *= Constants::hartree_per_joule;              // hartree / angstrom^2
+    hfHessian *= std::pow(Constants::angstrom_per_bohr, 2); // hartree / bohr^2
   }
 };
 
 TEST_F(AThermochemistryTest, CanConstructCalculator) {
-  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(arbitraryNormalModes, arbitraryPMI, arbitraryElements,
-                                                                      arbitraryMultiplicity, arbitraryEnergy);
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(
+      formaldehydeNormalModes, formaldehydePMI, formaldehydeElements, formaldehydeMultiplicity, arbitraryEnergy);
+  arbitraryTCCalculator =
+      std::make_unique<ThermochemistryCalculator>(hfHessian, hfElements, hfPositions, hfMultiplicity, arbitraryEnergy);
+  AtomCollection atoms = AtomCollection(hfElements, hfPositions);
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(hfHessian, atoms, hfMultiplicity, arbitraryEnergy);
+}
+
+TEST_F(AThermochemistryTest, DifferentConstructionsAreEqual) {
+  arbitraryTCCalculator =
+      std::make_unique<ThermochemistryCalculator>(HFNormalModes, hfPMI, hfElements, hfMultiplicity, arbitraryEnergy);
+  // C2v symmetry
+  arbitraryTCCalculator->setMolecularSymmetryNumber(2);
+  ThermochemicalComponentsContainer container1 = arbitraryTCCalculator->calculate();
+  arbitraryTCCalculator =
+      std::make_unique<ThermochemistryCalculator>(hfHessian, hfElements, hfPositions, hfMultiplicity, arbitraryEnergy);
+  // C2v symmetry
+  arbitraryTCCalculator->setMolecularSymmetryNumber(2);
+  ThermochemicalComponentsContainer container2 = arbitraryTCCalculator->calculate();
+  AtomCollection atoms = AtomCollection(hfElements, hfPositions);
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(hfHessian, atoms, hfMultiplicity, arbitraryEnergy);
+  // C2v symmetry
+  arbitraryTCCalculator->setMolecularSymmetryNumber(2);
+  ThermochemicalComponentsContainer container3 = arbitraryTCCalculator->calculate();
+  std::cout << container1.overall.gibbsFreeEnergy << std::endl;
+  std::cout << container2.overall.gibbsFreeEnergy << std::endl;
+  ASSERT_TRUE(container1.isApprox(container2, 1e-6));
+  ASSERT_TRUE(container1.isApprox(container3, 1e-6));
+  ASSERT_TRUE(container2.isApprox(container3, 1e-12));
 }
 
 TEST_F(AThermochemistryTest, CorrectlyCalculatesZPVE) {
-  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(arbitraryNormalModes, arbitraryPMI, arbitraryElements,
-                                                                      arbitraryMultiplicity, arbitraryEnergy);
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(
+      formaldehydeNormalModes, formaldehydePMI, formaldehydeElements, formaldehydeMultiplicity, arbitraryEnergy);
   arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::alreadyIncluded);
   arbitraryTCCalculator->setTemperature(298.15);
   auto container = arbitraryTCCalculator->calculate();
@@ -90,11 +163,8 @@ TEST_F(AThermochemistryTest, CorrectlyCalculatesZPVE) {
 }
 
 TEST_F(AThermochemistryTest, CorrectlyCalculatesZPVEForLinearMolecule) {
-  NormalModesContainer HFNormalModes;
-  NormalMode m1(3968.7, DisplacementCollection::Random(1, 3));
-  HFNormalModes.add(m1);
-  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(HFNormalModes, arbitraryPMI, arbitraryElements,
-                                                                      arbitraryMultiplicity, arbitraryEnergy);
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(HFNormalModes, formaldehydePMI, formaldehydeElements,
+                                                                      formaldehydeMultiplicity, arbitraryEnergy);
   arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::alreadyIncluded);
   arbitraryTCCalculator->setTemperature(298.15);
 
@@ -104,8 +174,8 @@ TEST_F(AThermochemistryTest, CorrectlyCalculatesZPVEForLinearMolecule) {
 }
 
 TEST_F(AThermochemistryTest, CanCalculateVibrationalComponent) {
-  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(arbitraryNormalModes, arbitraryPMI, arbitraryElements,
-                                                                      arbitraryMultiplicity, arbitraryEnergy);
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(
+      formaldehydeNormalModes, formaldehydePMI, formaldehydeElements, formaldehydeMultiplicity, arbitraryEnergy);
   arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::alreadyIncluded);
   arbitraryTCCalculator->setTemperature(298.00);
   auto container = arbitraryTCCalculator->calculate();
@@ -117,21 +187,8 @@ TEST_F(AThermochemistryTest, CanCalculateVibrationalComponent) {
 }
 
 TEST_F(AThermochemistryTest, CanCalculateRotationalComponentHF) {
-  NormalModesContainer HFNormalModes;
-  NormalMode m1(3968.7, DisplacementCollection::Random(1, 3));
-  HFNormalModes.add(m1);
-
-  ElementTypeCollection elements = {ElementType::H, ElementType::F};
-
-  Eigen::Vector3d eigenValues(0.00000000, 1.4818, 1.4818);
-  // Convert from 1e-40 g cm^2 to amu*bohr^2
-  eigenValues *= 1e-47 * Constants::u_per_kg * std::pow(Constants::bohr_per_meter, 2);
-  Eigen::Matrix3d eigenVectors = Eigen::Matrix3d::Random();
-  Geometry::PrincipalMomentsOfInertia pmi;
-  pmi.eigenvalues = eigenValues;
-  pmi.eigenvectors = eigenVectors;
-
-  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(HFNormalModes, pmi, elements, 1, arbitraryEnergy);
+  arbitraryTCCalculator =
+      std::make_unique<ThermochemistryCalculator>(HFNormalModes, hfPMI, hfElements, hfMultiplicity, arbitraryEnergy);
   arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::alreadyIncluded);
   arbitraryTCCalculator->setTemperature(298.00);
   auto container = arbitraryTCCalculator->calculate();
@@ -141,10 +198,8 @@ TEST_F(AThermochemistryTest, CanCalculateRotationalComponentHF) {
 }
 
 TEST_F(AThermochemistryTest, CanCalculateRotationalComponentOfAsymmetricMolecule) {
-  Eigen::Matrix3d eigenVectors = Eigen::Matrix3d::Random();
-
-  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(arbitraryNormalModes, arbitraryPMI, arbitraryElements,
-                                                                      arbitraryMultiplicity, arbitraryEnergy);
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(
+      formaldehydeNormalModes, formaldehydePMI, formaldehydeElements, formaldehydeMultiplicity, arbitraryEnergy);
   arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::alreadyIncluded);
   arbitraryTCCalculator->setTemperature(298.00);
   // C2v symmetry
@@ -157,8 +212,8 @@ TEST_F(AThermochemistryTest, CanCalculateRotationalComponentOfAsymmetricMolecule
 }
 
 TEST_F(AThermochemistryTest, CanCalculateTranslationalComponentOfAsymmetricMolecule) {
-  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(arbitraryNormalModes, arbitraryPMI, arbitraryElements,
-                                                                      arbitraryMultiplicity, arbitraryEnergy);
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(
+      formaldehydeNormalModes, formaldehydePMI, formaldehydeElements, formaldehydeMultiplicity, arbitraryEnergy);
   arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::alreadyIncluded);
   arbitraryTCCalculator->setTemperature(298.00);
   // C2v symmetry
@@ -172,8 +227,8 @@ TEST_F(AThermochemistryTest, CanCalculateTranslationalComponentOfAsymmetricMolec
 }
 
 TEST_F(AThermochemistryTest, CanCalculateOverallComponent) {
-  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(arbitraryNormalModes, arbitraryPMI, arbitraryElements,
-                                                                      arbitraryMultiplicity, arbitraryEnergy);
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(
+      formaldehydeNormalModes, formaldehydePMI, formaldehydeElements, formaldehydeMultiplicity, arbitraryEnergy);
   arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::alreadyIncluded);
   arbitraryTCCalculator->setTemperature(298.00);
   // C2v symmetry

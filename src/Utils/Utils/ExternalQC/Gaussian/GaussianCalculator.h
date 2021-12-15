@@ -8,8 +8,10 @@
 #define UTILS_GAUSSIANCALCULATOR_H
 
 #include <Core/Interfaces/Calculator.h>
+#include <Core/Interfaces/ObjectWithOrbitals.h>
 #include <Utils/CalculatorBasics/PropertyList.h>
 #include <Utils/CalculatorBasics/Results.h>
+#include <Utils/DataStructures/MolecularOrbitals.h>
 #include <Utils/Geometry/AtomCollection.h>
 #include <Utils/Settings.h>
 #include <Utils/Technical/CloneInterface.h>
@@ -18,7 +20,8 @@ namespace Scine {
 namespace Utils {
 namespace ExternalQC {
 
-class GaussianCalculator final : public Utils::CloneInterface<GaussianCalculator, Core::Calculator> {
+class GaussianCalculator final : public Utils::CloneInterface<GaussianCalculator, Core::Calculator>,
+                                 public Core::ObjectWithOrbitals {
  public:
   static constexpr const char* model = "GAUSSIAN";
   /// @brief Default Constructor.
@@ -71,6 +74,14 @@ class GaussianCalculator final : public Utils::CloneInterface<GaussianCalculator
    *                       Calculator::setRequiredProperties function.
    */
   const Utils::Results& calculate(std::string description) override;
+
+  /**
+   * @brief Updates the molecular orbitals stored in the checkpoint file
+   * @param mos The molecular orbitals
+   * @note This requires a checkpoint file to be present in the calculation directory
+   */
+  void setOrbitals(const MolecularOrbitals& mos) override;
+
   /**
    * @brief Getter for the name of the Calculator.
    * @return Returns the name of the Calculator.
@@ -151,10 +162,12 @@ class GaussianCalculator final : public Utils::CloneInterface<GaussianCalculator
   // Settings as private members:
   std::string fileNameBase_;
   std::string gaussianExecutable_ = "";
+  std::string gaussianDirectory_ = "";
   AtomCollection atoms_;
   Utils::PropertyList requiredProperties_;
   // Keeps track of whether the binary has been checked for validity yet
   bool binaryHasBeenChecked_ = false;
+  const std::vector<std::string> availableSolvationModels_ = std::vector<std::string>{"cpcm", "pcm", "ipcm", "scipcm", "smd"};
 };
 
 } // namespace ExternalQC

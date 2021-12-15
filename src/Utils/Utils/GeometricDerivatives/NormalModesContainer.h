@@ -37,6 +37,7 @@ class NormalModesContainer {
   /**
    * @brief Returns a const reference of the vibrational mode with index modeIndex.
    * @param modeIndex The index of the mode required.
+   * @throws std::runtime_error if modeIndex is out of range
    * @return The mode with index modeIndex.
    */
   const DisplacementCollection& getMode(int modeIndex) const;
@@ -55,6 +56,12 @@ class NormalModesContainer {
    * @return std::vector<double> Vector of all wave numbers.
    */
   std::vector<double> getWaveNumbers() const;
+
+  /**
+   * @brief Getter for the vibrational normal modes.
+   * @return Eigen::MatrixXd matrix with all the normal modes.
+   */
+  Eigen::MatrixXd getNormalModes() const;
 
  private:
   // The modes

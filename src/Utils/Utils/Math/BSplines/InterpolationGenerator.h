@@ -23,8 +23,7 @@ namespace BSplines {
 class InterpolationGenerator : public Generator {
  public:
   /*! @param dataPoints number rows = number of points, number of cols = dimension */
-  explicit InterpolationGenerator(const Eigen::Ref<const Eigen::MatrixXd>& dataPoints, unsigned degree = 3,
-                                  bool uniformKnotVector = false);
+  explicit InterpolationGenerator(const Eigen::MatrixXd& dataPoints, unsigned degree = 3, bool uniformKnotVector = false);
 
  private:
   Eigen::VectorXd generateKnotVector() override;

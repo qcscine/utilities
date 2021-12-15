@@ -11,6 +11,7 @@
 #include "Utils/UniversalSettings/SettingDescriptor.h"
 /* External Headers */
 #include <limits>
+#include <stdexcept>
 
 namespace Scine {
 namespace Utils {
@@ -21,6 +22,7 @@ namespace UniversalSettings {
  */
 class IntDescriptor : public SettingDescriptor {
  public:
+  IntDescriptor() = default;
   /**
    * @brief Constructor
    *
@@ -31,6 +33,7 @@ class IntDescriptor : public SettingDescriptor {
   std::unique_ptr<SettingDescriptor> clone() const override;
   GenericValue getDefaultGenericValue() const override;
   bool validValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const GenericValue& v) const override;
 
   //! Checks whether the supplied value is within the configured bounds
   bool validValue(int v) const;
@@ -75,14 +78,38 @@ inline int IntDescriptor::getDefaultValue() const {
 }
 
 inline void IntDescriptor::setMinimum(int min) {
+  if (min > maximum_) {
+    throw std::logic_error("Attempting to set minimum to value greater than maximum");
+  }
+
   minimum_ = min;
+
+  if (defaultValue_ < min) {
+    defaultValue_ = min;
+  }
 }
 
 inline void IntDescriptor::setMaximum(int max) {
+  if (max < minimum_) {
+    throw std::logic_error("Attempting to set maximum to value smaller than minimum");
+  }
+
   maximum_ = max;
+
+  if (defaultValue_ > max) {
+    defaultValue_ = max;
+  }
 }
 
 inline void IntDescriptor::setDefaultValue(int def) {
+  if (def < minimum_) {
+    throw std::logic_error("Attempting to set default to value smaller than minimum");
+  }
+
+  if (def > maximum_) {
+    throw std::logic_error("Attempting to set default to value larger than maximum");
+  }
+
   defaultValue_ = def;
 }
 
@@ -103,6 +130,17 @@ inline bool IntDescriptor::validValue(const GenericValue& v) const {
     return false;
   };
   return validValue(v.toInt());
+}
+
+inline std::string IntDescriptor::explainInvalidValue(const GenericValue& v) const {
+  assert(!validValue(v));
+  if (!v.isInt()) {
+    return "Generic value for integer setting '" + getPropertyDescription() + "' is not an integer!";
+  }
+  const int value = v;
+  std::string explanation = "Integer descriptor '" + getPropertyDescription() + "' value " + std::to_string(value);
+  explanation += " out of bounds [" + std::to_string(minimum_) + ", " + std::to_string(maximum_) + "].";
+  return explanation;
 }
 
 } /* namespace UniversalSettings */

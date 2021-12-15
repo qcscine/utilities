@@ -71,10 +71,13 @@ class AfirOptimizerSettings : public Settings {
     afir_phase_in.setDefaultValue(afirBase.phaseIn);
     this->_fields.push_back(AfirOptimizerBase::afirPhaseInKey, afir_phase_in);
 
-    UniversalSettings::BoolDescriptor afir_transform_coordinates(
-        "Switch to transform the coordinates from Cartesian into an internal space.");
-    afir_transform_coordinates.setDefaultValue(afirBase.transformCoordinates);
-    this->_fields.push_back(AfirOptimizerBase::afirTransfromCoordinatesKey, afir_transform_coordinates);
+    UniversalSettings::OptionListDescriptor afir_coordinate_system("Set the coordinate system.");
+    afir_coordinate_system.addOption("internal");
+    afir_coordinate_system.addOption("cartesianWithoutRotTrans");
+    afir_coordinate_system.addOption("cartesian");
+    afir_coordinate_system.setDefaultOption(
+        CoordinateSystemInterpreter::getStringFromCoordinateSystem(afirBase.coordinateSystem));
+    this->_fields.push_back(AfirOptimizerBase::afirCoordinateSystemKey, afir_coordinate_system);
 
     this->resetToDefaults();
   }

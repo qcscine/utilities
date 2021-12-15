@@ -154,18 +154,22 @@ class OrcaCalculator final : public CloneInterface<OrcaCalculator, Core::Calcula
   std::unique_ptr<Settings> settings_;
   // The results.
   Results results_;
-  //  std::unique_ptr<ResultsAutoCompleter> autoCompleter_;
   // Base working directory
   std::string baseWorkingDirectory_;
   // Calculation directory
   std::string calculationDirectory_;
   // Settings as private members:
   std::string fileNameBase_;
-  std::string orcaExecutable_ = "";
+  std::string orcaExecutable_;
   AtomCollection atoms_;
   PropertyList requiredProperties_;
   // Keeps track of whether the binary has been checked for validity yet
   bool binaryHasBeenChecked_ = false;
+  const std::vector<std::string> availableSolvationModels_ = std::vector<std::string>{"cpcm", "smd"};
+  const std::vector<std::string> availableMethodFamilies_ = std::vector<std::string>{"DFT", "HF", "CC", "HF-3C", "PBEH-3C"};
+  // incomplete list of methods with no analytical Hessian, add if you find a new one
+  const std::vector<std::string> numFreqMethods_ =
+      std::vector<std::string>{"M06", "DLPNO-CCSD(T)", "DLPNO-CCSD", "HF-3C", "PBEH-3C"};
 };
 
 } // namespace ExternalQC

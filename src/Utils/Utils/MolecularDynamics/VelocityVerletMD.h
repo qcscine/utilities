@@ -22,8 +22,16 @@ namespace Utils {
  * and the velocities with
  * \f$ v_i(t + \Delta t) = v_i(t) + \frac{\Delta t}{2 m_i} (f_i(t) + f_i(t + \Delta t)) + O(\Delta t^3) \f$
  *
+ * This integrator can be combined with the Berendsen thermostat.
  */
 class VelocityVerletMD : public MDIntegrator {
+  /**
+   * @brief Checks whether the set integrator and thermostat algortihm are compatible.
+   * @return true If the thermostat is available.
+   * @return false If the thermostat is not available.
+   */
+  bool checkThermostatAlgorithm() const override;
+
   /**
    * @brief Calculates the displacements from the gradients.
    */

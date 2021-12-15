@@ -38,12 +38,11 @@ bool ElectronicOccupationGenerator::occupationFulfillsRequirements(const Electro
     bool b3 = occupation.numberBetaElectrons() == nBeta;
     return b1 && b2 && b3;
   }
-  else {
-    bool b1 = occupation.numberAlphaElectrons() == 0;
-    bool b2 = occupation.numberBetaElectrons() == 0;
-    bool b3 = occupation.numberRestrictedElectrons() == method_->getNumberElectrons();
-    return b1 && b2 && b3;
-  }
+
+  bool b1 = occupation.numberAlphaElectrons() == 0;
+  bool b2 = occupation.numberBetaElectrons() == 0;
+  bool b3 = occupation.numberRestrictedElectrons() == method_->getNumberElectrons();
+  return b1 && b2 && b3;
 }
 
 } // namespace LcaoUtils

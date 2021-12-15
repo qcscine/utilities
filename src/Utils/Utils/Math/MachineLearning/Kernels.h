@@ -21,7 +21,7 @@ namespace Kernels {
  * @brief The linear kernel. No hyperparameters.
  */
 const std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const std::vector<double>&)> linearKernel =
-    [](const Eigen::VectorXd& vec1, const Eigen::VectorXd& vec2, const std::vector<double>& hyperparameters) {
+    [](const Eigen::VectorXd& vec1, const Eigen::VectorXd& vec2, const std::vector<double>& /* hyperparameters */) {
       return vec1.dot(vec2);
     };
 
@@ -30,7 +30,7 @@ const std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const
  */
 const std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const std::vector<double>&)> gaussianKernel =
     [](const Eigen::VectorXd& vec1, const Eigen::VectorXd& vec2, const std::vector<double>& hyperparameters) {
-      return exp((-1 / (2 * pow(hyperparameters.at(0), 2))) * (vec1 - vec2).squaredNorm());
+      return std::exp((-1 / (2 * std::pow(hyperparameters.at(0), 2))) * (vec1 - vec2).squaredNorm());
     };
 
 /**
@@ -38,7 +38,7 @@ const std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const
  */
 const std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const std::vector<double>&)> laplacianKernel =
     [](const Eigen::VectorXd& vec1, const Eigen::VectorXd& vec2, const std::vector<double>& hyperparameters) {
-      return exp((-1 / hyperparameters.at(0)) * (vec1 - vec2).lpNorm<1>());
+      return std::exp((-1 / hyperparameters.at(0)) * (vec1 - vec2).lpNorm<1>());
     };
 
 /**
@@ -47,7 +47,7 @@ const std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const
  */
 const std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const std::vector<double>&)> polynomialKernel =
     [](const Eigen::VectorXd& vec1, const Eigen::VectorXd& vec2, const std::vector<double>& hyperparameters) {
-      return pow(hyperparameters.at(1) * vec1.dot(vec2) + hyperparameters.at(2), hyperparameters.at(0));
+      return std::pow(hyperparameters.at(1) * vec1.dot(vec2) + hyperparameters.at(2), hyperparameters.at(0));
     };
 
 } // namespace Kernels

@@ -7,20 +7,9 @@
 
 #include <Utils/Bonds/BondOrderCollection.h>
 #include <Utils/CalculatorBasics/Results.h>
-#include <pybind11/eigen.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <boost/optional.hpp>
+#include <Utils/Pybind.h>
 
 using namespace Scine::Utils;
-
-// boost optional type caster
-namespace pybind11 {
-namespace detail {
-template<typename T>
-struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
-} // namespace detail
-} // namespace pybind11
 
 namespace detail {
 
@@ -44,7 +33,7 @@ void add_property(pybind11::class_<Results>& pyclass_results) {
 }
 
 template<typename T = void>
-void recursivePropertyAdditionToResults(pybind11::class_<Results>& results) {
+void recursivePropertyAdditionToResults(pybind11::class_<Results>& /* results */) {
 }
 
 template<std::size_t index, std::size_t... Inds>

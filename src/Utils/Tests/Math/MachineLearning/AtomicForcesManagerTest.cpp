@@ -45,7 +45,7 @@ TEST_F(AnAtomicForcesManagerTest, InternalForceRepresentationsAreRotationallyInv
 
   // Get some example forces from D3
   Utils::Dftd3::Dftd3 d3;
-  d3.initialize(structure, 0.4289, 0.7875, 4.4407); // for PBE (does not actually matter)
+  d3.initialize(structure, 1.0, 0.7875, 0.4289, 4.4407, Dftd3::Damping::BJ); // for PBE (does not actually matter)
   d3.calculate(Utils::Derivative::First);
   auto energy = d3.getEnergy();
   Utils::GradientCollection forces = -d3.getGradients();
@@ -67,8 +67,9 @@ TEST_F(AnAtomicForcesManagerTest, InternalForceRepresentationsAreRotationallyInv
   }
 
   // Rotate molecule (test 1)
-  Eigen::RowVector3d translation = -Utils::Geometry::getCenterOfMass(structure);
-  Utils::PositionCollection translatedPos = Utils::Geometry::translatePositions(structure.getPositions(), translation);
+  Eigen::RowVector3d translation = -Utils::Geometry::Properties::getCenterOfMass(structure);
+  Utils::PositionCollection translatedPos =
+      Utils::Geometry::Manipulations::translatePositions(structure.getPositions(), translation);
   Eigen::Vector3d rotationAxis(1.0, 1.0, 1.0);                      // axis is not important here
   Eigen::AngleAxisd angleAxis(M_PI / 3, rotationAxis.normalized()); // 60 degree rotation
   Eigen::Quaterniond rotation(angleAxis);
@@ -81,7 +82,7 @@ TEST_F(AnAtomicForcesManagerTest, InternalForceRepresentationsAreRotationallyInv
   forcesManager.modifyPositions(rotatedPos);
 
   // Calculate forces again:
-  d3.initialize({structure.getElements(), rotatedPos}, 0.4289, 0.7875, 4.4407);
+  d3.initialize({structure.getElements(), rotatedPos}, 1.0, 0.7875, 0.4289, 4.4407, Dftd3::Damping::BJ);
   d3.calculate(Utils::Derivative::First);
   ASSERT_THAT(energy, DoubleNear(d3.getEnergy(), 1e-6)); // make sure energy is equal
   forces = -d3.getGradients() * Utils::Constants::kCalPerMol_per_hartree;
@@ -106,7 +107,7 @@ TEST_F(AnAtomicForcesManagerTest, InternalForceRepresentationsAreRotationallyInv
   forcesManager.modifyPositions(rotatedPos);
 
   // Calculate forces again:
-  d3.initialize({structure.getElements(), rotatedPos}, 0.4289, 0.7875, 4.4407);
+  d3.initialize({structure.getElements(), rotatedPos}, 1.0, 0.7875, 0.4289, 4.4407, Dftd3::Damping::BJ);
   d3.calculate(Utils::Derivative::First);
   ASSERT_THAT(energy, DoubleNear(d3.getEnergy(), 1e-6)); // make sure energy is equal
   forces = -d3.getGradients() * Utils::Constants::kCalPerMol_per_hartree;

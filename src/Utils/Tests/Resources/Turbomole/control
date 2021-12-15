@@ -1,0 +1,101 @@
+$cosmo
+  epsilon=   80.400
+  rsolv= 1.30
+$cosmo_atoms
+# radii in Angstrom units
+o  1                                                                           \
+   radius=  1.7200
+h  2-3                                                                         \
+   radius=  1.3000
+$cosmo_out file=out.ccf
+$title
+$symmetry c1
+$user-defined bonds    file=coord
+$coord    file=coord
+$optimize
+ internal   off
+ redundant  off
+ cartesian  on
+ global     off
+ basis      off
+$atoms
+o  1                                                                           \
+   basis =o def-SV(P)                                                          \
+   jbas  =o def-SV(P)
+h  2-3                                                                         \
+   basis =h def-SV(P)                                                          \
+   jbas  =h def-SV(P)
+$basis    file=basis
+$uhfmo_alpha   file=alpha
+$uhfmo_beta   file=beta
+$uhf
+$alpha shells
+ a       1-5                                    ( 1 )
+$beta shells
+ a       1-5                                    ( 1 )
+$scfiterlimit      100
+$thize     0.10000000E-04
+$thime        5
+$scfdamp   start=8.500  step=0.10  min=0.10
+$scfdump
+$scfintunit
+ unit=30       size=0        file=twoint
+$scfdiis
+$maxcor    500 MiB  per_core
+$drvopt
+   cartesian  on
+   basis      off
+   global     off
+   hessian    on
+   dipole     on
+   nuclear polarizability
+$interconversion  off
+   qconv=1.d-7
+   maxiter=25
+$coordinateupdate
+   dqmax=0.3
+   interpolate  on
+   statistics    5
+$forceupdate
+   ahlrichs numgeo=0  mingeo=3 maxgeo=4 modus=<g|dq> dynamic fail=0.3
+   threig=0.005  reseig=0.005  thrbig=3.0  scale=1.00  damping=0.0
+$forceinit on
+   diag=default
+$energy    file=energy
+$grad    file=gradient
+$forceapprox    file=forceapprox
+$ricore      500
+$rij
+$jbas    file=auxbasis
+$dft
+   functional pbe
+   gridsize   m3
+$scfconv 8
+$scforbitalshift closedshell=0.5
+$disp3 bj
+$rundimensions
+   natoms=3
+   nbf(CAO)=19
+   nbf(AO)=18
+$last step     force
+$pop loewdin wiberg
+$last SCF energy change = 0.94368602E-09
+$ssquare from ridft
+          0.000 (not to be modified here)
+$charge from ridft
+          0.000 (not to be modified here)
+$dipole from force
+  x    -0.09575091314233    y     0.94268612760297    z    -0.00000798151552    a.u.
+   | dipole | =    2.4084156942  debye
+$orbital_max_rnorm 0.13464540763643E-04
+$subenergy  Etot         E1                  Ej                Ex                 Ec                 En                 Disp
+-76.26556564656    -122.8741683204     46.79822102530    -8.924073164639    -.3298973712628     9.064711651614    -.3594671846239E-03
+$dipgrad    file=dipgrad
+$hessian (projected)    file=hessian
+$vibrational normal modes    file=vib_normal_modes
+$vibrational reduced masses
+   5.6635196167  15.9994000000   1.0079700000   1.2334404110   2.0944688987
+   1.2252513852   1.0815386241   1.0465198714   1.0817863465
+$nvibro        9
+$vibrational spectrum    file=vibspectrum
+$end

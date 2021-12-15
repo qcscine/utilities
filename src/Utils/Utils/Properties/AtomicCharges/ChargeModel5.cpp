@@ -13,16 +13,18 @@ namespace Scine {
 namespace Utils {
 
 std::vector<double> ChargeModel5::calculateCm5Charges(const std::vector<double>& hirshfeldCharges, const AtomCollection& atoms) {
-  if (hirshfeldCharges.size() != atoms.size())
+  if (static_cast<int>(hirshfeldCharges.size()) != atoms.size()) {
     throw std::runtime_error("The number of atoms is not the same as the size of the Hirshfeld charges vector.");
+  }
 
   std::vector<double> cm5Charges;
   for (int i = 0; i < atoms.size(); ++i) {
     double charge = hirshfeldCharges[i];
     double covRad = ElementInfo::covalentRadius(atoms.getElement(i));
     for (int j = 0; j < atoms.size(); ++j) {
-      if (i == j)
+      if (i == j) {
         continue;
+      }
       double distance = (atoms.getPosition(i) - atoms.getPosition(j)).norm();
       double paulingBondOrder = std::exp(-globalAlphaParameter_ * Constants::angstrom_per_bohr *
                                          (distance - covRad - ElementInfo::covalentRadius(atoms.getElement(j))));
@@ -38,34 +40,47 @@ double ChargeModel5::getPairwiseParameter(const ElementType& e1, const ElementTy
   auto z1 = ElementInfo::Z(e1);
   auto z2 = ElementInfo::Z(e2);
 
-  if (z1 == z2) // implicitly already covered by last case
+  if (z1 == z2) { // NOTE: implicitly already covered by last case
     return 0.0;
-  else if (z1 == 1 && z2 == 6)
+  }
+  if (z1 == 1 && z2 == 6) {
     return 0.0502;
-  else if (z1 == 6 && z2 == 1)
+  }
+  if (z1 == 6 && z2 == 1) {
     return -0.0502;
-  else if (z1 == 1 && z2 == 7)
+  }
+  if (z1 == 1 && z2 == 7) {
     return 0.1747;
-  else if (z1 == 7 && z2 == 1)
+  }
+  if (z1 == 7 && z2 == 1) {
     return -0.1747;
-  else if (z1 == 1 && z2 == 8)
+  }
+  if (z1 == 1 && z2 == 8) {
     return 0.1671;
-  else if (z1 == 8 && z2 == 1)
+  }
+  if (z1 == 8 && z2 == 1) {
     return -0.1671;
-  else if (z1 == 6 && z2 == 7)
+  }
+  if (z1 == 6 && z2 == 7) {
     return 0.0556;
-  else if (z1 == 7 && z2 == 6)
+  }
+  if (z1 == 7 && z2 == 6) {
     return -0.0556;
-  else if (z1 == 6 && z2 == 8)
+  }
+  if (z1 == 6 && z2 == 8) {
     return 0.0234;
-  else if (z1 == 8 && z2 == 6)
+  }
+  if (z1 == 8 && z2 == 6) {
     return -0.0234;
-  else if (z1 == 7 && z2 == 8)
+  }
+  if (z1 == 7 && z2 == 8) {
     return -0.0346;
-  else if (z1 == 8 && z2 == 7)
+  }
+  if (z1 == 8 && z2 == 7) {
     return 0.0346;
-  else
-    return atomwiseParameters_[z1 - 1] - atomwiseParameters_[z2 - 1];
+  }
+
+  return atomwiseParameters_[z1 - 1] - atomwiseParameters_[z2 - 1];
 }
 
 } // namespace Utils

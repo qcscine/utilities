@@ -1,15 +1,17 @@
 # build files
 build/*
+build-*
 cmake-build-*
 compile_commands.json
 install/*
+.conan_test_package/build
 
 # hidden files
+.cache
 *.swp
 .idea/*
 .lvimrc
 .vscode
-.conan_test_package/build
 
 # python files
 *__pycache__*

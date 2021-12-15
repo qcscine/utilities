@@ -150,6 +150,9 @@ class ElementInfo {
    * @brief Getter for the number of valence s-electrons.
    * @param e The ElementType.
    * @return int Returns the number of valence s-electrons.
+   *
+   * @note Valence electron shell assignment is done by application of
+   * Madelung's rule, without incorporation of experimental exceptions.
    */
   static int sElectrons(ElementType e);
 
@@ -157,6 +160,9 @@ class ElementInfo {
    * @brief Getter for the number of valence p-electrons.
    * @param e The ElementType.
    * @return int Returns the number of valence p-electrons.
+   *
+   * @note Valence electron shell assignment is done by application of
+   * Madelung's rule, without incorporation of experimental exceptions.
    */
   static int pElectrons(ElementType e);
 
@@ -164,8 +170,21 @@ class ElementInfo {
    * @brief Getter for the number of valence d-electrons.
    * @param e The ElementType.
    * @return int Returns the number of valence d-electrons.
+   *
+   * @note Valence electron shell assignment is done by application of
+   * Madelung's rule, without incorporation of experimental exceptions.
    */
   static int dElectrons(ElementType e);
+
+  /**
+   * @brief Getter for the number of valence f-electrons.
+   * @param e The ElementType.
+   * @return int Returns the number of valence f-electrons.
+   *
+   * @note Valence electron shell assignment is done by application of
+   * Madelung's rule, without incorporation of experimental exceptions.
+   */
+  static int fElectrons(ElementType e);
 
   /**
    * @brief A map mapping between string an enum  type of an element.
@@ -181,7 +200,7 @@ class ElementInfo {
     double abundance;
   };
 
-  static std::unordered_map<ElementType, IsotopeData> isotopeMap;
+  static const std::unordered_map<ElementType, IsotopeData>& isotopeMap();
 };
 
 } /* namespace Utils */

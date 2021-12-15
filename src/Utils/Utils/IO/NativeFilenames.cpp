@@ -21,6 +21,11 @@ std::string NativeFilenames::getDirectorySeparatorString() {
   return std::string(1, getDirectorySeparatorChar());
 }
 
+std::string NativeFilenames::getParentDirectory(const std::string& path) {
+  boostfs::path p = path;
+  return p.parent_path().string();
+}
+
 std::string NativeFilenames::combinePathSegmentsImpl(const std::string& left, const std::string& right) {
   boostfs::path p = left;
   p /= right;
@@ -39,8 +44,9 @@ std::string NativeFilenames::addTrailingSeparator(const std::string& path) {
 
 std::string NativeFilenames::removeExtension(const std::string& filename) {
   size_t lastdot = filename.find_last_of('.');
-  if (lastdot == std::string::npos)
+  if (lastdot == std::string::npos) {
     return filename;
+  }
   return filename.substr(0, lastdot);
 }
 

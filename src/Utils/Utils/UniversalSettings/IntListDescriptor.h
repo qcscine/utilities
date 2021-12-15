@@ -11,6 +11,7 @@
 #include "Utils/UniversalSettings/GenericValue.h"
 #include "Utils/UniversalSettings/SettingDescriptor.h"
 /* External Headers */
+#include <algorithm>
 #include <limits>
 #include <vector>
 
@@ -24,6 +25,7 @@ class IntListDescriptor : public SettingDescriptor {
  public:
   using IntList = GenericValue::IntList;
 
+  IntListDescriptor() = default;
   /**
    * @brief Constructor
    *
@@ -34,9 +36,10 @@ class IntListDescriptor : public SettingDescriptor {
   std::unique_ptr<SettingDescriptor> clone() const override;
   GenericValue getDefaultGenericValue() const override;
   bool validValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const GenericValue& v) const override;
 
   // Checks that all contained integers are valid
-  bool validValue(IntList v) const;
+  bool validValue(const IntList& v) const;
 
   //! Get the default list of integers
   IntList getDefaultValue() const;
@@ -113,13 +116,11 @@ inline GenericValue IntListDescriptor::getDefaultGenericValue() const {
   return GenericValue::fromIntList(getDefaultValue());
 }
 
-inline bool IntListDescriptor::validValue(IntList v) const {
-  for (const auto& i : v) {
-    if (i < getItemMinimum() || getItemMaximum() < i) {
-      return false;
-    }
-  }
-  return true;
+inline bool IntListDescriptor::validValue(const IntList& v) const {
+  const int minimum = getItemMinimum();
+  const int maximum = getItemMaximum();
+
+  return std::all_of(std::begin(v), std::end(v), [=](int i) { return minimum <= i && i <= maximum; });
 }
 
 inline bool IntListDescriptor::validValue(const GenericValue& v) const {
@@ -128,6 +129,17 @@ inline bool IntListDescriptor::validValue(const GenericValue& v) const {
   }
   return validValue(v.toIntList());
 }
+
+inline std::string IntListDescriptor::explainInvalidValue(const GenericValue& v) const {
+  assert(!validValue(v));
+  if (!v.isIntList()) {
+    return "Generic value for integer list setting '" + getPropertyDescription() + "' is not an integer list!";
+  }
+  std::string explanation = "A value in the integer list descriptor '" + getPropertyDescription() + "' is ";
+  explanation += "out of bounds [" + std::to_string(itemMinimum_) + ", " + std::to_string(itemMaximum_) + "].";
+  return explanation;
+}
+
 } /* namespace UniversalSettings */
 } /* namespace Utils */
 } /* namespace Scine */

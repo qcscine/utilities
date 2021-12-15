@@ -15,23 +15,17 @@
 namespace Scine {
 namespace Utils {
 
-std::vector<ConvergenceAcceleratorFactory::MixerDescriptor> ConvergenceAcceleratorFactory::availableMixers;
-scf_mixer_t ConvergenceAcceleratorFactory::defaultMixer;
+constexpr scf_mixer_t ConvergenceAcceleratorFactory::defaultMixer;
 
 const std::vector<ConvergenceAcceleratorFactory::MixerDescriptor>& ConvergenceAcceleratorFactory::getAvailableMixers() {
-  if (availableMixers.empty())
-    setAvailableMixers();
+  static const std::vector<ConvergenceAcceleratorFactory::MixerDescriptor> availableMixers{
+      {scf_mixer_t::none, "No mixer"},
+      {scf_mixer_t::fock_diis, "Fock DIIS mixer"},
+      {scf_mixer_t::ediis, "EDIIS mixer"},
+      {scf_mixer_t::ediis_diis, "EDIIS + DIIS mixer"},
+      {scf_mixer_t::charge_simple, "Simple charge mixer"},
+      {scf_mixer_t::fock_simple, "Simple Fock mixer"}};
   return availableMixers;
-}
-
-void ConvergenceAcceleratorFactory::setAvailableMixers() {
-  availableMixers.emplace_back(scf_mixer_t::none, "No mixer");
-  availableMixers.emplace_back(scf_mixer_t::fock_diis, "Fock DIIS mixer");
-  availableMixers.emplace_back(scf_mixer_t::ediis, "EDIIS mixer");
-  availableMixers.emplace_back(scf_mixer_t::ediis_diis, "EDIIS + DIIS mixer");
-  availableMixers.emplace_back(scf_mixer_t::charge_simple, "Simple charge mixer");
-  availableMixers.emplace_back(scf_mixer_t::fock_simple, "Simple Fock mixer");
-  defaultMixer = scf_mixer_t::fock_diis;
 }
 
 std::unique_ptr<ScfModifier> ConvergenceAcceleratorFactory::createMixer(scf_mixer_t mixerID) {

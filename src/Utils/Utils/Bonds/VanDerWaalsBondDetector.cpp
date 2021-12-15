@@ -19,10 +19,11 @@ BondOrderCollection VanDerWaalsBondDetector::detectBonds(const AtomCollection& a
 
 BondOrderCollection VanDerWaalsBondDetector::detectBonds(const ElementTypeCollection& elements,
                                                          const PositionCollection& positions) {
-  assert(elements.size() == positions.size());
+  const int N = elements.size();
+  assert(N == positions.size());
   BondOrderCollection bc(elements.size());
 
-  for (int i = 0; i < elements.size(); ++i) {
+  for (int i = 0; i < N; ++i) {
     for (int j = 0; j < i; ++j) {
       if (vdwBondExists(elements[i], elements[j], positions.row(i), positions.row(j))) {
         bc.setOrder(i, j, 1.0);

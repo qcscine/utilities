@@ -12,7 +12,6 @@
 
 namespace Scine {
 namespace Utils {
-
 namespace LcaoUtils {
 
 /*!
@@ -64,7 +63,7 @@ class ElectronicOccupation {
 };
 
 } // namespace LcaoUtils
-
 } // namespace Utils
 } // namespace Scine
+
 #endif // UTILS_ELECTRONICOCCUPATION_H

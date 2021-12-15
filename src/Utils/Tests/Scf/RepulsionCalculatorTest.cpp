@@ -153,7 +153,7 @@ TEST_F(ACoreCoreRepulsionCalculatorTest, CanCalculateRepulsionHessian) {
   // HessianMatrix numericalHessian = calculateFromEnergyDifferences(1e-6);
 
   HessianMatrix::Zero(3 * arbitraryElements.size(), 3 * arbitraryElements.size());
-  for (int hessianIndex = 0; hessianIndex < 3 * arbitraryElements.size(); ++hessianIndex) {
+  for (unsigned hessianIndex = 0; hessianIndex < 3 * arbitraryElements.size(); ++hessianIndex) {
     const int i = hessianIndex / 3;
     const int j = hessianIndex % 3;
     const double position = arbitraryPositions(i, j);
@@ -171,8 +171,9 @@ TEST_F(ACoreCoreRepulsionCalculatorTest, CanCalculateRepulsionHessian) {
     numericalHessian.row(hessianIndex) = (mappedGradientPlus - mappedGradientMinus) / 2e-6;
   }
 
-  for (int i = 0; i < hessian.size(); ++i)
+  for (int i = 0; i < hessian.size(); ++i) {
     EXPECT_THAT(hessian(i), DoubleNear(numericalHessian(i), 1e-7));
+  }
 }
 } // namespace Utils
 } // namespace Scine

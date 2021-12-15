@@ -20,12 +20,8 @@ class BSpline;
 
 /*! Splits a B-spline curve at a give parameter.
  * */
-class Splitter {
- public:
-  std::pair<BSpline, BSpline> split(double u, const BSpline& bs, std::pair<bool, bool> normalizeKnotVectors);
-
- private:
-  KnotInserter bsKnotInserter_;
+struct Splitter {
+  static std::pair<BSpline, BSpline> split(double u, const BSpline& bs, std::pair<bool, bool> normalizeKnotVectors);
 };
 
 } // namespace BSplines

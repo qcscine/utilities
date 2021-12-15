@@ -61,7 +61,7 @@ const std::string& GenericDescriptor::getPropertyDescription() const {
   return descriptor_->getPropertyDescription();
 }
 
-const GenericValue GenericDescriptor::getDefaultValue() const {
+GenericValue GenericDescriptor::getDefaultValue() const {
   return descriptor_->getDefaultGenericValue();
 }
 
@@ -105,6 +105,10 @@ GenericDescriptor::GenericDescriptor(IntListDescriptor d) {
   descriptor_ = std::make_unique<IntListDescriptor>(std::move(d));
 }
 
+GenericDescriptor::GenericDescriptor(DoubleListDescriptor d) {
+  descriptor_ = std::make_unique<DoubleListDescriptor>(std::move(d));
+}
+
 GenericDescriptor::GenericDescriptor(StringListDescriptor d) {
   descriptor_ = std::make_unique<StringListDescriptor>(std::move(d));
 }
@@ -143,6 +147,9 @@ GenericDescriptor::Type GenericDescriptor::getType() const {
   }
   if (relatesToIntList()) {
     return Type::IntList;
+  }
+  if (relatesToDoubleList()) {
+    return Type::DoubleList;
   }
   if (relatesToStringList()) {
     return Type::StringList;
@@ -191,6 +198,10 @@ bool GenericDescriptor::relatesToParametrizedOptionList() const {
 
 bool GenericDescriptor::relatesToIntList() const {
   return verifyConversion<IntListDescriptor>(*descriptor_);
+}
+
+bool GenericDescriptor::relatesToDoubleList() const {
+  return verifyConversion<DoubleListDescriptor>(*descriptor_);
 }
 
 bool GenericDescriptor::relatesToStringList() const {
@@ -243,6 +254,10 @@ const ParametrizedOptionListDescriptor& GenericDescriptor::getParametrizedOption
 
 const IntListDescriptor& GenericDescriptor::getIntListDescriptor() const {
   return convert<IntListDescriptor>(*descriptor_);
+}
+
+const DoubleListDescriptor& GenericDescriptor::getDoubleListDescriptor() const {
+  return convert<DoubleListDescriptor>(*descriptor_);
 }
 
 const StringListDescriptor& GenericDescriptor::getStringListDescriptor() const {

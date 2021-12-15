@@ -27,6 +27,10 @@ class SettingPopulator {
  public:
   using SettingsCollection = Utils::UniversalSettings::DescriptorCollection;
 
+  /**
+   * @brief This function adds a log setting.
+   */
+  static void addLogOption(SettingsCollection& settings);
   //! Populate Settings in the by-reference argument with default settings common to all LCAO methods.
   static void populateLcaoSettings(SettingsCollection& settings);
   //! Populate Settings in the by-reference argument with default settings common to all SCF methods.
@@ -56,14 +60,14 @@ class SettingPopulator {
   // Lcao Settings
   static void addMolecularCharge(SettingsCollection& settings);
   static void addSpinMultiplicity(SettingsCollection& settings);
-  static void addUnrestrictedCalculation(SettingsCollection& settings);
+  static void addSpinMode(SettingsCollection& settings);
   static void addTemperatureOption(SettingsCollection& settings);
+  static void addElectronicTemperatureOption(SettingsCollection& settings);
   static void addSymmetryNumberOption(SettingsCollection& settings);
-  static void addDavidsonOption(SettingsCollection& settings);
 
   // Scf Settings
-  static void addSelfConsistanceCriterion(SettingsCollection& settings);
-  static void addMaxIterations(SettingsCollection& settings);
+  static void addSelfConsistenceCriterion(SettingsCollection& settings);
+  static void addMaxScfIterations(SettingsCollection& settings);
   static void addScfMixer(SettingsCollection& settings);
 };
 

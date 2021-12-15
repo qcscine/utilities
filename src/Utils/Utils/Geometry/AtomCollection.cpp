@@ -15,11 +15,11 @@ AtomCollection::AtomCollection(int N) : elements_(N), positions_(N, 3) {
 
 AtomCollection::AtomCollection(ElementTypeCollection elements, PositionCollection positions)
   : elements_(std::move(elements)), positions_(std::move(positions)) {
-  assert(elements_.size() == positions_.rows());
+  assert(static_cast<Eigen::Index>(elements_.size()) == positions_.rows());
 }
 
 void AtomCollection::setElements(ElementTypeCollection elements) {
-  assert(elements.size() == size());
+  assert(static_cast<int>(elements.size()) == size());
   elements_ = std::move(elements);
 }
 

@@ -12,16 +12,16 @@ namespace Utils {
 
 PositionCollection MolecularSurface::FibonacciSphere(int numberOfPoints) {
   auto offset = 2.0 / numberOfPoints;
-  auto increment = Constants::pi * (3.0 - sqrt(5.0));
+  auto increment = Constants::pi * (3.0 - std::sqrt(5.0));
 
   PositionCollection fiboSurfacePoints(numberOfPoints, 3);
 
   for (int i = 0; i < numberOfPoints; i++) {
     auto u = ((i * offset) - 1) + (offset / 2);
-    auto r = sqrt(1 - u * u);
+    auto r = std::sqrt(1 - u * u);
     auto phi = ((i + 1) % numberOfPoints) * increment;
 
-    fiboSurfacePoints.row(i) = Position(cos(phi) * r, u * 1, sin(phi) * r);
+    fiboSurfacePoints.row(i) = Position(std::cos(phi) * r, u * 1, std::sin(phi) * r);
   }
   return fiboSurfacePoints;
 }
@@ -64,7 +64,7 @@ std::vector<MolecularSurface::SurfaceSite> MolecularSurface::getPrunedAtomSurfac
   std::vector<bool> remainingAtomPointsBool(unprunedAtomPoints.size(), true);
   int remainingAtomPointsSize = 0;
   // loop over all atom points
-  for (int j = 0; j < unprunedAtomPoints.size(); j++) {
+  for (int j = 0; j < static_cast<int>(unprunedAtomPoints.size()); j++) {
     bool noHit = true;
     // loop over the atoms close to given atom
     for (const auto& closeAtom : closeAtoms) {
@@ -87,7 +87,7 @@ std::vector<MolecularSurface::SurfaceSite> MolecularSurface::getPrunedAtomSurfac
   std::vector<MolecularSurface::SurfaceSite> remainingAtomPoints(remainingAtomPointsSize);
   int indexRemainingAtomsPoint = 0;
   // loop over bool vector to write remaining positions from unpruned atom points to new vector
-  for (int i = 0; i < remainingAtomPointsBool.size(); i++) {
+  for (int i = 0; i < static_cast<int>(remainingAtomPointsBool.size()); i++) {
     if (remainingAtomPointsBool.at(i)) {
       remainingAtomPoints.at(indexRemainingAtomsPoint) = unprunedAtomPoints.at(i);
       indexRemainingAtomsPoint += 1;
@@ -129,7 +129,7 @@ bool MolecularSurface::rayMissesSphere(const MolecularSurface::SurfaceSite& surf
     return true;
   }
   // only positive solution is acceptable, therefore discriminant has to be smaller than b
-  return sqrt(discriminant) < b;
+  return std::sqrt(discriminant) < b;
 }
 
 std::vector<MolecularSurface::SurfaceSite>
@@ -147,7 +147,7 @@ MolecularSurface::getVisibleMolecularSurface(const AtomCollection& molecule, int
     // bool for visible sites of solute atom j
     std::vector<bool> visibleAtomSitesBool(prunedAtomSites.size(), true);
     // loop over pruned atom sites
-    for (int k = 0; k < prunedAtomSites.size(); k++) {
+    for (int k = 0; k < static_cast<int>(prunedAtomSites.size()); k++) {
       auto prunedAtomSite = prunedAtomSites.at(k);
       // loop over all atoms in complex to check if pruned site hits them
       for (int l = 0; l < molecule.size(); l++) {
@@ -168,7 +168,7 @@ MolecularSurface::getVisibleMolecularSurface(const AtomCollection& molecule, int
       }
     }
     // write visible atom sites to position collection of molecule
-    for (int m = 0; m < visibleAtomSitesBool.size(); m++) {
+    for (int m = 0; m < static_cast<int>(visibleAtomSitesBool.size()); m++) {
       if (visibleAtomSitesBool.at(m)) {
         visibleMolecularSurface.push_back(prunedAtomSites.at(m));
       }
@@ -181,7 +181,7 @@ MolecularSurface::getVisibleMolecularSurface(const AtomCollection& molecule, int
 void MolecularSurface::writeSurface(std::ostream& os, std::vector<MolecularSurface::SurfaceSite> surface) {
   AtomCollection surfaceInHAtoms(surface.size());
 
-  for (int i = 0; i < surface.size(); i++) {
+  for (int i = 0; i < static_cast<int>(surface.size()); i++) {
     surfaceInHAtoms.setElement(i, ElementType::H);
     surfaceInHAtoms.setPosition(i, surface.at(i).position);
   }

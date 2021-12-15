@@ -7,6 +7,7 @@
 #ifndef UTILS_EXTERNALQC_ORCAMAINOUTPUTPARSER_H
 #define UTILS_EXTERNALQC_ORCAMAINOUTPUTPARSER_H
 
+#include <Utils/DataStructures/SingleParticleEnergies.h>
 #include <Utils/Typenames.h>
 #include <Eigen/Core>
 #include <string>
@@ -57,6 +58,11 @@ class OrcaMainOutputParser {
    * @return GradientCollection
    */
   GradientCollection getGradients() const;
+  /**
+   * @brief Parse the orbital energies from the ORCA output.
+   * @return a vector or orbital energies
+   */
+  SingleParticleEnergies getOrbitalEnergies() const;
   /**
    * @brief Parse the temperature for which the thermochemistry was computed.
    * @return The temperature in Kelvin.

@@ -19,6 +19,7 @@ void init_property_list(pybind11::module& m) {
   property.value("Energy", Property::Energy);
   property.value("Gradients", Property::Gradients);
   property.value("Hessian", Property::Hessian);
+  property.value("AtomicHessians", Property::AtomicHessians);
   property.value("Dipole", Property::Dipole);
   property.value("DipoleGradient", Property::DipoleGradient);
   property.value("DipoleMatrixAO", Property::DipoleMatrixAO);
@@ -35,6 +36,7 @@ void init_property_list(pybind11::module& m) {
   property.value("AtomicGtos", Property::AtomicGtos);
   property.value("AOtoAtomMapping", Property::AOtoAtomMapping);
   property.value("PointChargesGradients", Property::PointChargesGradients);
+  property.value("GridOccupation", Property::GridOccupation);
   property.value("Description", Property::Description);
   property.value("SuccessfulCalculation", Property::SuccessfulCalculation);
   property.value("ProgramName", Property::ProgramName);

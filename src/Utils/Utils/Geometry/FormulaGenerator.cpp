@@ -13,8 +13,9 @@ namespace Utils {
 
 std::string generateChemicalFormula(const ElementTypeCollection& elements, const std::string& numberPrefix,
                                     const std::string& numberPostfix) {
-  if (elements.empty())
+  if (elements.empty()) {
     return "(empty)";
+  }
 
   // Treat C and H separately
   unsigned nC = 0;
@@ -22,10 +23,12 @@ std::string generateChemicalFormula(const ElementTypeCollection& elements, const
 
   std::map<std::string, unsigned> elementsMap;
   for (auto e : elements) {
-    if (e == ElementType::C)
+    if (e == ElementType::C) {
       ++nC;
-    else if (e == ElementType::H)
+    }
+    else if (e == ElementType::H) {
       ++nH;
+    }
     else {
       std::string elementSymbol = ElementInfo::symbol(e);
       elementsMap[elementSymbol]++;
@@ -33,10 +36,12 @@ std::string generateChemicalFormula(const ElementTypeCollection& elements, const
   }
 
   std::string string;
-  if (nC != 0)
+  if (nC != 0) {
     string += singleElementPartOfFormula("C", nC, numberPrefix, numberPostfix);
-  if (nH != 0)
+  }
+  if (nH != 0) {
     string += singleElementPartOfFormula("H", nH, numberPrefix, numberPostfix);
+  }
   for (const auto& s : elementsMap) {
     string += singleElementPartOfFormula(s.first, s.second, numberPrefix, numberPostfix);
   }

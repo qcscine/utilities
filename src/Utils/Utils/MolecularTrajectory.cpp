@@ -24,9 +24,10 @@ const ElementTypeCollection& MolecularTrajectory::getElementTypes() const {
 }
 
 void MolecularTrajectory::setEnergies(const EnergyContainer& energies) {
-  if (energies.size() != size())
+  if (static_cast<int>(energies.size()) != size()) {
     throw std::runtime_error(
         "The number of energies does not match the number of structures in this molecular trajectory.");
+  }
   energies_ = energies;
 }
 
@@ -41,7 +42,7 @@ void MolecularTrajectory::clearEnergies() {
 void MolecularTrajectory::clear() {
   structureVector_.clear();
   energies_.clear();
-};
+}
 
 void MolecularTrajectory::resize(int n) {
   structureVector_.resize(static_cast<Container::size_type>(n));
@@ -50,16 +51,18 @@ void MolecularTrajectory::resize(int n) {
 
 void MolecularTrajectory::push_back(PositionCollection p) {
   assert(additionOfPositionCollectionIsAllowed(p));
-  if (!energies_.empty())
+  if (!energies_.empty()) {
     throw std::runtime_error("Energy container is not empty. Clear energies first, before a structure only is added.");
+  }
   structureVector_.push_back(std::move(p));
 }
 
 void MolecularTrajectory::push_back(PositionCollection p, double e) {
   assert(additionOfPositionCollectionIsAllowed(p));
-  if (energies_.size() != size())
+  if (static_cast<int>(energies_.size()) != size()) {
     throw std::runtime_error(
         "The number of energies does not match the number of structures in this molecular trajectory.");
+  }
   structureVector_.push_back(std::move(p));
   energies_.push_back(e);
 }
@@ -129,14 +132,16 @@ MolecularTrajectory::const_reference MolecularTrajectory::back() const {
 }
 
 const MolecularTrajectory& MolecularTrajectory::operator*=(double f) {
-  for (auto& s : structureVector_)
+  for (auto& s : structureVector_) {
     s *= f;
+  }
   return *this;
 }
 
 const MolecularTrajectory& MolecularTrajectory::operator/=(double f) {
-  for (auto& s : structureVector_)
+  for (auto& s : structureVector_) {
     s /= f;
+  }
   return *this;
 }
 
@@ -153,9 +158,9 @@ MolecularTrajectory MolecularTrajectory::operator/(double f) const {
 }
 
 bool MolecularTrajectory::resettingElementTypeCollectionIsAllowed(const ElementTypeCollection& ec) const {
-  bool hasSameSizeAsPreviousElementTypeCollection = ec.size() == molecularSize();
+  bool hasSameSizeAsPreviousElementTypeCollection = static_cast<int>(ec.size()) == molecularSize();
   bool noPositionsArePresent = empty();
-  bool hasSameSizeAsPresentPositions = empty() || (structureVector_.front().rows() == ec.size());
+  bool hasSameSizeAsPresentPositions = empty() || (structureVector_.front().rows() == static_cast<Eigen::Index>(ec.size()));
   return hasSameSizeAsPreviousElementTypeCollection || noPositionsArePresent || hasSameSizeAsPresentPositions;
 }
 

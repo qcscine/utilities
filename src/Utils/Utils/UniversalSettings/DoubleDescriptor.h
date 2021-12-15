@@ -11,6 +11,7 @@
 #include "Utils/UniversalSettings/SettingDescriptor.h"
 /* External Headers */
 #include <limits>
+#include <sstream>
 
 namespace Scine {
 namespace Utils {
@@ -24,6 +25,7 @@ namespace UniversalSettings {
  */
 class DoubleDescriptor : public SettingDescriptor {
  public:
+  DoubleDescriptor() = default;
   /**
    * @brief Constructor
    *
@@ -34,6 +36,7 @@ class DoubleDescriptor : public SettingDescriptor {
   std::unique_ptr<SettingDescriptor> clone() const override;
   GenericValue getDefaultGenericValue() const override;
   bool validValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const GenericValue& v) const override;
 
   //! Checks whether the supplied value is within the configured bounds
   bool validValue(double v) const;
@@ -106,6 +109,18 @@ inline bool DoubleDescriptor::validValue(const GenericValue& v) const {
 
 inline bool DoubleDescriptor::validValue(double v) const {
   return getMinimum() <= v && v <= getMaximum();
+}
+
+inline std::string DoubleDescriptor::explainInvalidValue(const GenericValue& v) const {
+  assert(!validValue(v));
+  if (!v.isDouble()) {
+    return "Generic value for double setting '" + getPropertyDescription() + "' is not a double!";
+  }
+  const double value = v;
+  std::ostringstream explanation;
+  explanation << "Double descriptor '" + getPropertyDescription() + +"' value " << value << " is out of bounds ["
+              << minimum_ << "," << maximum_ << "].";
+  return explanation.str();
 }
 
 } /* namespace UniversalSettings */

@@ -30,11 +30,12 @@ RandomOrbitalMixer::RandomOrbitalMixer(MolecularOrbitals& orbitals, int nRestric
 
 RandomOrbitalMixer::RandomOrbitalMixer(MolecularOrbitals& orbitals, int nAlphaElectrons, int nBetaElectrons)
   : orbitals_(orbitals), alphaHomo_(nAlphaElectrons - 1), betaHomo_(nBetaElectrons - 1), nOrbitals_(orbitals.numberOrbitals()) {
-  if (!orbitals.isUnrestricted())
+  if (!orbitals.isUnrestricted()) {
     orbitals.makeUnrestricted();
+  }
 }
 
-void RandomOrbitalMixer::mix() {
+void RandomOrbitalMixer::mix(Core::Log& log) {
   checkValidNumberOfMixes();
 
   if (invalidMolecularOrbitals(orbitals_)) {
@@ -47,14 +48,16 @@ void RandomOrbitalMixer::mix() {
     LcaoUtils::MolecularOrbitalsManipulation::mixUnrestricted(orbitals_, alphaMixes, betaMixes);
   }
   else {
+    log.warning
+        << "WARNING: Restricted orbitals detected. Consider an unrestricted calculation for effective orbital mixing."
+        << Core::Log::endl;
     auto restrictedMixes = calculateMixes(alphaHomo_);
     LcaoUtils::MolecularOrbitalsManipulation::mixRestricted(orbitals_, restrictedMixes);
   }
 }
 
-bool RandomOrbitalMixer::invalidMolecularOrbitals(const MolecularOrbitals& mo) const {
-  bool invalid = !mo.isValid();
-  return invalid || mo.isRestricted();
+bool RandomOrbitalMixer::invalidMolecularOrbitals(const MolecularOrbitals& mo) {
+  return !mo.isValid();
 }
 
 std::vector<LcaoUtils::MolecularOrbitalsManipulation::Mix> RandomOrbitalMixer::calculateMixes(int homoIndex) const {
@@ -66,15 +69,18 @@ std::vector<LcaoUtils::MolecularOrbitalsManipulation::Mix> RandomOrbitalMixer::c
 
 std::vector<int> RandomOrbitalMixer::getRandomOccupiedOrbitals(int homoIndex) const {
   int minOccupied = calculateMinimalOccupiedIndex(homoIndex);
-  if (homoIndex < 0) // i.e. if there are no electrons at all
+  // i.e. if there are no electrons at all
+  if (homoIndex < 0) {
     return {};
+  }
   return selectUniqueRandomNumbers(minOccupied, homoIndex);
 }
 
 std::vector<int> RandomOrbitalMixer::getRandomVirtualOrbitals(int homoIndex) const {
   int maxVirtual = calculateMaximalVirtualIndex(homoIndex);
-  if (homoIndex >= maxVirtual) // Avoids problems when there is no virtual orbital
+  if (homoIndex >= maxVirtual) { // Avoids problems when there is no virtual orbital
     return {};
+  }
   return selectUniqueRandomNumbers(homoIndex + 1, maxVirtual);
 }
 
@@ -99,20 +105,26 @@ RandomOrbitalMixer::createMixes(const std::vector<int>& occ, const std::vector<i
 }
 
 int RandomOrbitalMixer::calculateMinimalOccupiedIndex(int homoIndex) const {
-  if (considerAllOrbitals_)
+  if (considerAllOrbitals_) {
     return 0;
+  }
 
-  if (numberOrbitalsToConsider_ > homoIndex + 1)
+  if (numberOrbitalsToConsider_ > homoIndex + 1) {
     return 0;
+  }
+
   return homoIndex + 1 - numberOrbitalsToConsider_;
 }
 
 int RandomOrbitalMixer::calculateMaximalVirtualIndex(int homoIndex) const {
-  if (considerAllOrbitals_)
+  if (considerAllOrbitals_) {
     return nOrbitals_ - 1;
+  }
 
-  if (homoIndex + numberOrbitalsToConsider_ > nOrbitals_ - 1)
+  if (homoIndex + numberOrbitalsToConsider_ > nOrbitals_ - 1) {
     return nOrbitals_ - 1;
+  }
+
   return homoIndex + numberOrbitalsToConsider_;
 }
 
@@ -121,8 +133,9 @@ void RandomOrbitalMixer::checkValidNumberOfMixes() {
   int nVirtual = nOrbitals_ - (std::max(alphaHomo_, betaHomo_) + 1);
 
   int nPossibleMixes = std::min(nOccupied, nVirtual);
-  if (numberMixes_ > nPossibleMixes)
+  if (numberMixes_ > nPossibleMixes) {
     numberMixes_ = nPossibleMixes;
+  }
 }
 
 void RandomOrbitalMixer::considerOnlyOrbitalsCloseToFrontierOrbitals(int numberToConsider) {

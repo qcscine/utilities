@@ -69,6 +69,16 @@ class InternalCoordinates {
    */
   Eigen::VectorXd gradientsToInternal(const GradientCollection& cartesian) const;
   /**
+   * @brief Transforms Cartesian Hessian into internal Hessian.
+   *
+   * This step does not work for true Internal Coordinates.
+   *
+   * @param cartesian The Cartesian representation of the Hessian.
+   * @throws std::runtime_error If true Internal Coordinates are used.
+   * @return Eigen::MatrixXd The internal representation of the Hessian.
+   */
+  Eigen::MatrixXd hessianToInternal(const HessianMatrix& cartesian) const;
+  /**
    * @brief Project the Hessian inverse such that it represents valid changes in
    *        internal coordinates.
    *
@@ -135,7 +145,7 @@ class InternalCoordinates {
 class InternalCoordinatesException : public std::runtime_error {
  public:
   explicit InternalCoordinatesException()
-    : std::runtime_error("Internal coordinates broke down, please try cartesians.") {
+    : std::runtime_error("Internal coordinates broke down, please try Cartesians.") {
   }
 };
 

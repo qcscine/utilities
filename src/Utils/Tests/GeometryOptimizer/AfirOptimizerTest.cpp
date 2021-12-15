@@ -25,21 +25,23 @@ class AfirOptMockCalculator : public CloneInterface<AfirOptMockCalculator, Core:
  public:
   void setStructure(const AtomCollection& structure) final {
     structure_ = structure;
+    r_ = Results{};
   };
   void modifyPositions(PositionCollection newPositions) final {
     structure_.setPositions(newPositions);
+    r_ = Results{};
   };
   const PositionCollection& getPositions() const final {
     return structure_.getPositions();
   };
-  void setRequiredProperties(const PropertyList& requiredProperties) final{};
+  void setRequiredProperties(const PropertyList& /* requiredProperties */) final{};
   PropertyList getRequiredProperties() const final {
     return Utils::PropertyList{};
   };
   PropertyList possibleProperties() const final {
     return Utils::Property::Energy | Utils::Property::Gradients;
   };
-  const Results& calculate(std::string dummy = "") final {
+  const Results& calculate(std::string /*dummy*/ = "") final {
     auto p1 = structure_.getPosition(0);
     auto p2 = structure_.getPosition(1);
     auto p3 = structure_.getPosition(2);
@@ -50,18 +52,18 @@ class AfirOptMockCalculator : public CloneInterface<AfirOptMockCalculator, Core:
 
     // Energy
     // f(r12, r23) = (r12-4)*(r12-2)*(r12+2)*(r12+4) + (r23-4)*(r23-2)*(r23+2)*(r23+4);
-    double e = pow(r12, 4) - 20 * pow(r12, 2) + pow(r23, 4) - 20 * pow(r23, 2) + 128;
+    double e = std::pow(r12, 4) - 20 * std::pow(r12, 2) + std::pow(r23, 4) - 20 * std::pow(r23, 2) + 128;
     // Gradient
     GradientCollection g(structure_.size(), 3);
-    g(0, 0) = (4.0 * pow(r12, 2.0) - 40.0) * v12[0];
-    g(0, 1) = (4.0 * pow(r12, 2.0) - 40.0) * v12[1];
-    g(0, 2) = (4.0 * pow(r12, 2.0) - 40.0) * v12[2];
-    g(1, 0) = -(4.0 * pow(r12, 2.0) - 40.0) * v12[0] - (4.0 * pow(r23, 2.0) - 40.0) * v32[0];
-    g(1, 1) = -(4.0 * pow(r12, 2.0) - 40.0) * v12[1] - (4.0 * pow(r23, 2.0) - 40.0) * v32[1];
-    g(1, 2) = -(4.0 * pow(r12, 2.0) - 40.0) * v12[2] - (4.0 * pow(r23, 2.0) - 40.0) * v32[2];
-    g(2, 0) = (4.0 * pow(r23, 2.0) - 40.0) * v32[0];
-    g(2, 1) = (4.0 * pow(r23, 2.0) - 40.0) * v32[1];
-    g(2, 2) = (4.0 * pow(r23, 2.0) - 40.0) * v32[2];
+    g(0, 0) = (4.0 * std::pow(r12, 2.0) - 40.0) * v12[0];
+    g(0, 1) = (4.0 * std::pow(r12, 2.0) - 40.0) * v12[1];
+    g(0, 2) = (4.0 * std::pow(r12, 2.0) - 40.0) * v12[2];
+    g(1, 0) = -(4.0 * std::pow(r12, 2.0) - 40.0) * v12[0] - (4.0 * std::pow(r23, 2.0) - 40.0) * v32[0];
+    g(1, 1) = -(4.0 * std::pow(r12, 2.0) - 40.0) * v12[1] - (4.0 * std::pow(r23, 2.0) - 40.0) * v32[1];
+    g(1, 2) = -(4.0 * std::pow(r12, 2.0) - 40.0) * v12[2] - (4.0 * std::pow(r23, 2.0) - 40.0) * v32[2];
+    g(2, 0) = (4.0 * std::pow(r23, 2.0) - 40.0) * v32[0];
+    g(2, 1) = (4.0 * std::pow(r23, 2.0) - 40.0) * v32[1];
+    g(2, 2) = (4.0 * std::pow(r23, 2.0) - 40.0) * v32[2];
 
     r_ = Results();
     r_.set<Property::SuccessfulCalculation>(true);
@@ -81,7 +83,7 @@ class AfirOptMockCalculator : public CloneInterface<AfirOptMockCalculator, Core:
   std::shared_ptr<Core::State> getState() const final {
     return nullptr;
   }
-  void loadState(std::shared_ptr<Core::State> state) final {
+  void loadState(std::shared_ptr<Core::State> /* state */) final {
   }
   Utils::Results& results() final {
     return r_;
@@ -92,7 +94,7 @@ class AfirOptMockCalculator : public CloneInterface<AfirOptMockCalculator, Core:
   std::unique_ptr<Utils::AtomCollection> getStructure() const final {
     return std::make_unique<AtomCollection>(structure_);
   }
-  bool supportsMethodFamily(const std::string& methodFamily) const final {
+  bool supportsMethodFamily(const std::string& /*methodFamily*/) const final {
     return true;
   }
 
@@ -102,17 +104,13 @@ class AfirOptMockCalculator : public CloneInterface<AfirOptMockCalculator, Core:
   Settings settings_ = Settings("dummy");
 };
 
-// Define a test logger
-namespace {
-Core::Log logger = Core::Log::silent();
-}
-
 /**
  * @class Scine::Utils::Tests::AfirOptimizerTests
  * @brief Comprises tests for the class Scine::Utils::AfirOptimizer.
  * @test
  */
 TEST(AfirOptimizerTests, SteepestDescent_NoPotential) {
+  Core::Log logger = Core::Log::silent();
   AfirOptMockCalculator mockCalculator;
   AfirOptimizer<SteepestDescent> afir(mockCalculator);
   afir.check.maxIter = 50;
@@ -133,7 +131,7 @@ TEST(AfirOptimizerTests, SteepestDescent_NoPotential) {
   auto nIter = afir.optimize(atoms, logger);
 
   // Check results
-  EXPECT_TRUE(nIter < afir.check.maxIter);
+  EXPECT_TRUE(static_cast<unsigned>(nIter) < afir.check.maxIter);
   auto p1 = atoms.getPosition(0);
   auto p2 = atoms.getPosition(1);
   auto p3 = atoms.getPosition(2);
@@ -144,10 +142,11 @@ TEST(AfirOptimizerTests, SteepestDescent_NoPotential) {
 }
 
 TEST(AfirOptimizerTests, Lbfgs_NoPotential) {
+  Core::Log logger = Core::Log::silent();
   AfirOptMockCalculator mockCalculator;
   AfirOptimizer<Lbfgs> afir(mockCalculator);
   afir.optimizer.maxBacktracking = 20;
-  afir.transformCoordinates = false;
+  afir.coordinateSystem = CoordinateSystem::Cartesian;
   afir.check.maxIter = 300;
   afir.check.stepMaxCoeff = 1.0e-7;
   afir.check.stepRMS = 1.0e-8;
@@ -163,7 +162,7 @@ TEST(AfirOptimizerTests, Lbfgs_NoPotential) {
   auto nIter = afir.optimize(atoms, logger);
 
   // Check results
-  EXPECT_TRUE(nIter < afir.check.maxIter);
+  EXPECT_TRUE(static_cast<unsigned>(nIter) < afir.check.maxIter);
   auto p1 = atoms.getPosition(0);
   auto p2 = atoms.getPosition(1);
   auto p3 = atoms.getPosition(2);
@@ -174,11 +173,12 @@ TEST(AfirOptimizerTests, Lbfgs_NoPotential) {
 }
 
 TEST(AfirOptimizerTests, Lbfgs_WeakOnly) {
+  Core::Log logger = Core::Log::silent();
   AfirOptMockCalculator mockCalculator;
   AfirOptimizer<Lbfgs> afir(mockCalculator);
   afir.check.maxIter = 50;
   afir.optimizer.linesearch = false;
-  afir.transformCoordinates = false;
+  afir.coordinateSystem = CoordinateSystem::Cartesian;
   afir.check.stepMaxCoeff = 1.0e-7;
   afir.check.stepRMS = 1.0e-8;
   afir.check.gradMaxCoeff = 1.0e-7;
@@ -194,7 +194,7 @@ TEST(AfirOptimizerTests, Lbfgs_WeakOnly) {
   auto nIter = afir.optimize(atoms, logger);
 
   // Check results
-  EXPECT_TRUE(nIter < afir.check.maxIter);
+  EXPECT_TRUE(static_cast<unsigned>(nIter) < afir.check.maxIter);
   auto p1 = atoms.getPosition(0);
   auto p2 = atoms.getPosition(1);
   auto p3 = atoms.getPosition(2);
@@ -205,11 +205,12 @@ TEST(AfirOptimizerTests, Lbfgs_WeakOnly) {
 }
 
 TEST(AfirOptimizerTests, Lbfgs_ListAttractiveOnly) {
+  Core::Log logger = Core::Log::silent();
   AfirOptMockCalculator mockCalculator;
   AfirOptimizer<Lbfgs> afir(mockCalculator);
   afir.check.maxIter = 50;
   afir.optimizer.linesearch = false;
-  afir.transformCoordinates = false;
+  afir.coordinateSystem = CoordinateSystem::Cartesian;
   afir.check.stepMaxCoeff = 1.0e-7;
   afir.check.stepRMS = 1.0e-8;
   afir.check.gradMaxCoeff = 1.0e-7;
@@ -226,7 +227,7 @@ TEST(AfirOptimizerTests, Lbfgs_ListAttractiveOnly) {
   auto nIter = afir.optimize(atoms, logger);
 
   // Check results
-  EXPECT_TRUE(nIter < afir.check.maxIter);
+  EXPECT_TRUE(static_cast<unsigned>(nIter) < afir.check.maxIter);
   auto p1 = atoms.getPosition(0);
   auto p2 = atoms.getPosition(1);
   auto p3 = atoms.getPosition(2);
@@ -237,11 +238,12 @@ TEST(AfirOptimizerTests, Lbfgs_ListAttractiveOnly) {
 }
 
 TEST(AfirOptimizerTests, Lbfgs_ListRepulsiveOnly) {
+  Core::Log logger = Core::Log::silent();
   AfirOptMockCalculator mockCalculator;
   AfirOptimizer<Lbfgs> afir(mockCalculator);
   afir.check.maxIter = 50;
   afir.optimizer.linesearch = false;
-  afir.transformCoordinates = false;
+  afir.coordinateSystem = CoordinateSystem::Cartesian;
   afir.check.stepMaxCoeff = 1.0e-7;
   afir.check.stepRMS = 1.0e-8;
   afir.check.gradMaxCoeff = 1.0e-7;
@@ -259,7 +261,7 @@ TEST(AfirOptimizerTests, Lbfgs_ListRepulsiveOnly) {
   auto nIter = afir.optimize(atoms, logger);
 
   // Check results
-  EXPECT_TRUE(nIter < afir.check.maxIter);
+  EXPECT_TRUE(static_cast<unsigned>(nIter) < afir.check.maxIter);
   auto p1 = atoms.getPosition(0);
   auto p2 = atoms.getPosition(1);
   auto p3 = atoms.getPosition(2);
@@ -270,6 +272,7 @@ TEST(AfirOptimizerTests, Lbfgs_ListRepulsiveOnly) {
 }
 
 TEST(AfirOptimizerTests, Lbfgs_ListAndWeak) {
+  Core::Log logger = Core::Log::silent();
   AfirOptMockCalculator mockCalculator;
   AfirOptimizer<Lbfgs> afir(mockCalculator);
   afir.check.maxIter = 50;
@@ -282,7 +285,7 @@ TEST(AfirOptimizerTests, Lbfgs_ListAndWeak) {
   afir.phaseIn = 0;
   afir.weak = true;
   afir.attractive = false;
-  afir.transformCoordinates = false;
+  afir.coordinateSystem = CoordinateSystem::Cartesian;
   afir.rhsList = {0};
   afir.lhsList = {1};
   auto elements = ElementTypeCollection{ElementType::H, ElementType::H, ElementType::H};
@@ -293,7 +296,7 @@ TEST(AfirOptimizerTests, Lbfgs_ListAndWeak) {
   auto nIter = afir.optimize(atoms, logger);
 
   // Check results
-  EXPECT_TRUE(nIter < afir.check.maxIter);
+  EXPECT_TRUE(static_cast<unsigned>(nIter) < afir.check.maxIter);
   auto p1 = atoms.getPosition(0);
   auto p2 = atoms.getPosition(1);
   auto p3 = atoms.getPosition(2);
@@ -304,6 +307,7 @@ TEST(AfirOptimizerTests, Lbfgs_ListAndWeak) {
 }
 
 TEST(AfirOptimizerTests, Lbfgs_maxFragmentDistance) {
+  Core::Log logger = Core::Log::silent();
   AfirOptMockCalculator mockCalculator;
   AfirOptimizer<Lbfgs> afir(mockCalculator);
 
@@ -321,7 +325,7 @@ TEST(AfirOptimizerTests, Lbfgs_maxFragmentDistance) {
   afir.lhsList = {1};
   afir.weak = true;
   afir.attractive = false;
-  afir.transformCoordinates = false;
+  afir.coordinateSystem = CoordinateSystem::Cartesian;
 
   auto elements = ElementTypeCollection{ElementType::H, ElementType::H, ElementType::H};
   Eigen::MatrixX3d positions = Eigen::MatrixX3d::Zero(3, 3);
@@ -333,7 +337,7 @@ TEST(AfirOptimizerTests, Lbfgs_maxFragmentDistance) {
 
   // Check results
   // A calculation converging anyways should still do so with a maximum fragment distance
-  EXPECT_TRUE(nIter < afir.check.maxIter);
+  EXPECT_TRUE(static_cast<unsigned>(nIter) < afir.check.maxIter);
   auto p1 = atoms.getPosition(0);
   auto p2 = atoms.getPosition(1);
   auto p3 = atoms.getPosition(2);
@@ -344,6 +348,7 @@ TEST(AfirOptimizerTests, Lbfgs_maxFragmentDistance) {
 }
 
 TEST(AfirOptimizerTests, Lbfgs_hugeRepulsion) {
+  Core::Log logger = Core::Log::silent();
   AfirOptMockCalculator mockCalculator;
   AfirOptimizer<Lbfgs> afir(mockCalculator);
 
@@ -362,7 +367,7 @@ TEST(AfirOptimizerTests, Lbfgs_hugeRepulsion) {
   afir.lhsList = {1};
   afir.weak = false;
   afir.attractive = false;
-  afir.transformCoordinates = false;
+  afir.coordinateSystem = CoordinateSystem::Cartesian;
 
   auto elements = ElementTypeCollection{ElementType::H, ElementType::H, ElementType::H};
   Eigen::MatrixX3d positions = Eigen::MatrixX3d::Zero(3, 3);
@@ -373,12 +378,10 @@ TEST(AfirOptimizerTests, Lbfgs_hugeRepulsion) {
   auto nIter = afir.optimize(atoms, logger);
 
   // Check results
-  EXPECT_TRUE(nIter < afir.check.maxIter);
+  EXPECT_TRUE(static_cast<unsigned>(nIter) < afir.check.maxIter);
   auto p1 = atoms.getPosition(0);
   auto p2 = atoms.getPosition(1);
-  auto p3 = atoms.getPosition(2);
   auto r12 = (p1 - p2).norm();
-  auto r23 = (p3 - p2).norm();
   EXPECT_TRUE(r12 > 15.0);
 }
 

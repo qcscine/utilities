@@ -28,8 +28,9 @@ void ChargeSimple::initialize() {
 }
 
 void ChargeSimple::addVector(const std::vector<double>& q) {
-  for (int i = 0; i < nAtoms_; i++)
+  for (int i = 0; i < nAtoms_; i++) {
     qVectors[index_][i] = q[i];
+  }
   index_ = (index_ + 1) % 2;
 }
 

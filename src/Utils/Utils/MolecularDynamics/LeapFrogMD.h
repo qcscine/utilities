@@ -22,8 +22,16 @@ namespace Utils {
  * and the positions with
  * \f$ r_i(t + \Delta t) = r_i(t) + \Delta t v_i(t + \frac{1}{2} \Delta t) \f$
  *
+ * This integrator can be combined with the Berendsen thermostat.
  */
 class LeapFrogMD : public MDIntegrator {
+  /**
+   * @brief Checks whether the set integrator and thermostat algortihm are compatible.
+   * @return true If the thermostat is available.
+   * @return false If the thermostat is not available.
+   */
+  bool checkThermostatAlgorithm() const override;
+
   /**
    * @brief Calculates the displacements from the gradients.
    */

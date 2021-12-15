@@ -19,22 +19,25 @@ void StatesHandler::store(std::shared_ptr<Core::State> state) {
 
 void StatesHandler::store() {
   auto instance = statesHandableObject_.lock();
-  if (!instance)
+  if (!instance) {
     throw NoStateHandableObjectPresent();
+  }
   states_.emplace_back(instance->getState());
 }
 
 void StatesHandler::load(std::shared_ptr<Core::State> state) {
   auto instance = statesHandableObject_.lock();
-  if (!instance)
+  if (!instance) {
     throw NoStateHandableObjectPresent();
+  }
   instance->loadState(std::move(state));
 }
 
 void StatesHandler::load(int index) {
   auto instance = statesHandableObject_.lock();
-  if (!instance)
+  if (!instance) {
     throw NoStateHandableObjectPresent();
+  }
   instance->loadState(getState(index));
 }
 
@@ -48,9 +51,8 @@ std::shared_ptr<Core::State> StatesHandler::popOldestState() {
     states_.pop_front();
     return state;
   }
-  else {
-    throw EmptyStatesHandlerContainer();
-  }
+
+  throw EmptyStatesHandlerContainer();
 }
 
 std::shared_ptr<Core::State> StatesHandler::popNewestState() {
@@ -59,9 +61,8 @@ std::shared_ptr<Core::State> StatesHandler::popNewestState() {
     states_.pop_back();
     return state;
   }
-  else {
-    throw EmptyStatesHandlerContainer();
-  }
+
+  throw EmptyStatesHandlerContainer();
 }
 
 void StatesHandler::clear() {

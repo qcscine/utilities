@@ -22,19 +22,22 @@ namespace Utils {
 namespace MachineLearning {
 
 CrossValidation::CrossValidation(const RegressionModel& model, int k) : model_(model), k_(k) {
-  if (k_ <= 1)
+  if (k_ <= 1) {
     throw std::runtime_error("The value for k cannot be less than or equal to one.");
+  }
 }
 
 // Returns MAE and standard deviation as a pair
 std::pair<double, double> CrossValidation::evaluateRegressionModel(const Eigen::MatrixXd& featureValues,
                                                                    const Eigen::MatrixXd& targetValues) {
-  if (targetValues.rows() != featureValues.rows())
+  if (targetValues.rows() != featureValues.rows()) {
     throw std::runtime_error("The number of data points do not match between the feature and target matrices.");
+  }
 
   numDataPoints_ = static_cast<int>(targetValues.rows());
-  if (numDataPoints_ % k_ != 0)
+  if (numDataPoints_ % k_ != 0) {
     throw std::runtime_error("The number of data points has to be divisible by k. Set a different value for k.");
+  }
 
   // Shuffle the data randomly
   shuffleData(featureValues, targetValues);

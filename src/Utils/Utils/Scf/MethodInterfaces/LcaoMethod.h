@@ -49,7 +49,7 @@ class LcaoMethod : public SinglePointMethod {
  public:
   explicit LcaoMethod(bool unrestrictedCalculationPossible, Utils::DerivativeOrder maximalOrder,
                       bool orthogonalBasisSet = false);
-  virtual ~LcaoMethod() override;
+  ~LcaoMethod() override;
 
   /*! Initialize the method <b>after</b> the parameters have been set or loaded. */
   virtual void initialize();
@@ -122,7 +122,7 @@ class LcaoMethod : public SinglePointMethod {
   /** @brief Adds an electronic contribution to the Fock matrix. */
   void addElectronicContribution(std::shared_ptr<AdditiveElectronicContribution> contribution);
 
-  void verifyPesValidity(Core::Log& log);
+  void verifyPesValidity() const;
 
   void calculateDensity();
 
@@ -133,6 +133,7 @@ class LcaoMethod : public SinglePointMethod {
   void calculateEnergyWeightedDensity();
   void calculateBondOrderMatrix();
   void calculateAtomicCharges();
+  virtual void printFooter(Core::Log& log) const;
 
   Eigen::MatrixXd overlapMatrix_;
   Eigen::MatrixXd energyWeightedDensityMatrix_;
@@ -161,9 +162,9 @@ class LcaoMethod : public SinglePointMethod {
   double electronicEnergy_, repulsionEnergy_;
 
  private:
-  void verifyChargeValidity(Core::Log& log);
-  void verifyMultiplicityValidity(Core::Log& log);
-  void verifyUnrestrictedValidity(Core::Log& log);
+  void verifyChargeValidity() const;
+  void verifyMultiplicityValidity() const;
+  void verifyUnrestrictedValidity() const;
   void calculateOccupationAndDensity();
   template<Utils::Derivative O>
   void calculateDerivatives(Utils::AutomaticDifferentiation::DerivativeContainerType<O>& derivatives);
@@ -205,6 +206,7 @@ inline int LcaoMethod::getNumberAtomicOrbitals() const {
 
 inline void LcaoMethod::setMolecularCharge(int c) {
   molecularCharge_ = c;
+  nElectrons_ = nElectronsForUnchargedSpecies_ - molecularCharge_;
 }
 
 inline int LcaoMethod::getMolecularCharge() const {

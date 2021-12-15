@@ -16,6 +16,8 @@ namespace Utils {
 /**
  * @class LevenbergMarquardt LevenbergMarquardt.h
  * @brief Levenberg-Marquardt (LM) algorithm for a least squares optimization.
+ *
+ * @note This optimizer does not support constraining via the mask member
  */
 class LevenbergMarquardt : public Optimizer {
  public:

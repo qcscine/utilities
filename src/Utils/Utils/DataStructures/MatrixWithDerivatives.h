@@ -78,15 +78,17 @@ public:
   /*! Initializes the members with dimensions given as parameters. */
   void setDimension(int rows, int cols);
 
-  /*! Sets the base matrix to m. 
+  /*! Sets the base matrix to m.
       Implicitly calls setDimension with correct dimensions. */
   void setBaseMatrix(const Eigen::MatrixXd& m);
 
   double getValue(int i, int j) const {
-    if (order_ == DerivativeOrder::Zero)
+    if (order_ == DerivativeOrder::Zero) {
       return v0(i, j);
-    if (order_ == DerivativeOrder::One)
+}
+    if (order_ == DerivativeOrder::One) {
       return v1(i, j).value();
+}
     return v2(i, j).value();
   }
 

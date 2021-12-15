@@ -15,14 +15,7 @@
 #include <string>
 
 namespace Scine {
-
 namespace Utils {
-
-// Helper to insert newlines
-inline std::ostream& nl(std::ostream& os) {
-  os << "\n";
-  return os;
-}
 
 constexpr const char* XyzStreamHandler::model;
 
@@ -35,17 +28,17 @@ std::pair<Utils::AtomCollection, Utils::BondOrderCollection> XyzStreamHandler::r
   return std::make_pair(read(is), Utils::BondOrderCollection());
 }
 
-void XyzStreamHandler::write(std::ostream& os, const std::string& format, const Utils::AtomCollection& atoms) const {
+void XyzStreamHandler::write(std::ostream& os, const std::string& format, const Utils::AtomCollection& atoms,
+                             const std::string& comment) const {
   if (format != "xyz") {
     throw FormattedStreamHandler::FormatUnsupportedException();
   }
 
-  return write(os, atoms);
+  return write(os, atoms, comment);
 }
 
 void XyzStreamHandler::write(std::ostream& /* os */, const std::string& format, const AtomCollection& /* atoms */,
-                             const BondOrderCollection& /* bondOrders */
-                             ) const {
+                             const BondOrderCollection& /* bondOrders */, const std::string& /* comment */) const {
   if (format != "xyz") {
     throw FormattedStreamHandler::FormatUnsupportedException();
   }
@@ -59,11 +52,7 @@ std::vector<XyzStreamHandler::FormatSupportPair> XyzStreamHandler::formats() con
 
 bool XyzStreamHandler::formatSupported(const std::string& format, SupportType /* operation */
                                        ) const {
-  if (format == "xyz") {
-    return true;
-  }
-
-  return false;
+  return format == "xyz";
 }
 
 std::string XyzStreamHandler::name() const {
@@ -91,8 +80,9 @@ AtomCollection XyzStreamHandler::read(std::istream& is) {
     std::string temp_str;
     std::getline(is, temp_str, is.widen('\n'));
     std::stringstream parser(temp_str);
-    if (parser >> nAtoms && (parser >> std::ws).eof() && nAtoms >= 0)
+    if (parser >> nAtoms && (parser >> std::ws).eof() && nAtoms >= 0) {
       break; // success
+    }
     throw FormattedStreamHandler::FormatMismatchException();
   }
 
@@ -112,7 +102,7 @@ AtomCollection XyzStreamHandler::read(std::istream& is) {
     if (is.fail() && !is.eof()) {
       throw FormattedStreamHandler::FormatMismatchException();
     }
-    else if (is.fail() && is.eof()) {
+    if (is.fail() && is.eof()) {
       break;
     }
     try {
@@ -144,7 +134,7 @@ AtomCollection XyzStreamHandler::read(std::istream& is) {
     is.ignore(std::numeric_limits<std::streamsize>::max(), is.widen('\n'));
   }
 
-  if (elements.size() < nAtoms) {
+  if (elements.size() < static_cast<unsigned>(nAtoms)) {
     // fewer atoms in file than specified at the top
     throw FormattedStreamHandler::AtomNumberMismatchException();
   }
@@ -157,21 +147,21 @@ AtomCollection XyzStreamHandler::read(std::istream& is) {
   return {elements, positions};
 }
 
-void XyzStreamHandler::write(std::ostream& os, const AtomCollection& atoms) {
+void XyzStreamHandler::write(std::ostream& os, const AtomCollection& atoms, const std::string& comment) {
   os.imbue(std::locale("C"));
 
   // Write the atom count to the first line.
   os << std::setprecision(0) << std::fixed << atoms.size() << "\n";
 
   // Skip the comments line
-  os << "\n";
+  os << comment << "\n";
 
   // Set floating point precision for positions
   os << std::setprecision(10);
 
   // Write positions
-  const unsigned N = atoms.size();
-  for (unsigned i = 0; i < N; ++i) {
+  const int N = atoms.size();
+  for (int i = 0; i < N; ++i) {
     auto position = atoms.getPosition(i);
 
     os << std::left << std::setw(3) << ElementInfo::symbol(atoms.getElement(i));
@@ -186,5 +176,4 @@ void XyzStreamHandler::write(std::ostream& os, const AtomCollection& atoms) {
 }
 
 } // namespace Utils
-
 } // namespace Scine

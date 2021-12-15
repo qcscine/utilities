@@ -29,24 +29,28 @@ constexpr const double constantPartForRotational = 23.498533603003565418;
 } // namespace
 
 ThermochemistryCalculator::ThermochemistryCalculator(NormalModesContainer normalModesContainer,
-                                                     Geometry::PrincipalMomentsOfInertia principalMomentsOfInertia,
+                                                     Geometry::Properties::PrincipalMomentsOfInertia principalMomentsOfInertia,
                                                      ElementTypeCollection elements, int spinMultiplicity,
                                                      double electronicEnergy)
-  : normalModesContainer_(std::move(normalModesContainer)),
-    principalMomentsOfInertia_(std::move(principalMomentsOfInertia)),
+  : principalMomentsOfInertia_(std::move(principalMomentsOfInertia)),
     elements_(std::move(elements)),
     spinMultiplicity_(spinMultiplicity),
     electronicEnergy_(electronicEnergy),
-    sigma_(1) {
+    normalModesContainer_(std::move(normalModesContainer)) {
+}
+
+ThermochemistryCalculator::ThermochemistryCalculator(const HessianMatrix& hessian, const AtomCollection& atoms,
+                                                     int spinMultiplicity, double electronicEnergy)
+  : ThermochemistryCalculator(hessian, atoms.getElements(), atoms.getPositions(), spinMultiplicity, electronicEnergy) {
 }
 
 ThermochemistryCalculator::ThermochemistryCalculator(const HessianMatrix& hessian, ElementTypeCollection elements,
                                                      const PositionCollection& positions, int spinMultiplicity,
                                                      double electronicEnergy)
-  : elements_(std::move(elements)), spinMultiplicity_(spinMultiplicity), electronicEnergy_(electronicEnergy), sigma_(1) {
-  auto masses = Utils::Geometry::getMasses(elements_);
-  auto centerOfMass = Utils::Geometry::getCenterOfMass(positions, masses);
-  principalMomentsOfInertia_ = Utils::Geometry::calculatePrincipalMoments(positions, masses, centerOfMass);
+  : elements_(std::move(elements)), spinMultiplicity_(spinMultiplicity), electronicEnergy_(electronicEnergy) {
+  auto masses = Utils::Geometry::Properties::getMasses(elements_);
+  auto centerOfMass = Utils::Geometry::Properties::getCenterOfMass(positions, masses);
+  principalMomentsOfInertia_ = Utils::Geometry::Properties::calculatePrincipalMoments(positions, masses, centerOfMass);
   normalModesContainer_ = Utils::NormalModeAnalysis::calculateNormalModes(hessian, elements_, positions);
 }
 
@@ -122,7 +126,7 @@ ThermochemicalContainer ThermochemistryCalculator::calculateRotationalPart(doubl
   if (elements_.size() == 1 || elements_.empty()) {
     return rotationalTC;
   }
-  else if (isLinear) {
+  if (isLinear) {
     double rotationalConstant = principalMomentsOfInertia_.eigenvalues(2) * Constants::electronRestMass_per_u;
     rotationalTC.enthalpy = R * temperature;
     rotationalTC.heatCapacityP = R;
@@ -151,7 +155,7 @@ ThermochemicalContainer ThermochemistryCalculator::calculateRotationalPart(doubl
 ThermochemicalContainer ThermochemistryCalculator::calculateTranslationalPart(double temperature) const {
   ThermochemicalContainer translationalTC{};
   double molecularMass = 0.;
-  for (auto mass : Geometry::getMasses(elements_)) {
+  for (auto mass : Geometry::Properties::getMasses(elements_)) {
     molecularMass += mass;
   }
   // From MOPAC manual

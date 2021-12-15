@@ -45,6 +45,24 @@ class ANormalModesTest : public Test {
 };
 
 // Tests the class NormalModesContainer
+TEST_F(ANormalModesTest, WrongIndicesAreIdentified) {
+  AtomCollection structure(elements, pos);
+
+  double wavenumber = 42.42;
+  NormalMode normalMode(wavenumber, displ);
+  NormalModesContainer modesContainer;
+  modesContainer.add(normalMode);
+
+  Eigen::MatrixXd normalModes = modesContainer.getNormalModes();
+  Eigen::VectorXd shouldBeMode = Eigen::Map<const Eigen::VectorXd>(displ.data(), displ.size());
+  for (int i = 0; i < displ.size(); ++i) {
+    ASSERT_DOUBLE_EQ(normalModes.col(0)(i), shouldBeMode(i));
+  }
+
+  EXPECT_THROW(modesContainer.getMode(-2), std::runtime_error);
+  EXPECT_THROW(modesContainer.getMode(10), std::runtime_error);
+}
+
 TEST_F(ANormalModesTest, ReturnsCorrectModeAndMolecularTrajectoryOfMode) {
   AtomCollection structure(elements, pos);
 

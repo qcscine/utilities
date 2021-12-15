@@ -15,6 +15,7 @@
 #include "Utils/Geometry/InternalCoordinates.h"
 #include "Utils/GeometryOptimization/GeometryOptimizer.h"
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
+#include "Utils/Optimizer/GradientBased/SteepestDescent.h"
 #include <Core/Interfaces/Calculator.h>
 #include <Eigen/Core>
 
@@ -30,7 +31,7 @@ namespace Utils {
 class IrcOptimizerBase {
  public:
   static constexpr const char* ircInitialStepSizeKey = "irc_initial_step_size";
-  static constexpr const char* ircTransfromCoordinatesKey = "irc_transform_coordinates";
+  static constexpr const char* ircCoordinateSystemKey = "irc_coordinate_system";
 
   /// @brief Default constructor.
   IrcOptimizerBase() = default;
@@ -60,6 +61,11 @@ class IrcOptimizerBase {
    */
   virtual Settings getSettings() const = 0;
   /**
+   * @brief Get the settings of the calculator used for the energy calculations during the optimization.
+   * @return std::shared_ptr<Settings> The settings of the calculator.
+   */
+  virtual const std::shared_ptr<Settings> getCalculatorSettings() const = 0;
+  /**
    * @brief Add an observer function that will be triggered in each iteration.
    *
    * @param function A function to be executed in every loop of the optimization.
@@ -76,15 +82,25 @@ class IrcOptimizerBase {
    * as std::functions and can not be added via templates.
    */
   virtual void clearObservers() = 0;
-  /// @brief The size of the initial step along the chosen mode.
-  double initialStepSize = 0.1;
   /**
-   * @brief Switch to transform the coordinates from Cartesian into an internal space.
+   * @brief The size of the initial step along the chosen mode.
    *
-   * The optimization will be carried out in the internal coordinate space, possibly
-   * accelerating convergence.
+   * Maximum step along one coordinate of one atom.
    */
-  bool transformCoordinates = true;
+  double initialStepSize = 0.3;
+  /**
+   * @brief Set the coordinate system in which the optimization shall be performed
+   *
+   * The optimization can be carried out in the internal coordinate space or with removed translations and rotations
+   * possibly accelerating convergence.
+   */
+  CoordinateSystem coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
+  /**
+   * @brief The underlying convergence check
+   *
+   * @return GradientBasedCheck the class holding all convergence thresholds.
+   */
+  virtual const GradientBasedCheck getConvergenceCheck() const = 0;
 };
 
 /**
@@ -118,11 +134,12 @@ class IRCOptimizerSettings : public Settings {
     irc_initial_step_size.setDefaultValue(ircBase.initialStepSize);
     this->_fields.push_back(IrcOptimizerBase::ircInitialStepSizeKey, irc_initial_step_size);
 
-    UniversalSettings::BoolDescriptor irc_transform_coordinates(
-        "Switch to transform the coordinates from Cartesian into an internal space.");
-    irc_transform_coordinates.setDefaultValue(ircBase.transformCoordinates);
-    this->_fields.push_back(IrcOptimizerBase::ircTransfromCoordinatesKey, irc_transform_coordinates);
-    this->resetToDefaults();
+    UniversalSettings::OptionListDescriptor irc_coordinate_system("Set the coordinate system.");
+    irc_coordinate_system.addOption("internal");
+    irc_coordinate_system.addOption("cartesianWithoutRotTrans");
+    irc_coordinate_system.addOption("cartesian");
+    irc_coordinate_system.setDefaultOption(CoordinateSystemInterpreter::getStringFromCoordinateSystem(ircBase.coordinateSystem));
+    this->_fields.push_back(IrcOptimizerBase::ircCoordinateSystemKey, irc_coordinate_system);
 
     this->resetToDefaults();
   }
@@ -131,8 +148,9 @@ class IRCOptimizerSettings : public Settings {
 /**
  * @brief A version of the GeometryOptimizer that optimizes along an internal reaction coordinate (IRC).
  *
- * This optimizer mass-weights the actual gradient in order to optimize in the mass-weighted
- * coordinate system.
+ * This optimizer mass-weights the actual gradient. The optimization is still carried out in the cartesian
+ * coordinate system using the mass-weighted gradients. The mode for the initial displacement is obtained
+ * from a mass-weighted Hessian, however back-scaled to cartesian coordinates.
  *
  * @tparam OptimizerType Expects any of the Optimizer classes. Note that some special optimizers
  *                       may not yet be supported or may need additional specialization.
@@ -156,62 +174,68 @@ class IrcOptimizer : public IrcOptimizerBase {
    *                or backwards (false, current positions - mode)
    * @return int  The final number of optimization cycles carried out.
    */
-  virtual int optimize(AtomCollection& atoms, Core::Log& log, const Eigen::VectorXd& mode, bool forward = true) final {
+  int optimize(AtomCollection& atoms, Core::Log& log, const Eigen::VectorXd& mode, bool forward = true) final {
+    // Collect square root of masses
+    Eigen::VectorXd masses = Eigen::VectorXd::Zero(atoms.size());
+    const unsigned int nAtoms = atoms.size();
+    const auto& elements = atoms.getElements();
+    for (unsigned int i = 0; i < nAtoms; i++) {
+      masses[i] = sqrt(ElementInfo::mass(elements[i]));
+    }
+    // Distort the structure by the initial step
+    // Get mode and scale it
+    double maxVal = mode.array().abs().maxCoeff();
+    Eigen::VectorXd modev = (forward ? (this->initialStepSize) : (-1.0 * this->initialStepSize)) * (mode / maxVal);
+    auto modem = Eigen::Map<Utils::PositionCollection>(modev.data(), nAtoms, 3);
+    // Move initial positions along mode
+    Utils::PositionCollection coordinates = atoms.getPositions() + modem;
+    atoms.setPositions(coordinates);
     // Configure Calculator
     _calculator.setStructure(atoms);
     _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
-    // Collect masses
-    Eigen::VectorXd masses = Eigen::VectorXd::Zero(atoms.size());
-    const auto& elements = atoms.getElements();
-    for (unsigned int i = 0; i < atoms.size(); i++) {
-      masses[i] = sqrt(ElementInfo::mass(elements[i]));
-    }
-    // Define update function
-    const unsigned int nAtoms = atoms.size();
     // Transform into internal coordinates
     std::shared_ptr<InternalCoordinates> transformation = nullptr;
-    if (this->transformCoordinates)
+    if (this->coordinateSystem == CoordinateSystem::Internal) {
       transformation = std::make_shared<InternalCoordinates>(atoms);
+    }
+    else if (this->coordinateSystem == CoordinateSystem::CartesianWithoutRotTrans) {
+      transformation = std::make_shared<InternalCoordinates>(atoms, true);
+    }
     // Count cycles for eventual restart
     int cycle = 0;
+    // Define update function
     auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
       cycle++;
       Utils::PositionCollection coordinates;
-      if (this->transformCoordinates) {
+      if (transformation) {
         coordinates = transformation->coordinatesToCartesian(parameters);
       }
       else {
         coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
       }
       _calculator.modifyPositions(coordinates);
-      Utils::Results results = _calculator.calculate("Geometry Optimization Cycle");
-      if (!results.get<Property::SuccessfulCalculation>()) {
-        throw std::runtime_error("Gradient calculation in IRC scan failed.");
-      }
+      Results results =
+          CalculationRoutines::calculateWithCatch(_calculator, log, "Aborting optimization due to failed calculation");
       value = results.get<Property::Energy>();
       auto gradientMatrix = results.get<Property::Gradients>();
-      if (this->transformCoordinates) {
+      // Mass weight the gradients by dividing with the square root of masses
+      gradientMatrix.col(0).array() /= masses.array();
+      gradientMatrix.col(1).array() /= masses.array();
+      gradientMatrix.col(2).array() /= masses.array();
+      if (transformation) {
         gradients = transformation->gradientsToInternal(gradientMatrix);
       }
       else {
         gradients = Eigen::Map<const Eigen::VectorXd>(gradientMatrix.data(), nAtoms * 3);
       }
     };
-    // Remove mass weight from mode
-    Eigen::VectorXd modev = (forward ? (this->initialStepSize) : (-1.0 * this->initialStepSize)) * (mode / mode.norm());
-    auto modem = Eigen::Map<Utils::PositionCollection>(modev.data(), nAtoms, 3);
-    modem.col(0).array() /= masses.array();
-    modem.col(1).array() /= masses.array();
-    modem.col(2).array() /= masses.array();
-    // Move initial positions along mode
-    Utils::PositionCollection coordinates = atoms.getPositions() + modem;
     // Get initial positions as (transformed) array
     Eigen::VectorXd positions;
-    if (this->transformCoordinates) {
+    if (transformation) {
       positions = transformation->coordinatesToInternal(coordinates);
     }
     else {
-      positions = Eigen::Map<const Eigen::VectorXd>(coordinates.data(), atoms.size() * 3);
+      positions = Eigen::Map<const Eigen::VectorXd>(coordinates.data(), nAtoms * 3);
     }
     // Optimize
     int cycles = 0;
@@ -219,18 +243,20 @@ class IrcOptimizer : public IrcOptimizerBase {
       cycles = optimizer.optimize(positions, update, check);
     }
     catch (const InternalCoordinatesException& e) {
-      log.output << "Internal coordinates broke down. Continuing in cartesians." << Core::Log::nl;
+      log.output << "Internal coordinates broke down. Continuing in Cartesians." << Core::Log::nl;
       // Update coordinates to the last ones that were successfully reconverted
       Utils::PositionCollection lastCoordinates = _calculator.getPositions();
       // Disable coordinate transformation
-      this->transformCoordinates = false;
+      this->coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
+      transformation = std::make_shared<InternalCoordinates>(atoms, true);
+      Eigen::VectorXd lastPositions = transformation->coordinatesToInternal(lastCoordinates);
       // Restart optimization
       optimizer.prepareRestart(cycle);
-      Eigen::VectorXd lastPositions = Eigen::Map<const Eigen::VectorXd>(lastCoordinates.data(), atoms.size() * 3);
       cycles = optimizer.optimize(lastPositions, update, check);
+      positions = lastPositions;
     }
-    // Update Atom collection and return
-    if (this->transformCoordinates) {
+    // Update AtomCollection and return
+    if (transformation) {
       coordinates = transformation->coordinatesToCartesian(positions);
     }
     else {
@@ -244,18 +270,26 @@ class IrcOptimizer : public IrcOptimizerBase {
    * @brief Function to apply the given settings to underlying classes.
    * @param settings The new settings.
    */
-  virtual void setSettings(const Settings& settings) override {
+  void setSettings(const Settings& settings) override {
     check.applySettings(settings);
     optimizer.applySettings(settings);
     this->initialStepSize = settings.getDouble(IrcOptimizerBase::ircInitialStepSizeKey);
-    this->transformCoordinates = settings.getBool(IrcOptimizerBase::ircTransfromCoordinatesKey);
+    this->coordinateSystem = CoordinateSystemInterpreter::getCoordinateSystemFromString(
+        settings.getString(IrcOptimizerBase::ircCoordinateSystemKey));
   };
   /**
    * @brief Get the public settings as a Utils::Settings object.
    * @return Settings A settings object with the current settings.
    */
-  virtual Settings getSettings() const override {
+  Settings getSettings() const override {
     return IRCOptimizerSettings<OptimizerType, GradientBasedCheck>(*this, optimizer, check);
+  };
+  /**
+   * @brief Get the settings of the calculator used for the energy calculations during the optimization.
+   * @return std::shared_ptr<Settings> The settings of the calculator.
+   */
+  const std::shared_ptr<Settings> getCalculatorSettings() const override {
+    return std::make_shared<Settings>(_calculator.settings());
   };
   /**
    * @brief Add an observer function that will be triggered in each iteration.
@@ -265,7 +299,7 @@ class IrcOptimizer : public IrcOptimizerBase {
    *                 the current value and to a const reference of the current
    *                 parameters.
    */
-  virtual void addObserver(std::function<void(const int&, const double&, const Eigen::VectorXd&)> function) final {
+  void addObserver(std::function<void(const int&, const double&, const Eigen::VectorXd&)> function) final {
     optimizer.addObserver(function);
   }
   /**
@@ -275,9 +309,18 @@ class IrcOptimizer : public IrcOptimizerBase {
    * the removal of all observers can increase performance as the observers are given
    * as std::functions and can not be added via templates.
    */
-  virtual void clearObservers() final {
+  void clearObservers() final {
     optimizer.clearObservers();
   }
+  /**
+   * @brief The underlying convergence check
+   *
+   * @note getter to be accessible via base class
+   * @return GradientBasedCheck the class holding all convergence thresholds.
+   */
+  const GradientBasedCheck getConvergenceCheck() const override {
+    return check;
+  };
   /// @brief The underlying optimizer, public in order to change it's settings.
   OptimizerType optimizer;
   /// @brief The underlying convergence check, public in order to change it's settings.
@@ -286,6 +329,16 @@ class IrcOptimizer : public IrcOptimizerBase {
  private:
   Core::Calculator& _calculator;
 };
+
+/*=============================*
+ *       Gradient Based
+ *=============================*/
+
+template<>
+inline IrcOptimizer<SteepestDescent>::IrcOptimizer(Core::Calculator& calculator) : _calculator(calculator) {
+  // Set SD factor to 2.0
+  this->optimizer.factor = 2.0;
+}
 
 } // namespace Utils
 } // namespace Scine

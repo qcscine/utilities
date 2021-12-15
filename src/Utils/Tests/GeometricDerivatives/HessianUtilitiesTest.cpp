@@ -37,8 +37,8 @@ class AHessianUtilitiesTest : public Test {
     arbitraryElements = arbitraryAtomCollection.getElements();
     auto pathToResources = boost::dll::program_location().parent_path();
     pathToResources /= "Resources";
-    ExternalQC::OrcaHessianOutputParser arbitraryHessianParser((pathToResources / "orca_test_calc.hess").string());
-    arbitraryHessian = arbitraryHessianParser.getHessian();
+    const auto hessianFile = (pathToResources / "orca_test_calc.hess").string();
+    arbitraryHessian = ExternalQC::OrcaHessianOutputParser::getHessian(hessianFile);
   }
 };
 

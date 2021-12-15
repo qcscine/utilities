@@ -10,7 +10,7 @@
 #include "Utils/IO/NativeFilenames.h"
 #include "Utils/Technical/UniqueIdentifier.h"
 #include <Core/BaseClasses/StateHandableObject.h>
-#include <stdio.h>
+#include <cstdio>
 #include <exception>
 #include <utility>
 
@@ -31,7 +31,7 @@ class EmptyStateException : public std::exception {
 /**
  * @brief Exception for a failure to save or load an ORCA state.
  */
-class StateSavingException : public std::exception {
+class OrcaStateSavingException : public std::exception {
  public:
   const char* what() const noexcept final {
     return "Failure while saving or loading ORCA state.";
@@ -46,7 +46,7 @@ struct OrcaState final : public Core::State {
   /**
    * @brief Constructor, calls the base class constructor to initialize the size of the state.
    */
-  explicit OrcaState(std::string dir) : directory(dir) {
+  explicit OrcaState(std::string dir) : directory(std::move(dir)) {
     UniqueIdentifier id;
     stateIdentifier = id.getStringRepresentation();
   }

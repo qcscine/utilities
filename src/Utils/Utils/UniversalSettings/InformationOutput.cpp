@@ -111,6 +111,18 @@ void InformationOutput::print(const std::string& key, const DescriptorCollection
             << "default value for element: " << descriptor.getDefaultItemValue() << std::endl;
         break;
       }
+      case GenericDescriptor::Type::DoubleList: {
+        const auto& descriptor = setting.getDoubleListDescriptor();
+        std::stringstream items;
+        for (const auto& i : descriptor.getDefaultValue()) {
+          items << i << ", ";
+        }
+        out << "list of double values. "
+            << "Default value for list: [" << items.str() << "], "
+            << "bounds for element: [" << descriptor.getItemMinimum() << " - " << descriptor.getItemMaximum() << "], "
+            << "default value for element: " << descriptor.getDefaultItemValue() << std::endl;
+        break;
+      }
       case GenericDescriptor::Type::StringList: {
         const auto& descriptor = setting.getStringListDescriptor();
         std::stringstream items;
@@ -214,6 +226,18 @@ void InformationOutput::printLong(const std::string& key, const DescriptorCollec
           items << i << ", ";
         }
         out << "list of int values. "
+            << "Default value for list: [" << items.str() << "], "
+            << "bounds for element: [" << descriptor.getItemMinimum() << " - " << descriptor.getItemMaximum() << "], "
+            << "default value for element: " << descriptor.getDefaultItemValue() << std::endl;
+        break;
+      }
+      case GenericDescriptor::Type::DoubleList: {
+        const auto& descriptor = setting.getDoubleListDescriptor();
+        std::stringstream items;
+        for (const auto& i : descriptor.getDefaultValue()) {
+          items << i << ", ";
+        }
+        out << "list of double values. "
             << "Default value for list: [" << items.str() << "], "
             << "bounds for element: [" << descriptor.getItemMinimum() << " - " << descriptor.getItemMaximum() << "], "
             << "default value for element: " << descriptor.getDefaultItemValue() << std::endl;

@@ -21,18 +21,17 @@ namespace Utils {
 void AdiabaticModesContainer::addMode(std::pair<int, int> internalCoordinate, NormalMode mode, double forceConstant) {
   // Ensure that this mode is not already there
   int storageIndex = this->getStorageIndex(internalCoordinate);
-  if (storageIndex != storageOrder_.size()) {
+  if (storageIndex != static_cast<int>(storageOrder_.size())) {
     throw AdiabaticLocalizationExceptions::modeReadded();
   };
   // Add mode and force constant
-  modesContainer_.add(mode);
+  modesContainer_.add(std::move(mode));
   forceConstants_.insert(std::pair<std::pair<int, int>, double>(internalCoordinate, forceConstant));
   forceConstants_.insert(std::pair<std::pair<int, int>, double>(
       std::make_pair(internalCoordinate.second, internalCoordinate.first), forceConstant));
   // Store storage location
   storageOrder_.insert(
       std::pair<std::pair<int, int>, int>(std::minmax(internalCoordinate.first, internalCoordinate.second), storageIndex));
-  return;
 }
 
 int AdiabaticModesContainer::getStorageIndex(std::pair<int, int> internalCoordinate) const {
@@ -43,13 +42,13 @@ int AdiabaticModesContainer::getStorageIndex(std::pair<int, int> internalCoordin
   if (mapIterator != storageOrder_.end()) {
     return storageOrder_.find(sortedCoord)->second;
   }
-  else
-    return storageOrder_.size();
+
+  return storageOrder_.size();
 }
 
 const DisplacementCollection& AdiabaticModesContainer::getMode(std::pair<int, int> internalCoordinate) const {
   int storageIndex = this->getStorageIndex(internalCoordinate);
-  if (storageIndex == storageOrder_.size()) {
+  if (storageIndex == static_cast<int>(storageOrder_.size())) {
     throw AdiabaticLocalizationExceptions::InvalidModeRequested();
   };
   return modesContainer_.getMode(storageIndex);
@@ -59,14 +58,14 @@ MolecularTrajectory AdiabaticModesContainer::getModeAsMolecularTrajectory(std::p
                                                                           const Utils::AtomCollection& atoms,
                                                                           double scalingFactor) const {
   int storageIndex = this->getStorageIndex(internalCoordinate);
-  if (storageIndex == storageOrder_.size()) {
+  if (storageIndex == static_cast<int>(storageOrder_.size())) {
     throw AdiabaticLocalizationExceptions::InvalidModeRequested();
   };
   return modesContainer_.getModeAsMolecularTrajectory(storageIndex, atoms, scalingFactor);
 }
 
 std::map<std::pair<int, int>, double> AdiabaticModesContainer::getWaveNumbers() {
-  if (wavenumbers_.size() != 2 * modesContainer_.size()) {
+  if (wavenumbers_.size() != 2 * static_cast<unsigned>(modesContainer_.size())) {
     std::vector<double> waveVector = modesContainer_.getWaveNumbers();
     for (auto const& it : storageOrder_) {
       wavenumbers_.insert(std::pair<std::pair<int, int>, double>(std::make_pair(it.first.first, it.first.second),
@@ -83,25 +82,27 @@ std::map<std::pair<int, int>, double> AdiabaticModesContainer::getForceConstants
 }
 
 // Mode Localization
-AdiabaticModeLocalizer::AdiabaticModeLocalizer(const Eigen::MatrixXd& hessian, const AtomCollection& atoms,
+AdiabaticModeLocalizer::AdiabaticModeLocalizer(const Eigen::MatrixXd& hessian, AtomCollection atoms,
                                                const BondOrderCollection& bondOrders, const double bondingThreshold)
-  : hessian_(std::move(hessian)), atoms_(std::move(atoms)) {
-  if (hessian_.rows() != 3 * atoms_.size() || hessian_.cols() != 3 * atoms_.size())
+  : atoms_(std::move(atoms)), hessian_(hessian) {
+  if (hessian_.rows() != 3 * atoms_.size() || hessian_.cols() != 3 * atoms_.size()) {
     throw AdiabaticLocalizationExceptions::InvalidHessianDimensions();
+  }
   // Get pruned bond list
   Eigen::SparseMatrix<double> bondMatrix = bondOrders.getMatrix().pruned(bondingThreshold).triangularView<Eigen::Upper>();
   for (int j = 0; j < bondMatrix.outerSize(); ++j) {
     for (Eigen::SparseMatrix<double>::InnerIterator it(bondMatrix, j); it; ++it) {
-      internalCoords_.push_back(std::make_pair(it.row(), it.col()));
+      internalCoords_.emplace_back(it.row(), it.col());
     }
   }
 }
 
-AdiabaticModeLocalizer::AdiabaticModeLocalizer(const Eigen::MatrixXd& hessian, const AtomCollection& atoms,
-                                               const std::vector<std::pair<int, int>>& internalCoordinates)
-  : hessian_(std::move(hessian)), atoms_(std::move(atoms)), internalCoords_(std::move(internalCoordinates)) {
-  if (hessian_.rows() != 3 * atoms_.size() || hessian_.cols() != 3 * atoms_.size())
+AdiabaticModeLocalizer::AdiabaticModeLocalizer(const Eigen::MatrixXd& hessian, AtomCollection atoms,
+                                               std::vector<std::pair<int, int>> internalCoordinates)
+  : atoms_(std::move(atoms)), hessian_(hessian), internalCoords_(std::move(internalCoordinates)) {
+  if (hessian_.rows() != 3 * atoms_.size() || hessian_.cols() != 3 * atoms_.size()) {
     throw AdiabaticLocalizationExceptions::InvalidHessianDimensions();
+  }
 }
 
 void AdiabaticModeLocalizer::calculateStretchingB() {
@@ -153,8 +154,9 @@ AdiabaticModesContainer AdiabaticModeLocalizer::localizeModes() {
 
     // Transform to displacement collection
     DisplacementCollection dcAdiabatic(atoms_.size(), 3);
-    for (int j = 0; j < atoms_.size(); ++j)
+    for (int j = 0; j < atoms_.size(); ++j) {
       dcAdiabatic.row(j) = modeAdiabatic.segment(3 * j, 3);
+    }
     NormalMode formattedMode(wavenumber, dcAdiabatic);
     modesContainer.addMode(internalCoords_.at(i), formattedMode, kAdiabatic);
   }

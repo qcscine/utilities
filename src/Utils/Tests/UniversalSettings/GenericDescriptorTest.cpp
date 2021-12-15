@@ -9,6 +9,7 @@
 #include <Utils/UniversalSettings/DescriptorCollection.h>
 #include <Utils/UniversalSettings/DirectoryDescriptor.h>
 #include <Utils/UniversalSettings/DoubleDescriptor.h>
+#include <Utils/UniversalSettings/DoubleListDescriptor.h>
 #include <Utils/UniversalSettings/FileDescriptor.h>
 #include <Utils/UniversalSettings/GenericDescriptor.h>
 #include <Utils/UniversalSettings/IntDescriptor.h>
@@ -82,6 +83,11 @@ TEST_F(GenericDescriptorTest, ReturnsCorrectType) {
   descriptor = UniversalSettings::GenericDescriptor(intListDescriptor);
   ASSERT_TRUE(descriptor.relatesToIntList());
   ASSERT_EQ(descriptor.getType(), UniversalSettings::GenericDescriptor::Type::IntList);
+
+  auto doubleListDescriptor = UniversalSettings::DoubleListDescriptor("DoubleListDescriptor");
+  descriptor = UniversalSettings::GenericDescriptor(doubleListDescriptor);
+  ASSERT_TRUE(descriptor.relatesToDoubleList());
+  ASSERT_EQ(descriptor.getType(), UniversalSettings::GenericDescriptor::Type::DoubleList);
 
   auto stringListDescriptor = UniversalSettings::StringListDescriptor("StringListDescriptor");
   descriptor = UniversalSettings::GenericDescriptor(stringListDescriptor);

@@ -57,8 +57,6 @@ class AfirConvergenceCheck : public GradientBasedCheck {
   std::vector<int> lhsList = {};
   /// @brief List of second fragment atom indices;
   std::vector<int> rhsList = {};
-  /// @brief Whether the optimization uses internal coordinates;
-  bool transformCoordinates = true;
   /// @brief Transformation matrix;
   std::shared_ptr<InternalCoordinates> transformation = nullptr;
 

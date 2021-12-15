@@ -18,8 +18,9 @@ namespace UniversalSettings {
 
 void ValueCollection::addGenericValue(std::string name, GenericValue value) {
   assert(!name.empty());
-  if (valueExists(name))
+  if (valueExists(name)) {
     throw AlreadyExistingValueException(name);
+  }
   values_.emplace_back(std::move(name), std::move(value));
 }
 
@@ -29,9 +30,20 @@ GenericValue ValueCollection::getValue(const std::string& name) const {
 
 void ValueCollection::modifyValue(const std::string& name, GenericValue value) {
   auto it = findName(name);
-  if (it == values_.end())
+  if (it == values_.end()) {
     throw InexistingValueException(name);
+  }
   it->second = std::move(value);
+}
+
+void ValueCollection::dropValue(const std::string& name) {
+  auto it = findName(name);
+  if (it == values_.end()) {
+    throw InexistingValueException(name);
+  }
+  values_.erase(
+      std::remove_if(std::begin(values_), std::end(values_), [&](const auto& pair) { return pair.first == name; }),
+      std::end(values_));
 }
 
 void ValueCollection::addBool(std::string name, bool value) {
@@ -60,43 +72,49 @@ void ValueCollection::addOptionWithSettings(std::string name, ParametrizedOption
 
 void ValueCollection::modifyBool(const std::string& name, bool value) {
   const auto& genericValue = getGenericValue(name);
-  if (!genericValue.isBool())
+  if (!genericValue.isBool()) {
     throw InvalidValueConversionException();
+  }
   modifyValue(name, GenericValue::fromBool(value));
 }
 
 void ValueCollection::modifyInt(const std::string& name, int value) {
   const auto& genericValue = getGenericValue(name);
-  if (!genericValue.isInt())
+  if (!genericValue.isInt()) {
     throw InvalidValueConversionException();
+  }
   modifyValue(name, GenericValue::fromInt(value));
 }
 
 void ValueCollection::modifyDouble(const std::string& name, double value) {
   const auto& genericValue = getGenericValue(name);
-  if (!genericValue.isDouble())
+  if (!genericValue.isDouble()) {
     throw InvalidValueConversionException();
+  }
   modifyValue(name, GenericValue::fromDouble(value));
 }
 
 void ValueCollection::modifyString(const std::string& name, std::string value) {
   const auto& genericValue = getGenericValue(name);
-  if (!genericValue.isString())
+  if (!genericValue.isString()) {
     throw InvalidValueConversionException();
+  }
   modifyValue(name, GenericValue::fromString(std::move(value)));
 }
 
 void ValueCollection::modifyCollection(const std::string& name, ValueCollection value) {
   const auto& genericValue = getGenericValue(name);
-  if (!genericValue.isCollection())
+  if (!genericValue.isCollection()) {
     throw InvalidValueConversionException();
+  }
   modifyValue(name, GenericValue::fromCollection(std::move(value)));
 }
 
 void ValueCollection::modifyOptionsWithSettings(const std::string& name, ParametrizedOptionValue value) {
   const auto& genericValue = getGenericValue(name);
-  if (!genericValue.isOptionWithSettings())
+  if (!genericValue.isOptionWithSettings()) {
     throw InvalidValueConversionException();
+  }
   modifyValue(name, GenericValue::fromOptionWithSettings(std::move(value)));
 }
 
@@ -182,6 +200,28 @@ void ValueCollection::modifyIntList(const std::string& name, GenericValue::IntLi
   modifyValue(name, GenericValue::fromIntList(std::move(value)));
 }
 
+void ValueCollection::addDoubleList(std::string name, GenericValue::DoubleList value) {
+  addGenericValue(std::move(name), GenericValue::fromDoubleList(std::move(value)));
+}
+
+GenericValue::DoubleList ValueCollection::getDoubleList(const std::string& name) const {
+  const auto& genericValue = getGenericValue(name);
+  try {
+    return genericValue.toDoubleList();
+  }
+  catch (InvalidValueConversionException&) {
+    throw ValueHasDifferentTypeException(name);
+  }
+}
+
+void ValueCollection::modifyDoubleList(const std::string& name, GenericValue::DoubleList value) {
+  const auto& genericValue = getGenericValue(name);
+  if (!genericValue.isDoubleList()) {
+    throw InvalidValueConversionException();
+  }
+  modifyValue(name, GenericValue::fromDoubleList(std::move(value)));
+}
+
 void ValueCollection::addStringList(std::string name, GenericValue::StringList value) {
   addGenericValue(std::move(name), GenericValue::fromStringList(std::move(value)));
 }
@@ -249,19 +289,56 @@ int ValueCollection::count() const {
   return static_cast<int>(values_.size());
 }
 
+int ValueCollection::size() const {
+  return static_cast<int>(values_.size());
+}
+
 bool ValueCollection::empty() const {
   return values_.empty();
 }
 
 std::vector<std::string> ValueCollection::getKeys() const {
   std::vector<std::string> keys;
-  for (const auto& v : values_)
+  for (const auto& v : values_) {
     keys.push_back(v.first);
+  }
   return keys;
 }
 
 bool ValueCollection::valueExists(const std::string& name) const {
   return findName(name) != values_.end();
+}
+
+inline bool equalToDefault(const std::string& key, const GenericValue& value) {
+  auto descriptor = OptionListDescriptor(key);
+  return value == descriptor.getDefaultGenericValue();
+}
+
+bool operator==(const ValueCollection& lhs, const ValueCollection& rhs) {
+  if (lhs.empty() && rhs.empty()) {
+    return true;
+  }
+  auto lhsKeys = lhs.getKeys();
+  auto rhsKeys = rhs.getKeys();
+  for (const auto& key : lhsKeys) {
+    // key not present or key present in both, but value is different
+    if (!rhs.valueExists(key) || lhs.getValue(key) != rhs.getValue(key)) {
+      return false;
+    }
+  }
+
+  // identical the other way around
+  for (const auto& key : rhsKeys) {
+    if (!lhs.valueExists(key) || lhs.getValue(key) != rhs.getValue(key)) {
+      return false;
+    }
+  }
+  // all checks survived -> settings are equal
+  return true;
+}
+
+bool operator!=(const ValueCollection& lhs, const ValueCollection& rhs) {
+  return !(lhs == rhs);
 }
 
 } /* namespace UniversalSettings */

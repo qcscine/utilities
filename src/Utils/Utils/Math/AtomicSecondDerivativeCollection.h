@@ -9,7 +9,9 @@
 #define UTILS_MATH_ATOMICSECONDDERIVATIVECOLLECTION_H
 
 #include "AutomaticDifferentiation/Second3D.h"
+#include <Eigen/Core>
 #include <algorithm>
+#include <list>
 #include <vector>
 
 namespace Scine {
@@ -42,6 +44,19 @@ class AtomicSecondDerivativeCollection {
   iterator end();
   const_iterator end() const;
 
+  /**
+   * @brief Getter for atomic hessian
+   * @param i The index of the atom.
+   * @return Eigenmatrix containing the atomic hessian of atom i.
+   */
+  Eigen::Matrix3d getAtomicHessian(int i) const;
+  /**
+   * @brief Returns a list of all atomic hessian Eigenmatrices
+   * The atomic Hessian of a given atom i within a molecule is the 3x3 sub block of the full
+   * Hessian matrix of the molecule which contains only second derivatives with respect to the
+   * coordinates of atom i.
+   */
+  std::list<Eigen::Matrix3d> getAtomicHessians() const;
   /**
    * @brief Clearing the vector that holds the Second3D objects.
    */
@@ -130,6 +145,29 @@ inline AtomicSecondDerivativeCollection::const_iterator AtomicSecondDerivativeCo
   return derivativeVector_.end();
 }
 
+inline Eigen::Matrix3d AtomicSecondDerivativeCollection::getAtomicHessian(int i) const {
+  assert(0 <= i && i < size());
+  Eigen::Matrix3d atomichessianMatrix;
+  atomichessianMatrix(0, 0) = derivativeVector_[i].XX();
+  atomichessianMatrix(1, 0) = derivativeVector_[i].YX();
+  atomichessianMatrix(2, 0) = derivativeVector_[i].ZX();
+  atomichessianMatrix(0, 1) = derivativeVector_[i].XY();
+  atomichessianMatrix(1, 1) = derivativeVector_[i].YY();
+  atomichessianMatrix(2, 1) = derivativeVector_[i].ZY();
+  atomichessianMatrix(0, 2) = derivativeVector_[i].XZ();
+  atomichessianMatrix(1, 2) = derivativeVector_[i].YZ();
+  atomichessianMatrix(2, 2) = derivativeVector_[i].ZZ();
+  return atomichessianMatrix;
+}
+
+inline std::list<Eigen::Matrix3d> AtomicSecondDerivativeCollection::getAtomicHessians() const {
+  std::list<Eigen::Matrix3d> atomichessianList;
+  for (int i = 0; i < size(); ++i) {
+    atomichessianList.push_back(AtomicSecondDerivativeCollection::getAtomicHessian(i));
+  }
+  return atomichessianList;
+}
+
 inline void AtomicSecondDerivativeCollection::clear() {
   derivativeVector_.clear();
 }
@@ -181,14 +219,16 @@ inline int AtomicSecondDerivativeCollection::size() const {
  */
 
 inline const AtomicSecondDerivativeCollection& AtomicSecondDerivativeCollection::operator*=(double f) {
-  for (auto& d : derivativeVector_)
+  for (auto& d : derivativeVector_) {
     d *= f;
+  }
   return *this;
 }
 
 inline const AtomicSecondDerivativeCollection& AtomicSecondDerivativeCollection::operator/=(double f) {
-  for (auto& d : derivativeVector_)
+  for (auto& d : derivativeVector_) {
     d /= f;
+  }
   return *this;
 }
 
@@ -197,22 +237,25 @@ operator+=(const AtomicSecondDerivativeCollection& dc) {
   // Check that the two collections are of the same size before they are added.
   assert(size() == dc.size() && "Adding AtomicSecondDerivativeCollections of different sizes.");
   const auto s = size();
-  for (int i = 0; i < s; ++i)
+  for (int i = 0; i < s; ++i) {
     derivativeVector_[i] += dc[i];
+  }
   return *this;
 }
 
 inline AtomicSecondDerivativeCollection AtomicSecondDerivativeCollection::operator*(double f) const {
   AtomicSecondDerivativeCollection d(size());
-  for (int i = 0; i < size(); ++i)
+  for (int i = 0; i < size(); ++i) {
     d[i] = derivativeVector_[i] * f;
+  }
   return d;
 }
 
 inline AtomicSecondDerivativeCollection AtomicSecondDerivativeCollection::operator/(double f) const {
   AtomicSecondDerivativeCollection d(size());
-  for (int i = 0; i < size(); ++i)
+  for (int i = 0; i < size(); ++i) {
     d[i] = derivativeVector_[i] / f;
+  }
   return d;
 }
 

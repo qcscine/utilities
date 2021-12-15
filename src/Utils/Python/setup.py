@@ -4,6 +4,9 @@ See LICENSE.txt for details.
 """
 
 import setuptools
+from typing import Dict, List
+from pathlib import Path
+import os
 
 # Read README.rst for the long description
 with open("README.rst", "r") as fh:
@@ -17,7 +20,36 @@ class EmptyListWithLength(list):
         return 1
 
 
-# Define the setup
+def find_stubs(package_name: str) -> List[str]:
+    """ Find typing stub files in the package directory """
+    stubs = []
+    for root, dirs, files in os.walk(package_name):
+        for file in files:
+            if not file.endswith(".pyi"):
+                continue
+
+            path = os.path.join(root, file)
+            stubs.append(path.replace(package_name + os.sep, '', 1))
+    return stubs
+
+
+def collect_data(pkg_name: str) -> Dict[str, List[str]]:
+    """ Generates the package_data dict with stubs (if present) """
+    package_data = {pkg_name: ["scine_utilities.*", "*.txt", "utilsos.module.*"@utils_PY_DEPS@]}
+
+    # Handle possibility of typing stubs present
+    stubs = find_stubs(pkg_name)
+    if len(stubs) > 0:
+        # Typing marker file for PEP 561
+        typed_filename = "py.typed"
+        typed_file = Path(".") / pkg_name / typed_filename
+        typed_file.touch()
+        package_data[pkg_name].extend(stubs)
+        package_data[pkg_name].append(typed_filename)
+
+    return package_data
+
+
 setuptools.setup(
     name="scine_utilities",
     version="@PROJECT_VERSION@",
@@ -28,7 +60,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://www.scine.ethz.ch",
     packages=["scine_utilities"],
-    package_data={"scine_utilities": ["scine_utilities.*", "*.txt", "utilsos.module.*"@utils_PY_DEPS@]},
+    package_data=collect_data("scine_utilities"),
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: C++",

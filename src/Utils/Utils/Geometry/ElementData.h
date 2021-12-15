@@ -9,9 +9,10 @@
 
 #include "Utils/Constants.h"
 #include "Utils/Geometry/ElementTypes.h"
-#include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 namespace Scine {
@@ -40,7 +41,10 @@ class ElementDataSingleton {
      * @class DataNotAvailable ElementData.h
      * @brief An exception if the data does not exist.
      */
-    class DataNotAvailable {};
+    struct DataNotAvailable : public std::runtime_error {
+      explicit DataNotAvailable() : std::runtime_error("Data is not available for this element") {
+      }
+    };
 
     /**
      * @brief Constructor for default (empty) element.
@@ -59,10 +63,11 @@ class ElementDataSingleton {
      * @param sElectrons The number of s-electrons in the valence shell.
      * @param pElectrons The number of p-electrons in the valence shell.
      * @param dElectrons The number of d-electrons in the valence shell.
+     * @param fElectrons The number of f-electrons in the valence shell.
      */
     ElementData(std::string symbol, int Z, double mass, double covalentRadiusInPicometers = -1,
                 double vdWRadiusInPicometers = -1, int valElectrons = -1, int sElectrons = -1, int pElectrons = -1,
-                int dElectrons = -1)
+                int dElectrons = -1, int fElectrons = -1)
       : d_symbol(std::move(symbol)),
         d_Z(Z),
         d_mass(mass),
@@ -71,7 +76,9 @@ class ElementDataSingleton {
         d_valElectrons(valElectrons),
         d_sElectrons(sElectrons),
         d_pElectrons(pElectrons),
-        d_dElectrons(dElectrons){};
+        d_dElectrons(dElectrons),
+        d_fElectrons(fElectrons) {
+    }
 
     /**
      * @brief Getter for the element symbol.
@@ -105,8 +112,9 @@ class ElementDataSingleton {
      * @return double  Returns the covalent radius in atomic units.
      */
     double covalentRadius() const {
-      if (d_covalentRadius > 0.0)
+      if (d_covalentRadius > 0.0) {
         return d_covalentRadius;
+      }
       throw DataNotAvailable();
     }
     /**
@@ -114,44 +122,68 @@ class ElementDataSingleton {
      * @return double  Returns the Van-der-Waals Radius in atomic units.
      */
     double vdWRadius() const {
-      if (d_vdWRadius > 0.0)
+      if (d_vdWRadius > 0.0) {
         return d_vdWRadius;
+      }
       throw DataNotAvailable();
     }
     /**
      * @brief Getter for the number of valence electrons.
-     * @return int  Returns the number of valence electrons.
+     * @return int Returns the number of valence electrons.
      */
-    int valElectrons() const {
-      if (d_valElectrons > -1)
-        return d_valElectrons;
-      throw DataNotAvailable();
-    }
+    int valElectrons() const;
+
     /**
      * @brief Getter for the number of valence s-electrons.
      * @return int  Returns the number of valence s-electrons.
+     *
+     * @note Valence electron shell assignment is done by application of
+     * Madelung's rule, without incorporation of experimental exceptions.
      */
     int sElectrons() const {
-      if (d_sElectrons > -1)
+      if (d_sElectrons > -1) {
         return d_sElectrons;
+      }
       throw DataNotAvailable();
     }
     /**
      * @brief Getter for the number of valence p-electrons.
      * @return int  Returns the number of valence p-electrons.
+     *
+     * @note Valence electron shell assignment is done by application of
+     * Madelung's rule, without incorporation of experimental exceptions.
      */
     int pElectrons() const {
-      if (d_pElectrons > -1)
+      if (d_pElectrons > -1) {
         return d_pElectrons;
+      }
       throw DataNotAvailable();
     }
     /**
      * @brief Getter for the number of valence d-electrons.
      * @return int  Returns the number of valence d-electrons.
+     *
+     * @note Valence electron shell assignment is done by application of
+     * Madelung's rule, without incorporation of experimental exceptions.
      */
     int dElectrons() const {
-      if (d_dElectrons > -1)
+      if (d_dElectrons > -1) {
         return d_dElectrons;
+      }
+      throw DataNotAvailable();
+    }
+
+    /**
+     * @brief Getter for the number of valence f-electrons.
+     * @return int  Returns the number of valence f-electrons.
+     *
+     * @note Valence electron shell assignment is done by application of
+     * Madelung's rule, without incorporation of experimental exceptions.
+     */
+    int fElectrons() const {
+      if (d_fElectrons > -1) {
+        return d_fElectrons;
+      }
       throw DataNotAvailable();
     }
 
@@ -167,14 +199,18 @@ class ElementDataSingleton {
     int d_sElectrons{-1};
     int d_pElectrons{-1};
     int d_dElectrons{-1};
+    int d_fElectrons{-1};
   };
 
- public:
+  //! Lookup for element information based on element symbol
+  static const ElementData& lookup(ElementType e);
+
   /**
    * @brief Access singleton instance. Creates one if necessary.
    * @return const ElementDataSingleton& A reference to the one instance allowed.
    */
-  static const ElementDataSingleton& instance();
+  [[deprecated("Use static lookup instead")]] static const ElementDataSingleton& instance();
+
   /**
    * @brief Access element information based on element symbol.
    * @param symbol The symbol of the element (1st character upper case, 2nd lower case).
@@ -182,27 +218,21 @@ class ElementDataSingleton {
 
    * @return const ElementData& Returns the data associated with this element.
    */
-  const ElementData& operator[](const std::string& symbol) const;
+  [[deprecated("Use static lookup instead")]] ElementData operator[](const std::string& symbol) const;
   /**
    * @brief Access element information based on type. Fastest lookup.
    * @param type The ElementType.
    * @throws std::out_of_range
    * @return const ElementData& Returns the data associated with this element.
    */
-  const ElementData& operator[](const ElementType& type) const;
+  [[deprecated("Use static lookup instead")]] ElementData operator[](ElementType type) const;
 
  private:
   /// @brief Private constructor to prevent instantiation by client.
-  ElementDataSingleton();
-
-  /// @brief The singleton instance.
-  static std::unique_ptr<ElementDataSingleton> d_instance;
+  ElementDataSingleton() = default;
 
   /// @brief Storage: internal map.
-  std::map<ElementType, ElementData> d_container;
-
-  /// @brief Creates hard coded element data.
-  void init_data();
+  static const std::unordered_map<ElementType, ElementData>& data();
 };
 
 } /* namespace Constants */

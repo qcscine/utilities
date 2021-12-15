@@ -20,6 +20,7 @@
 #include <Utils/Scf/MethodInterfaces/ElectronicContributionCalculator.h>
 #include <Utils/Scf/MethodInterfaces/RepulsionCalculator.h>
 #include <Utils/Typenames.h>
+#include <iomanip>
 
 namespace Scine {
 namespace Utils {
@@ -56,8 +57,9 @@ void LcaoMethod::setDensityMatrix(DensityMatrix P) {
   // assert(P.rows() == nAOs_ && P.cols() == nAOs_ && "Dimensions of given density matrix do not correspond to the
   // number of atomic orbitals."); TODO
   densityMatrix_ = std::move(P);
-  if (unrestrictedCalculationRunning() && !densityMatrix_.unrestricted())
+  if (unrestrictedCalculationRunning() && !densityMatrix_.unrestricted()) {
     densityMatrix_.setUnrestricted(true);
+  }
 }
 
 void LcaoMethod::setEnergyWeightedDensityMatrix(const Eigen::MatrixXd& W) {
@@ -82,18 +84,24 @@ void LcaoMethod::setUnrestrictedCalculation(bool b) {
   }
   else if (!unrestrictedCalculationRunning_ && b) { // start
     unrestrictedCalculationRunning_ = true;
-    if (!densityMatrix_.unrestricted())
+    if (!densityMatrix_.unrestricted()) {
       densityMatrix_.setAlphaAndBetaFromRestrictedDensity();
-    if (!occupation_.isUnrestricted())
+    }
+    if (!occupation_.isUnrestricted()) {
       occupation_.makeUnrestricted();
-    if (!eigenvectorMatrix_.isUnrestricted())
+    }
+    if (!eigenvectorMatrix_.isUnrestricted()) {
       eigenvectorMatrix_.makeUnrestricted();
+    }
   }
 }
 
 void LcaoMethod::setSpinMultiplicity(int s) {
   assert(s > 0 && "The spin multiplicity must be larger than zero.");
   spinMultiplicity_ = s;
+  if (spinMultiplicity_ != 1) {
+    setUnrestrictedCalculation(true);
+  }
 }
 
 double LcaoMethod::getHomoLumoGap() const {
@@ -126,58 +134,42 @@ void LcaoMethod::calculateEnergyWeightedDensity() {
       LcaoUtils::DensityMatrixGenerator::generateEnergyWeighted(occupation_, eigenvectorMatrix_, singleParticleEnergies_);
 }
 
-void LcaoMethod::verifyPesValidity(Core::Log& log) {
-  verifyChargeValidity(log);
-  verifyMultiplicityValidity(log);
-  verifyUnrestrictedValidity(log);
+void LcaoMethod::verifyPesValidity() const {
+  verifyChargeValidity();
+  verifyMultiplicityValidity();
+  verifyUnrestrictedValidity();
 }
 
-void LcaoMethod::verifyChargeValidity(Core::Log& log) {
+void LcaoMethod::verifyChargeValidity() const {
   // Verify that the charge is not too positive (not taking away more electrons than available)
   if (molecularCharge_ > nElectronsForUnchargedSpecies_) {
-    log.error << "The chosen molecular charge (" << molecularCharge_ << ") is too positive. Setting it to "
-              << nElectronsForUnchargedSpecies_ << "." << Core::Log::nl;
-    molecularCharge_ = nElectronsForUnchargedSpecies_;
+    throw std::runtime_error("Not enough electrons to accomodate the molecular charge " + std::to_string(molecularCharge_) + ".");
   }
   else if (nElectronsForUnchargedSpecies_ - molecularCharge_ > 2 * nAOs_) {
-    auto newCharge = (2 * nAOs_ - nElectronsForUnchargedSpecies_) * (-1);
-    log.error << "Not enough orbitals to accommodate the chosen molecular charge (" << molecularCharge_
-              << "). Setting it to " << newCharge << "." << Core::Log::nl;
-    molecularCharge_ = newCharge;
+    throw std::runtime_error("Not enough orbitals to accomodate the molecular charge " + std::to_string(molecularCharge_) + ".");
   }
-  nElectrons_ = nElectronsForUnchargedSpecies_ - molecularCharge_;
 }
 
-void LcaoMethod::verifyMultiplicityValidity(Core::Log& log) {
+void LcaoMethod::verifyMultiplicityValidity() const {
   if (spinMultiplicity_ > nElectrons_ + 1) {
-    log.warning << "The chosen spin multiplicity (" << spinMultiplicity_
-                << ") is too large (not enough electrons). Setting it to " << nElectrons_ + 1 << "." << Core::Log::nl;
-    spinMultiplicity_ = nElectrons_ + 1;
+    throw std::runtime_error("The chosen spin multiplicity (" + std::to_string(spinMultiplicity_) +
+                             ") is too large (not enough electrons).");
   }
-  int numberSpotsLeftForElectrons = 2 * nAOs_ - nElectrons_;
-  if (spinMultiplicity_ > numberSpotsLeftForElectrons + 1) {
-    log.warning << "The chosen spin multiplicity (" << spinMultiplicity_ << ") is too large (not enough orbitals). Setting it to "
-                << numberSpotsLeftForElectrons + 1 << "." << Core::Log::nl;
-    spinMultiplicity_ = numberSpotsLeftForElectrons + 1;
+  if (spinMultiplicity_ > 2 * nAOs_ - nElectrons_ + 1) {
+    throw std::runtime_error("The chosen spin multiplicity (" + std::to_string(spinMultiplicity_) +
+                             ") is too large (not enough orbitals).");
   }
   // Check that number of electrons and spin multiplicity are compatible
-  else if ((spinMultiplicity_ + nElectrons_) % 2 == 0) {
-    int newMultiplicity = 1;
-    if (nElectrons_ % 2 == 1)
-      newMultiplicity = 2;
-    log.warning << "The chosen spin multiplicity (" << spinMultiplicity_ << ") is not compatible with the molecular charge ("
-                << molecularCharge_ << "). Setting it to " << newMultiplicity << "." << Core::Log::nl;
-    spinMultiplicity_ = newMultiplicity;
+  if ((spinMultiplicity_ + nElectrons_) % 2 == 0) {
+    throw std::runtime_error("The chosen spin multiplicity (" + std::to_string(spinMultiplicity_) +
+                             ") is not compatible with the molecular charge (" + std::to_string(molecularCharge_) + ").");
   }
 }
 
-void LcaoMethod::verifyUnrestrictedValidity(Core::Log& log) {
+void LcaoMethod::verifyUnrestrictedValidity() const {
   if (spinMultiplicity_ > 1 && !unrestrictedCalculationRunning_) {
-    log.warning << "The chosen spin multiplicity (" << spinMultiplicity_
-                << ") requires an unrestricted calculation. Setting UHF calculation." << Core::Log::nl;
-    setUnrestrictedCalculation(true);
-    if (!unrestrictedCalculationRunning_)
-      throw UnrestrictedCalculationNotAvailableException();
+    throw std::runtime_error("The chosen spin multiplicity (" + std::to_string(spinMultiplicity_) +
+                             ") requires an unrestricted calculation.");
   }
 }
 
@@ -253,19 +245,13 @@ void LcaoMethod::assembleFockMatrix() {
   fockMatrix_ = electronicPart_->getMatrix();
 }
 
-void LcaoMethod::calculate(Utils::Derivative d, Core::Log& log) {
-  verifyPesValidity(log);
+void LcaoMethod::calculate(Utils::Derivative d, Core::Log& /*log*/) {
+  verifyPesValidity();
 
   calculateDensityIndependentQuantities(d);
   assembleFockMatrix();
-  if (solvesOnlyOccupiedManifold()) {
-    LcaoUtils::solveOccupiedRestrictedGeneralizedEigenvalueProblem(fockMatrix_, overlapMatrix_, eigenvectorMatrix_,
-                                                                   singleParticleEnergies_, nElectrons_, log);
-  }
-  else {
-    LcaoUtils::solveRestrictedGeneralizedEigenvalueProblem(fockMatrix_, overlapMatrix_, eigenvectorMatrix_,
-                                                           singleParticleEnergies_);
-  }
+  LcaoUtils::solveRestrictedGeneralizedEigenvalueProblem(fockMatrix_, overlapMatrix_, eigenvectorMatrix_,
+                                                         singleParticleEnergies_);
 
   calculateOccupationAndDensity();
   calculateBondOrderMatrix();
@@ -296,5 +282,21 @@ bool LcaoMethod::solvesOnlyOccupiedManifold() const {
 void LcaoMethod::setOnlyOccupiedManifoldToSolve(bool onlyOccupiedToSolve) {
   solveOnlyOccupiedManifold_ = onlyOccupiedToSolve;
 }
+
+void LcaoMethod::printFooter(Core::Log& log) const {
+  log.output << std::setprecision(10) << std::fixed << Core::Log::endl << Core::Log::endl;
+  log.output << std::setw(1) << "" << std::string(84, '=') << Core::Log::nl;
+  log.output << std::setw(2) << "#" << std::setw(75) << "" << std::setw(8) << "#" << Core::Log::nl;
+  log.output << std::setw(2) << "#" << std::setw(25) << "Electronic Energy";
+  log.output << std::setw(25) << "Repulsion Energy" << std::setw(25) << "Total Energy" << std::setw(8) << "#"
+             << Core::Log::nl;
+  log.output << std::setw(2) << "#" << std::setw(22) << electronicEnergy_ << " Ha";
+  log.output << std::setw(22) << repulsionEnergy_ << " Ha" << std::setw(22) << energy_ << " Ha" << std::setw(8) << "#"
+             << Core::Log::nl;
+  log.output << std::setw(2) << "#" << std::setw(75) << "" << std::setw(8) << "#" << Core::Log::nl;
+  log.output << std::setw(1) << "" << std::string(84, '=') << Core::Log::endl;
+  log.output << Core::Log::endl;
+}
+
 } // namespace Utils
 } // namespace Scine

@@ -16,8 +16,9 @@ using namespace testing;
 
 TEST(AMolecularTrajectoryIOTest, CanReadMolecularTrajectory) {
   struct stat buffer;
-  if (stat("Resources/IO_traj.xyz", &buffer) == 0)
+  if (stat("Resources/IO_traj.xyz", &buffer) == 0) {
     ASSERT_NO_THROW(MolecularTrajectoryIO::read(MolecularTrajectoryIO::format::xyz, "Resources/IO_traj.xyz"));
+  }
 }
 
 } // namespace Utils

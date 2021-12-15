@@ -17,20 +17,29 @@ void init_solute_solvent_complex(pybind11::module& m) {
 
   solvation_submodule.def(
       "solvate",
-      pybind11::overload_cast<const AtomCollection&, int, const AtomCollection&, int, int, int, double, double, double, int, bool>(
+      pybind11::overload_cast<const AtomCollection&, int, const AtomCollection&, int, int, int, double, double, double, int, bool, double>(
           &solvate),
       pybind11::arg("solute_complex"), pybind11::arg("solute_size"), pybind11::arg("solvent"),
       pybind11::arg("number_solvents"), pybind11::arg("seed"), pybind11::arg("resolution") = 32,
       pybind11::arg("solvent_offset") = 0.0, pybind11::arg("max_distance") = 10.0, pybind11::arg("step_size") = 0.25,
       pybind11::arg("number_rotamers") = 3, pybind11::arg("strategic_solvation") = false,
-      "Add systematically a number of solvents to solute.");
+      pybind11::arg("coverage_threshold") = 1.0, "Add systematically a number of solvents to solute.");
 
   solvation_submodule.def("solvate_shells", &solvateShells, pybind11::arg("solute_complex"),
                           pybind11::arg("solute_size"), pybind11::arg("solvent"), pybind11::arg("number_shells"),
-                          pybind11::arg("seed"), pybind11::arg("resolution") = 32,
-                          pybind11::arg("solvent_offset") = 0.0, pybind11::arg("max_distance") = 10.0,
-                          pybind11::arg("step_size") = 0.25, pybind11::arg("number_rotamers") = 3,
-                          pybind11::arg("strategic_solvation") = false, "Add number of solvent shells to solute.");
+                          pybind11::arg("seed"), pybind11::arg("resolution") = 32, pybind11::arg("solvent_offset") = 0.0,
+                          pybind11::arg("max_distance") = 10.0, pybind11::arg("step_size") = 0.25,
+                          pybind11::arg("number_rotamers") = 3, pybind11::arg("strategic_solvation") = false,
+                          pybind11::arg("coverage_threshold") = 1.0, "Add number of solvent shells to solute.");
+
+  solvation_submodule.def("give_solvent_shell_vector", &giveSolventShellVector, pybind11::arg("complex"),
+                          pybind11::arg("solute_size"), pybind11::arg("solvent_size_vector"), pybind11::arg("resolution"),
+                          pybind11::arg("logger"), pybind11::arg("strategic_solvation") = true,
+                          pybind11::arg("threshold") = 1.0, "Analyze a complex and return its solvent shell vector.");
+
+  solvation_submodule.def(
+      "transfer_solvent_shell_vector", &transferSolventShellVector, pybind11::arg("shell_vector"),
+      "Translate solvent shell vector into one vector containing the size of the solvents in order.");
 
   solvation_submodule.def("merge_atom_collection_vector", &mergeAtomCollectionVector,
                           pybind11::arg("atom_collection_vector"), "Merges list of atom collections to one atom collection.");

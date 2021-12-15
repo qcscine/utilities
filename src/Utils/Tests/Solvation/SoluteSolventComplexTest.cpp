@@ -8,6 +8,7 @@
 #include "Utils/IO/ChemicalFileFormats/XyzStreamHandler.h"
 #include "Utils/Solvation/RandomIndexGenerator.h"
 #include "Utils/Solvation/SoluteSolventComplex.h"
+#include <Core/Log.h>
 #include <gmock/gmock.h>
 #include <fstream>
 #include <iostream>
@@ -73,7 +74,7 @@ TEST(SoluteSolventComplexTest, DoesArrangeAndRotateAroundAxisWorkProperly) {
   Td.setElements(TdEC);
   // shift position to see if it works outside of the origin
   Position shiftVector = Position(-66, 42, 24);
-  auto TdPC0_shifted = Geometry::translatePositions(TdPC0, shiftVector);
+  auto TdPC0_shifted = Geometry::Manipulations::translatePositions(TdPC0, shiftVector);
   Td.setPositions(TdPC0_shifted);
 
   int vertice = 0;
@@ -84,7 +85,7 @@ TEST(SoluteSolventComplexTest, DoesArrangeAndRotateAroundAxisWorkProperly) {
 
   Td.setPositions(TdPC1);
 
-  double distanceTh = 4 * sqrt(2) * cos(Constants::pi / 2 - 109.4712206 / 2 * Constants::pi / 180);
+  double distanceTh = 4 * std::sqrt(2) * std::cos(Constants::pi / 2 - 109.4712206 / 2 * Constants::pi / 180);
 
   // check that the distances are correct after arrangement
   ASSERT_THAT((TdPC0_shifted.row(vertice) - TdPC1.row(vertice + 1)).norm(), 0.0);
@@ -94,7 +95,8 @@ TEST(SoluteSolventComplexTest, DoesArrangeAndRotateAroundAxisWorkProperly) {
 
   // rotate by one 2pi * 1 / 3
   Position rotAxis = (TdPC0_shifted.row(vertice) - shiftVector).normalized();
-  auto TdPC1_Rot1 = Geometry::rotatePositions(TdPC1, rotAxis, 2 * Constants::pi * 1 / 3, TdPC0_shifted.row(vertice));
+  auto TdPC1_Rot1 =
+      Geometry::Manipulations::rotatePositions(TdPC1, rotAxis, 2 * Constants::pi * 1 / 3, TdPC0_shifted.row(vertice));
 
   Td.setPositions(TdPC1_Rot1);
 
@@ -253,7 +255,7 @@ TEST(SoluteSolventComplexTest, DoesMergeSolventVectorWork) {
 
   auto mergedAssembleColl = SoluteSolventComplex::mergeSolventShellVector(assembleColl);
 
-  ASSERT_THAT(mergedAssembleColl.size() + 1, pow(2, assembleCollSize));
+  ASSERT_THAT(mergedAssembleColl.size() + 1, std::pow(2, assembleCollSize));
   ASSERT_TRUE(mergedAssembleColl.at(0).getElementType() == test1.at(0).getElementType());
   // even indices should have test2, odd indices should have test1
   for (int i = 1; i < mergedAssembleColl.size() / 2; i++) {
@@ -302,6 +304,8 @@ TEST(SoluteSolventComplexTest, DoesSolvateAddsCorrectNumberOfSolvents) {
   ASSERT_THAT(iterComplexSurface.size(), 0);
 }
 
+// Run this test only in release builds
+#ifdef NDEBUG
 TEST(SoluteSolventComplexTest, DoesSolvateFinishesSolventShell) {
   ElementTypeCollection waterEC(3);
   waterEC.at(0) = ElementType::O;
@@ -325,6 +329,10 @@ TEST(SoluteSolventComplexTest, DoesSolvateFinishesSolventShell) {
       SoluteSolventComplex::solvateShells(solute, solute.size(), water, numShells, 5, sampleRes, 0, 7, 1, 3, false);
   auto soluteComplex = solute + SoluteSolventComplex::mergeSolventShellVector(solventComplex);
 
+  // calculate solvent vector with reduced coverage
+  auto reducedSolventComplex =
+      SoluteSolventComplex::solvateShells(solute, solute.size(), water, numShells, 5, sampleRes, 0, 7, 1, 3, false, 0.75);
+
   auto soluteComplexSurface =
       MolecularSurface::getVisibleMolecularSurface(soluteComplex, solute.size(), solute.size() + 18 * 3, sampleRes);
 
@@ -333,6 +341,63 @@ TEST(SoluteSolventComplexTest, DoesSolvateFinishesSolventShell) {
   // first and second shell together contain approximatly 130 water molecules (Compiler dependent)
   // seed: 5, resolution: 18, solventOffset: 0, maxDistance: 7, stepSize: 1, numRotamers: 3, strategy: false; release mode
   ASSERT_THAT(true, (soluteComplex.size() - solute.size()) / water.size() > 2 * 18);
+  // check that shells of the reduced coverage contain less solvent molecules than full solvent vector
+  ASSERT_THAT(true, reducedSolventComplex[0].size() < solventComplex[0].size());
+  ASSERT_THAT(true, reducedSolventComplex[1].size() < solventComplex[1].size());
+}
+#endif
+
+TEST(SoluteSolventComplexTest, DoesGiveSolventVectorGiveCorrectStructure) {
+  ElementTypeCollection waterEC(3);
+  waterEC.at(0) = ElementType::O;
+  waterEC.at(1) = ElementType::H;
+  waterEC.at(2) = ElementType::H;
+
+  PositionCollection waterPC0(3, 3);
+  waterPC0.row(0) = Position(0, 0, 0);
+  waterPC0.row(1) = Position(-1.63, 1.25, 0);
+  waterPC0.row(2) = Position(1.63, 1.25, 0);
+
+  AtomCollection water(waterEC, waterPC0);
+
+  AtomCollection solute;
+  solute.push_back(Atom(ElementType::Na, Position(0, 0, 0)));
+
+  int sampleRes = 18;
+  int numShells = 1;
+
+  auto solventComplex =
+      SoluteSolventComplex::solvateShells(solute, solute.size(), water, numShells, 5, sampleRes, 0, 7, 1, 3, false);
+  auto soluteComplex = solute + SoluteSolventComplex::mergeSolventShellVector(solventComplex);
+
+  auto solventSizeVector = SoluteSolventComplex::transferSolventShellVector(solventComplex);
+
+  // first solvent shell contains 18 water molecules
+  ASSERT_THAT(solventSizeVector.size(), 18);
+  // Last and first solvent molecule have size of water
+  ASSERT_THAT(solventSizeVector[0], water.size());
+  ASSERT_THAT(solventSizeVector.back(), water.size());
+
+  Core::Log log = Core::Log::silent();
+  // give solvent shell vector from soluteComplex with threshold of 100%
+  auto givenSolventShellVector =
+      SoluteSolventComplex::giveSolventShellVector(soluteComplex, solute.size(), solventSizeVector, sampleRes, log);
+
+  // solvent vector obtained by giveSolventShellVector function has to be the same as solventComplex
+  ASSERT_THAT(givenSolventShellVector.size(), solventComplex.size() + 1);
+  ASSERT_THAT(givenSolventShellVector[0].size(), solventComplex[0].size());
+  // assert that solvent molecules of same index are the same as the same order going through the solvents is used
+  assertPositionCollectionsEqual(givenSolventShellVector[0][17].getPositions(), solventComplex[0][17].getPositions());
+
+  auto reducedSolventShellVector = SoluteSolventComplex::giveSolventShellVector(
+      soluteComplex, solute.size(), solventSizeVector, sampleRes, log, true, 0.90);
+
+  // reduced solvent shell vector due to threshold
+  ASSERT_THAT(reducedSolventShellVector.size(), solventComplex.size() + 1);
+  ASSERT_THAT(reducedSolventShellVector[0].size(), 17);
+  ASSERT_THAT(reducedSolventShellVector[1].size(), 1);
+  // Assure that first solvent molecule in 2nd shell is the same as the last solvent molecule of org solvent shell vector
+  assertPositionCollectionsEqual(reducedSolventShellVector[1][0].getPositions(), solventComplex[0][17].getPositions());
 }
 
 } /* namespace Tests */

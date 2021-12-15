@@ -8,6 +8,7 @@
 #ifndef UTILS_NTOPTIMIZER_H_
 #define UTILS_NTOPTIMIZER_H_
 
+#include "CoordinateSystem.h"
 #include "Utils/CalculatorBasics/PropertyList.h"
 #include "Utils/CalculatorBasics/Results.h"
 #include "Utils/Geometry/AtomCollection.h"
@@ -48,11 +49,17 @@ class NtOptimizer : public Optimizer {
   static constexpr const char* ntLHSListKey = "nt_lhs_list";
   static constexpr const char* ntAttractiveKey = "nt_attractive";
   static constexpr const char* ntTotalForceNormKey = "nt_total_force_norm";
-  static constexpr const char* ntTransfromCoordinatesKey = "nt_transform_coordinates";
   static constexpr const char* ntMaxIterKey = "convergence_max_iterations";
   static constexpr const char* ntRepulsiveStopKey = "convergence_repulsive_stop";
   static constexpr const char* ntAttractiveStopKey = "convergence_attractive_stop";
   static constexpr const char* ntSdFactorKey = "sd_factor";
+  static constexpr const char* ntUseMicroCycles = "nt_use_micro_cycles";
+  static constexpr const char* ntFixedNumberOfMicroCycles = "nt_fixed_number_of_micro_cycles";
+  static constexpr const char* ntNumberOfMicroCycles = "nt_number_of_micro_cycles";
+  static constexpr const char* ntFilterPasses = "nt_filter_passes";
+  static constexpr const char* ntCoordinateSystemKey = "nt_coordinate_system";
+  static constexpr const char* ntFixedAtomsKey = "nt_constrained_atoms";
+  static constexpr const char* ntMovableSide = "nt_movable_side";
   /**
    * @brief Construct a new NtOptimizer object.
    * @param calculator The calculator to be used for the underlying single point/gradient calculations.
@@ -71,7 +78,7 @@ class NtOptimizer : public Optimizer {
    * @param settings The new settings.
    */
   virtual void setSettings(const Settings& settings) final;
-  virtual void applySettings(const Settings& settings) final;
+  void applySettings(const Settings& settings) final;
   /**
    * @brief Get the public settings as a Utils::Settings object.
    * @return Settings A settings object with the current settings.
@@ -88,7 +95,7 @@ class NtOptimizer : public Optimizer {
    * It is crucial not to move faster than the chosen optimizer can minimize all other unaffected atoms to
    * follow the trajectory.
    */
-  double totalForceNorm = 0.01;
+  double totalForceNorm = 0.1;
   /**
    * @brief Switch for the additional force to be attractive or repulsive.
    *
@@ -97,19 +104,46 @@ class NtOptimizer : public Optimizer {
    */
   bool attractive = true;
   /**
-   * @brief Switch to transform the coordinates from Cartesian into an internal space.
+   * @brief Set the coordinate system in which the optimization shall be performed
    *
-   * The optimization will be carried out in the internal coordinate space possibly
-   * accelerating convergence.
+   * The optimization can be carried out in the internal coordinate space or with removed translations and rotations
+   * possibly accelerating convergence.
    */
-  bool transformCoordinates = true;
+  CoordinateSystem coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
+  /**
+   * @brief Indices of atoms that are constrained.
+   */
+  std::vector<int> fixedAtoms;
+  /**
+   * @brief Side that is moved towards/away
+   */
+  std::string movableSide = "both";
+  /**
+   * @brief If true, uses a BFGS/GDIIS in between forced steps to run some
+   *        constrained geometry optimizations.
+   */
+  bool useMicroCycles = true;
+  /**
+   * @brief If true, uses `numberOfMicroCycles`, if false allows for more micro
+   *        cycles as the number of NT steps grow (1 more per NT cycle).
+   */
+  bool fixedNumberOfMicroCycles = true;
+  /**
+   * @brief The fixed number of micro cycles.
+   */
+  int numberOfMicroCycles = 10;
+  /**
+   * @brief Number of passes through a Savitzky-Golay filter before analyzing
+   *        the reaction curve.
+   */
+  int filterPasses = 10;
   /// @brief The special convergence settings for this optimizer.
   struct NtConvergenceStub {
     /// @brief The maximum number of iterations.
-    unsigned int maxIter = 200;
+    unsigned int maxIter = 500;
     /**
      * @brief The minimum distance, given as multiple of covalent radii sums,
-     *        between all atoms in the contrained lists in case of an attractive
+     *        between all atoms in the constrained lists in case of an attractive
      *        run.
      */
     double attractiveStop = 0.9;
@@ -122,35 +156,67 @@ class NtOptimizer : public Optimizer {
   };
   /// @brief The convergence control for this optimizer.
   NtConvergenceStub check;
-  /// @brief The special convergence settings for this optimizer.
+  /// @brief The special settings for the optimizer of the macro iterations.
   struct NtOptimizerStub {
-    /// @brief The maximum number of iterations.
+    /// @brief The steepest descent factor.
     double factor = 1.0;
   };
-  /// @brief The convergence control for this optimizer.
+  /// @brief The optimizer for the macro iterations.
   NtOptimizerStub optimizer;
   /**
    * @brief @see Scine::Utils::Optimizer::addSettingsDescriptors
    * @param collection The collection to add the descriptors to.
    */
-  virtual void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final;
+  void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final;
 
  private:
   /**
+   * @brief Checks the lhs and rhs list for valid indices
+   *
+   * @throw std::logic_error if invalid index
+   */
+  void sanityCheck(const AtomCollection& atoms) const;
+  /**
+   * @brief Calculates vector from geometric centers of lhs and rhs.
+   *
+   * @param positions The current positions.
+   * @return Displacement The vector from rhs to lhs
+   */
+  Displacement centerToCenterVector(const PositionCollection& positions) const;
+  /**
    * @brief The function evaluating all artificial forces for the given set of atoms.
    *
-   * @param atoms The current atom positions.
+   * @param atoms The current atoms.
    * @param energy The current energy in hartree.
    * @param gradients The gradient to be updated (in a.u).
-   * @return double The norm of the real gradient projected onto the applied forces direction.
+   * @param addForce Add external force.
    */
-  double updateGradients(const AtomCollection& atoms, const double& energy, GradientCollection& gradients) const;
+  void updateGradients(const AtomCollection& atoms, const double& energy, GradientCollection& gradients,
+                       bool addForce = false) const;
+
+  /**
+   * @brief The function determining whether the optimization is converged.
+   *
+   * @param atoms The current atoms.
+   * @return bool whether it is converged
+   */
+  bool convergedOptimization(const AtomCollection& atoms) const;
   /**
    * @brief Extracts the transition state (TS) guess from the generated trajectory.
    * @return PositionCollection The transition state guess.
    */
   PositionCollection extractTsGuess() const;
-  std::vector<double> _norms;
+  /**
+   * @brief The function performing the SD step on the positions.
+   *
+   * @param coordinates The current positions, which are changed in place.
+   * @param atoms The current atoms to perform coordinate transformations.
+   * @param gradients The current gradients for the SD step.
+   */
+  void updateCoordinates(PositionCollection& coordinates, const AtomCollection& atoms, const GradientCollection& gradients) const;
+  // @brief values of macro cycles
+  std::vector<double> _values;
+  // @brief trajectory of macro cycles
   std::vector<PositionCollection> _trajectory;
   Core::Calculator& _calculator;
 };

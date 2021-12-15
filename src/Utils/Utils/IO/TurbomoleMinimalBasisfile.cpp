@@ -42,14 +42,14 @@ struct element_type_ : qi::symbols<char, int> {
       }
     }
   };
-} element_type;
+} const element_type;
 
 // Mapping from spd to angular momentum number
 struct angular_momentum_ : qi::symbols<char, unsigned> {
   angular_momentum_() {
     add("s", 0)("p", 1)("d", 2);
   }
-} angular_momentum;
+} const angular_momentum;
 
 } // namespace symbols
 
@@ -114,13 +114,13 @@ struct ElementAtomicGtoBase {
 } // namespace Utils
 } // namespace Scine
 
-BOOST_FUSION_ADAPT_STRUCT(Scine::Utils::detail::GtfBase, (double, exponent), (double, coefficient));
+BOOST_FUSION_ADAPT_STRUCT(Scine::Utils::detail::GtfBase, (double, exponent), (double, coefficient))
 
 BOOST_FUSION_ADAPT_STRUCT(Scine::Utils::detail::GtoBase, (unsigned, angularMomentum),
-                          (std::vector<Scine::Utils::detail::GtfBase>, gtfs));
+                          (std::vector<Scine::Utils::detail::GtfBase>, gtfs))
 
 BOOST_FUSION_ADAPT_STRUCT(Scine::Utils::detail::ElementAtomicGtoBase, (int, Z),
-                          (std::vector<Scine::Utils::detail::GtoBase>, parts));
+                          (std::vector<Scine::Utils::detail::GtoBase>, parts))
 
 namespace Scine {
 namespace Utils {

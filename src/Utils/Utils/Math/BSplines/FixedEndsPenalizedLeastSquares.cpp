@@ -80,7 +80,7 @@ Eigen::MatrixXd FixedEndsPenalizedLeastSquares::calculateConstantTermsMatrix(con
   return Qmat;
 }
 
-Eigen::MatrixXd FixedEndsPenalizedLeastSquares::calculateFiniteDifferenceMatrix() {
+Eigen::MatrixXd FixedEndsPenalizedLeastSquares::calculateFiniteDifferenceMatrix() const {
   assert(kappa_ <= n_);
   assert(uniformKnotVector_ && "For penalization, the knot vector must be equidistant according to Eilers. The "
                                "equations for non-equidistant knot vectors is not yet implemented.");

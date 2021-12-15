@@ -20,6 +20,24 @@ namespace Utils {
  * @brief An implementation of the BFGS optimization algorithm.
  *
  * The implementation includes an optional GDIIS.
+ *
+ * The initial approximate inverse Hessian matrix in the BFGS (cycle > 1) is build by multiplying the identity matrix I
+ * by dxTdg / dgTdg. This is an attempt to make the size of the first approximate inverse Hessian similar to the real
+ * inverse Hessian. See in:
+ * (2006) Quasi-Newton Methods. In: Numerical Optimization by J. Nocedal, S. J. Wright
+ * [DOI: 10.1007/978-0-387-40065-5_6], https://link.springer.com/chapter/10.1007/978-0-387-40065-5_6
+ *
+ * The implementation includes a damping of the BFGS update. The damping should keep the inverse approximate Hessian
+ * positive definite. The idea origins from Powell (1978), but the implementation is inspired by a slightly modified
+ * version (in the reference called BFGS1, sigma2 is 0.9, sigma3 is 9.0):
+ * Adv. Model. Optim., 2009, 11, 1, 63
+ * https://camo.ici.ro/journal/vol11/v11a5.pdf
+ *
+ * As the algorithm works with the approximate inverse Hessian, the update is performed in the inverse space as well.
+ * The connection is reported in:
+ * arXiv:2006.08877 [cs.LG]
+ * https://arxiv.org/abs/2006.08877
+ *
  */
 class Bfgs : public Optimizer {
  public:
@@ -59,7 +77,7 @@ class Bfgs : public Optimizer {
 
     /* Initialize Hessian inverse if needed */
     if (invH.size() == 0) {
-      invH = 0.1 * Eigen::MatrixXd::Identity(nParams, nParams);
+      invH = 0.5 * Eigen::MatrixXd::Identity(nParams, nParams);
     }
     /* Initialize GDIIS */
     Gdiis diis(invH, gdiisMaxStore);
@@ -69,7 +87,6 @@ class Bfgs : public Optimizer {
     Eigen::VectorXd gradientsOld = Eigen::VectorXd::Zero(nParams);
     /* Set "assumed previous parameters" as parametersOld. */
     Eigen::VectorXd parametersOld(parameters);
-    double oldValue = value;
     /* Get start cycle */
     int cycle = _startCycle;
     function(parameters, value, gradients);
@@ -78,96 +95,117 @@ class Bfgs : public Optimizer {
     check.setParametersAndValue(parameters, value);
     /* start with one steepest descent step */
     Eigen::VectorXd stepVector = -invH * gradients;
+    /* Rotate the (now) old parameter values to the local variables. */
+    parametersOld.noalias() = parameters;
+    /* Rotate the (now) old gradient values to the local variable. */
+    gradientsOld.noalias() = gradients;
+    /* Check trust radius for first SD Step */
+    if (useTrustRadius) {
+      Eigen::VectorXd projectedStep = parameters + stepVector - parametersOld;
+      double maxVal = projectedStep.array().abs().maxCoeff();
+      if (maxVal > trustRadius) {
+        /* Scale step vector to trust radius */
+        stepVector.noalias() = projectedStep * trustRadius / maxVal;
+      }
+    }
+    /* Update the parameters */
+    constrainedAdd(parameters, stepVector);
     bool stop = false;
     while (!stop) {
       cycle++;
-      /* Rotate the (now) old parameter values to the local variables. */
-      parametersOld.noalias() = parameters;
-      /* Rotate the (now) old gradient values to the local variable. */
-      gradientsOld.noalias() = gradients;
-      /* Rotate the (now) old value to the local variable. */
-      oldValue = value;
+      function(parameters, value, gradients);
+      this->triggerObservers(cycle, value, parameters);
 
-      if ((sqrt(gradients.squaredNorm() / gradients.size()) < 0.2) && useGdiis && cycle - _startCycle > gdiisMaxStore) {
-        parameters = diis.update(parameters, gradients);
-        stepVector.noalias() = (parameters - parametersOld);
-        /* Check trust radius */
-        if (useTrustRadius) {
-          double rms = sqrt(stepVector.squaredNorm() / stepVector.size());
-          if (rms > trustRadius) {
-            parameters.noalias() += ((trustRadius / rms) - 1.0) * stepVector;
-          }
-        }
-        function(parameters, value, gradients);
-        this->triggerObservers(cycle, value, parameters);
-      }
-      else {
-        /* Check trust radius */
-        if (useTrustRadius) {
-          double rms = sqrt((stepVector).squaredNorm() / stepVector.size());
-          if (rms > trustRadius) {
-            stepVector *= trustRadius / rms;
-          }
-        }
-        /* Update the parameters */
-        parameters.noalias() += stepVector;
-        /* Update gradients/value and check convergence */
-        function(parameters, value, gradients);
-        this->triggerObservers(cycle, value, parameters);
-        if (useGdiis)
-          diis.store(parameters, gradients);
-      }
-      if (value > oldValue) {
-        /* Backtrack of value rises */
-        parameters.noalias() = parametersOld;
-        gradients.noalias() = gradientsOld;
-        invH = Eigen::MatrixXd::Identity(nParams, nParams);
-        if (useGdiis)
-          diis.flush();
-      }
-
-      stop = check.checkMaxIterations(cycle);
-      if (!stop) {
-        stop = check.checkConvergence(parameters, value, gradients);
-      }
-      if (stop)
+      stop = check.checkMaxIterations(cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
+      if (stop) {
         break;
-      // Check oscillation, perform new calculation if oscillating
-      if (this->isOscillating(value)) {
-        parametersOld.noalias() = parameters;
-        gradientsOld.noalias() = gradients;
-        this->oscillationCorrection(stepVector, parameters);
-        function(parameters, value, gradients);
-        cycle++;
-        this->triggerObservers(cycle, value, parameters);
       }
+
       /* BFGS inverse Hessian update */
       Eigen::VectorXd dx = parameters - parametersOld;
       Eigen::VectorXd dg = gradients - gradientsOld;
-      const double dxTdx = dx.dot(dx);
       double dxTdg = dx.dot(dg);
-      if (fabs(dxTdg) < 1e-9)
+      const double dgTinvHdg = dg.transpose() * invH * dg;
+      /* Set initial inverse Hessian to dxTdg / dgTdg * I */
+      if (cycle == 2) {
+        invH.diagonal() *= 2.0 * dxTdg / dg.dot(dg);
+      }
+
+      /* Powell Update from Al-Baali Gandetti */
+      const double sigma2 = 0.9;
+      const double sigma3 = 9.0;
+      double delta = 1.0;
+
+      if (fabs(dxTdg) < fabs((1.0 - sigma2) * dgTinvHdg)) {
+        delta = sigma2 * dgTinvHdg / (dgTinvHdg - dxTdg);
+      }
+      else if (fabs(dxTdg) > fabs((1.0 + sigma3) * dgTinvHdg)) {
+        delta = -sigma3 * dgTinvHdg / (dgTinvHdg - dxTdg);
+      }
+
+      /* Update dx by dx = delta * dx + (1.0 - delta) * invH * dg */
+      if (delta != 1.0) {
+        dx.noalias() = delta * dx + (1.0 - delta) * invH * dg;
+        dxTdg = dx.dot(dg);
+      }
+      /* Sanity check for dxTdg */
+      if (fabs(dxTdg) < 1e-9) {
         dxTdg = (dxTdg < 0.0) ? -1e-9 : 1e-9;
+      }
+      /* Update inverse approximate Hessian */
       const double alpha = (dxTdg + dg.transpose() * invH * dg) / (dxTdg * dxTdg);
       const double beta = 1.0 / dxTdg;
       invH += alpha * (dx * dx.transpose()) - beta * (invH * dg * dx.transpose() + dx * dg.transpose() * invH);
       if (projection) {
         projection(invH);
       }
+
+      /* Rotate the (now) old parameter values to the local variables. */
+      parametersOld.noalias() = parameters;
+      /* Rotate the (now) old gradient values to the local variable. */
+      gradientsOld.noalias() = gradients;
+      /* Update the parameters */
+      if (useGdiis) {
+        diis.update(parameters, gradients);
+        if (mask.size() > 0) {
+          // Revert constrained parameters to old values
+          parameters = mask.select(parameters, parametersOld);
+        }
+      }
       stepVector.noalias() = -invH * gradients;
+
+      /* Check trust radius */
+      /* Steps will be scaled by trust radius divided by the maximum value in the projected step */
+      if (useTrustRadius) {
+        Eigen::VectorXd projectedStep = parameters + stepVector - parametersOld;
+        double maxVal = projectedStep.array().abs().maxCoeff();
+        if (maxVal > trustRadius) {
+          /* Scale step vector to trust radius */
+          stepVector.noalias() = projectedStep * trustRadius / maxVal;
+          /* Reset parameters back to before gdiis */
+          parameters.noalias() = parametersOld;
+          /* Reset inverse Hessian matrix and the GDIIS */
+          invH.noalias() = Eigen::MatrixXd::Identity(nParams, nParams) * dxTdg / dg.dot(dg);
+          if (useGdiis) {
+            diis.flush();
+          }
+        }
+      }
+      constrainedAdd(parameters, stepVector);
     }
     return cycle;
-  };
+  }
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection
    *        thus expanding it to include the BFGS's options.
    * @param collection The DescriptorCollection to which new fields shall be added.
    */
-  virtual void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
+  void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
     UniversalSettings::BoolDescriptor bfgs_useTrustRadius("Enable the use of a trust radius for all steps.");
     bfgs_useTrustRadius.setDefaultValue(useTrustRadius);
     collection.push_back(Bfgs::bfgsUseTrustRadius, bfgs_useTrustRadius);
     UniversalSettings::DoubleDescriptor bfgs_trustRadius("The maximum size (RMS) of a taken step.");
+    bfgs_trustRadius.setMinimum(0.0);
     bfgs_trustRadius.setDefaultValue(trustRadius);
     collection.push_back(Bfgs::bfgsTrustRadius, bfgs_trustRadius);
     UniversalSettings::BoolDescriptor bfgs_useGdiis(
@@ -175,6 +213,7 @@ class Bfgs : public Optimizer {
     bfgs_useGdiis.setDefaultValue(useGdiis);
     collection.push_back(Bfgs::bfgsUseGdiis, bfgs_useGdiis);
     UniversalSettings::IntDescriptor bfgs_gdiisMaxStore("The maximum number of old steps used in the GDIIS.");
+    bfgs_gdiisMaxStore.setMinimum(0);
     bfgs_gdiisMaxStore.setDefaultValue(gdiisMaxStore);
     collection.push_back(Bfgs::bfgsGdiisMaxStore, bfgs_gdiisMaxStore);
   };
@@ -183,11 +222,15 @@ class Bfgs : public Optimizer {
    * @brief Updates the BFGS's options with those values given in the Settings.
    * @param settings The settings to update the option of the BFGS with.
    */
-  virtual void applySettings(const Settings& settings) final {
+  void applySettings(const Settings& settings) final {
     useTrustRadius = settings.getBool(Bfgs::bfgsUseTrustRadius);
     trustRadius = settings.getDouble(Bfgs::bfgsTrustRadius);
     useGdiis = settings.getBool(Bfgs::bfgsUseGdiis);
     gdiisMaxStore = settings.getInt(Bfgs::bfgsGdiisMaxStore);
+    if (!useTrustRadius && std::fabs(trustRadius - 0.1) > 1e-6) {
+      throw std::logic_error("A trust radius was specified, but the trust radius was not activated. "
+                             "Please also set the setting 'bfgs_use_trust_radius': true, if you specify a radius.");
+    }
   };
   /**
    * @brief Prepares the BFGS optimizer for rerunning its optimize function.
@@ -201,14 +244,13 @@ class Bfgs : public Optimizer {
    *
    * @param cycleNumber The cycle number the optimizer starts with.
    */
-  virtual void prepareRestart(const int& cycleNumber) final {
+  void prepareRestart(const int cycleNumber) final {
     // Set start cycle number
     _startCycle = cycleNumber;
     // Remove inverse Hessian and projection function
     (this->invH).resize(0, 0);
     this->projection = nullptr;
     // Clear value memory for oscillating correction
-    _initializedValueMemory = false;
     _valueMemory.clear();
   };
   /// @brief Enable the use of a trust radius for all steps.

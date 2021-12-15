@@ -99,8 +99,9 @@ inline GradientCollection FullSecondDerivativeCollection::generateGradients(cons
   GradientCollection gc(nAtoms_, 3);
   for (int i = 0; i < nAtoms_; ++i) {
     Eigen::Vector3d v = referenceGradients_.row(i);
-    for (int j = 0; j < nAtoms_; ++j)
+    for (int j = 0; j < nAtoms_; ++j) {
       v += getHessianMatrix().block<3, 3>(3 * i, 3 * j) * displacements.row(j).transpose();
+    }
     gc.row(i) = v;
   }
 

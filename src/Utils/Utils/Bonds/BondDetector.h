@@ -7,6 +7,9 @@
 #ifndef UTILS_BONDDETECTOR_H_
 #define UTILS_BONDDETECTOR_H_
 
+#include "Utils/DataStructures/PeriodicBoundaries.h"
+#include "Utils/Geometry/PeriodicSystem.h"
+#include "Utils/Geometry/Utilities/Distances.h"
 #include "Utils/Typenames.h"
 
 namespace Scine {
@@ -50,6 +53,36 @@ class BondDetector {
    */
   static BondOrderCollection detectBonds(const ElementTypeCollection& elements, const PositionCollection& positions);
   /**
+   * @brief Detect all bonds in a PeriodicSystem.
+   * @param periodicSystem The Periodic System.
+   * @param bondsAcrossBoundariesNegative Whether bonds that are formed across periodic boundaries shall be signalled
+   * via negative bond orders. Note that this is very much specific to the given positions.
+   * @return BondOrderCollection The bonds.
+   */
+  static BondOrderCollection detectBonds(const PeriodicSystem& periodicSystem, bool bondsAcrossBoundariesNegative = false);
+  /**
+   * @brief Detect all bonds in an AtomCollection with periodic boundary conditions.
+   * @param elements The collection of elements.
+   * @param positions  The collection of positions.
+   * @param pbc  The Periodic Boundaries.
+   * @param bondsAcrossBoundariesNegative Whether bonds that are formed across periodic boundaries shall be signalled
+   * via negative bond orders. Note that this is very much specific to the given positions.
+   * @return BondOrderCollection The bonds.
+   */
+  static BondOrderCollection detectBonds(const AtomCollection& atoms, const PeriodicBoundaries& pbc,
+                                         bool bondsAcrossBoundariesNegative = false);
+  /**
+   * @brief Detect all bonds based on elements and positions with periodic boundary conditions.
+   * @param elements The collection of elements.
+   * @param positions  The collection of positions.
+   * @param pbc  The Periodic Boundaries.
+   * @param bondsAcrossBoundariesNegative Whether bonds that are formed across periodic boundaries shall be signalled
+   * via negative bond orders. Note that this is very much specific to the given positions.
+   * @return BondOrderCollection The bonds.
+   */
+  static BondOrderCollection detectBonds(const ElementTypeCollection& elements, const PositionCollection& positions,
+                                         const PeriodicBoundaries& pbc, bool bondsAcrossBoundariesNegative = false);
+  /**
    * @brief Check if a bond exists between two atoms.
    * @param e1 The element of the first atom.
    * @param e2 The element of the second atom.
@@ -59,6 +92,18 @@ class BondDetector {
    * @return false If no bond exists.
    */
   static bool bondExists(const ElementType& e1, const ElementType& e2, const Position& p1, const Position& p2);
+  /**
+   * @brief Check if a bond exists between two atoms with periodic boundary conditions.
+   * @param e1 The element of the first atom.
+   * @param e2 The element of the second atom.
+   * @param p1 The position of the first atom.
+   * @param p2 The position of the second atom.
+   * @param pbc The Periodic Boundaries.
+   * @return true If a bond exists.
+   * @return false If no bond exists.
+   */
+  static bool bondExists(const ElementType& e1, const ElementType& e2, const Position& p1, const Position& p2,
+                         const PeriodicBoundaries& pbc);
 
  private:
   /**

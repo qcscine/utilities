@@ -18,6 +18,21 @@ namespace UniversalSettings {
 /* Forward Declarations */
 class ValueCollection;
 struct ParametrizedOptionValue;
+namespace Detail {
+
+template<typename T, typename Tuple>
+struct TypeInTuple;
+
+template<typename T>
+struct TypeInTuple<T, std::tuple<>> : std::false_type {};
+
+template<typename T, typename U, typename... Ts>
+struct TypeInTuple<T, std::tuple<U, Ts...>> : TypeInTuple<T, std::tuple<Ts...>> {};
+
+template<typename T, typename... Ts>
+struct TypeInTuple<T, std::tuple<T, Ts...>> : std::true_type {};
+
+} // namespace Detail
 
 /*!
  *
@@ -31,16 +46,26 @@ class GenericValue {
   //!@name Types
   //!@{
   using IntList = std::vector<int>;
+  using DoubleList = std::vector<double>;
   using StringList = std::vector<std::string>;
   using CollectionList = std::vector<ValueCollection>;
+  using Types = std::tuple<bool, int, double, std::string, ValueCollection, ParametrizedOptionValue, GenericValue::IntList,
+                           GenericValue::DoubleList, GenericValue::StringList, GenericValue::CollectionList>;
   //!@}
 
   //!@name Special member functions
   //!@{
+  template<typename T, std::enable_if_t<Detail::TypeInTuple<std::decay_t<T>, Types>::value, bool*> = nullptr>
+  GenericValue(T t);
+  GenericValue(const char* str);
   GenericValue(const GenericValue& rhs);
   GenericValue(GenericValue&& rhs) noexcept;
   GenericValue& operator=(const GenericValue& rhs);
   GenericValue& operator=(GenericValue&& rhs) noexcept;
+
+  template<typename T>
+  std::enable_if_t<Detail::TypeInTuple<std::decay_t<T>, Types>::value, GenericValue&> operator=(T&& t);
+  GenericValue& operator=(const char* str);
   ~GenericValue();
   //!@}
 
@@ -54,6 +79,7 @@ class GenericValue {
   static GenericValue fromOptionWithSettings(ParametrizedOptionValue v);
 
   static GenericValue fromIntList(IntList v);
+  static GenericValue fromDoubleList(DoubleList v);
   static GenericValue fromStringList(const StringList& v);
   static GenericValue fromCollectionList(CollectionList v);
   //!@}
@@ -68,6 +94,7 @@ class GenericValue {
   bool isOptionWithSettings() const;
 
   bool isIntList() const;
+  bool isDoubleList() const;
   bool isStringList() const;
   bool isCollectionList() const;
   //!@}
@@ -82,8 +109,29 @@ class GenericValue {
   ParametrizedOptionValue toOptionWithSettings() const;
 
   IntList toIntList() const;
+  DoubleList toDoubleList() const;
   StringList toStringList() const;
   CollectionList toCollectionList() const;
+  //!@}
+
+  //!@name Implicit conversion
+  //!@{
+  template<typename T, std::enable_if_t<Detail::TypeInTuple<std::decay_t<T>, Types>::value, bool*> = nullptr>
+  operator T() const;
+  //!@}
+
+  //!@name Member type comparators
+  //!@{
+  template<typename T>
+  std::enable_if_t<Detail::TypeInTuple<std::decay_t<T>, Types>::value, bool> operator==(const T& other) const;
+
+  template<typename T>
+  std::enable_if_t<Detail::TypeInTuple<std::decay_t<T>, Types>::value, bool> operator!=(const T& other) const {
+    return !(*this == other);
+  }
+
+  bool operator==(const char* str) const;
+  bool operator!=(const char* str) const;
   //!@}
 
  private:
@@ -98,6 +146,9 @@ class GenericValue {
   using ImplPtr = std::unique_ptr<Impl>;
   ImplPtr pimpl_;
 };
+
+bool operator==(const GenericValue& lhs, const GenericValue& rhs);
+bool operator!=(const GenericValue& lhs, const GenericValue& rhs);
 
 } /* namespace UniversalSettings */
 } /* namespace Utils */

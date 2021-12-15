@@ -26,15 +26,22 @@ class ADftd3Calculation_HasCorrectDerivativeOfEnergyWrtDistance_Test;
 } // namespace Tests
 namespace Dftd3 {
 /**
+ * @enum Damping
+ * @brief An enum defining what damping function should be used.
+ */
+enum Damping { BJ, Zero };
+
+/**
  * @class Dftd3 Dftd3.h
- * @brief A class calculating D3 semi-classical dispersion corrections (with BJ damping) for energies and gradients.
+ * @brief A class calculating D3 semi-classical dispersion corrections for energies and gradients. Both the BJ and the
+ *      zero damping functions are available.
  *
  *      This class uses a default constructor. The calculations are initialized by the initialize function.
  *      Simple calculations are done using the calculate function, to which you can pass the required
  *      derivative level.
  *
  * References:
- *      - J. Chem. Phys. 132, 154104, (2010)  (Description of D3)
+ *      - J. Chem. Phys. 132, 154104, (2010)  (Description of D3 with zero damping)
  *      - J. Comput. Chem. 32, 1456, (2011)   (Description of BJ damping function)
  *
  * Developer Info:
@@ -45,15 +52,20 @@ class Dftd3 {
  public:
   /**
    * @brief The initialize function needs to be called before a calculation.
-   *
-   *        The meaning of the three D3 parameters can be found in the aformentioned references.
+   * @param atomCollection The atom collection (molecule) for which the D3 correction should be calculated.
+   * @param s6 The s6 scaling parameter.
+   * @param s8 The s8 scaling parameter.
+   * @param dampingParam1 The first parameter of the damping function (a1 for BJ damping, sr for zero damping).
+   * @param dampingParam2 The second parameter of the damping function (a2 for BJ damping, a for zero damping).
+   * @param damping The damping function that should be used.
    */
-  void initialize(AtomCollection atomCollection, double a1, double s8, double a2);
+  void initialize(const AtomCollection& atomCollection, double s6, double s8, double dampingParam1,
+                  double dampingParam2, Damping damping = BJ);
   /**
    * @brief Getter for the D3 energy.
    * @return double
    */
-  double getEnergy();
+  double getEnergy() const;
   /**
    * @brief Getter for the D3 gradients.
    */
@@ -76,13 +88,13 @@ class Dftd3 {
    * @brief Calculates C6 coefficient for one atom pair.
    * @return double
    */
-  double calculateC6Coefficient(Dftd3Atom atom1, Dftd3Atom atom2);
+  double calculateC6Coefficient(const Dftd3Atom& atom1, const Dftd3Atom& atom2);
   /**
    * @brief Calculates C8 coefficient for one atom pair.
    * @param C6 coefficient for that atom pair.
    * @return double
    */
-  double calculateC8Coefficient(Dftd3Atom atom1, Dftd3Atom atom2, double c6);
+  double calculateC8Coefficient(const Dftd3Atom& atom1, const Dftd3Atom& atom2, double c6);
   /**
    * @brief Getter for the pair cutoff radius R0 for one atom pair.
    * @return double
@@ -97,7 +109,7 @@ class Dftd3 {
    * @brief This function calculates the D3 coordination number (fractional value).
    * @return double
    */
-  double calculateCoordinationNumber(Dftd3Atom atom);
+  double calculateCoordinationNumber(const Dftd3Atom& atom);
 
  private:
   /*
@@ -151,6 +163,70 @@ class Dftd3 {
    */
   double evaluateGradientOfC6WrtCoordNumber(Dftd3Atom& atom1, Dftd3Atom& atom2);
 
+  /*
+   * @brief Evaluation of the BJ damping function.
+   * @param r The distance between the two atoms for which the damping function is evaluated or its derivative w.r.t.
+   * to the nuclear coordinates.
+   * @param r0 Cutoff radius R0 for the two atoms.
+   * @param n The order for which the damping function is evaluated (either 6 or 8).
+   * @return double
+   */
+  template<typename T>
+  T evaluateBjDamping(T r, double r0, int n) {
+    double a1 = parameters_.getA1();
+    double a2 = parameters_.getA2();
+
+    auto r2 = r * r;
+    auto r3 = r * r2;
+    auto r6 = r3 * r3;
+
+    T damping;
+    if (n == 6) {
+      damping = r6 / (r6 + std::pow(a1 * r0 + a2, n));
+    }
+    else if (n == 8) {
+      auto r8 = r6 * r2;
+      damping = r8 / (r8 + std::pow(a1 * r0 + a2, n));
+    }
+    else {
+      throw std::runtime_error("Order not supported");
+    }
+
+    return damping;
+  }
+
+  /*
+   * @brief Evaluation of the zero damping function.
+   * @param r The distance between the two atoms for which the damping function is evaluated or its derivative w.r.t.
+   * to the nuclear coordinates.
+   * @param r0 Cutoff radius R0 for the two atoms.
+   * @param n The order for which the damping function is evaluated (either 6 or 8).
+   * @return double
+   */
+  template<typename T>
+  T evaluateZeroDamping(T r, double r0, int n) {
+    double sr = parameters_.getSr();
+    double a = parameters_.getA();
+
+    auto rn = r;
+    for (int i = 1; i < a; i++) {
+      rn *= r;
+    }
+
+    T damping;
+    if (n == 6) {
+      damping = 1.0 / (1.0 + 6 / rn * std::pow(sr * r0, a));
+    }
+    else if (n == 8) {
+      damping = 1.0 / (1.0 + 6 / rn / r / r * std::pow(r0, (a + 2)));
+    }
+    else {
+      throw std::runtime_error("Order not supported");
+    }
+
+    return damping;
+  }
+
   std::vector<Dftd3Atom> structure_;
   double energy_;
   GradientCollection gradients_;
@@ -168,6 +244,8 @@ class Dftd3 {
   Eigen::MatrixXd C8_;
   // @brief All R0 cutoff radii.
   Eigen::MatrixXd R0_;
+  // @brief The damping function used.
+  Damping damping_;
 };
 
 } // namespace Dftd3

@@ -25,11 +25,20 @@ struct ParametrizedOptionValue {
   ParametrizedOptionValue(std::string option, ValueCollection settings);
   std::string selectedOption;
   ValueCollection optionSettings;
+
+  bool operator==(const ParametrizedOptionValue& other) const {
+    return (selectedOption == other.selectedOption && optionSettings == other.optionSettings);
+  }
+
+  bool operator!=(const ParametrizedOptionValue& other) const {
+    return !(*this == other);
+  }
 };
 
 inline ParametrizedOptionValue::ParametrizedOptionValue(std::string option, ValueCollection settings)
   : selectedOption(std::move(option)), optionSettings(std::move(settings)) {
 }
+
 } /* namespace UniversalSettings */
 } /* namespace Utils */
 } /* namespace Scine */

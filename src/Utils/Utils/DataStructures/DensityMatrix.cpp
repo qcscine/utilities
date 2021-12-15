@@ -17,8 +17,9 @@ void DensityMatrix::setDensity(Matrix&& restrictedMatrix, int nElectrons) {
   alphaOccupation_ = nElectrons / 2.;
   betaOccupation_ = nElectrons / 2.;
 
-  if (unrestricted_)
+  if (unrestricted_) {
     setAlphaAndBetaFromRestrictedDensity();
+  }
 }
 
 void DensityMatrix::setDensity(Matrix&& alphaMatrix, Matrix&& betaMatrix, int nAlphaElectrons, int nBetaElectrons) {
@@ -46,8 +47,9 @@ void DensityMatrix::resize(int nAOs) {
 }
 
 void DensityMatrix::setUnrestricted(bool b) {
-  if (unrestricted_ == b)
+  if (unrestricted_ == b) {
     return;
+  }
 
   if (b) {
     unrestricted_ = true;

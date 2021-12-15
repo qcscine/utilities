@@ -41,6 +41,13 @@ struct ThermochemicalContainer {
     result.zeroPointVibrationalEnergy *= factor;
     return result;
   }
+  bool isApprox(const ThermochemicalContainer& rhs, double epsilon = 1e-12) const {
+    return (std::fabs(this->enthalpy - rhs.enthalpy) < epsilon && std::fabs(this->entropy - rhs.entropy) < epsilon &&
+            std::fabs(this->gibbsFreeEnergy - rhs.gibbsFreeEnergy) < epsilon &&
+            std::fabs(this->zeroPointVibrationalEnergy - rhs.zeroPointVibrationalEnergy) < epsilon &&
+            std::fabs(this->heatCapacityP - rhs.heatCapacityP) < epsilon &&
+            std::fabs(this->heatCapacityV - rhs.heatCapacityV) < epsilon);
+  }
 };
 
 /**
@@ -58,6 +65,13 @@ struct ThermochemicalComponentsContainer {
     result.electronicComponent = this->electronicComponent * factor;
     result.overall = this->overall * factor;
     return result;
+  }
+  bool isApprox(const ThermochemicalComponentsContainer& rhs, double epsilon = 1e-12) const {
+    return (this->overall.isApprox(rhs.overall, epsilon) &&
+            this->electronicComponent.isApprox(rhs.electronicComponent, epsilon) &&
+            this->rotationalComponent.isApprox(rhs.rotationalComponent, epsilon) &&
+            this->translationalComponent.isApprox(rhs.translationalComponent, epsilon) &&
+            this->vibrationalComponent.isApprox(rhs.vibrationalComponent, epsilon));
   }
 };
 
@@ -83,8 +97,10 @@ class ThermochemistryCalculator {
  public:
   explicit ThermochemistryCalculator(ElementTypeCollection elements);
   ThermochemistryCalculator(NormalModesContainer normalModesContainer,
-                            Geometry::PrincipalMomentsOfInertia principalMomentsOfInertia,
-                            ElementTypeCollection elements, int spinMulitplicity, double electronicEnergy);
+                            Geometry::Properties::PrincipalMomentsOfInertia principalMomentsOfInertia,
+                            ElementTypeCollection elements, int spinMultiplicity, double electronicEnergy);
+  ThermochemistryCalculator(const HessianMatrix& hessian, const AtomCollection& atoms, int spinMultiplicity,
+                            double electronicEnergy);
   ThermochemistryCalculator(const HessianMatrix& hessian, ElementTypeCollection elements,
                             const PositionCollection& positions, int spinMultiplicity, double electronicEnergy);
   ~ThermochemistryCalculator() = default;
@@ -120,7 +136,7 @@ class ThermochemistryCalculator {
 
  protected:
   std::vector<double> getWavenumbers() const;
-  Geometry::PrincipalMomentsOfInertia principalMomentsOfInertia_;
+  Geometry::Properties::PrincipalMomentsOfInertia principalMomentsOfInertia_;
   ElementTypeCollection elements_;
   double temperature_{298.15};
   int spinMultiplicity_{1};

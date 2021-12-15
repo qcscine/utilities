@@ -30,15 +30,16 @@ void SinglePointMethod::initializeStructure(const Utils::ElementTypeCollection& 
 
 void SinglePointMethod::initializeStructure(const Utils::ElementTypeCollection& elements,
                                             const Utils::PositionCollection& positions) {
-  assert(positions.rows() == elements.size() &&
+  assert(positions.rows() == static_cast<Eigen::Index>(elements.size()) &&
          "Error: Position vector does not have the same size as the element vector!");
   initializeStructure(elements);
   setPositions(positions);
 }
 
 void SinglePointMethod::setPositions(Utils::PositionCollection positions) {
-  assert(positions.rows() == elementTypes_.size() && "Error: Position vector does not have the same size as the "
-                                                     "element vector! Call initializeStructure(...) first.");
+  assert(positions.rows() == static_cast<Eigen::Index>(elementTypes_.size()) &&
+         "Error: Position vector does not have the same size as the "
+         "element vector! Call initializeStructure(...) first.");
   positions_ = std::move(positions);
 }
 

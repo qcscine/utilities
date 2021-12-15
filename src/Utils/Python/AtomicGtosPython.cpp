@@ -8,31 +8,8 @@
 #include <Utils/DataStructures/AtomicGtos.h>
 #include <Utils/DataStructures/Gtf.h>
 #include <Utils/DataStructures/GtoExpansion.h>
+#include <Utils/Pybind.h>
 #include <pybind11/complex.h>
-#include <pybind11/eigen.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <boost/optional.hpp>
-#include <boost/variant.hpp>
-
-namespace pybind11 {
-/* taking care of boost types */
-namespace detail {
-/* boost::optional */
-template<typename T>
-struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
-/* boost::variant */
-template<typename... Ts>
-struct type_caster<boost::variant<Ts...>> : variant_caster<boost::variant<Ts...>> {};
-template<>
-struct visit_helper<boost::variant> {
-  template<typename... Args>
-  static auto call(Args&&... args) -> decltype(boost::apply_visitor(args...)) {
-    return boost::apply_visitor(args...);
-  }
-};
-} // namespace detail
-} // namespace pybind11
 
 using namespace Scine::Utils;
 

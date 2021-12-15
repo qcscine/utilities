@@ -20,12 +20,29 @@ TEST(BondOrderCollectionTest, Empty) {
   ASSERT_EQ(b.getSystemSize(), size);
   ASSERT_EQ(b.getOrder(0, 0), 0);
   ASSERT_EQ(b.getOrder(0, 1), 0);
+  b.setOrder(0, 0, 0);
+  ASSERT_TRUE(b.empty());
+}
+
+TEST(BondOrderCollectionTest, RangeCheckWorks) {
+  int size = 3;
+  BondOrderCollection b;
+  b.resize(3);
+  ASSERT_EQ(b.getSystemSize(), size);
+  ASSERT_THROW(b.getOrder(4, 0), std::runtime_error);
+  ASSERT_THROW(b.getOrder(2, 10), std::runtime_error);
+  ASSERT_THROW(b.getOrder(-10, 0), std::runtime_error);
+  ASSERT_THROW(b.getOrder(2, -2), std::runtime_error);
+  ASSERT_THROW(b.setOrder(4, 0, 1.0), std::runtime_error);
+  ASSERT_THROW(b.setOrder(2, 10, 1.0), std::runtime_error);
+  ASSERT_THROW(b.setOrder(-10, 0, 1.0), std::runtime_error);
+  ASSERT_THROW(b.setOrder(2, -2, 1.0), std::runtime_error);
 }
 
 TEST(BondOrderCollectionTest, SetZero) {
   int size = 3;
   BondOrderCollection b;
-  b.resize(3);
+  b.resize(size);
   b.setOrder(0, 1, 3.0);
   ASSERT_EQ(b.getOrder(0, 1), 3.0);
   ASSERT_EQ(b.getOrder(1, 0), 3.0);
@@ -35,7 +52,6 @@ TEST(BondOrderCollectionTest, SetZero) {
 }
 
 TEST(BondOrderCollectionTest, SetMatrixAndCompare) {
-  int size = 3;
   BondOrderCollection b1;
   BondOrderCollection b2;
   BondOrderCollection b3;
@@ -73,6 +89,18 @@ TEST(BondOrderCollectionTest, SizeTwo) {
   b.setOrder(0, 1, 1);
   ASSERT_EQ(b.getOrder(0, 1), 1);
   ASSERT_EQ(b.getOrder(1, 0), 1);
+}
+
+TEST(BondOrderCollectionTest, AbsoluteValues) {
+  BondOrderCollection b;
+  b.resize(3);
+  b.setOrder(0, 1, -1);
+  b.setOrder(0, 2, 1);
+  ASSERT_EQ(b.getOrder(0, 1), -1);
+  ASSERT_EQ(b.getOrder(0, 2), 1);
+  b.setToAbsoluteValues();
+  ASSERT_EQ(b.getOrder(0, 1), 1);
+  ASSERT_EQ(b.getOrder(0, 2), 1);
 }
 
 } /* namespace Tests */

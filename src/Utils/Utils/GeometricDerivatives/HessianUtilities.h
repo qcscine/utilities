@@ -25,12 +25,13 @@ namespace Utils {
  *        of transformed versions.
  * @param hessian Hessian in cartesian coordinates (not mass-weighted, also not if massWeighted is set to true)
  * @param massWeighted If supposed to yield mass-weighted results set to true
- *                     This results into all getter functions returning mass weighted properties
  */
 class HessianUtilities {
  public:
   HessianUtilities(const Eigen::MatrixXd& hessian, const ElementTypeCollection& elements,
                    const PositionCollection& positions, bool massWeighted);
+  HessianUtilities(const Eigen::MatrixXd& hessian, const ElementTypeCollection& elements,
+                   const PositionCollection& positions, const GradientCollection& gradient, bool massWeighted);
   /**
    * @brief Brief signals that the referenced Hessian has changed and deletes cached data.
    */
@@ -62,7 +63,8 @@ class HessianUtilities {
    */
   const Eigen::MatrixXd& getInternalEigenvectors();
   /**
-   * @brief Get the back-transformed internal eigenvectors without rotation and translation modes.
+   * @brief Get the back-transformed internal eigenvectors without rotation and translation modes in cartesian
+   * coordinates.
    *
    * @return Eigen::MatrixXd
    */
@@ -77,11 +79,12 @@ class HessianUtilities {
   bool _massWeighted;
   std::reference_wrapper<const Eigen::MatrixXd> _hessian;
   const ElementTypeCollection& _elements;
-  const PositionCollection& _positions;
   // Cached transformation
   Eigen::MatrixXd _transformation;
   // Calculates the lazy part of the cached data
   void calculateInternal();
+  // Optional gradient member
+  std::unique_ptr<GradientCollection> _gradient;
   // Internal lazy cache
   std::unique_ptr<Eigen::VectorXd> _internalEValues;
   std::unique_ptr<Eigen::MatrixXd> _internalEVectors;

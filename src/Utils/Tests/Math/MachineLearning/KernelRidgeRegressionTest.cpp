@@ -67,7 +67,7 @@ class AKernelRidgeRegressionTest : public Test {
     nonlinearDataTargets.resize(10, 2);
     for (int j = 0; j < 10; ++j) {
       auto x = nonlinearDataFeatures(j, 0);
-      nonlinearDataTargets(j, 0) = x - 2 * pow(x, 3) * cos(x);
+      nonlinearDataTargets(j, 0) = x - 2 * std::pow(x, 3) * std::cos(x);
       nonlinearDataTargets(j, 1) = x * x;
     }
   }

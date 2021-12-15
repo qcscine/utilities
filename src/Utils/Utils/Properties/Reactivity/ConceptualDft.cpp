@@ -9,7 +9,6 @@
 
 namespace Scine {
 namespace Utils {
-
 namespace ConceptualDft {
 
 ConceptualDftContainer calculate(const double energy, const Eigen::VectorXd& atomicCharges, const double energyPlus,
@@ -22,7 +21,7 @@ ConceptualDftContainer calculate(const double energy, const Eigen::VectorXd& ato
   container.local = calculateLocal(atomicCharges, atomicChargesPlus, atomicChargesMinus);
 
   return container;
-};
+}
 
 GlobalConceptualDftContainer calculateGlobal(const double energy, const double energyPlus, const double energyMinus) {
   GlobalConceptualDftContainer container;
@@ -33,7 +32,7 @@ GlobalConceptualDftContainer calculateGlobal(const double energy, const double e
   container.electrophilicity = calculateElectrophilicity(energy, energyPlus, energyMinus);
 
   return container;
-};
+}
 
 LocalConceptualDftContainer calculateLocal(const Eigen::VectorXd& atomicCharges, const Eigen::VectorXd& atomicChargesPlus,
                                            const Eigen::VectorXd& atomicChargesMinus) {
@@ -46,51 +45,51 @@ LocalConceptualDftContainer calculateLocal(const Eigen::VectorXd& atomicCharges,
   return container;
 }
 
-double calculateChemicalPotential(const double energy, const double energyPlus, const double energyMinus) {
+double calculateChemicalPotential(const double /*energy*/, const double energyPlus, const double energyMinus) {
   return (energyPlus - energyMinus) / 2;
-};
+}
 
-double calculateElectronegativity(const double energy, const double energyPlus, const double energyMinus) {
+double calculateElectronegativity(const double /*energy*/, const double energyPlus, const double energyMinus) {
   return (energyMinus - energyPlus) / 2;
-};
+}
 
 double calculateHardness(const double energy, const double energyPlus, const double energyMinus) {
   return (energyMinus + energyPlus - 2 * energy);
-};
+}
 
 double calculateSoftness(const double energy, const double energyPlus, const double energyMinus) {
   return 1 / (energyMinus + energyPlus - 2 * energy);
-};
+}
 
 double calculateElectrophilicity(const double energy, const double energyPlus, const double energyMinus) {
   double chemicalPotential = calculateChemicalPotential(energy, energyPlus, energyMinus);
   double hardness = calculateHardness(energy, energyPlus, energyMinus);
   return chemicalPotential * chemicalPotential / (2 * hardness);
-};
+}
 
 Eigen::VectorXd calculateFukuiPlus(const Eigen::VectorXd& atomicCharges, const Eigen::VectorXd& atomicChargesPlus,
-                                   const Eigen::VectorXd& atomicChargesMinus) {
+                                   const Eigen::VectorXd& /*atomicChargesMinus*/) {
   Eigen::VectorXd fukuiPlus = atomicCharges - atomicChargesPlus;
   return fukuiPlus;
-};
+}
 
-Eigen::VectorXd calculateFukuiMinus(const Eigen::VectorXd& atomicCharges, const Eigen::VectorXd& atomicChargesPlus,
+Eigen::VectorXd calculateFukuiMinus(const Eigen::VectorXd& atomicCharges, const Eigen::VectorXd& /*atomicChargesPlus*/,
                                     const Eigen::VectorXd& atomicChargesMinus) {
   Eigen::VectorXd fukuiMinus = atomicChargesMinus - atomicCharges;
   return fukuiMinus;
-};
+}
 
-Eigen::VectorXd calculateFukuiRadical(const Eigen::VectorXd& atomicCharges, const Eigen::VectorXd& atomicChargesPlus,
+Eigen::VectorXd calculateFukuiRadical(const Eigen::VectorXd& /*atomicCharges*/, const Eigen::VectorXd& atomicChargesPlus,
                                       const Eigen::VectorXd& atomicChargesMinus) {
   Eigen::VectorXd fukuiRadical = (atomicChargesMinus - atomicChargesPlus) / 2;
   return fukuiRadical;
-};
+}
 
 Eigen::VectorXd calculateDualDescriptor(const Eigen::VectorXd& atomicCharges, const Eigen::VectorXd& atomicChargesPlus,
                                         const Eigen::VectorXd& atomicChargesMinus) {
   Eigen::VectorXd dualDescriptor = 2 * atomicCharges - atomicChargesPlus - atomicChargesMinus;
   return dualDescriptor;
-};
+}
 
 } // namespace ConceptualDft
 } // namespace Utils

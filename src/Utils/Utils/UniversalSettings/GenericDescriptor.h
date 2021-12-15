@@ -10,6 +10,7 @@
 #include "Utils/UniversalSettings/BoolDescriptor.h"
 #include "Utils/UniversalSettings/DirectoryDescriptor.h"
 #include "Utils/UniversalSettings/DoubleDescriptor.h"
+#include "Utils/UniversalSettings/DoubleListDescriptor.h"
 #include "Utils/UniversalSettings/FileDescriptor.h"
 #include "Utils/UniversalSettings/IntDescriptor.h"
 #include "Utils/UniversalSettings/IntListDescriptor.h"
@@ -27,19 +28,6 @@ class DescriptorCollection;
 class ParametrizedOptionListDescriptor;
 class CollectionListDescriptor;
 class GenericValue;
-
-/* TODO(sobezj)
- * - Discuss cleaning up the implementation with a few template functions
- *   instead of all the tiny functions. It's not possible to typeid your way
- *   to which SettingsDescriptor is actually contained in the pointer. In order
- *   to avoid the trial-casting, one could make SettingsDescriptors carry a Type
- *   function that reveals their derived type again.
- * - Find an alternate implementation of getType() and/or a way to remove the
- *   Type enum, perhaps along the lines of a function like
- *
- *   template<typename T>
- *   bool is() const;
- */
 
 /*!
  * @brief Wrapper around SettingDescriptor that hides the setting type.
@@ -61,6 +49,7 @@ class GenericDescriptor {
     SettingCollection,
     ParametrizedOptionList,
     IntList,
+    DoubleList,
     StringList,
     CollectionList
   };
@@ -80,7 +69,7 @@ class GenericDescriptor {
   //! Fetches the string describing what the setting descriptor is for
   const std::string& getPropertyDescription() const;
   //! Fetches a type-erased representation of the setting descriptor's default value
-  const GenericValue getDefaultValue() const;
+  GenericValue getDefaultValue() const;
 
   //!@name Specific constructors from SettingDescriptor-derived instances
   //!@{
@@ -94,6 +83,7 @@ class GenericDescriptor {
   GenericDescriptor(DescriptorCollection d);
   GenericDescriptor(ParametrizedOptionListDescriptor d);
   GenericDescriptor(IntListDescriptor d);
+  GenericDescriptor(DoubleListDescriptor d);
   GenericDescriptor(StringListDescriptor d);
   GenericDescriptor(CollectionListDescriptor d);
   //!@}
@@ -110,6 +100,7 @@ class GenericDescriptor {
   bool relatesToSettingCollection() const;
   bool relatesToParametrizedOptionList() const;
   bool relatesToIntList() const;
+  bool relatesToDoubleList() const;
   bool relatesToStringList() const;
   bool relatesToCollectionList() const;
   //!@}
@@ -127,8 +118,38 @@ class GenericDescriptor {
   const DescriptorCollection& getSettingCollectionDescriptor() const;
   const ParametrizedOptionListDescriptor& getParametrizedOptionListDescriptor() const;
   const IntListDescriptor& getIntListDescriptor() const;
+  const DoubleListDescriptor& getDoubleListDescriptor() const;
   const StringListDescriptor& getStringListDescriptor() const;
   const CollectionListDescriptor& getCollectionListDescriptor() const;
+  //!@}
+
+  //!@name General interface
+  //!@{
+  template<typename T>
+  bool is() const {
+    // do pointer casting to avoid exceptions
+    return dynamic_cast<T*>(descriptor_.get()) != nullptr;
+  }
+
+  template<typename T>
+  T& get() {
+    try {
+      return dynamic_cast<T&>(*descriptor_);
+    }
+    catch (...) {
+      throw InvalidDescriptorConversionException(*descriptor_);
+    }
+  }
+
+  template<typename T>
+  const T& get() const {
+    try {
+      return dynamic_cast<const T&>(*descriptor_);
+    }
+    catch (...) {
+      throw InvalidDescriptorConversionException(*descriptor_);
+    }
+  }
   //!@}
 
  private:

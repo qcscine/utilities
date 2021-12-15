@@ -23,19 +23,20 @@ DensityMatrix DensityMatrixGenerator::generate(const ElectronicOccupation& occup
   assert(molecularOrbitals.isValid());
   DensityMatrixBuilder builder(molecularOrbitals);
   if (occupation.isUnrestricted()) {
-    if (occupation.isFilledUpFromTheBottom())
+    if (occupation.isFilledUpFromTheBottom()) {
       return builder.generateUnrestrictedForNumberAlphaAndBetaElectrons(occupation.numberAlphaElectrons(),
                                                                         occupation.numberBetaElectrons());
-    else
-      return builder.generateUnrestrictedForSpecifiedOrbitals(occupation.getFilledAlphaOrbitals(),
-                                                              occupation.getFilledBetaOrbitals());
+    }
+
+    return builder.generateUnrestrictedForSpecifiedOrbitals(occupation.getFilledAlphaOrbitals(),
+                                                            occupation.getFilledBetaOrbitals());
   }
-  else {
-    if (occupation.isFilledUpFromTheBottom())
-      return builder.generateRestrictedForNumberElectrons(occupation.numberRestrictedElectrons());
-    else
-      return builder.generateRestrictedForSpecifiedOrbitals(occupation.getFilledRestrictedOrbitals());
+
+  if (occupation.isFilledUpFromTheBottom()) {
+    return builder.generateRestrictedForNumberElectrons(occupation.numberRestrictedElectrons());
   }
+
+  return builder.generateRestrictedForSpecifiedOrbitals(occupation.getFilledRestrictedOrbitals());
 }
 
 Eigen::MatrixXd DensityMatrixGenerator::generateEnergyWeighted(const ElectronicOccupation& occupation,
@@ -44,19 +45,20 @@ Eigen::MatrixXd DensityMatrixGenerator::generateEnergyWeighted(const ElectronicO
   assert(molecularOrbitals.isValid());
   EnergyWeightedDensityMatrixBuilder builder(molecularOrbitals, orbitalEnergies);
   if (occupation.isUnrestricted()) {
-    if (occupation.isFilledUpFromTheBottom())
+    if (occupation.isFilledUpFromTheBottom()) {
       return builder.generateUnrestrictedForNumberAlphaAndBetaElectrons(occupation.numberAlphaElectrons(),
                                                                         occupation.numberBetaElectrons());
-    else
-      return builder.generateUnrestrictedForSpecifiedOrbitals(occupation.getFilledAlphaOrbitals(),
-                                                              occupation.getFilledBetaOrbitals());
+    }
+
+    return builder.generateUnrestrictedForSpecifiedOrbitals(occupation.getFilledAlphaOrbitals(),
+                                                            occupation.getFilledBetaOrbitals());
   }
-  else {
-    if (occupation.isFilledUpFromTheBottom())
-      return builder.generateRestrictedForNumberElectrons(occupation.numberRestrictedElectrons());
-    else
-      return builder.generateRestrictedForSpecifiedOrbitals(occupation.getFilledRestrictedOrbitals());
+
+  if (occupation.isFilledUpFromTheBottom()) {
+    return builder.generateRestrictedForNumberElectrons(occupation.numberRestrictedElectrons());
   }
+
+  return builder.generateRestrictedForSpecifiedOrbitals(occupation.getFilledRestrictedOrbitals());
 }
 
 } // namespace LcaoUtils

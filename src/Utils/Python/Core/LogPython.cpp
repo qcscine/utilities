@@ -4,6 +4,7 @@
  *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
+#include <Core/BaseClasses/ObjectWithLog.h>
 #include <Core/Log.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -11,7 +12,7 @@
 
 using namespace Scine::Core;
 
-namespace detail {
+namespace {
 
 /* Need to make a wrapper class because otherwise pybind would need to manage
  * std::ostream smart pointers, and it's probably best to avoid that
@@ -38,10 +39,10 @@ void lazy(Log::Domain& domain, std::function<std::string()> fn) {
   domain.lazy(fn);
 }
 
-} // namespace detail
+} // namespace
 
 void init_log(pybind11::module& m) {
-  pybind11::class_<detail::Sink> sink(m, "Sink", "Abstract object into which logging information can be sunk");
+  pybind11::class_<Sink> sink(m, "Sink", "Abstract object into which logging information can be sunk");
 
   pybind11::class_<Log, std::shared_ptr<Log>> logger(m, "Log");
   logger.doc() = R"(
@@ -76,24 +77,24 @@ void init_log(pybind11::module& m) {
   logger.def(pybind11::init<>(), "Default initialize");
 
   logger.def_static(
-      "file_sink", [](const std::string& filename) { return detail::Sink(filename); }, "Creates a file sink");
+      "file_sink", [](const std::string& filename) { return Sink(filename); }, "Creates a file sink");
   logger.def_static(
-      "cout_sink", []() { return detail::Sink(detail::Sink::cout_tag{}); }, "Creates a sink to cout");
+      "cout_sink", []() { return Sink(Sink::cout_tag{}); }, "Creates a sink to cout");
   logger.def_static(
-      "cerr_sink", []() { return detail::Sink(detail::Sink::cerr_tag{}); }, "Creates a sink to cerr");
+      "cerr_sink", []() { return Sink(Sink::cerr_tag{}); }, "Creates a sink to cerr");
 
   logger.def_static("silent", &Log::silent, "Returns a silent log (i.e. all of its domains have no sinks)");
 
   pybind11::class_<Log::Domain> domain(logger, "Domain");
   domain.def(pybind11::init<>(), "Default initialize");
-  domain.def("add", &detail::addSink, "Adds a named sink to the domain");
+  domain.def("add", &addSink, "Adds a named sink to the domain");
   domain.def(
       "remove", [](Log::Domain& domain, const std::string& name) -> void { domain.remove(name); },
       "Removes a named sink from the domain.");
   domain.def("clear", &Log::Domain::clear, "Removes all sink from the domain");
   domain.def("has_sinks", &Log::Domain::operator bool);
   domain.def("line", &Log::Domain::line, "Write a line to all sinks");
-  domain.def("lazy", &detail::lazy, "Calls a string composing function and sinks its output only if the log has sinks");
+  domain.def("lazy", &lazy, "Calls a string composing function and sinks its output only if the log has sinks");
 
   logger.def_readwrite("debug", &Log::debug, "Access the log's debug domain");
   logger.def_readwrite("warning", &Log::warning, "Access the log's warning domain");

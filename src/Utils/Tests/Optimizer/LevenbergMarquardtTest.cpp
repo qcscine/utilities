@@ -31,7 +31,7 @@ class UpdateFunctionMock : public UpdateFunctionManagerBase {
  private:
   // f(x) = ax^3 + bx^2 + cx + d
   double func(const Eigen::VectorXd& parameters, double x) {
-    return parameters(0) * pow(x, 3) + parameters(1) * pow(x, 2) + parameters(2) * x + parameters(3);
+    return parameters(0) * std::pow(x, 3) + parameters(1) * std::pow(x, 2) + parameters(2) * x + parameters(3);
   }
   const Eigen::VectorXd& xValues_;
   const Eigen::VectorXd& yValues_;

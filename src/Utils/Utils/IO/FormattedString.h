@@ -7,7 +7,7 @@
 #ifndef UTILS_FORMATTEDSTRING_H_
 #define UTILS_FORMATTEDSTRING_H_
 
-#include <stdio.h>
+#include <cstdio>
 #include <memory>
 #include <string>
 

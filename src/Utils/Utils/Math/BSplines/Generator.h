@@ -22,14 +22,14 @@ namespace BSplines {
  */
 class Generator {
  public:
-  Generator(const Eigen::Ref<const Eigen::MatrixXd>& dataPoints, int splineDegree);
-  Generator(const Eigen::Ref<const Eigen::MatrixXd>& dataPoints, int numberOfControlPoints, int splineDegree);
+  Generator(const Eigen::MatrixXd& dataPoints, int splineDegree);
+  Generator(const Eigen::MatrixXd& dataPoints, int numberOfControlPoints, int splineDegree);
   virtual ~Generator() = default;
 
   BSpline generateBSpline();
 
  protected:
-  const Eigen::Ref<const Eigen::MatrixXd>& dataPoints_;
+  const Eigen::MatrixXd& dataPoints_;
   int p_, dim_, m_, n_;
   Eigen::VectorXd U_, uBar_;
   Eigen::MatrixXd controlPoints_;

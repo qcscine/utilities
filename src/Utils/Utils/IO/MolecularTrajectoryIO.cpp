@@ -20,22 +20,27 @@ namespace Utils {
 void MolecularTrajectoryIO::write(format f, const std::string& fileName, const MolecularTrajectory& m) {
   ofstream fout;
 
-  if (f == format::binary)
+  if (f == format::binary) {
     fout.open(fileName, ios_base::out | ios_base::trunc | ios_base::binary);
-  else
+  }
+  else {
     fout.open(fileName);
+  }
 
-  if (!fout.is_open())
+  if (!fout.is_open()) {
     throw std::runtime_error("Problem when opening/creating file " + fileName);
+  }
 
   return write(f, fout, m);
 }
 
 void MolecularTrajectoryIO::write(format f, std::ostream& out, const MolecularTrajectory& m) {
-  if (f == format::binary)
+  if (f == format::binary) {
     writeBinary(out, m);
-  else if (f == format::xyz)
+  }
+  else if (f == format::xyz) {
     writeXYZ(out, m);
+  }
 }
 
 void MolecularTrajectoryIO::writeBinary(std::ostream& out, const MolecularTrajectory& m) {
@@ -61,7 +66,7 @@ void MolecularTrajectoryIO::writeBinary(std::ostream& out, const MolecularTrajec
   }
 
   // Coordinates
-  for (auto& s : m) {
+  for (const auto& s : m) {
     for (int i = 0; i < s.rows(); i++) {
       out.write(reinterpret_cast<const char*>(s.row(i).data()), 3 * sizeof(s(i, 0))); // NOLINT
     }
@@ -89,10 +94,12 @@ void MolecularTrajectoryIO::writeXYZLine(std::ostream& out, ElementType e, const
 MolecularTrajectory MolecularTrajectoryIO::read(MolecularTrajectoryIO::format f, const std::string& fileName) {
   ifstream fin;
 
-  if (f == format::binary)
+  if (f == format::binary) {
     fin.open(fileName, ios_base::in | ios_base::binary);
-  else
+  }
+  else {
     fin.open(fileName);
+  }
 
   if (!fin.is_open()) {
     throw std::runtime_error("Problem when opening file " + fileName);
@@ -102,10 +109,12 @@ MolecularTrajectory MolecularTrajectoryIO::read(MolecularTrajectoryIO::format f,
 }
 
 MolecularTrajectory MolecularTrajectoryIO::read(MolecularTrajectoryIO::format f, std::istream& in) {
-  if (f == format::binary)
+  if (f == format::binary) {
     return readBinary(in);
-  if (f == format::xyz)
+  }
+  if (f == format::xyz) {
     return readXYZ(in);
+  }
 
   throw std::runtime_error("Unsupported format to read MolecularTrajectory from");
 }
@@ -155,8 +164,9 @@ MolecularTrajectory MolecularTrajectoryIO::readXYZ(std::istream& in) {
   while (!in.eof()) {
     int nAtoms;
     in >> nAtoms;
-    if (in.eof())
+    if (in.eof()) {
       break;
+    }
 
     std::string unnecessaryLine;
     getline(in, unnecessaryLine);

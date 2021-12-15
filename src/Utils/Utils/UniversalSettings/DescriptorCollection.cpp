@@ -91,12 +91,8 @@ const GenericDescriptor& DescriptorCollection::get(const std::string& key) const
 }
 
 bool DescriptorCollection::exists(const std::string& key) const {
-  for (const auto& descriptor : descriptors_) {
-    if (descriptor.first == key) {
-      return true;
-    }
-  }
-  return false;
+  return std::any_of(std::begin(descriptors_), std::end(descriptors_),
+                     [&](const auto& descriptor) { return descriptor.first == key; });
 }
 
 bool DescriptorCollection::validValue(const ValueCollection& v) const {
@@ -107,21 +103,16 @@ bool DescriptorCollection::validValue(const ValueCollection& v) const {
     }
   }
 
-  for (const auto& kvPair : descriptors_) {
+  return std::all_of(std::begin(descriptors_), std::end(descriptors_), [&](const auto& kvPair) {
     const auto& key = kvPair.first;
 
     if (!v.valueExists(key)) {
       return false;
     }
 
-    const auto& genericDescriptor = kvPair.second;
-    const auto& descriptor = genericDescriptor.getDescriptor();
-    if (!descriptor.validValue(v.getValue(key))) {
-      return false;
-    }
-  }
-
-  return true;
+    const auto& descriptor = kvPair.second.getDescriptor();
+    return descriptor.validValue(v.getValue(key));
+  });
 }
 
 bool DescriptorCollection::validValue(const GenericValue& v) const {
@@ -130,6 +121,59 @@ bool DescriptorCollection::validValue(const GenericValue& v) const {
   }
 
   return validValue(v.toCollection());
+}
+
+std::map<std::string, std::string> DescriptorCollection::gatherInvalidExplanations(const GenericValue& v) const {
+  if (!v.isCollection()) {
+    std::map<std::string, std::string> result;
+    result.insert(std::make_pair("", "Given GenericValue to descriptor collection " + getPropertyDescription() +
+                                         " is not a collection"));
+    return result;
+  }
+  return gatherInvalidExplanations(v.toCollection());
+}
+
+std::map<std::string, std::string> DescriptorCollection::gatherInvalidExplanations(const ValueCollection& v) const {
+  assert(!validValue(v));
+  std::map<std::string, std::string> explanations;
+  for (const auto& key : v.getKeys()) {
+    if (!exists(key)) {
+      explanations.insert(std::make_pair(key, "Key does not exist."));
+    }
+  }
+  for (const auto& kvPair : descriptors_) {
+    const auto& key = kvPair.first;
+    if (!v.valueExists(key)) {
+      explanations.insert(std::make_pair(key, "Value does not exist."));
+    }
+    const auto& descriptor = kvPair.second.getDescriptor();
+    if (!descriptor.validValue(v.getValue(key))) {
+      auto explanation = descriptor.explainInvalidValue(v.getValue(key));
+      explanations.insert(std::make_pair(key, explanation));
+    }
+  }
+  return explanations;
+}
+
+std::string DescriptorCollection::explainInvalidValue(const GenericValue& v) const {
+  assert(!validValue(v));
+  if (!v.isCollection()) {
+    return "Generic value for descriptor collection setting '" + getPropertyDescription() + "' is not a collection!";
+  }
+  return explainInvalidValue(v.toCollection());
+}
+
+std::string DescriptorCollection::explainInvalidValue(const ValueCollection& v) const {
+  assert(!validValue(v));
+  return invalidSettingsMapToString(gatherInvalidExplanations(v));
+}
+
+std::string invalidSettingsMapToString(const std::map<std::string, std::string>& invalidSettings) {
+  std::string message = "The settings are invalid. The following keys contain a problem:\n";
+  for (const auto& pair : invalidSettings) {
+    message += pair.first + " : " + pair.second + "\n";
+  }
+  return message;
 }
 
 ValueCollection createDefaultValueCollection(const DescriptorCollection& descriptors) {

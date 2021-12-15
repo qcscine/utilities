@@ -70,6 +70,10 @@ class BondOrderCollection {
     bondOrderMatrix_.setZero();
     bondOrderMatrix_.data().squeeze();
   }
+  /// @brief Set all bond orders to their absolute value.
+  void setToAbsoluteValues() {
+    bondOrderMatrix_ = bondOrderMatrix_.cwiseAbs();
+  }
   /**
    * @brief Get the system size.
    * @tparam Index The type of the index desired. Defaults to integer
@@ -78,9 +82,14 @@ class BondOrderCollection {
   template<typename Index = int>
   Index getSystemSize() const {
     auto size = bondOrderMatrix_.cols();
-    assert(std::numeric_limits<Index>::max() >= size && "Requested matrix size type cannot fit system size");
+#ifndef NDEBUG
+    using Common = std::common_type_t<Eigen::Index, Index>;
+    assert(static_cast<Common>(std::numeric_limits<Index>::max()) >= static_cast<Common>(size) &&
+           "Requested matrix size type cannot fit system size");
+#endif
     return static_cast<Index>(size);
   }
+
   /**
    * @brief Set the bond order
    *
@@ -93,8 +102,12 @@ class BondOrderCollection {
    */
   template<typename Index>
   void setOrder(Index i, Index j, double order) {
+    rangeCheck(i, j);
     bondOrderMatrix_.coeffRef(i, j) = order;
     bondOrderMatrix_.coeffRef(j, i) = order;
+    if (std::fabs(order) < 1e-12) {
+      bondOrderMatrix_.prune(0.0); // gets rid of zero entry to avoid wrong empty() evaluation
+    }
   }
   /**
    * @brief Get the Order object
@@ -105,6 +118,7 @@ class BondOrderCollection {
    */
   template<typename Index>
   double getOrder(Index i, Index j) const {
+    rangeCheck(i, j);
     return bondOrderMatrix_.coeff(i, j);
   }
 
@@ -129,6 +143,20 @@ class BondOrderCollection {
 
  private:
   Eigen::SparseMatrix<double> bondOrderMatrix_;
+
+  template<typename Index>
+  inline void rangeCheck(Index i, Index j) const {
+    if (i >= getSystemSize<Index>()) {
+      throw std::runtime_error("The given index " + std::to_string(i) + " is too big for this BondOrderCollection.");
+    }
+    if (j >= getSystemSize<Index>()) {
+      throw std::runtime_error("The given index " + std::to_string(j) + " is too big for this BondOrderCollection.");
+    }
+    if (i < 0 || j < 0) {
+      throw std::runtime_error(
+          "It is not possible to access an element of a BondOrderCollection with a negative index.");
+    }
+  }
 };
 
 } /* namespace Utils */

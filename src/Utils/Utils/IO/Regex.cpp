@@ -35,6 +35,14 @@ std::string capturingIntegerNumber() {
   return addCaptureParenthesis(integerNumber());
 }
 
+std::string elementSymbol() {
+  return R"([A-Z][a-z]?)";
+}
+
+std::string capturingElementSymbol() {
+  return addCaptureParenthesis(elementSymbol());
+}
+
 std::string addCaptureParenthesis(const std::string& s) {
   return "(" + s + ")";
 }

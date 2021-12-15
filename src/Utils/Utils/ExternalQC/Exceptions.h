@@ -65,6 +65,19 @@ class OutputFileParsingError : public Exception {
   }
 };
 
+/**
+ * @class ScfNotConvergedError Exceptions.h
+ * @brief Exception thrown for unconverged SCF.
+ */
+class ScfNotConvergedError : public Exception {
+ public:
+  /**
+   * @brief Constructor.
+   */
+  explicit ScfNotConvergedError(const std::string& s) : Exception(s) {
+  }
+};
+
 } // namespace ExternalQC
 } // namespace Utils
 } // namespace Scine

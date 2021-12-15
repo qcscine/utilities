@@ -22,21 +22,21 @@ namespace Utils {
 namespace Tests {
 
 auto const gradientTestFunction = [](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
-  value = -cos(parameters[0]) - 0.5 * cos(parameters[1]);
-  gradients[0] = sin(parameters[0]);
-  gradients[1] = 0.5 * sin(parameters[1]);
+  value = -std::cos(parameters[0]) - 0.5 * std::cos(parameters[1]);
+  gradients[0] = std::sin(parameters[0]);
+  gradients[1] = 0.5 * std::sin(parameters[1]);
 };
 
 auto const optionalHessianTestFunction = [](const Eigen::VectorXd& parameters, double& value,
                                             Eigen::VectorXd& gradients, Eigen::MatrixXd& hessian, bool hessianUpdate) {
-  value = -cos(parameters[0]) - 0.5 * cos(parameters[1]);
-  gradients[0] = sin(parameters[0]);
-  gradients[1] = 0.5 * sin(parameters[1]);
+  value = -std::cos(parameters[0]) - 0.5 * std::cos(parameters[1]);
+  gradients[0] = std::sin(parameters[0]);
+  gradients[1] = 0.5 * std::sin(parameters[1]);
   if (hessianUpdate) {
-    hessian(0, 0) = cos(parameters[0]);
+    hessian(0, 0) = std::cos(parameters[0]);
     hessian(0, 1) = 0.0;
     hessian(1, 0) = 0.0;
-    hessian(1, 1) = 0.5 * cos(parameters[1]);
+    hessian(1, 1) = 0.5 * std::cos(parameters[1]);
   }
 };
 
@@ -62,29 +62,31 @@ auto const shang19HessianTestFunction = [](const Eigen::VectorXd& parameters, do
 };
 
 auto const sinSumGradientTestFunction = [](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
-  value = sin(parameters[0]) + sin(parameters[1]) + sin(parameters[2]) + sin(parameters[3]) + sin(parameters[4]);
-  gradients[0] = cos(parameters[0]);
-  gradients[1] = cos(parameters[1]);
-  gradients[2] = cos(parameters[2]);
-  gradients[3] = cos(parameters[3]);
-  gradients[4] = cos(parameters[4]);
+  value = std::sin(parameters[0]) + std::sin(parameters[1]) + std::sin(parameters[2]) + std::sin(parameters[3]) +
+          std::sin(parameters[4]);
+  gradients[0] = std::cos(parameters[0]);
+  gradients[1] = std::cos(parameters[1]);
+  gradients[2] = std::cos(parameters[2]);
+  gradients[3] = std::cos(parameters[3]);
+  gradients[4] = std::cos(parameters[4]);
 };
 
 auto const sinSumHessianTestFunction = [](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients,
                                           Eigen::MatrixXd& hessian, bool hessianUpdate) {
-  value = sin(parameters[0]) + sin(parameters[1]) + sin(parameters[2]) + sin(parameters[3]) + sin(parameters[4]);
-  gradients[0] = cos(parameters[0]);
-  gradients[1] = cos(parameters[1]);
-  gradients[2] = cos(parameters[2]);
-  gradients[3] = cos(parameters[3]);
-  gradients[4] = cos(parameters[4]);
+  value = std::sin(parameters[0]) + std::sin(parameters[1]) + std::sin(parameters[2]) + std::sin(parameters[3]) +
+          std::sin(parameters[4]);
+  gradients[0] = std::cos(parameters[0]);
+  gradients[1] = std::cos(parameters[1]);
+  gradients[2] = std::cos(parameters[2]);
+  gradients[3] = std::cos(parameters[3]);
+  gradients[4] = std::cos(parameters[4]);
   if (hessianUpdate) {
     hessian = Eigen::MatrixXd::Zero(5, 5);
-    hessian(0, 0) = -sin(parameters[0]);
-    hessian(1, 1) = -sin(parameters[1]);
-    hessian(2, 2) = -sin(parameters[2]);
-    hessian(3, 3) = -sin(parameters[3]);
-    hessian(4, 4) = -sin(parameters[4]);
+    hessian(0, 0) = -std::sin(parameters[0]);
+    hessian(1, 1) = -std::sin(parameters[1]);
+    hessian(2, 2) = -std::sin(parameters[2]);
+    hessian(3, 3) = -std::sin(parameters[3]);
+    hessian(4, 4) = -std::sin(parameters[4]);
   }
 };
 
@@ -96,11 +98,11 @@ auto const osdGradientTestFunction = [](const Eigen::VectorXd& parameters, doubl
 
 auto const osdHessianTestFunction = [](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients,
                                        Eigen::MatrixXd& hessian, bool hessianUpdate) {
-  value = pow((pow(parameters[0], 2) - 1), 2) + pow(parameters[1], 2);
-  gradients[0] = 4 * parameters[0] * (pow(parameters[0], 2) - 1);
+  value = std::pow((std::pow(parameters[0], 2) - 1), 2) + std::pow(parameters[1], 2);
+  gradients[0] = 4 * parameters[0] * (std::pow(parameters[0], 2) - 1);
   gradients[1] = 2 * parameters[1];
   if (hessianUpdate) {
-    hessian(0, 0) = 12 * pow(parameters[0], 2) - 4;
+    hessian(0, 0) = 12 * std::pow(parameters[0], 2) - 4;
     hessian(1, 1) = 2;
     hessian(0, 1) = 0;
     hessian(1, 0) = 0;
@@ -108,9 +110,9 @@ auto const osdHessianTestFunction = [](const Eigen::VectorXd& parameters, double
 };
 
 auto const minyaevQuappGradientTestFunction = [](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
-  value = cos(2 * parameters[0]) + cos(2 * parameters[1]) + 0.57 * cos(2 * parameters[0] - 2 * parameters[1]);
-  gradients[0] = -1.14 * sin(2 * parameters[0] - 2 * parameters[1]) - 2 * sin(2 * parameters[0]);
-  gradients[1] = 1.14 * sin(2 * parameters[0] - 2 * parameters[1]) - 2 * sin(2 * parameters[1]);
+  value = std::cos(2 * parameters[0]) + std::cos(2 * parameters[1]) + 0.57 * std::cos(2 * parameters[0] - 2 * parameters[1]);
+  gradients[0] = -1.14 * std::sin(2 * parameters[0] - 2 * parameters[1]) - 2 * std::sin(2 * parameters[0]);
+  gradients[1] = 1.14 * std::sin(2 * parameters[0] - 2 * parameters[1]) - 2 * std::sin(2 * parameters[1]);
 };
 
 /**
@@ -286,17 +288,17 @@ TEST(OptimizerTests, EigenvectorFollowingTest_6) {
 }
 TEST(OptimizerTests, DimerTest_1) {
   Dimer optimizer;
-  optimizer.translationMethod = "GDIIS";
   Eigen::VectorXd positions(2);
+  optimizer.translationMethod = "AMSGRAD";
   positions[0] = 0.49 * M_PI;
   positions[1] = 0.51 * M_PI;
   GradientBasedCheck check;
-  check.maxIter = 500;
+  check.maxIter = 550;
   check.deltaValue = 1e-14;
   check.gradMaxCoeff = 1e-10;
   check.requirement = 4;
   auto nCycles = optimizer.optimize(positions, gradientTestFunction, check);
-  EXPECT_TRUE(nCycles < 500);
+  EXPECT_TRUE(nCycles < 550);
   EXPECT_NEAR(positions[0], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[1], M_PI, 1.0e-8);
 }
@@ -511,7 +513,7 @@ TEST(OptimizerTests, PrepareRestartTest_SD) {
   SteepestDescent optimizer;
   // Add an observer storing the cycle numbers
   std::vector<int> cycleNumbers;
-  auto func = [&](const int& cycle, const double& energy, const Eigen::VectorXd& params) {
+  auto func = [&](const int& cycle, const double& /*energy*/, const Eigen::VectorXd& /*params*/) {
     cycleNumbers.push_back(cycle);
   };
   optimizer.addObserver(func);
@@ -525,7 +527,7 @@ TEST(OptimizerTests, PrepareRestartTest_SD) {
   optimizer.prepareRestart(4);
   check.maxIter = 6;
 
-  auto cycles = optimizer.optimize(positions, gradientTestFunction, check);
+  optimizer.optimize(positions, gradientTestFunction, check);
   ASSERT_THAT(cycleNumbers, ElementsAre(4, 5, 6));
 }
 
@@ -536,20 +538,20 @@ TEST(OptimizerTests, PrepareRestartTest_Bfgs) {
   positions[1] = 0.75 * M_PI;
   GradientBasedCheck check;
   check.maxIter = 2;
-  auto cycles = optimizer.optimize(positions, gradientTestFunction, check);
+  optimizer.optimize(positions, gradientTestFunction, check);
   // Prepare restart
   optimizer.prepareRestart(3);
   // Inverse Hessian should have been cleared
   EXPECT_TRUE(optimizer.invH.size() == 0);
   // Add an observer storing the cycle numbers
   std::vector<int> cycleNumbers;
-  auto func = [&](const int& cycle, const double& energy, const Eigen::VectorXd& params) {
+  auto func = [&](const int& cycle, const double& /*energy*/, const Eigen::VectorXd& /*params*/) {
     cycleNumbers.push_back(cycle);
   };
   optimizer.addObserver(func);
   // Restart and check cycle counts
   check.maxIter = 4;
-  cycles = optimizer.optimize(positions, gradientTestFunction, check);
+  optimizer.optimize(positions, gradientTestFunction, check);
   ASSERT_THAT(cycleNumbers, ElementsAre(3, 4));
 }
 
@@ -560,7 +562,7 @@ TEST(OptimizerTests, PrepareRestartTest_Dimer) {
   positions[1] = 0.75 * M_PI;
   GradientBasedCheck check;
   check.maxIter = 2;
-  auto cycles = optimizer.optimize(positions, gradientTestFunction, check);
+  optimizer.optimize(positions, gradientTestFunction, check);
   // Prepare restart
   optimizer.prepareRestart(1);
   // Inverse Hessian should have been cleared
@@ -569,12 +571,12 @@ TEST(OptimizerTests, PrepareRestartTest_Dimer) {
   EXPECT_FALSE(optimizer.guessVector);
   // Add an observer storing the cycle numbers
   std::vector<int> cycleNumbers;
-  auto func = [&](const int& cycle, const double& energy, const Eigen::VectorXd& params) {
+  auto func = [&](const int& cycle, const double& /*energy*/, const Eigen::VectorXd& /*params*/) {
     cycleNumbers.push_back(cycle);
   };
   optimizer.addObserver(func);
   // Restart and check cycles
-  cycles = optimizer.optimize(positions, gradientTestFunction, check);
+  optimizer.optimize(positions, gradientTestFunction, check);
   ASSERT_THAT(cycleNumbers, ElementsAre(1, 2));
 }
 

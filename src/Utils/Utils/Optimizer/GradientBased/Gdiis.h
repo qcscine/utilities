@@ -33,9 +33,11 @@ class Gdiis {
     : _invH(hessianInverse),
       _maxm(maxm),
       _nParam(hessianInverse.cols()),
-      _parmeters(hessianInverse.cols(), maxm),
-      _gradients(hessianInverse.cols(), maxm),
-      _errors(hessianInverse.cols(), maxm){};
+      _x(hessianInverse.cols(), maxm),
+      _g(hessianInverse.cols(), maxm) {
+    _g.setZero();
+    _x.setZero();
+  };
   /**
    * @brief Store data into the GDIIS without extrapolation.
    * @param parameters The current parameters.
@@ -43,9 +45,8 @@ class Gdiis {
    */
   void store(Eigen::VectorXd& parameters, Eigen::VectorXd& gradients) {
     unsigned int current = _cycle % _maxm;
-    _parmeters.col(current) = parameters;
-    _gradients.col(current) = gradients;
-    _errors.col(current) = -_invH * gradients;
+    _x.col(current) = parameters;
+    _g.col(current) = gradients;
     _cycle++;
   }
   /**
@@ -59,87 +60,70 @@ class Gdiis {
    *        stored data.
    * @param parameters The current parameters.
    * @param gradients  The current gradients (for the current parameters).
-   * @return Eigen::VectorXd The extrapolated best parameters.
    */
-  Eigen::VectorXd update(Eigen::VectorXd& parameters, Eigen::VectorXd& gradients) {
+  void update(Eigen::VectorXd& parameters, Eigen::VectorXd& gradients) {
     /*
      * If the GDIIS is supposed to extrapolate with a sufficient cache,
      *   exit and return the original parameters.
      */
     if (_maxm < 2) {
-      return parameters;
+      return;
     }
     unsigned int current = _cycle % _maxm;
-    Eigen::VectorXd ref = -_invH * gradients;
-    _parmeters.col(current) = parameters;
-    _gradients.col(current) = gradients;
-    _errors.col(current) = ref;
+    _cycle++;
+    _x.col(current) = parameters;
+    _g.col(current) = gradients;
 
     unsigned int n = _maxm;
-    if (_cycle < _maxm - 1)
+    if (_cycle < _maxm) {
       n = _cycle;
+    }
 
     Eigen::VectorXd extrapolation;
-    if (_cycle == 0) {
-      _cycle++;
-      return parameters + ref;
+    if (_cycle < 2) {
+      return;
     }
-    else {
-      _cycle++;
-      Eigen::MatrixXd B(n, n);
-      for (unsigned int i = 0; i < n; i++) {
-        for (unsigned int j = 0; j < i + 1; j++) {
-          const double tmp = _errors.col(i).dot(_errors.col(j));
-          B(i, j) = tmp;
-          B(j, i) = tmp;
-        }
-      }
-      // Rescale B such that the smallest error vector has atleast a norm of 1
-      double minval = B.diagonal().minCoeff();
-      if (minval < 1.0) {
-        B *= (1.0 / minval);
-      }
 
-      // Generate Coefficients
-      Eigen::VectorXd rhs(n);
-      rhs.fill(1.0);
-      Eigen::VectorXd coefficients(n);
-      coefficients = B.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(rhs);
-      // Check if generated coefficients are stable
-      if (coefficients.array().abs().maxCoeff() > 1.0e+8) {
-        return parameters + ref;
-      }
-
-      // Extrapolate
-      coefficients /= coefficients.sum();
-      Eigen::VectorXd tmpGrad = Eigen::VectorXd::Zero(_nParam);
-      Eigen::VectorXd tmpParam = Eigen::VectorXd::Zero(_nParam);
-      for (unsigned int i = 0; i < n; i++) {
-        tmpGrad.noalias() += coefficients[i] * _gradients.col(i);
-        tmpParam.noalias() += coefficients[i] * _parmeters.col(i);
-      }
-      extrapolation = tmpParam - _invH * tmpGrad;
-
-      // Check if the extrapolated parameters are actually sensible
-      auto step = extrapolation - _parmeters.col(current);
-      if (step.norm() > 5.0 * _errors.col(current).norm()) {
-        extrapolation += (5.0 / step.norm() - 1.0) * step;
-      }
-      if (coefficients.array().abs().sum() > 30.0) {
-        return parameters + ref;
-      }
-      const double cosAngle = step.dot(ref) / (step.norm() * ref.norm());
-      constexpr std::array<double, 10> cutoffs{{1.00, 1.00, 0.97, 0.84, 0.71, 0.67, 0.62, 0.56, 0.49, 0.41}};
-      const double cutoff = (n < 10) ? cutoffs[n] : 0.0;
-      if (cosAngle < 0.0) {
-        _cycle = 0;
-        return parameters + ref;
-      }
-      else if (cosAngle < cutoff) {
-        return parameters + ref;
-      }
-      return extrapolation;
+    Eigen::MatrixXd B(n + 1, n + 1);
+    B.col(n).setOnes();
+    B.row(n).setOnes();
+    B(n, n) = 0.0;
+    Eigen::MatrixXd dx(_g.rows(), n);
+    for (unsigned int i = 0; i < n; i++) {
+      dx.col(i) = -_invH * _g.col(i);
     }
+    for (unsigned int i = 0; i < n; i++) {
+      for (unsigned int j = 0; j < i + 1; j++) {
+        const double tmp(dx.col(i).dot(dx.col(j)));
+        B(i, j) = tmp;
+        B(j, i) = tmp;
+      }
+    }
+
+    // Generate Coefficients
+    Eigen::VectorXd rhs = Eigen::VectorXd::Zero(n + 1);
+    rhs[n] = 1.0;
+    Eigen::VectorXd coefficients = B.fullPivHouseholderQr().solve(rhs);
+    coefficients /= coefficients.segment(0, n).sum();
+
+    // Extrapolate
+    Eigen::VectorXd tmpGrad = Eigen::VectorXd::Zero(_nParam);
+    Eigen::VectorXd tmpParam = Eigen::VectorXd::Zero(_nParam);
+    for (unsigned int i = 0; i < n; i++) {
+      tmpGrad.noalias() += coefficients[i] * _g.col(i);
+      tmpParam.noalias() += coefficients[i] * _x.col(i);
+    }
+
+    // Estimate expected Change; return and flush saved gradients if positive
+    Eigen::VectorXd dxDIIS = (tmpParam - parameters).eval();
+    double expChange = tmpGrad.dot(dxDIIS) / (tmpGrad.norm() * dxDIIS.norm());
+    if (expChange > 1e-4) {
+      this->flush();
+      return;
+    }
+
+    parameters.noalias() = tmpParam;
+    gradients.noalias() = tmpGrad;
   }
 
  private:
@@ -147,9 +131,8 @@ class Gdiis {
   const unsigned int _maxm;
   const unsigned int _nParam;
   unsigned int _cycle = 0;
-  Eigen::MatrixXd _parmeters;
-  Eigen::MatrixXd _gradients;
-  Eigen::MatrixXd _errors;
+  Eigen::MatrixXd _x;
+  Eigen::MatrixXd _g;
 };
 
 } // namespace Utils

@@ -14,6 +14,7 @@
 #include "Utils/Geometry/FormulaGenerator.h"
 #include "Utils/Geometry/GeometryUtilities.h"
 #include "Utils/Geometry/InternalCoordinates.h"
+#include "Utils/Geometry/PeriodicSystem.h"
 #include "Utils/Geometry/StructuralCompletion.h"
 
 #endif // UTILS_GEOMETRY_H_

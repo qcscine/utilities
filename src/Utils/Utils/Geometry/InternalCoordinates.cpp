@@ -23,7 +23,7 @@ struct InternalCoordinates::Impl {
 InternalCoordinates::InternalCoordinates(const AtomCollection& atoms, bool rotTransOnly)
   : _oldCartesian(atoms.size() * 3) {
   irc::molecule::Molecule<Eigen::Vector3d> molecule;
-  for (unsigned int i = 0; i < atoms.size(); i++) {
+  for (int i = 0; i < atoms.size(); i++) {
     auto symbol = ElementInfo::symbol(atoms.getElement(i));
     auto position = atoms.getPosition(i);
     molecule.push_back({symbol, {position[0], position[1], position[2]}});
@@ -48,7 +48,7 @@ InternalCoordinates::InternalCoordinates(const AtomCollection& atoms, bool rotTr
   }
   if (rotTransOnly) {
     this->_pImpl->T = std::make_unique<Eigen::MatrixXd>(
-        Geometry::calculateRotTransFreeTransformMatrix(atoms.getPositions(), atoms.getElements()));
+        Geometry::Transformations::calculateRotTransFreeTransformMatrix(atoms.getPositions(), atoms.getElements()));
   }
 }
 
@@ -62,10 +62,17 @@ PositionCollection InternalCoordinates::coordinatesToCartesian(const Eigen::Vect
     return Eigen::Map<PositionCollection>(backtransformed.data(), static_cast<int>(backtransformed.size() / 3), 3);
   }
   Eigen::VectorXd deltaInternal = (internals - _oldInternal).eval();
-  auto result = this->_pImpl->irc->irc_to_cartesian(_oldInternal, deltaInternal, _oldCartesian, maxIters, tolerance);
-  if (!result.converged)
+
+  try {
+    auto result = this->_pImpl->irc->irc_to_cartesian(_oldInternal, deltaInternal, _oldCartesian, maxIters, tolerance);
+    if (!result.converged) {
+      throw InternalCoordinatesException();
+    }
+    _oldCartesian = result.x_c;
+  }
+  catch (...) {
     throw InternalCoordinatesException();
-  _oldCartesian = result.x_c;
+  }
   _oldInternal = internals.eval();
   return Eigen::Map<PositionCollection>(_oldCartesian.data(), static_cast<int>(_oldCartesian.size() / 3), 3);
 }
@@ -86,6 +93,13 @@ Eigen::VectorXd InternalCoordinates::gradientsToInternal(const GradientCollectio
   return this->_pImpl->irc->grad_cartesian_to_projected_irc(vector);
 }
 
+Eigen::MatrixXd InternalCoordinates::hessianToInternal(const HessianMatrix& cartesian) const {
+  if (this->_pImpl->T) {
+    return this->_pImpl->T->transpose() * cartesian * (*this->_pImpl->T);
+  }
+  throw std::runtime_error("Hessian conversion not available for true Internal Coordinates.");
+}
+
 Eigen::MatrixXd InternalCoordinates::inverseHessianGuess() const {
   if (this->_pImpl->T) {
     const size_t n = this->_pImpl->T->cols();
@@ -102,18 +116,18 @@ Eigen::MatrixXd InternalCoordinates::hessianGuess() const {
   return this->_pImpl->irc->projected_initial_hessian();
 }
 
-Eigen::MatrixXd InternalCoordinates::projectHessianInverse(const Eigen::MatrixXd& internal) const {
+Eigen::MatrixXd InternalCoordinates::projectHessianInverse(const Eigen::MatrixXd& inverse) const {
   if (this->_pImpl->T) {
-    return internal;
+    return inverse;
   }
-  return this->_pImpl->irc->projected_hessian_inv(internal);
+  return this->_pImpl->irc->projected_hessian_inv(inverse);
 }
 
-Eigen::MatrixXd InternalCoordinates::projectHessian(const Eigen::MatrixXd& internal) const {
+Eigen::MatrixXd InternalCoordinates::projectHessian(const Eigen::MatrixXd& hessian) const {
   if (this->_pImpl->T) {
-    return internal;
+    return hessian;
   }
-  return this->_pImpl->irc->projected_hessian(internal);
+  return this->_pImpl->irc->projected_hessian(hessian);
 }
 
 } /* namespace Utils */

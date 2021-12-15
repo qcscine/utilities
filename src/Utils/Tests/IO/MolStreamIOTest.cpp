@@ -111,6 +111,23 @@ TEST_F(MolStreamHandlerTest, SelfConsistent) {
   }
 }
 
+TEST_F(MolStreamHandlerTest, CommentIsCorrect) {
+  for (const auto& MOLInput : {asymCarbon, dimethylbutane}) {
+    /* Read in and write again with comment */
+    std::stringstream in(MOLInput), out;
+    auto allData = MolStreamHandler::read(in);
+    // Pick same comment as in input
+    MolStreamHandler::write(out, allData.first, allData.second, "V2000", "comment");
+    std::string line;
+    std::istringstream f(out.str());
+    /* Ignore first two lines */
+    std::getline(f, line);
+    std::getline(f, line);
+    std::getline(f, line);
+    ASSERT_THAT(line, Eq("comment"));
+  }
+}
+
 TEST_F(MolStreamHandlerTest, CorrectImportInLocaleWithCommas) {
   /* The locale de_DE.utf8 may not be present on a compiling machine. If it
    * isn't, and std::runtime_error is thrown (see std::locale constructors)

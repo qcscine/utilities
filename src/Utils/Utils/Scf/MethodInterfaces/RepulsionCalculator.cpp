@@ -21,8 +21,6 @@ RepulsionCalculator::RepulsionCalculator(const Utils::ElementTypeCollection& ele
 }
 
 void RepulsionCalculator::initialize() {
-  // Initialize one to make sure the singleton is generated.
-  double repulsionConstant = ElementInfo::Z(elements_[0]);
 }
 
 void RepulsionCalculator::calculateRepulsion(Utils::DerivativeOrder order) {
@@ -31,14 +29,16 @@ void RepulsionCalculator::calculateRepulsion(Utils::DerivativeOrder order) {
 
   // prepare charges
   std::vector<double> charges(elements_.size());
-  for (int i = 0; i < elements_.size(); ++i)
+  for (unsigned i = 0; i < elements_.size(); ++i) {
     charges[i] = ElementInfo::Z(elements_[i]);
+  }
 
   // prepare hessian
   if (order == DerivativeOrder::Two) {
     AutomaticDifferentiation::Second3D dummy;
-    for (int i = 0; i < elements_.size(); ++i) {
-      for (int j = i + 1; j < elements_.size(); ++j) {
+    const unsigned N = elements_.size();
+    for (unsigned i = 0; i < N; ++i) {
+      for (unsigned j = i + 1; j < N; ++j) {
         repulsionHessian_.insert({{i, j}, dummy});
       }
     }
@@ -54,9 +54,10 @@ void RepulsionCalculator::calculateRepulsion(Utils::DerivativeOrder order) {
   std::vector<GradientCollection> gradientBuffer(nThreads, repulsionGradients_);
 
   // parallel evaluation
-  for (int i = 0; i < elements_.size(); ++i) {
+  const int N = elements_.size();
+  for (int i = 0; i < N; ++i) {
 #pragma omp parallel for schedule(static)
-    for (int j = i + 1; j < elements_.size(); ++j) {
+    for (int j = i + 1; j < N; ++j) {
 #if defined(_OPENMP)
       const int thread = omp_get_thread_num();
 #else
@@ -97,16 +98,18 @@ void RepulsionCalculator::addRepulsionDerivatives(DerivativeContainerType<Utils:
 }
 
 void RepulsionCalculator::addRepulsionDerivatives(DerivativeContainerType<Utils::Derivative::SecondAtomic>& derivatives) const {
-  for (int i = 0; i < elements_.size(); ++i) {
-    for (int j = i + 1; j < elements_.size(); ++j) {
+  const int N = elements_.size();
+  for (int i = 0; i < N; ++i) {
+    for (int j = i + 1; j < N; ++j) {
       addDerivativeToContainer<Derivative::SecondAtomic>(derivatives, i, j, repulsionHessian_.at({i, j}));
     }
   }
 }
 
 void RepulsionCalculator::addRepulsionDerivatives(DerivativeContainerType<Utils::Derivative::SecondFull>& derivatives) const {
-  for (int i = 0; i < elements_.size(); ++i) {
-    for (int j = i + 1; j < elements_.size(); ++j) {
+  const int N = elements_.size();
+  for (int i = 0; i < N; ++i) {
+    for (int j = i + 1; j < N; ++j) {
       addDerivativeToContainer<Derivative::SecondFull>(derivatives, i, j, repulsionHessian_.at({i, j}));
     }
   }

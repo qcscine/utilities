@@ -16,18 +16,26 @@ namespace Utils {
 namespace ExternalQC {
 
 OrcaHessianOutputParser::OrcaHessianOutputParser(const std::string& filename) {
-  extractContent(filename);
+  content_ = extractContent(filename);
 }
 
-void OrcaHessianOutputParser::extractContent(const std::string& filename) {
+std::string OrcaHessianOutputParser::extractContent(const std::string& filename) {
   std::ifstream fin;
   fin.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   fin.open(filename);
-  content_ = std::string(std::istreambuf_iterator<char>{fin}, {});
+  return std::string(std::istreambuf_iterator<char>{fin}, {});
 }
 
 HessianMatrix OrcaHessianOutputParser::getHessian() const {
-  std::istringstream iss(content_);
+  return extractHessian(content_);
+}
+
+HessianMatrix OrcaHessianOutputParser::getHessian(const std::string& outputFileName) {
+  return extractHessian(extractContent(outputFileName));
+}
+
+HessianMatrix OrcaHessianOutputParser::extractHessian(const std::string& content) {
+  std::istringstream iss(content);
 
   readUntilHessianKeyword(iss);
   auto atomCount = getNumberAtomsFromHessianOutput(iss);
@@ -46,16 +54,17 @@ HessianMatrix OrcaHessianOutputParser::getHessian() const {
   return hessianMatrix;
 }
 
-void OrcaHessianOutputParser::readUntilHessianKeyword(std::istream& in) const {
+void OrcaHessianOutputParser::readUntilHessianKeyword(std::istream& in) {
   std::string line;
   while (std::getline(in, line)) {
-    if (line == "$hessian")
+    if (line == "$hessian") {
       return;
+    }
   }
   throw OutputFileParsingError("Could not find \"$hessian\" in hessian output file.");
 }
 
-int OrcaHessianOutputParser::getNumberAtomsFromHessianOutput(std::istream& in) const {
+int OrcaHessianOutputParser::getNumberAtomsFromHessianOutput(std::istream& in) {
   std::string atomNumberLine;
   std::getline(in, atomNumberLine);
   std::regex regex(R"(^(\d+)$)");
@@ -66,12 +75,12 @@ int OrcaHessianOutputParser::getNumberAtomsFromHessianOutput(std::istream& in) c
   throw OutputFileParsingError("Could not find the number of atoms in hessian output file.");
 }
 
-void OrcaHessianOutputParser::ignoreFirstBlockLine(std::istream& in) const {
+void OrcaHessianOutputParser::ignoreFirstBlockLine(std::istream& in) {
   std::string firstBlockLine;
   std::getline(in, firstBlockLine);
 }
 
-void OrcaHessianOutputParser::readOneBlock(std::istream& in, Eigen::MatrixXd& m, int atomCount, int firstBlockColumnIndex) const {
+void OrcaHessianOutputParser::readOneBlock(std::istream& in, Eigen::MatrixXd& m, int atomCount, int firstBlockColumnIndex) {
   std::string line;
   for (int lineIndex = 0; lineIndex < atomCount; ++lineIndex) {
     std::getline(in, line);

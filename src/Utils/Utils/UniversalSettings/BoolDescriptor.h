@@ -23,12 +23,14 @@ namespace UniversalSettings {
  */
 class BoolDescriptor : public SettingDescriptor {
  public:
+  BoolDescriptor() = default;
   //! Construct with string describing what the value is for
   explicit BoolDescriptor(std::string propertyDescription);
 
   std::unique_ptr<SettingDescriptor> clone() const override;
   GenericValue getDefaultGenericValue() const override;
   bool validValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const GenericValue& v) const override;
 
   /**
    * @brief Get the default value
@@ -70,6 +72,10 @@ inline void BoolDescriptor::setDefaultValue(bool def) {
 
 inline bool BoolDescriptor::validValue(const GenericValue& v) const {
   return v.isBool();
+}
+
+inline std::string BoolDescriptor::explainInvalidValue(const GenericValue& /* v */) const {
+  return "Generic value for boolean setting '" + getPropertyDescription() + "' is not a boolean!";
 }
 
 } /* namespace UniversalSettings */

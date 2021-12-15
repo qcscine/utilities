@@ -56,7 +56,7 @@ class GradientBasedCheck : public ConvergenceCheck {
    * @return false           If the current iteration is equal to or greater than the maximum allowed number of
    *                         iterations.
    */
-  bool checkMaxIterations(unsigned int currentIteration);
+  bool checkMaxIterations(unsigned int currentIteration) const;
 
   /**
    * @brief Sets the old parameters and value stored in the convergence checker.
@@ -69,9 +69,9 @@ class GradientBasedCheck : public ConvergenceCheck {
   void setParametersAndValue(const Eigen::VectorXd& parameter, double value);
 
   /// @brief See Scine::Utils::ConvergenceCheck::addSettingsDescriptors()
-  virtual void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final;
+  void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final;
   /// @brief See Scine::Utils::ConvergenceCheck::applySettings()
-  virtual void applySettings(const Settings& s) final;
+  void applySettings(const Settings& s) final;
 
   /// @brief The threshold for the maximum absolute element of the last step taken.
   double stepMaxCoeff = 1.0e-4;
@@ -84,7 +84,7 @@ class GradientBasedCheck : public ConvergenceCheck {
   /// @brief The threshold for the change in the functional value.
   double deltaValue = 1.0e-7;
   /// @brief The maximum number of iterations.
-  unsigned int maxIter = 100;
+  unsigned int maxIter = 150;
   /// @brief The number of criteria that have to converge besides the value criterion.
   unsigned int requirement = 3;
 

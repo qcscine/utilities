@@ -45,7 +45,7 @@ class ScfMethod : public LcaoMethod {
 
   /*! Performs an SCF calculation (NB: will stop after max number of cycles). */
   void convergedCalculation(Core::Log& log, Utils::Derivative d = Utils::Derivative::First);
-  void performIteration(Core::Log& log, Utils::Derivative d = Utils::Derivative::First);
+  void performIteration(Utils::Derivative d = Utils::Derivative::First);
 
   bool hasConverged() const {
     return converged;
@@ -57,13 +57,21 @@ class ScfMethod : public LcaoMethod {
 
   void setScfMixer(scf_mixer_t mixer);
   scf_mixer_t getScfMixer() const;
-  /*! Set the convergence threshold for a SCF calculation (RMSD of density matrix) */
-  void setConvergenceCriteria(double c) {
-    convergenceChecker_.setThreshold(c);
+  /**
+   * @brief Set the convergence threshold for a SCF calculation (RMSD of density matrix)
+   * The Thresholds object is constructed by assigning the values to the fields.
+   * Depending on which field is activated, the corresponding threshold is checked.
+   * If none is set, then the checker will always return false.
+   */
+  void setConvergenceCriteria(ConvergenceChecker::Thresholds c) {
+    convergenceChecker_.set(c);
   }
   /*! Get the currently applied threshold for SCF calculation. */
-  double getConvergenceThreshold() const {
-    return convergenceChecker_.getThreshold();
+  auto getConvergenceThreshold() const -> ConvergenceChecker::Thresholds {
+    return convergenceChecker_.get();
+  }
+  auto getCurrentConvergenceValues() const -> std::vector<boost::optional<double>> {
+    return convergenceChecker_.getCurrentValues();
   }
   void setMaxIterations(int max) {
     maxIterations = max;
@@ -92,19 +100,23 @@ class ScfMethod : public LcaoMethod {
   void evaluateDensity(Utils::Derivative derivativeOrder);
 
  protected:
+  void printHeader(Core::Log& log) const;
+  void printIteration(Core::Log& log) const;
+  void printFooter(Core::Log& log) const final;
   std::shared_ptr<DensityMatrixGuessCalculator> densityMatrixGuess_;
   bool converged;
   int performedIterations_; // Tells how many iterations were performed
   int maxIterations;
 
  private:
-  void solveEigenValueProblem(Core::Log& log);
+  void solveEigenValueProblem();
   void onConvergedCalculationStarts();
   using ModifierContainer = std::multimap<int, std::shared_ptr<ScfModifier>>;
 
   ModifierContainer modifiers;
   ConvergenceChecker convergenceChecker_;
   ScfConvergenceAccelerator convergenceAccelerator_;
+  double iterationTime_;
 };
 
 } // namespace Utils

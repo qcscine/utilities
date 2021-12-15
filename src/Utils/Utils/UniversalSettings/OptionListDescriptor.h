@@ -21,13 +21,15 @@ namespace UniversalSettings {
  */
 class OptionListDescriptor : public SettingDescriptor {
  public:
+  OptionListDescriptor() = default;
   explicit OptionListDescriptor(std::string propertyDescription);
 
   std::unique_ptr<SettingDescriptor> clone() const override;
   GenericValue getDefaultGenericValue() const override;
   bool validValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const GenericValue& v) const override;
 
-  //! Returns the number of avilable options
+  //! Returns the number of available options
   int optionCount() const;
   //! Returns whether a string-identified option exists
   bool optionExists(const std::string& name) const;

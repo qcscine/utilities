@@ -119,9 +119,6 @@ class Dimer : public Optimizer {
       throw EmptyOptimizerParametersException();
     }
     setVectorsToZero(nParams);
-    /* Construct GDIIS object with identity matrix */
-    Eigen::MatrixXd identity = Eigen::MatrixXd::Identity(nParams, nParams);
-    Gdiis gdiis(identity, lbfgsMemory);
     bool previousMaxScaling = false;
     double value = 0.0;
     double currentStepLength = defaultTranslationStep;
@@ -155,70 +152,56 @@ class Dimer : public Optimizer {
         /* Reset scaling after rotation */
         currentStepLength = defaultTranslationStep;
       }
-      if (_curvature > 0 && (_cycle - _startCycle) < minimizationCycle) {
+      if (_curvature > 0 && (_cycle - _startCycle) < static_cast<int>(minimizationCycle)) {
         /* no negative eigenvalue estimate --> still in convex region, trying to solely maximize lowest mode */
         _modGradient.noalias() = -_gradients.dot(_dimerAxis) * _dimerAxis;
       }
       else {
         _modGradient.noalias() = -2.0 * (_gradients.dot(_dimerAxis) * _dimerAxis) + _gradients;
       }
-      /* G corresponds to step vector */
-      if (_useTranslationBFGS)
-        _G.noalias() = bfgsTranslation(_cycle, parameters);
-      else if (_useAmsGrad)
-        _G.noalias() = amsGrad(_cycle, parameters);
-      else
-        _G.noalias() = -_modGradient;
+      if (_useTranslationBFGS) {
+        _stepvector.noalias() = bfgsTranslation(parameters);
+      }
+      else if (_useAmsGrad) {
+        _stepvector.noalias() = amsGrad(_cycle);
+      }
+      else {
+        _stepvector.noalias() = -_modGradient;
+      }
 
       /* if modification to step size, gradient is checked and scaling is activated below certain threshold */
-      if (_useGdiis || _useProjectionLineSearch) {
-        /* scaling has been activated, no need to calculate gradientRMSD, otherwise calculate */
-        if (_appliedStepsizeScaling || gradientBelowThreshold()) {
-          _appliedStepsizeScaling = true; // bool turned true if entered by gradient calculations
-          /* steps determined by gdiis object */
-          if (_useGdiis) {
-            Eigen::VectorXd oldParameters = parameters;
-            parameters = gdiis.update(parameters, _modGradient); // directly returns parameters
-            _steps = parameters - oldParameters;                 // only used for correction of oscillation
-          }
-          /* projection method does not change direction and length has been changed at the end of last cycle */
-          else if (_useProjectionLineSearch) {
-            _steps = currentStepLength * _G;
-          }
-        }
-        /* scaling cannot be applied yet, but gdiis can store data and both methods perform steepest descent */
-        else {
-          if (_useGdiis) {
-            gdiis.store(parameters, _modGradient);
-          }
-          _oldGradients = _gradients;
-          _steps = defaultTranslationStep * _G;
-        }
+      /* if scaling has been activated, no need to calculate gradientRMSD, otherwise calculate */
+      if (_useProjectionLineSearch && (_appliedStepsizeScaling || gradientBelowThreshold())) {
+        _appliedStepsizeScaling = true; // bool turned true if entered by gradient calculations
+        /* projection method does not change direction and length has been changed at the end of last cycle */
+        _steps = currentStepLength * _stepvector;
       }
-      /* no modification, steps determined by unchanged steplength and vector */
+      /* scaling cannot be applied yet, apply default scaling of step */
+      /* this also applies for other translation methods */
       else {
-        _steps = defaultTranslationStep * _G;
+        _steps = defaultTranslationStep * _stepvector;
       }
-      if (!_useGdiis || !_appliedStepsizeScaling) {
-        /* Check trustradius and take a step */
-        double rms = sqrt(_steps.squaredNorm() / _steps.size());
-        if (rms > trustRadius) {
-          _steps *= trustRadius / rms;
-        }
-        parameters += _steps;
+
+      /* Check trustradius and take a step */
+      double maxVal = _steps.array().abs().maxCoeff();
+      if (maxVal > trustRadius) {
+        /* Scale step vector to trust radius */
+        _steps *= trustRadius / maxVal;
+        /* reset BFGS / stepsize scaling */
+        invH = 0.5 * Eigen::MatrixXd::Identity(nParams, nParams);
+        _appliedStepsizeScaling = false;
+        currentStepLength = defaultTranslationStep;
       }
+      constrainedAdd(parameters, _steps);
       /* Calculate energy and gradient of new position */
       function(parameters, value, _gradients);
       _gradientCalls++;
       this->triggerObservers(_cycle, value, parameters);
       /* Check convergence */
-      stop = check.checkMaxIterations(_cycle);
-      if (!stop) {
-        stop = check.checkConvergence(parameters, value, _gradients);
-      }
+      stop = check.checkMaxIterations(_cycle) || check.checkConvergence(parameters, value, constrainGradient(_gradients));
       if (!stop && this->isOscillating(value)) {
         _oldParameters.noalias() = parameters;
-        this->oscillationCorrection(_steps, parameters);
+        oscillationCorrection(_steps, parameters);
         function(parameters, value, _gradients);
         _cycle++;
         _gradientCalls++;
@@ -238,14 +221,14 @@ class Dimer : public Optimizer {
     std::cout << "\n    Number of individual rotations: " << _sumRotations << std::endl;
     std::cout << "\n    Number of gradient calls: " << _gradientCalls << std::endl;
     return _cycle;
-  };
+  }
 
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection
    *        thus expanding it to include the Dimers's options.
    * @param collection The DescriptorCollection to which new fields shall be added.
    */
-  virtual void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
+  void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
     UniversalSettings::BoolDescriptor skip_first_rotation(
         "If the provided guessVector shall be used without rotation in first step.");
     skip_first_rotation.setDefaultValue(skipFirstRotation);
@@ -267,73 +250,92 @@ class Dimer : public Optimizer {
     UniversalSettings::BoolDescriptor only_one_rotation("If rotation shall only be performed in first step.");
     only_one_rotation.setDefaultValue(onlyOneRotation);
     collection.push_back(Dimer::dimerOnlyOneRotation, only_one_rotation);
-    UniversalSettings::StringDescriptor translation("Which algorithm shall be used for the translation of the dimer.");
-    translation.setDefaultValue(translationMethod);
+    UniversalSettings::OptionListDescriptor translation(
+        "Which algorithm shall be used for the translation of the dimer.");
+    translation.addOption("bfgs");
+    translation.addOption("linesearch");
+    translation.addOption("amsgrad");
+    translation.setDefaultOption("bfgs");
     collection.push_back(Dimer::dimerTranslation, translation);
     UniversalSettings::BoolDescriptor multi_scale(
         "If the projection step size factor shall be applied to previous step size.");
     multi_scale.setDefaultValue(multiScale);
     collection.push_back(Dimer::dimerMultiScale, multi_scale);
     UniversalSettings::DoubleDescriptor dimer_radius("Distance between the two images of the dimer.");
+    dimer_radius.setMinimum(0.0);
     dimer_radius.setDefaultValue(radius);
     collection.push_back(Dimer::dimerRadius, dimer_radius);
     UniversalSettings::DoubleDescriptor phi_tolerance("The convergence criterion for the rotation angle.");
+    phi_tolerance.setMinimum(0.0);
     phi_tolerance.setDefaultValue(phiTolerance);
     collection.push_back(Dimer::dimerPhiTolerance, phi_tolerance);
     UniversalSettings::DoubleDescriptor rotation_gradient_threshold_first_cycle(
         "The convergence criterion for the gradient of the rotation in the first rotation cycle.");
+    rotation_gradient_threshold_first_cycle.setMinimum(0.0);
     rotation_gradient_threshold_first_cycle.setDefaultValue(rotationGradientThresholdFirstCycle);
     collection.push_back(Dimer::dimerRotationGradientThresholdFirstCycle, rotation_gradient_threshold_first_cycle);
     UniversalSettings::DoubleDescriptor rotation_gradient_threshold_other_cycles(
         "The convergence criterion for the gradient of the rotation in all but the first rotation cycle.");
+    rotation_gradient_threshold_other_cycles.setMinimum(0.0);
     rotation_gradient_threshold_other_cycles.setDefaultValue(rotationGradientThresholdOtherCycles);
     collection.push_back(Dimer::dimerRotationGradientThresholdOtherCycles, rotation_gradient_threshold_other_cycles);
     UniversalSettings::DoubleDescriptor lowered_rotation_gradient_threshold(
         "The convergence criterion for the gradient of the rotation if the criterion is lowered after some cycles.");
+    lowered_rotation_gradient_threshold.setMinimum(0.0);
     lowered_rotation_gradient_threshold.setDefaultValue(loweredRotationGradientThreshold);
     collection.push_back(Dimer::dimerLoweredRotationGradientThreshold, lowered_rotation_gradient_threshold);
     UniversalSettings::DoubleDescriptor grad_rmsd_threshold(
         "RMSD threshold of the gradient for starting the stepsize scaling.");
+    grad_rmsd_threshold.setMinimum(0.0);
     grad_rmsd_threshold.setDefaultValue(gradRMSDthreshold);
     collection.push_back(Dimer::dimerGradRMSDthreshold, grad_rmsd_threshold);
     UniversalSettings::DoubleDescriptor dimer_trust_radius("The maximum RMS of a taken step.");
+    dimer_trust_radius.setMinimum(0.0);
     dimer_trust_radius.setDefaultValue(trustRadius);
     collection.push_back(Dimer::dimerTrustRadius, dimer_trust_radius);
     UniversalSettings::DoubleDescriptor dimer_default_translation_step(
         "The factor to multiple the stepsize vector in a steepest descent step.");
+    dimer_default_translation_step.setMinimum(0.0);
     dimer_default_translation_step.setDefaultValue(defaultTranslationStep);
     collection.push_back(Dimer::dimerDefaultTranslationStep, dimer_default_translation_step);
     UniversalSettings::IntDescriptor max_rotations_first_cycle(
         "The maximum number of rotations in the first rotation cycle.");
+    max_rotations_first_cycle.setMinimum(0);
     max_rotations_first_cycle.setDefaultValue(maxRotationsFirstCycle);
     collection.push_back(Dimer::dimerMaxRotationsFirstCycle, max_rotations_first_cycle);
     UniversalSettings::IntDescriptor max_rotations_other_cycle(
         "The maximum number of rotations in all but the first rotation cycle.");
+    max_rotations_other_cycle.setMinimum(0);
     max_rotations_other_cycle.setDefaultValue(maxRotationsOtherCycles);
     collection.push_back(Dimer::dimerMaxRotationsOtherCycles, max_rotations_other_cycle);
     UniversalSettings::IntDescriptor interval_of_rotations(
         "The interval of performed rotation cycles in the total optimization steps.");
+    interval_of_rotations.setMinimum(1);
     interval_of_rotations.setDefaultValue(intervalOfRotations);
     collection.push_back(Dimer::dimerIntervalOfRotations, interval_of_rotations);
     UniversalSettings::IntDescriptor cycle_of_rotation_gradient_decrease(
         "The number of rotation cycles after which the threshold for the gradient of rotation is decreased.");
+    cycle_of_rotation_gradient_decrease.setMinimum(0);
     cycle_of_rotation_gradient_decrease.setDefaultValue(cycleOfRotationGradientDecrease);
     collection.push_back(Dimer::dimerCycleOfRotationGradientDecrease, cycle_of_rotation_gradient_decrease);
     UniversalSettings::IntDescriptor lbfgs_memory("The number of saved gradients during rotation in L-BFGS.");
+    lbfgs_memory.setMinimum(1);
     lbfgs_memory.setDefaultValue(lbfgsMemory);
     collection.push_back(Dimer::dimerLbfgsMemory, lbfgs_memory);
     UniversalSettings::IntDescriptor bfgs_start("The cycle in which BFGS is used in translation.");
+    bfgs_start.setMinimum(1);
     bfgs_start.setDefaultValue(bfgsStart);
     collection.push_back(Dimer::dimerBfgsStart, bfgs_start);
     UniversalSettings::IntDescriptor minimization_cycle("The cycle in which all other modes are always minimized");
+    minimization_cycle.setMinimum(1);
     minimization_cycle.setDefaultValue(minimizationCycle);
     collection.push_back(Dimer::dimerMinimizationCycle, minimization_cycle);
-  };
+  }
   /**
    * @brief Updates the Dimer's options with those values given in the Settings.
    * @param settings The settings to update the option of the steepest descent with.
    */
-  virtual void applySettings(const Settings& settings) final {
+  void applySettings(const Settings& settings) final {
     skipFirstRotation = settings.getBool(Dimer::dimerSkipFirstRotation);
     decreaseRotationGradientThreshold = settings.getBool(Dimer::dimerDecreaseRotationGradientThreshold);
     gradientInterpolation = settings.getBool(Dimer::dimerGradientInterpolation);
@@ -357,7 +359,7 @@ class Dimer : public Optimizer {
     lbfgsMemory = settings.getInt(Dimer::dimerLbfgsMemory);
     bfgsStart = settings.getInt(Dimer::dimerBfgsStart);
     minimizationCycle = settings.getInt(Dimer::dimerMinimizationCycle);
-  };
+  }
 
   /**
    * @brief Prepares the Dimer optimizer for rerunning its optimize function.
@@ -372,7 +374,7 @@ class Dimer : public Optimizer {
    *
    * @param cycleNumber The cycle number the optimizer starts with.
    */
-  virtual void prepareRestart(const int& cycleNumber) final {
+  void prepareRestart(const int cycleNumber) final {
     // Set start cycle number
     _startCycle = cycleNumber;
     // Remove inverse Hessian and projection function
@@ -381,9 +383,8 @@ class Dimer : public Optimizer {
     // Remove optional starting guess vector
     this->guessVector = nullptr;
     // Clear value memory for oscillating correction
-    _initializedValueMemory = false;
     _valueMemory.clear();
-  };
+  }
   //// @brief If the provided guessVector shall be used without rotation in first step.
   bool skipFirstRotation = false;
   //// @brief If threshold for convergence in rotation shall be lowered after certain number of rotationcycles.
@@ -398,7 +399,7 @@ class Dimer : public Optimizer {
   bool onlyOneRotation = false;
   //// @brief If the projection step size factor shall be applied to previous step size.
   bool multiScale = true;
-  //// @brief Which algorithm shall be used for translation. Possible values are BFGS, Linesearch, AMSGRAD, GDIIS
+  //// @brief Which algorithm shall be used for translation. Possible values are BFGS, Linesearch, AMSGRAD
   std::string translationMethod = "BFGS";
   //// @brief Distance between the two images of the dimer
   double radius = 0.01;
@@ -437,9 +438,9 @@ class Dimer : public Optimizer {
   //// @brief The cycle in which the minimization of all but the dimer direction is enforced
   unsigned int minimizationCycle = 5;
   //// @brief The (optional) dimer axis for the first step provided by hessian calculation or trajectory.
-  std::unique_ptr<Eigen::VectorXd> guessVector;
+  std::shared_ptr<Eigen::VectorXd> guessVector;
   /// @brief A possible Hessian projection
-  std::unique_ptr<std::function<void(Eigen::MatrixXd&)>> projection = nullptr;
+  std::shared_ptr<std::function<void(Eigen::MatrixXd&)>> projection = nullptr;
   //// @brief inverse hessian matrix
   Eigen::MatrixXd invH;
 
@@ -455,7 +456,7 @@ class Dimer : public Optimizer {
     _fPara = Eigen::VectorXd::Zero(nParams);
     _fParaOld = Eigen::VectorXd::Zero(nParams);
     _modGradient = Eigen::VectorXd::Zero(nParams);
-    _G = Eigen::VectorXd::Zero(nParams);
+    _stepvector = Eigen::VectorXd::Zero(nParams);
     _orthoFN = Eigen::VectorXd::Zero(nParams);
     _orthoG = Eigen::VectorXd::Zero(nParams);
     _previousOrthoFN = Eigen::VectorXd::Zero(nParams);
@@ -466,29 +467,34 @@ class Dimer : public Optimizer {
     _dx.setZero();
     _dg.setZero();
     /* Set inverse hessian to identity matrix if nothing has been provided */
-    if (invH.size() == 0)
-      invH = Eigen::MatrixXd::Identity(nParams, nParams);
-  };
+    if (invH.size() == 0) {
+      invH = 0.5 * Eigen::MatrixXd::Identity(nParams, nParams);
+    }
+  }
 
   void sanityCheck() {
-    if (translationMethod == "BFGS")
+    // change input string to lowercase
+    std::for_each(translationMethod.begin(), translationMethod.end(), [](char& c) { c = ::tolower(c); });
+    if (translationMethod == "bfgs") {
       _useTranslationBFGS = true;
-    else if (translationMethod == "Linesearch")
+    }
+    else if (translationMethod == "linesearch") {
       _useProjectionLineSearch = true;
-    else if (translationMethod == "AMSGRAD")
+    }
+    else if (translationMethod == "amsgrad") {
       _useAmsGrad = true;
-    else if (translationMethod == "GDIIS")
-      _useGdiis = true;
-    else
+    }
+    else {
       throw std::runtime_error(
           "Option " + translationMethod +
-          " is not known for the translation of the dimer. Either use 'BFGS', 'Linesearch', 'AMSGRAD' or 'GDIIS'.");
+          " is not known for the translation of the dimer. Either use 'bfgs', 'linesearch', or 'amsgrad'.");
+    }
 
     if (rotationLBFGS && rotationCG) {
       /* LBFGS is default, so CG is wished to be performed */
       rotationLBFGS = false;
     }
-  };
+  }
 
   /**
    * @brief Create first dimer
@@ -510,8 +516,9 @@ class Dimer : public Optimizer {
   void createDimerAxis(const int& nParams, UpdateFunction&& function, const Eigen::VectorXd& parameters, const double value) {
     bool randomNecessary = false;
     if (guessVector) {
-      if ((*guessVector).size() == nParams)
+      if ((*guessVector).size() == nParams) {
         _dimerAxis.noalias() = *guessVector;
+      }
       else {
         std::cout << "ERROR, given guess vector has different size than parameters. "
                      "Continuing transition state search, but omitting the guess."
@@ -520,8 +527,9 @@ class Dimer : public Optimizer {
         randomNecessary = true;
       }
     }
-    else
+    else {
       randomNecessary = true;
+    }
     if (randomNecessary) {
       srand(42);
       _dimerAxis.noalias() = Eigen::VectorXd::Random(nParams);
@@ -534,7 +542,7 @@ class Dimer : public Optimizer {
     function(_parametersR1, valueR1, _gradientsR1);
     _gradientCalls++;
     determineDirectionOfDimerToBeMaximized(value, parameters, valueR1, function);
-  };
+  }
 
   /**
    * @brief Determine whether a rotation of the dimer shall be carried out in this optimization step
@@ -549,38 +557,43 @@ class Dimer : public Optimizer {
    * @return bool              Returns whether rotation shall be carried out
    */
   template<class UpdateFunction>
-  bool determineIfPerformRotation(const int& cycle, const Eigen::VectorXd& parameters, UpdateFunction&& function) {
+  bool determineIfPerformRotation(const int& cycle, const Eigen::VectorXd& /* parameters */, UpdateFunction&& function) {
     double value1;
     if (cycle == _startCycle + 1) {
-      if (skipFirstRotation)
+      if (skipFirstRotation) {
         return false;
-      else {
-        _rotationGradientThreshold = rotationGradientThresholdFirstCycle;
-        function(_parametersR1, value1, _gradientsR1);
-        _gradientCalls++;
-        /* determine ortho force at current position to rotate */
-        _orthoFN = 2.0 * ((_gradientsR1 - _gradients).dot(_dimerAxis)) * _dimerAxis - 2.0 * (_gradientsR1 - _gradients);
-        _curvature = (_gradientsR1 - _gradients).dot(_dimerAxis) / radius;
-        return true;
       }
+
+      _rotationGradientThreshold = rotationGradientThresholdFirstCycle;
+      function(_parametersR1, value1, _gradientsR1);
+      _gradientCalls++;
+      /* determine ortho force at current position to rotate */
+      _orthoFN = 2.0 * ((_gradientsR1 - _gradients).dot(_dimerAxis)) * _dimerAxis - 2.0 * (_gradientsR1 - _gradients);
+      _curvature = (_gradientsR1 - _gradients).dot(_dimerAxis) / radius;
+      return true;
     }
     /* if only first rotation wants to be performed */
-    else if (onlyOneRotation)
+    if (onlyOneRotation) {
       return false;
-    else if ((cycle - _startCycle) % intervalOfRotations == 0) {
+    }
+
+    if ((cycle - _startCycle) % intervalOfRotations == 0) {
       _rotationGradientThreshold = rotationGradientThresholdOtherCycles;
       function(_parametersR1, value1, _gradientsR1);
       _gradientCalls++;
       _curvature = (_gradientsR1 - _gradients).dot(_dimerAxis) / radius;
       /* determine ortho force at current position to rotate */
       _orthoFN = 2.0 * ((_gradientsR1 - _gradients).dot(_dimerAxis)) * _dimerAxis - 2.0 * (_gradientsR1 - _gradients);
-      if ((_curvature > 0 && _fPara.norm() < _fParaOld.norm()) || (_curvature < 0 && _fPara.norm() > _fParaOld.norm()))
+      if ((_curvature > 0 && _fPara.norm() < _fParaOld.norm()) || (_curvature < 0 && _fPara.norm() > _fParaOld.norm())) {
         return true;
-      else if (_orthoFN.norm() > 1e-3)
+      }
+
+      if (_orthoFN.norm() > 1e-3) {
         return true;
+      }
     }
     return false;
-  };
+  }
 
   /**
    * @brief Determine step vector of rotation with the Conjugate Gradient (Polak Ribiere) method
@@ -589,7 +602,7 @@ class Dimer : public Optimizer {
    *
    * @return Eigen::VectorXd   Returns step vector of rotation
    */
-  Eigen::VectorXd conjugateGradientRotation(const int& rotationCycles) {
+  Eigen::VectorXd conjugateGradientRotation(const unsigned rotationCycles) {
     _orthoG = _orthoFN;
     if (rotationCycles != 0) {
       /* Polak Ribiere */
@@ -597,7 +610,7 @@ class Dimer : public Optimizer {
       _orthoG = _orthoFN + beta * _previousOrthoG;
     }
     return _orthoG;
-  };
+  }
 
   /**
    * @brief Determine the step vector of rotation based on the L-BFGS methods
@@ -607,9 +620,9 @@ class Dimer : public Optimizer {
    *
    * @return Eigen::VectorXd   Returns step vector of rotation
    */
-  Eigen::VectorXd lbfgsRotation(const int& rotationCycles, unsigned int& m) {
+  Eigen::VectorXd lbfgsRotation(const unsigned rotationCycles, unsigned int& m) {
     _orthoG = _orthoFN;
-    int maxm = lbfgsMemory;
+    unsigned maxm = lbfgsMemory;
     if (rotationCycles == 0) {
       _dx.setZero();
       _dg.setZero();
@@ -629,7 +642,7 @@ class Dimer : public Optimizer {
     }
     /* The actual L-BFGS update */
     Eigen::VectorXd alpha(m);
-    for (int i = m - 1; i > -1; --i) {
+    for (int i = static_cast<int>(m) - 1; i > -1; --i) {
       double dxDotdg = _dx.col(i).dot(_dg.col(i));
       if (fabs(dxDotdg) < 1.0e-6) {
         alpha[i] = _dx.col(i).dot(_orthoG) / ((dxDotdg < 0.0) ? -1.0e-6 : 1.0e-6);
@@ -652,7 +665,7 @@ class Dimer : public Optimizer {
       _orthoG.noalias() += (alpha[i] - beta) * _dx.col(i);
     }
     return _orthoG;
-  };
+  }
 
   /**
    * @brief Flips dimeraxis if energy decreases along axis
@@ -695,22 +708,19 @@ class Dimer : public Optimizer {
           _curvature = curvatureNew;
           return;
         }
-        else {
-          /* previous direction had lower curvature -> flip back and exit */
-          _dimerAxis *= -1;
-          return;
-        }
-      }
-      else {
-        /* new flipped value was higher in energy, while the old one wasn't -> save values and exit */
-        value1 = value1New;
-        _parametersR1.noalias() = parametersR1New;
-        _gradientsR1.noalias() = gradientsR1New;
-        _curvature = (_gradientsR1 - _gradients).dot(_dimerAxis) / radius;
+
+        /* previous direction had lower curvature -> flip back and exit */
+        _dimerAxis *= -1;
         return;
       }
+
+      /* new flipped value was higher in energy, while the old one wasn't -> save values and exit */
+      value1 = value1New;
+      _parametersR1.noalias() = parametersR1New;
+      _gradientsR1.noalias() = gradientsR1New;
+      _curvature = (_gradientsR1 - _gradients).dot(_dimerAxis) / radius;
     }
-  };
+  }
 
   /**
    * @brief rotate dimer with trial angle
@@ -739,7 +749,7 @@ class Dimer : public Optimizer {
     double value1 = 0.0;
     Eigen::VectorXd gradientsR1phi1 = Eigen::VectorXd::Zero(parameters.size());
     /* starting individual rotations */
-    for (int rotationCycles = 0; rotationCycles < maxRotationCycles; ++rotationCycles) {
+    for (unsigned rotationCycles = 0; rotationCycles < maxRotationCycles; ++rotationCycles) {
       /* calculate E and F at R1 */
       /* either estimate gradient by interpolation or calculate it */
       if (gradientInterpolation && rotationCycles != 0) {
@@ -757,11 +767,13 @@ class Dimer : public Optimizer {
           2.0 * ((_gradientsR1 - _gradients).dot(_dimerAxis)) * _dimerAxis - 2.0 * (_gradientsR1 - _gradients);
       _orthoG.noalias() = _orthoFN;
       /* Conjugate Gradient option for rotation */
-      if (rotationCG)
+      if (rotationCG) {
         _orthoG = conjugateGradientRotation(rotationCycles);
-      /* L-BFGS for rotation */
-      else if (rotationLBFGS)
+        /* L-BFGS for rotation */
+      }
+      else if (rotationLBFGS) {
         _orthoG = lbfgsRotation(rotationCycles, m);
+      }
       _orthoG -= _orthoG.dot(_dimerAxis) * _dimerAxis; // ensures that modified direction is still orthogonal to dimer
                                                        // axis
       /* unit vector which spans rotation plane together with dimer axis */
@@ -783,8 +795,9 @@ class Dimer : public Optimizer {
         reachedTolerance = true;
         _sumRotations += rotationCycles;
         /* if already at first step and therefore no rotation is performed, the interval of rotations is increased */
-        if (rotationCycles == 0)
+        if (rotationCycles == 0) {
           intervalOfRotations++;
+        }
         break;
       }
       /* estimate good phi for numerical minimum search */
@@ -856,7 +869,7 @@ class Dimer : public Optimizer {
       determineDirectionOfDimerToBeMaximized(value, parameters, value1, function);
       /* No calculation necessary, the curvature is already known */
     }
-  };
+  }
 
   /**
    * @brief Rotate the dimer directly based on the difference of the forces orthogonal to the dimer axis
@@ -881,19 +894,22 @@ class Dimer : public Optimizer {
     double value1 = 0.0;
     /* option available to decrease the threshold for the rotation gradient after certain number of performed full
      * rotation cycles */
-    if (decreaseRotationGradientThreshold && _numberOfPerformedRotationCycles > cycleOfRotationGradientDecrease)
+    if (decreaseRotationGradientThreshold && _numberOfPerformedRotationCycles > cycleOfRotationGradientDecrease) {
       _rotationGradientThreshold = loweredRotationGradientThreshold;
+    }
     /* starting individual rotations */
-    for (int rotationCycles = 0; rotationCycles < maxRotationCycles; ++rotationCycles) {
+    for (unsigned rotationCycles = 0; rotationCycles < maxRotationCycles; ++rotationCycles) {
       _orthoFN.noalias() =
           2.0 * ((_gradientsR1 - _gradients).dot(_dimerAxis)) * _dimerAxis - 2.0 * (_gradientsR1 - _gradients);
       _orthoG.noalias() = _orthoFN;
       /* Conjugate Gradient option for rotation */
-      if (rotationCG)
+      if (rotationCG) {
         _orthoG = conjugateGradientRotation(rotationCycles);
-      /* L-BFGS for rotation */
-      else if (rotationLBFGS)
+        /* L-BFGS for rotation */
+      }
+      else if (rotationLBFGS) {
         _orthoG = lbfgsRotation(rotationCycles, m);
+      }
       /* Save old values */
       _previousOrthoG.noalias() = _orthoG;
       _previousOrthoFN.noalias() = _orthoFN;
@@ -908,12 +924,15 @@ class Dimer : public Optimizer {
       _curvature = (_gradientsR1 - _gradients).dot(_dimerAxis) / radius;
       if (_orthoG.norm() < _rotationGradientThreshold) {
         _sumRotations += rotationCycles + 1;
-        if (_dimerAxis.dot(preRotationDimerAxis) > 0.99)
+        if (_dimerAxis.dot(preRotationDimerAxis) > 0.99) {
           intervalOfRotations++;
-        if (_dimerAxis.dot(preRotationDimerAxis) > 0.999)
+        }
+        if (_dimerAxis.dot(preRotationDimerAxis) > 0.999) {
           _rotationGradientThreshold = rotationGradientThresholdOtherCycles * 10;
-        else
+        }
+        else {
           _rotationGradientThreshold = rotationGradientThresholdOtherCycles;
+        }
         determineDirectionOfDimerToBeMaximized(value, parameters, value1, function);
         return;
       }
@@ -924,33 +943,22 @@ class Dimer : public Optimizer {
     intervalOfRotations = 1;
     _sumRotations += maxRotationCycles;
     determineDirectionOfDimerToBeMaximized(value, parameters, value1, function);
-  };
+  }
 
   bool gradientBelowThreshold() {
     return (std::sqrt(_gradients.squaredNorm() / _gradients.size()) < gradRMSDthreshold);
-  };
+  }
 
   /**
    * @brief Determine stepvector of translation by BFGS algorithm
    *
-   *
-   * @param cycle              The cycle of the optimization
    * @param parameters         The parameters to be optimized
-   * @tparam UpdateFunction    A lambda function with a void return value, and the arguments:\n
-   *                           1. const Eigen::VectorXd& parameters\n
-   *                           2. double& value\n
-   *                           3. Eigen::VectorXd& gradients
    *
    * @return Eigen::VectorXd   Returns the stepvector
    */
-  Eigen::VectorXd bfgsTranslation(const int& cycle, Eigen::VectorXd& parameters) {
-    /* avoid gradient calculation norm calculation for first cycle and all cycle after gradient was below threshold */
-    if (cycle - _startCycle >= bfgsStart ||
-        (cycle != _startCycle + 1 && !_appliedStepsizeScaling && gradientBelowThreshold())) {
-      _appliedStepsizeScaling = true;
-    }
-    /* now if no scaling save values and return unmodified vector */
-    if (cycle == _startCycle + 1 || !_appliedStepsizeScaling) {
+  Eigen::VectorXd bfgsTranslation(const Eigen::VectorXd& parameters) {
+    /* if first cycle save values and return unmodified vector */
+    if (_cycle - _startCycle == 1) {
       _oldParameters.noalias() = parameters;
       _oldGradients.noalias() = _modGradient;
       return -_modGradient;
@@ -958,22 +966,52 @@ class Dimer : public Optimizer {
     /* BFGS inverse Hessian update */
     Eigen::VectorXd dx = parameters - _oldParameters;
     Eigen::VectorXd dg = _modGradient - _oldGradients;
-    const double dxTdx = dx.dot(dx);
     double dxTdg = dx.dot(dg);
-    if (fabs(dxTdg) < 1e-9)
+    const double dgTinvHdg = dg.transpose() * invH * dg;
+    if (invH.isApprox(0.5 * Eigen::MatrixXd::Identity(parameters.size(), parameters.size()))) {
+      /* Set initial inverse Hessian to dxTdg / dgTdg * I */
+      invH.diagonal() *= 2.0 * dxTdg / dg.dot(dg);
+    }
+
+    /* Powell Update from Al-Baali Gandetti */
+    const double sigma2 = 0.9;
+    const double sigma3 = 9.0;
+    double delta = 1.0;
+
+    if (fabs(dxTdg) < fabs((1.0 - sigma2) * dgTinvHdg)) {
+      delta = sigma2 * dgTinvHdg / (dgTinvHdg - dxTdg);
+    }
+    else if (fabs(dxTdg) > fabs((1.0 + sigma3) * dgTinvHdg)) {
+      delta = -sigma3 * dgTinvHdg / (dgTinvHdg - dxTdg);
+    }
+    /* Update dx by dx = delta * dx + (1.0 - delta) * invH * dg */
+    if (std::fabs(delta - 1.0) < 1e-16) {
+      dx.noalias() = delta * dx + (1.0 - delta) * invH * dg;
+      dxTdg = dx.dot(dg);
+    }
+
+    /* Sanity check for dxTdg */
+    if (fabs(dxTdg) < 1e-9) {
       dxTdg = (dxTdg < 0.0) ? -1e-9 : 1e-9;
+    }
     const double alpha = (dxTdg + dg.transpose() * invH * dg) / (dxTdg * dxTdg);
     const double beta = 1.0 / dxTdg;
     invH += alpha * (dx * dx.transpose()) - beta * (invH * dg * dx.transpose() + dx * dg.transpose() * invH);
 
-    /* Rotate the (now) old parameter values to the local variables. */
+    /* save old values */
     _oldParameters.noalias() = parameters;
-    /* Rotate the (now) old gradient values to the local variable. */
     _oldGradients.noalias() = _modGradient;
-    if (projection)
+    if (projection) {
       (*projection)(invH);
-    return -invH * _modGradient;
-  };
+    }
+    if (!_appliedStepsizeScaling && (_cycle - _startCycle >= static_cast<int>(bfgsStart) || gradientBelowThreshold())) {
+      _appliedStepsizeScaling = true;
+    }
+    if (_appliedStepsizeScaling) {
+      return -invH * _modGradient;
+    }
+    return -_modGradient;
+  }
 
   /**
    * @brief Scale the step size based on projection change of the modified force onto the stepvector
@@ -994,10 +1032,11 @@ class Dimer : public Optimizer {
                                        bool& previousMaxScaling) {
     double currentStepLength = defaultTranslationStep;
     _modGradient.noalias() = -2.0 * (_gradients.dot(_dimerAxis) * _dimerAxis) + _gradients;
-    double projection0 = -_modGradient.dot(_G) / (_modGradient.norm() * _G.norm());
+    double projection0 = -_modGradient.dot(_stepvector) / (_modGradient.norm() * _stepvector.norm());
     double projection1 = 1.0;
-    if (projection1 - projection0 < 1e-8)
+    if (projection1 - projection0 < 1e-8) {
       return defaultTranslationStep * 10;
+    }
     if (multiScale) {
       /* use with multiple scaleFactors */
       double maxScaling = 2; // empirical value taken from Kästner paper
@@ -1008,8 +1047,9 @@ class Dimer : public Optimizer {
             currentStepLength = extrapolatedStepsizeFactor * defaultTranslationStep;
             previousMaxScaling = false;
           }
-          else
+          else {
             currentStepLength *= extrapolatedStepsizeFactor;
+          }
         }
         else {
           currentStepLength *= maxScaling;
@@ -1017,52 +1057,56 @@ class Dimer : public Optimizer {
         }
       }
       else if (projection0 < -0.5) {
-        parameters += extrapolatedStepsizeFactor * _steps - _steps;
+        constrainedAdd(parameters, extrapolatedStepsizeFactor * _steps - _steps);
         function(parameters, value, _gradients);
         _gradientCalls++;
       }
-      else if (projection0 < 0.0)
+      else if (projection0 < 0.0) {
         currentStepLength = extrapolatedStepsizeFactor * defaultTranslationStep;
+      }
     }
     else {
       /* always scale default stepsize */
       double extrapolatedStepsizeFactor = -projection1 / (projection0 - projection1);
       double maxScaling = 10; // empirical value, bigger here because no stacking of multiple factors
       if (projection0 > 0.0) {
-        if (extrapolatedStepsizeFactor < maxScaling)
+        if (extrapolatedStepsizeFactor < maxScaling) {
           currentStepLength = extrapolatedStepsizeFactor * defaultTranslationStep;
-        else
+        }
+        else {
           currentStepLength = maxScaling * defaultTranslationStep;
+        }
       }
       else if (projection0 < -0.5) {
-        parameters += extrapolatedStepsizeFactor * _steps - _steps;
+        constrainedAdd(parameters, extrapolatedStepsizeFactor * _steps - _steps);
         function(parameters, value, _gradients);
         _gradientCalls++;
       }
-      else if (projection0 < 0.0)
+      else if (projection0 < 0.0) {
         currentStepLength = extrapolatedStepsizeFactor * defaultTranslationStep;
+      }
     }
     return currentStepLength;
-  };
+  }
 
-  Eigen::VectorXd amsGrad(const unsigned int& cycle, Eigen::VectorXd& parameters) {
+  Eigen::VectorXd amsGrad(const int cycle) {
     _gradModification *= (1 - beta1);
-    _gradModification += (beta1)*_modGradient;
+    _gradModification += beta1 * _modGradient;
     _learningVector = (1 - beta2) * _oldLearningVector;
     for (int i = 0; i < _learningVector.size(); ++i) {
-      _learningVector[i] += beta2 * _G[i] * _G[i];
+      _learningVector[i] += beta2 * _stepvector[i] * _stepvector[i];
     }
     _learningVector.cwiseMax(_oldLearningVector);
     _oldLearningVector = _learningVector;
     /* now if no scaling save values and return unmodified vector */
-    if (cycle == _startCycle + 1)
+    if (cycle == _startCycle + 1) {
       return -_modGradient;
-    else {
-      Eigen::MatrixXd learningMatrix = _learningVector.asDiagonal();
-      learningMatrix = learningMatrix.cwiseSqrt();
-      return -alpha1 * learningMatrix.inverse() * _gradModification;
     }
-  };
+
+    Eigen::MatrixXd learningMatrix = _learningVector.asDiagonal();
+    learningMatrix = learningMatrix.cwiseSqrt();
+    return -alpha1 * learningMatrix.inverse() * _gradModification;
+  }
   /// @brief The counter variable for optimisation cycles
   int _cycle = 0;
   //// @brief The estimated curvature of the PES along the dimer
@@ -1090,7 +1134,7 @@ class Dimer : public Optimizer {
   //// @brief The gradient modified for TS search
   Eigen::VectorXd _modGradient;
   //// @brief The stepvector of the translation
-  Eigen::VectorXd _G;
+  Eigen::VectorXd _stepvector;
   //// @brief The stepvector of rotation
   Eigen::VectorXd _orthoG;
   Eigen::VectorXd _previousOrthoG;
@@ -1108,8 +1152,6 @@ class Dimer : public Optimizer {
   unsigned int _sumRotations = 0;
   unsigned int _gradientCalls = 0;
   bool _appliedStepsizeScaling = false;
-  //// @brief If GDIIS shall be used for translation.
-  bool _useGdiis = false;
   //// @brief If the step size shall be estimated by projection of the gradient at current step onto the last dimer axis.
   bool _useProjectionLineSearch = false;
   //// @brief If the step vector shall be modified by the AMSGRAD algorithm
@@ -1117,6 +1159,7 @@ class Dimer : public Optimizer {
   //// @brief If the step vector shall be modified by BFGS algorithm
   bool _useTranslationBFGS = false;
 };
+
 } // namespace Utils
 } // namespace Scine
 

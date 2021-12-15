@@ -13,30 +13,33 @@ namespace Scine {
 namespace Utils {
 namespace MachineLearning {
 
-CoulombMatrix::CoulombMatrix(const AtomCollection& structure) : structure_(structure), nAtoms_(structure.size()) {
-  if (nAtoms_ == 0)
+CoulombMatrix::CoulombMatrix(const AtomCollection& structure) : nAtoms_(structure.size()) {
+  if (nAtoms_ == 0) {
     throw std::runtime_error("Cannot create a Coulomb matrix for an empty molecular structure!");
-  generateCoulombMatrix();
+  }
+  featureVector_ = generateCoulombMatrix(structure);
 }
 
-void CoulombMatrix::generateCoulombMatrix() {
+Eigen::VectorXd CoulombMatrix::generateCoulombMatrix(const AtomCollection& structure) {
   std::vector<double> features;
 
-  for (int i = 0; i < nAtoms_; ++i) {
-    int z1 = ElementInfo::Z(structure_.getElement(i));
-    for (int j = i; j < nAtoms_; ++j) {
-      int z2 = ElementInfo::Z(structure_.getElement(j));
-      double value = (i == j) ? (0.5 * pow(z1, diagonalElementsExponent_)) : (z1 * z2 / interatomicDistance(i, j));
+  const int N = structure.size();
+
+  for (int i = 0; i < N; ++i) {
+    const unsigned z1 = ElementInfo::Z(structure.getElement(i));
+    for (int j = i; j < N; ++j) {
+      const unsigned z2 = ElementInfo::Z(structure.getElement(j));
+      const double value =
+          (i == j) ? (0.5 * pow(z1, diagonalElementsExponent_)) : (z1 * z2 / interatomicDistance(i, j, structure));
       features.push_back(value);
     }
   }
 
-  featureVector_ = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(features.data(), features.size());
+  return Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(features.data(), features.size());
 }
 
-double CoulombMatrix::interatomicDistance(int i, int j) {
-  auto distanceVector = structure_.getPosition(i) - structure_.getPosition(j);
-  return distanceVector.norm();
+double CoulombMatrix::interatomicDistance(int i, int j, const AtomCollection& structure) {
+  return (structure.getPosition(i) - structure.getPosition(j)).norm();
 }
 
 // Since the full matrix is rarely needed, it is constructed from the feature vector on the fly
@@ -46,10 +49,11 @@ Eigen::MatrixXd CoulombMatrix::getMatrix() const {
   for (int i = 0; i < nAtoms_; ++i) {
     for (int j = i; j < nAtoms_; ++j) {
       coulombMatrix(i, j) = featureVector_(counter);
+      coulombMatrix(j, i) = featureVector_(counter);
       counter++;
     }
   }
-  return coulombMatrix.selfadjointView<Eigen::Upper>();
+  return coulombMatrix;
 }
 
 Eigen::VectorXd CoulombMatrix::getFeatures() const {

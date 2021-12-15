@@ -16,10 +16,12 @@ namespace Utils {
 namespace UniversalSettings {
 
 /*!
- * @brief SettingDescriptor for multiple SettingsDescriptors
+ * @brief SettingDescriptor for one DescriptorCollection constraining a list of
+ *   ValueCollections.
  */
 class CollectionListDescriptor : public SettingDescriptor {
  public:
+  CollectionListDescriptor() = default;
   /**
    * @brief Constructor
    *
@@ -32,6 +34,7 @@ class CollectionListDescriptor : public SettingDescriptor {
   std::unique_ptr<SettingDescriptor> clone() const override;
   GenericValue getDefaultGenericValue() const override;
   bool validValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const GenericValue& v) const override;
 
   /**
    * @brief Checks whether a supplied list of string, GenericValues match the
@@ -42,7 +45,7 @@ class CollectionListDescriptor : public SettingDescriptor {
    *
    * @return Whether the supplied object is valid with the configuration set
    */
-  bool validValue(GenericValue::CollectionList v) const;
+  bool validValue(const GenericValue::CollectionList& v) const;
 
   /**
    * @brief Get the configuration of this setting
@@ -67,13 +70,8 @@ inline GenericValue CollectionListDescriptor::getDefaultGenericValue() const {
   return GenericValue::fromCollectionList({});
 }
 
-inline bool CollectionListDescriptor::validValue(GenericValue::CollectionList v) const {
-  for (const auto& i : v) {
-    if (!base_.validValue(i)) {
-      return false;
-    }
-  }
-  return true;
+inline bool CollectionListDescriptor::validValue(const GenericValue::CollectionList& v) const {
+  return std::all_of(std::begin(v), std::end(v), [&](const auto& coll) { return base_.validValue(coll); });
 }
 
 inline bool CollectionListDescriptor::validValue(const GenericValue& v) const {
@@ -85,6 +83,18 @@ inline bool CollectionListDescriptor::validValue(const GenericValue& v) const {
 
 inline const DescriptorCollection& CollectionListDescriptor::getDescriptorCollection() const {
   return base_;
+}
+
+inline std::string CollectionListDescriptor::explainInvalidValue(const GenericValue& v) const {
+  assert(!validValue(v));
+  if (!v.isCollectionList()) {
+    return "Generic value for collection list setting '" + getPropertyDescription() + "' is not a collection list!";
+  }
+  std::string explanation;
+  for (const auto& coll : v.toCollectionList()) {
+    explanation += base_.explainInvalidValue(coll);
+  }
+  return explanation;
 }
 
 } /* namespace UniversalSettings */

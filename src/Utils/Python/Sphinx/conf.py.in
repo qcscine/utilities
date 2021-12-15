@@ -41,6 +41,7 @@ release = u'@UtilsOS_VERSION_MAJOR@.@UtilsOS_VERSION_MINOR@.@UtilsOS_VERSION_PAT
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx_rtd_theme'
 ]
@@ -162,3 +163,9 @@ texinfo_documents = [
 
 
 # -- Extension configuration -------------------------------------------------
+
+autodoc_default_options = {
+	    "members": True,
+	    "undoc-members": True,
+	    "special-members": "__init__"
+	}

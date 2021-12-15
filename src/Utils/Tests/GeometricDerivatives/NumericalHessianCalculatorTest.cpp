@@ -14,6 +14,7 @@
 #include <Utils/Settings.h>
 #include <Utils/Technical/CloneInterface.h>
 #include <gmock/gmock.h>
+#include <omp.h>
 #include <vector>
 
 using namespace testing;
@@ -22,7 +23,7 @@ namespace Utils {
 namespace Tests {
 
 // Define a mock state
-class MockState : public Core::State {};
+class MockState final : public Core::State {};
 
 // Define a mock calculator
 class HessianMockCalculator : public CloneInterface<HessianMockCalculator, Core::Calculator> {
@@ -36,11 +37,12 @@ class HessianMockCalculator : public CloneInterface<HessianMockCalculator, Core:
   };
   void modifyPositions(PositionCollection newPositions) final {
     structure_.setPositions(newPositions);
+    r_ = Results{};
   };
   const PositionCollection& getPositions() const final {
     return structure_.getPositions();
   };
-  void setRequiredProperties(const PropertyList& requiredProperties) final{};
+  void setRequiredProperties(const PropertyList& /* requiredProperties */) final{};
   PropertyList getRequiredProperties() const final {
     return PropertyList{};
   };
@@ -105,7 +107,7 @@ class HessianMockCalculator : public CloneInterface<HessianMockCalculator, Core:
   const Utils::Results& results() const final {
     return r_;
   }
-  bool supportsMethodFamily(const std::string& methodFamily) const final {
+  bool supportsMethodFamily(const std::string& /* methodFamily */) const final {
     return true;
   }
   std::shared_ptr<Core::State> getState() const final {
@@ -166,10 +168,12 @@ TEST(NumericalHessianCalculatorTest, SemiNumerical) {
   mockCalculator.setStructure(AtomCollection(elements, pos));
   NumericalHessianCalculator hessianCalc(mockCalculator);
   auto results = hessianCalc.calculateFromGradientDifferences(0.005);
+  auto results2 = hessianCalc.calculate(0.005);
   for (unsigned int i = 0; i < 6; i++) {
     for (unsigned int j = 0; j < 6; j++) {
       const double val = (1.0 / 3.0) * (i < 3 ? 1.0 : -1.0) * (j < 3 ? 1.0 : -1.0);
       EXPECT_NEAR(val, results.get<Property::Hessian>()(i, j), 1.0e-5);
+      EXPECT_NEAR(results.get<Property::Hessian>()(i, j), results2.get<Property::Hessian>()(i, j), 1.0e-5);
     }
   }
 }
@@ -228,13 +232,17 @@ TEST(NumericalHessianCalculator, SeminumericalWithGradientAndSelectedAtoms) {
   indices[0] = 0;
   indices[1] = 2;
   auto results2 = hessianCalc.calculateFromGradientDifferences(0.005, indices);
+  auto results3 = hessianCalc.calculate(indices, 0.005);
   const HessianMatrix& hessian2 = results2.get<Property::Hessian>();
+  const HessianMatrix& hessian3 = results3.get<Property::Hessian>();
   DipoleGradient dipoleGradient = results2.get<Utils::Property::DipoleGradient>();
 
   for (int row = 0; row < hessian1.rows(); ++row) {
     for (int col = 0; col < hessian1.cols(); ++col) {
-      if (hessian2(row, col) > 1.0e-13)
+      if (hessian2(row, col) > 1.0e-13) {
         EXPECT_NEAR(hessian2(row, col), hessian1(row, col), 1e-13);
+        EXPECT_NEAR(hessian3(row, col), hessian1(row, col), 1e-13);
+      }
     }
   }
 

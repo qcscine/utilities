@@ -165,7 +165,7 @@ TEST(MolecularSurfaceTest, GetVisibleMolecularSurfaceCorrect) {
       testMolecule.push_back(Atom{ElementType::Xe, Position(0 * i, 0, 0)});
     }
     else {
-      testMolecule.push_back(Atom{ElementType::F, Position(1.5 * 2 * pow(-1, k), 1.5 * 2, 0)});
+      testMolecule.push_back(Atom{ElementType::F, Position(1.5 * 2 * std::pow(-1, k), 1.5 * 2, 0)});
       k += 1;
     }
   }
@@ -198,7 +198,7 @@ TEST(MolecularSurfaceTest, GetVisibleMolecularSurfaceSoluteSeeingEachOther) {
 
   auto visibleSoluteSites = MolecularSurface::getVisibleMolecularSurface(testMolecule, 0, 2, surfPoints);
 
-  ASSERT_THAT(visibleInternalSoluteSites.size() < surfPoints * 2, true);
+  ASSERT_THAT(static_cast<int>(visibleInternalSoluteSites.size()) < surfPoints * 2, true);
   ASSERT_THAT(visibleSoluteSites.size() < visibleInternalSoluteSites.size(), true);
 }
 

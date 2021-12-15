@@ -13,13 +13,18 @@ IndirectPreconditionerEvaluator::IndirectPreconditionerEvaluator(const Eigen::Ve
   : diagonalOfMatrixToDiagonalize_(diagonal) {
 }
 
-Eigen::VectorXd IndirectPreconditionerEvaluator::evaluate(double eigenvalue) const {
-  Eigen::VectorXd result = Eigen::inverse((diagonalOfMatrixToDiagonalize_.array() - eigenvalue));
+Eigen::VectorXd IndirectPreconditionerEvaluator::evaluate(const Eigen::VectorXd& vectorToPrecondition, double eigenvalue) const {
+  Eigen::VectorXd difference = eigenvalue - diagonalOfMatrixToDiagonalize_.array();
+  Eigen::VectorXd preconditionedVector = vectorToPrecondition;
   for (int i = 0; i < diagonalOfMatrixToDiagonalize_.size(); ++i) {
-    if (std::isinf(result(i)))
-      result(i) = 1.;
+    if (std::abs(difference(i)) < 1e-3) {
+      preconditionedVector(i) = vectorToPrecondition(i);
+    }
+    else {
+      preconditionedVector(i) /= difference(i);
+    }
   }
-  return result;
+  return preconditionedVector;
 }
 
 } // namespace Utils

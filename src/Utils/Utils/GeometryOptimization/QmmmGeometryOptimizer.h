@@ -38,7 +38,7 @@ class QmmmGeometryOptimizerSettings : public Settings {
    */
   QmmmGeometryOptimizerSettings(const QmmmGeometryOptimizer<OptimizerType>& qmmmOptimizer,
                                 const GeometryOptimizer<OptimizerType>& fullOptimizer,
-                                const GeometryOptimizer<OptimizerType>& mmOptimizer)
+                                const GeometryOptimizer<OptimizerType>& /* mmOptimizer */)
     : Settings("QmmmGeometryOptimizerSettings") {
     /*
      * The full system optimizer and the environment-only optimizers always have the same convergence criteria and
@@ -51,10 +51,13 @@ class QmmmGeometryOptimizerSettings : public Settings {
     fullOptimizer.optimizer.addSettingsDescriptors(this->_fields);
     fullOptimizer.check.addSettingsDescriptors(this->_fields);
 
-    UniversalSettings::BoolDescriptor geooptTransformCoordinates(
-        "Switch to transform the coordinates from Cartesian into an internal space.");
-    geooptTransformCoordinates.setDefaultValue(qmmmOptimizer.transformCoordinates);
-    this->_fields.push_back(GeometryOptimizerBase::geooptTransformCoordinatesKey, std::move(geooptTransformCoordinates));
+    UniversalSettings::OptionListDescriptor geooptCoordinateSystem("Set the coordinate system.");
+    geooptCoordinateSystem.addOption("internal");
+    geooptCoordinateSystem.addOption("cartesianWithoutRotTrans");
+    geooptCoordinateSystem.addOption("cartesian");
+    geooptCoordinateSystem.setDefaultOption(
+        CoordinateSystemInterpreter::getStringFromCoordinateSystem(qmmmOptimizer.coordinateSystem));
+    this->_fields.push_back(GeometryOptimizerBase::geooptCoordinateSystemKey, std::move(geooptCoordinateSystem));
 
     UniversalSettings::IntDescriptor qmmmOptMaxMacroiterations("The maximum number of macrocycles allowed.");
     qmmmOptMaxMacroiterations.setDefaultValue(qmmmOptimizer.maxMacrocycles);
@@ -108,7 +111,7 @@ class QmmmGeometryOptimizerSettings : public Settings {
  *    iterations reached (setting: qmmm_opt_max_full_microiterations).
  * 3. repeat steps 1 and 2 (this is equal to one macrocycle) until step 2 converges. If this does not occur
  *    within the maximum number of macrocycles (setting: qmmm_opt_max_macroiterations),
- *    the whole optimization remains uncoverged.
+ *    the whole optimization remains unconverged.
  *
  * The convergence settings and optimizer settings are the same for both geometry optimizers applied here. These
  * can be modified by the usual settings names. However, the max. iter. settings have special settings names
@@ -153,14 +156,17 @@ class QmmmGeometryOptimizer {
    */
   int optimize(AtomCollection& atoms, Core::Log& log) {
     // Set settings for full optimizer
-    auto s1 = fullOptimizer->getSettings();
-    s1.modifyBool(GeometryOptimizerBase::geooptTransformCoordinatesKey, this->transformCoordinates);
+    Settings s1 = fullOptimizer->getSettings();
+    s1.modifyString(GeometryOptimizerBase::geooptCoordinateSystemKey,
+                    CoordinateSystemInterpreter::getStringFromCoordinateSystem(this->coordinateSystem));
     s1.modifyInt(GradientBasedCheck::gconvMaxIterKey, this->maxFullOptMicrocycles);
     fullOptimizer->setSettings(s1);
 
     // Set settings for MM optimizer
-    auto s2 = mmOptimizer->getSettings();
-    s2.modifyBool(GeometryOptimizerBase::geooptTransformCoordinatesKey, false);
+    Settings s2 = mmOptimizer->getSettings();
+    // Coordinate system must be Cartesian because of constraints
+    s2.modifyString(GeometryOptimizerBase::geooptCoordinateSystemKey,
+                    CoordinateSystemInterpreter::getStringFromCoordinateSystem(CoordinateSystem::Cartesian));
     s2.modifyInt(GradientBasedCheck::gconvMaxIterKey, this->maxEnvOptMicrocycles);
     mmOptimizer->setSettings(s2);
 
@@ -187,13 +193,15 @@ class QmmmGeometryOptimizer {
 
       // Full opt
       auto fullOptMicrocycles = fullOptimizer->optimize(atoms, log);
-      if (fullOptMicrocycles < maxFullOptMicrocycles)
+      if (fullOptMicrocycles < maxFullOptMicrocycles) {
         converged = true;
+      }
       log.output << "Full optimization cycles in this macroiteration: " << fullOptMicrocycles << Core::Log::nl;
       totalCycles = (cycles - 1) * maxFullOptMicrocycles + fullOptMicrocycles;
       log.output << "Total full optimization cycles: " << totalCycles << Core::Log::endl;
-      if (cycles == maxMacrocycles)
+      if (cycles == maxMacrocycles) {
         converged = true;
+      }
     }
     return totalCycles;
   };
@@ -207,7 +215,8 @@ class QmmmGeometryOptimizer {
     mmOptimizer->check.applySettings(settings);
     fullOptimizer->optimizer.applySettings(settings);
     mmOptimizer->check.applySettings(settings);
-    this->transformCoordinates = settings.getBool(GeometryOptimizerBase::geooptTransformCoordinatesKey);
+    this->coordinateSystem = CoordinateSystemInterpreter::getCoordinateSystemFromString(
+        settings.getString(GeometryOptimizerBase::geooptCoordinateSystemKey));
     this->maxMacrocycles = settings.getInt(qmmmOptMaxMacroiterationsKey);
     this->maxFullOptMicrocycles = settings.getInt(qmmmOptMaxFullMicroiterationsKey);
     this->maxEnvOptMicrocycles = settings.getInt(qmmmOptMaxEnvMicroiterationsKey);
@@ -222,6 +231,13 @@ class QmmmGeometryOptimizer {
    */
   Settings getSettings() const {
     return QmmmGeometryOptimizerSettings<OptimizerType>(*this, *fullOptimizer, *mmOptimizer);
+  };
+  /**
+   * @brief Get the settings of the calculator used for the energy calculations during the optimization.
+   * @return std::shared_ptr<Settings> The settings of the calculator.
+   */
+  std::shared_ptr<Settings> getCalculatorSettings() const {
+    return std::make_shared<Settings>(calculator_.settings());
   };
   /**
    * @brief Add an observer function that will be triggered in each iteration.
@@ -271,19 +287,19 @@ class QmmmGeometryOptimizer {
   /// @brief Perform the MM-only optimization of the environment at the very beginning.
   bool envOptAtStart = true;
   /**
-   * @brief Switch to transform the coordinates from Cartesian into an internal space
-   *        for the full system optimizations.
+   * @brief Set the coordinate system in which the optimization shall be performed
+   *
+   * The optimization can be carried out in the internal coordinate space or with removed translations and rotations
+   * possibly accelerating convergence.
    */
-  bool transformCoordinates = true;
+  CoordinateSystem coordinateSystem = CoordinateSystem::Internal;
 
  private:
   Core::Calculator& calculator_;
   // Function that adds the MM atoms close to the boundary to the constrained atoms during the MM-only opt.
   void addBoundaryAtomsToConstrainedAtoms(const Utils::AtomCollection& atoms) {
     auto mmOptSettings = mmOptimizer->getSettings();
-    std::string constrainedAtomsString = calculator_.settings().getString("qm_atoms");
-    mmOptSettings.modifyString(GeometryOptimizerBase::geooptFixedAtomsKey, constrainedAtomsString);
-    mmOptimizer->setSettings(mmOptSettings);
+    auto constrainedAtoms = calculator_.settings().getIntList("qm_atoms");
 
     // Add atoms close to boundary to the constrained atoms in MM optimization:
     std::vector<int> qmAtoms = mmOptimizer->fixedAtoms;
@@ -294,15 +310,17 @@ class QmmmGeometryOptimizer {
         double minimalDistanceSquared = std::numeric_limits<double>::max();
         for (const auto& qmAtomIndex : qmAtoms) {
           double currentSquaredDistance = (atoms.getPosition(qmAtomIndex) - atoms.getPosition(i)).squaredNorm();
-          if (currentSquaredDistance < minimalDistanceSquared)
+          if (currentSquaredDistance < minimalDistanceSquared) {
             minimalDistanceSquared = currentSquaredDistance;
+          }
         }
-        if (minimalDistanceSquared < std::pow(boundaryDistanceThreshold, 2))
-          constrainedAtomsString += " " + std::to_string(i);
+        if (minimalDistanceSquared < std::pow(boundaryDistanceThreshold, 2)) {
+          constrainedAtoms.push_back(i);
+        }
       }
     }
 
-    mmOptSettings.modifyString(GeometryOptimizerBase::geooptFixedAtomsKey, constrainedAtomsString);
+    mmOptSettings.modifyIntList(GeometryOptimizerBase::geooptFixedAtomsKey, constrainedAtoms);
     mmOptimizer->setSettings(mmOptSettings);
   };
 };

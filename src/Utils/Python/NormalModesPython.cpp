@@ -30,9 +30,16 @@ void init_normal_modes(pybind11::module& m) {
   normalModesContainer.def("get_wave_numbers", &NormalModesContainer::getWaveNumbers,
                            "Get the wave numbers corresponding to the vibrational modes [cm^(-1)].");
 
-  normal_modes_submodule.def("calculate", &NormalModeAnalysis::calculateNormalModes, pybind11::arg("hessian"),
-                             pybind11::arg("elements"), pybind11::arg("positions"),
-                             "Calculate the mass weighted normal modes.");
+  normal_modes_submodule.def(
+      "calculate",
+      pybind11::overload_cast<const HessianMatrix&, const AtomCollection&>(&NormalModeAnalysis::calculateNormalModes),
+      pybind11::arg("hessian"), pybind11::arg("atoms"), "Calculate the mass weighted normal modes.");
+  normal_modes_submodule.def(
+      "calculate",
+      pybind11::overload_cast<const HessianMatrix&, const ElementTypeCollection&, const PositionCollection&>(
+          &NormalModeAnalysis::calculateNormalModes),
+      pybind11::arg("hessian"), pybind11::arg("elements"), pybind11::arg("positions"),
+      "Calculate the mass weighted normal modes.");
 
   pybind11::class_<NormalMode> normalMode(normal_modes_submodule, "mode");
 

@@ -12,16 +12,24 @@
 namespace Scine {
 namespace Utils {
 
-enum class SpinTransition { singlet, triplet };
+/**
+ * @brief Denotes the spin symmetry in CIS and TD-DFT-like calculations on restricted references.
+ */
+enum class SpinTransition { Singlet, Triplet };
 /**
  * @class SigmaVectorEvaluator @file SigmaVectorEvaluator.h
  * @brief Interface for the sigma vector evaluators in the Davidson iterative diagonalizer.
  */
-template<class MatrixType>
 class SigmaVectorEvaluator {
  public:
   virtual ~SigmaVectorEvaluator() = default;
-  virtual Eigen::MatrixXd evaluateSigmaVector(const Eigen::MatrixXd& guessVectors) const = 0;
+  virtual const Eigen::MatrixXd& evaluate(const Eigen::MatrixXd& guessVectors) const = 0;
+
+  /**
+   * @brief Allows for internal handling of new subspace dimension.
+   * @param newSubspaceDimension The new guess vectors number after subspace collapse.
+   */
+  virtual void collapsed(int newSubspaceDimension) = 0;
 };
 
 } // namespace Utils

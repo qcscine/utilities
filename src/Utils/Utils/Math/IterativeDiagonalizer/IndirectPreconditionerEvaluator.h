@@ -27,7 +27,7 @@ class IndirectPreconditionerEvaluator final : public PreconditionerEvaluator {
    * where H is the diagonal of the full matrix.
    * @param eigenvalues The current guess for the eigenvalue h_k
    */
-  Eigen::VectorXd evaluate(double eigenvalue) const final;
+  Eigen::VectorXd evaluate(const Eigen::VectorXd& vectorToPrecondition, double eigenvalue) const final;
 
  private:
   Eigen::VectorXd diagonalOfMatrixToDiagonalize_;

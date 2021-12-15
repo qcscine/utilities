@@ -12,6 +12,11 @@
 #include "Utils/Typenames.h"
 
 namespace Scine {
+
+namespace Core {
+struct Log;
+}
+
 namespace Utils {
 /**
  * @brief A tool for systematically solvating one solvate
@@ -35,13 +40,15 @@ namespace SoluteSolventComplex {
  * @param numRotamers Number of rotations to be tried for adding solvent.
  * @param strategicSolv Bool to turn on or off the solvationStrategy function. Reduces the number of surface
  * recalculations.
+ * @param coverageThreshold Ratio of visible solvent sites to be covered by solvents per total number of visible solvent
+ * sites for the given solute. Once the threshold is reached the shell is considered complete.
  * @return A solvent shell vector. Each entry is one vector of atom collections, containg the solvent molecules of this
  * shell.
  */
-std::vector<std::vector<AtomCollection>> solvate(const AtomCollection& soluteComplex, int soluteSize,
-                                                 const AtomCollection& solvent, int numSolvents, int seed,
-                                                 int resolution = 32, double solventOffset = 0.0, double maxDistance = 10.0,
-                                                 double stepSize = 0.25, int numRotamers = 3, bool strategicSolv = false);
+std::vector<std::vector<AtomCollection>>
+solvate(const AtomCollection& soluteComplex, int soluteSize, const AtomCollection& solvent, int numSolvents, int seed,
+        int resolution = 32, double solventOffset = 0.0, double maxDistance = 10.0, double stepSize = 0.25,
+        int numRotamers = 3, bool strategicSolv = false, double coverageThreshold = 1.0);
 /**
  * @brief Add number of solvent shells to solute.
  *
@@ -58,13 +65,15 @@ std::vector<std::vector<AtomCollection>> solvate(const AtomCollection& soluteCom
  * @param numRotamers Number of rotations to be tried for adding solvent.
  * @param strategicSolv Bool to turn on or off the solvationStrategy function. Reduces the number of surface
  * recalculations.
+ * @param coverageThreshold Ratio of visible solvent sites to be covered by solvents per total number of visible solvent
+ * sites for the given solute. Once the threshold is reached the shell is considered complete.
  * @return A solvent shell vector. Each entry is one vector of atom collections, containg the solvent molecules of this
  * shell.
  */
 std::vector<std::vector<AtomCollection>>
 solvateShells(const AtomCollection& soluteComplex, int soluteSize, const AtomCollection& solvent, int numShells,
               int seed, int resolution = 32, double solventOffset = 0.0, double maxDistance = 10.0,
-              double stepSize = 0.25, int numRotamers = 3, bool strategicSolv = false);
+              double stepSize = 0.25, int numRotamers = 3, bool strategicSolv = false, double coverageThreshold = 1.0);
 /**
  * @brief Add systematically a number of solvents and a number of solvent shells to solute
  *
@@ -82,13 +91,33 @@ solvateShells(const AtomCollection& soluteComplex, int soluteSize, const AtomCol
  * @param numRotamers Number of rotations to be tried for adding solvent.
  * @param strategicSolv Bool to turn on or off the solvationStrategy function. Reduces the number of surface
  * recalculations.
+ * @param coverageThreshold Ratio of visible solvent sites to be covered by solvents per total number of visible solvent
+ * sites for the given solute. Once the threshold is reached the shell is considered complete.
  * @return A solvent shell vector. Each entry is one vector of atom collections, containg the solvent molecules of this
  * shell.
  */
 std::vector<std::vector<AtomCollection>> solvate(const AtomCollection& soluteComplex, int soluteSize,
-                                                 const AtomCollection& solvent, int numSolvents, int numShells,
-                                                 int seed, int resolution, double solventOffset, double maxDistance,
-                                                 double stepSize, int numRotamers, bool strategicSolv);
+                                                 const AtomCollection& solvent, int numSolvents, int numShells, int seed,
+                                                 int resolution, double solventOffset, double maxDistance, double stepSize,
+                                                 int numRotamers, bool strategicSolv, double coverageThreshold);
+/**
+ * @brief Analyze given solute-solvent complex to return solvent shell vector. Basically reverse solvate function,
+ * giving the solvent shell vector of a given cluster.
+ *
+ * @param complex Solute solvent cluster to be analyzed.
+ * @param soluteSize Original size of the solute.
+ * @param solventSizeVector Vector containing the solvent sizes in order.
+ * @param resolution Number of surface sites per atom.
+ * @param strategicSolv Bool to turn on or off the solvationStrategy function. Reduces the number of surface
+ * recalculations when a solvent has been added.
+ * @param coverageThreshold Ratio of visible solvent sites to be covered by solvents per total number of visible solvent
+ * sites for the given solute. Once the threshold is reached the shell is considered complete.
+ * @return A sovlent shell vector in a solute solvent complex. Each entry is one vector of atom collections, containg
+ * the solvent molecules of this shell. Threshold allows of more loose definition of solvent shell vector.
+ */
+std::vector<std::vector<AtomCollection>>
+giveSolventShellVector(const AtomCollection& complex, int soluteSize, const std::vector<int>& solventSizeVector,
+                       int resolution, Core::Log& log, bool strategicSolv = true, double coverageThreshold = 1);
 /**
  * @brief Merge a vector of atom collections to one atom collection.
  *
@@ -103,6 +132,14 @@ AtomCollection mergeAtomCollectionVector(const std::vector<AtomCollection>& atom
  * @return One AtomCollection, ordered as in the given vector.
  */
 AtomCollection mergeSolventShellVector(const std::vector<std::vector<AtomCollection>>& shellVector);
+/**
+ * @brief Transform solvent shell vector to solvent size vector. Needed for giveSolventShellVector calculation.
+ *
+ * @param shellVector Solvent shell vector containing a vector of shells containing a vector of solvent molecules
+ * @return A one dimensional vector containing the size of all solvents in order of their addition by the solvate
+ * function.
+ */
+std::vector<int> transferSolventShellVector(const std::vector<std::vector<AtomCollection>>& shellVector);
 /**
  * @brief Solvation strategy for faster building of solute - solvent complexes.
  * @param numberSurfPoints Number of visible surface points of the solute.
@@ -130,8 +167,8 @@ bool checkDistances(const AtomCollection& atoms1, const AtomCollection& atoms2);
  * @param distance Targeted distance between surfPoint1 and surfPoint2.
  * @return Position collection of arranged atoms2.
  */
-PositionCollection arrange(Position surfPoint1, Position surfNormal1, Position surfPoint2, Position surfNormal2,
-                           const PositionCollection& atoms2Position, double distance);
+PositionCollection arrange(const Position& surfPoint1, const Position& surfNormal1, const Position& surfPoint2,
+                           const Position& surfNormal2, const PositionCollection& atoms2Position, double distance);
 /**
  * @brief Add additive to given complex at given surface site of the complex.
  *

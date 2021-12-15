@@ -25,11 +25,13 @@ class StringListDescriptor : public SettingDescriptor {
  public:
   using StringList = GenericValue::StringList;
 
+  StringListDescriptor() = default;
   explicit StringListDescriptor(std::string propertyDescription);
 
   std::unique_ptr<SettingDescriptor> clone() const override;
   GenericValue getDefaultGenericValue() const override;
   bool validValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const GenericValue& v) const override;
 
   //! Returns the default string list value
   StringList getDefaultValue() const;
@@ -76,6 +78,10 @@ inline std::string StringListDescriptor::getDefaultItemValue() const {
 
 inline void StringListDescriptor::setDefaultItemValue(std::string def) {
   defaultItemValue_ = std::move(def);
+}
+
+inline std::string StringListDescriptor::explainInvalidValue(const GenericValue& /* v */) const {
+  return "Generic value for string setting '" + getPropertyDescription() + "' is not a string list!";
 }
 
 } /* namespace UniversalSettings */

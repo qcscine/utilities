@@ -24,14 +24,16 @@ void GaussianOutputParser::extractContent(const std::string& filename) {
   fin.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   fin.open(filename);
   content_ = std::string(std::istreambuf_iterator<char>{fin}, {});
+  fin.close();
 }
 
 int GaussianOutputParser::getNumberAtoms() const {
   std::regex regex(R"(NAtoms= +(\d+))");
   std::smatch matches;
   bool b = std::regex_search(content_, matches, regex);
-  if (!b)
+  if (!b) {
     throw OutputFileParsingError("Number of atoms could not be read from Gaussian output");
+  }
   return std::stoi(matches[1]);
 }
 
@@ -42,8 +44,9 @@ GradientCollection GaussianOutputParser::getGradients() const {
   std::regex r1(R"(Center +Atomic +Forces \(Hartrees/Bohr\))");
   std::smatch m1;
   bool b = std::regex_search(content_, m1, r1);
-  if (!b)
+  if (!b) {
     throw OutputFileParsingError("Force section could not be found in GAUSSIAN output");
+  }
   // set iterator where to start search for gradients
   auto it = m1[0].second;
 
@@ -73,8 +76,9 @@ double GaussianOutputParser::getEnergy() const {
   std::regex regex(R"(SCF Done:  E\(.+\) = +([-\.0-9]+) +[Aa]\.[Uu]\.)");
   std::smatch matches;
   bool b = std::regex_search(content_, matches, regex);
-  if (!b)
+  if (!b) {
     throw OutputFileParsingError("Energy could not be read from GAUSSIAN output");
+  }
   return std::stod(matches[1]);
 }
 
@@ -86,8 +90,9 @@ std::vector<double> GaussianOutputParser::getCM5Charges() const {
   std::regex r1(R"(Hirshfeld +charges, +spin +densities, +dipoles, +and +CM5 +charges)");
   std::smatch m1;
   bool b = std::regex_search(content_, m1, r1);
-  if (!b)
+  if (!b) {
     throw OutputFileParsingError("CM5 charges section could not be found in GAUSSIAN output.");
+  }
   // set iterator where to start search for cm5 charges
   auto it = m1[0].second;
 

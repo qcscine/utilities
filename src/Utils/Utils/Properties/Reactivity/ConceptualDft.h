@@ -67,8 +67,8 @@ struct ConceptualDftContainer {
  * @param atomicChargesMinus The atomic charges for the same geometry with one electron less \f$q(R, N-1)\f$.
  * @return A ConceptualDftContainer with local and global cDFT properties.
  */
-ConceptualDftContainer calculate(const double energy, const Eigen::VectorXd& atomicCharges, const double energyPlus,
-                                 const Eigen::VectorXd& atomicChargesPlus, const double energyMinus,
+ConceptualDftContainer calculate(double energy, const Eigen::VectorXd& atomicCharges, double energyPlus,
+                                 const Eigen::VectorXd& atomicChargesPlus, double energyMinus,
                                  const Eigen::VectorXd& atomicChargesMinus);
 
 /**
@@ -79,7 +79,7 @@ ConceptualDftContainer calculate(const double energy, const Eigen::VectorXd& ato
  * @param energyMinus The energy for the same geometry with one electron less \f$E(R, N-1)\f$
  * @return A GlobalConceptualDftContainer with global cDFT properties.
  */
-GlobalConceptualDftContainer calculateGlobal(const double energy, const double energyPlus, const double energyMinus);
+GlobalConceptualDftContainer calculateGlobal(double energy, double energyPlus, double energyMinus);
 
 /**
  * @brief Calculates the condensed to atom Fukui and dual descriptor indices.
@@ -107,7 +107,7 @@ LocalConceptualDftContainer calculateLocal(const Eigen::VectorXd& atomicCharges,
  * @param energyMinus The energy for the same geometry with one electron less \f$E(R, N-1)\f$
  * @return The chemical potential.
  */
-double calculateChemicalPotential(const double energy, const double energyPlus, const double energyMinus);
+double calculateChemicalPotential(double energy, double energyPlus, double energyMinus);
 
 /**
  * @brief Calculates the Mulliken electronegativity.
@@ -121,7 +121,7 @@ double calculateChemicalPotential(const double energy, const double energyPlus, 
  * @param energyMinus The energy for the same geometry with one electron less \f$E(R, N-1)\f$
  * @return The Mulliken electronegativity.
  */
-double calculateElectronegativity(const double energy, const double energyPlus, const double energyMinus);
+double calculateElectronegativity(double energy, double energyPlus, double energyMinus);
 
 /**
  * @brief Calculates the conceptual DFT chemical hardness.
@@ -136,7 +136,7 @@ double calculateElectronegativity(const double energy, const double energyPlus, 
  * @param energyMinus The energy for the same geometry with one electron less \f$E(R, N-1)\f$
  * @return The hardness.
  */
-double calculateHardness(const double energy, const double energyPlus, const double energyMinus);
+double calculateHardness(double energy, double energyPlus, double energyMinus);
 
 /**
  * @brief Calculates the conceptual DFT softness.
@@ -150,7 +150,7 @@ double calculateHardness(const double energy, const double energyPlus, const dou
  * @param energyMinus The energy for the same geometry with one electron less \f$E(R, N-1)\f$
  * @return The softness.
  */
-double calculateSoftness(const double energy, const double energyPlus, const double energyMinus);
+double calculateSoftness(double energy, double energyPlus, double energyMinus);
 
 /**
  * @brief Calculates the conceptual DFT electrophilicity.
@@ -164,7 +164,7 @@ double calculateSoftness(const double energy, const double energyPlus, const dou
  * @param energyMinus The energy for the same geometry with one electron less \f$E(R, N-1)\f$
  * @return The electrophilicity.
  */
-double calculateElectrophilicity(const double energy, const double energyPlus, const double energyMinus);
+double calculateElectrophilicity(double energy, double energyPlus, double energyMinus);
 
 /**
  * @brief Calculates the Fukui indices for nucleophilic attack susceptibility \f$f^+\f$.

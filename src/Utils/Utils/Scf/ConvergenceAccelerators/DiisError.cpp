@@ -18,10 +18,12 @@ void DiisError::resize(unsigned subspaceSize) {
 
 void DiisError::setErrorFromMatrices(int index, const SpinAdaptedMatrix& fock, const DensityMatrix& density,
                                      const Eigen::MatrixXd& overlap) {
-  if (unrestricted_)
+  if (unrestricted_) {
     errorMatrices[index] = calculateUnrestrictedErrorMatrix(fock, density, overlap);
-  else
+  }
+  else {
     errorMatrices[index] = calculateRestrictedErrorMatrix(fock, density, overlap);
+  }
 }
 
 Eigen::MatrixXd DiisError::calculateUnrestrictedErrorMatrix(const SpinAdaptedMatrix& fock, const DensityMatrix& density,
@@ -31,11 +33,10 @@ Eigen::MatrixXd DiisError::calculateUnrestrictedErrorMatrix(const SpinAdaptedMat
     Eigen::MatrixXd betaE = calculateOrthogonalErrorMatrix(fock.betaMatrix(), density.betaMatrix());
     return alphaE + betaE;
   }
-  else {
-    Eigen::MatrixXd alphaE = calculateErrorMatrix(fock.alphaMatrix(), overlap, density.alphaMatrix());
-    Eigen::MatrixXd betaE = calculateErrorMatrix(fock.betaMatrix(), overlap, density.betaMatrix());
-    return alphaE + betaE;
-  }
+
+  Eigen::MatrixXd alphaE = calculateErrorMatrix(fock.alphaMatrix(), overlap, density.alphaMatrix());
+  Eigen::MatrixXd betaE = calculateErrorMatrix(fock.betaMatrix(), overlap, density.betaMatrix());
+  return alphaE + betaE;
 }
 
 Eigen::MatrixXd DiisError::calculateRestrictedErrorMatrix(const SpinAdaptedMatrix& fock, const DensityMatrix& density,
@@ -44,18 +45,17 @@ Eigen::MatrixXd DiisError::calculateRestrictedErrorMatrix(const SpinAdaptedMatri
     Eigen::MatrixXd restrictedE = calculateOrthogonalErrorMatrix(fock.restrictedMatrix(), density.restrictedMatrix());
     return restrictedE;
   }
-  else {
-    Eigen::MatrixXd restrictedE = calculateErrorMatrix(fock.restrictedMatrix(), overlap, density.restrictedMatrix());
-    return restrictedE;
-  }
+
+  Eigen::MatrixXd restrictedE = calculateErrorMatrix(fock.restrictedMatrix(), overlap, density.restrictedMatrix());
+  return restrictedE;
 }
 
 Eigen::MatrixXd DiisError::calculateErrorMatrix(const Eigen::MatrixXd& fock, const Eigen::MatrixXd& overlap,
-                                                const Eigen::MatrixXd& density) const {
+                                                const Eigen::MatrixXd& density) {
   return fock.selfadjointView<Eigen::Lower>() * density * overlap - overlap * density * fock.selfadjointView<Eigen::Lower>();
 }
 
-Eigen::MatrixXd DiisError::calculateOrthogonalErrorMatrix(const Eigen::MatrixXd& fock, const Eigen::MatrixXd& density) const {
+Eigen::MatrixXd DiisError::calculateOrthogonalErrorMatrix(const Eigen::MatrixXd& fock, const Eigen::MatrixXd& density) {
   return fock.selfadjointView<Eigen::Lower>() * density - density * fock.selfadjointView<Eigen::Lower>();
 }
 

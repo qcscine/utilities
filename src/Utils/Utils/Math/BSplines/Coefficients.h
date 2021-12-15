@@ -65,10 +65,12 @@ inline int Coefficients::nonZeroCount() const {
 }
 
 inline double Coefficients::get(int index) const {
-  if (index < firstNonZero_)
+  if (index < firstNonZero_) {
     return 0.0;
-  if (index < firstNonZero_ + nonZeroCoefficients_.size())
+  }
+  if (index < firstNonZero_ + nonZeroCoefficients_.size()) {
     return nonZeroCoefficients_(index - firstNonZero_);
+  }
   return 0;
 }
 

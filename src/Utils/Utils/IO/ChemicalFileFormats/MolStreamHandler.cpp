@@ -15,14 +15,7 @@
 #include <numeric>
 
 namespace Scine {
-
 namespace Utils {
-
-// Helper to insert newlines
-inline std::ostream& nl(std::ostream& os) {
-  os << "\n";
-  return os;
-}
 
 std::pair<Utils::AtomCollection, Utils::BondOrderCollection> MolStreamHandler::read(std::istream& is,
                                                                                     const std::string& format) const {
@@ -35,21 +28,22 @@ std::pair<Utils::AtomCollection, Utils::BondOrderCollection> MolStreamHandler::r
   return data;
 }
 
-void MolStreamHandler::write(std::ostream& os, const std::string& format, const Utils::AtomCollection& atoms) const {
+void MolStreamHandler::write(std::ostream& os, const std::string& format, const Utils::AtomCollection& atoms,
+                             const std::string& comment) const {
   if (format != "mol") {
     throw FormattedStreamHandler::FormatUnsupportedException();
   }
 
-  write(os, atoms, boost::none, "V2000");
+  write(os, atoms, boost::none, "V2000", comment);
 }
 
 void MolStreamHandler::write(std::ostream& os, const std::string& format, const AtomCollection& atoms,
-                             const BondOrderCollection& bondOrders) const {
+                             const BondOrderCollection& bondOrders, const std::string& comment) const {
   if (format != "mol") {
     throw FormattedStreamHandler::FormatUnsupportedException();
   }
 
-  write(os, atoms, bondOrders, "V2000");
+  write(os, atoms, bondOrders, "V2000", comment);
 }
 
 std::vector<MolStreamHandler::FormatSupportPair> MolStreamHandler::formats() const {
@@ -58,31 +52,26 @@ std::vector<MolStreamHandler::FormatSupportPair> MolStreamHandler::formats() con
 
 bool MolStreamHandler::formatSupported(const std::string& format, SupportType /* operation */
                                        ) const {
-  if (format == "mol") {
-    return true;
-  }
-
-  return false;
+  return format == "mol";
 }
 
 std::string MolStreamHandler::name() const {
   return MolStreamHandler::model;
 }
 
-const std::vector<std::string> MolStreamHandler::versionStrings{"V2000", "V3000"};
-
 void MolStreamHandler::write(std::ostream& os, const AtomCollection& atoms,
-                             const boost::optional<BondOrderCollection>& bondOrdersOption, const std::string& formatVersion) {
+                             const boost::optional<BondOrderCollection>& bondOrdersOption,
+                             const std::string& formatVersion, const std::string& comment) {
   /* Imbue the output stream with the C locale to ensure commas and periods are
    * consistent
    */
   os.imbue(std::locale("C"));
   const unsigned N = atoms.size();
 
-  std::vector<unsigned> valences(N, 0u);
+  std::vector<unsigned> valences(N, 0U);
   // Count the number of bonds in the molecule if there is bond information present
   if (bondOrdersOption) {
-    auto& bondOrders = bondOrdersOption.value();
+    const auto& bondOrders = bondOrdersOption.value();
     for (unsigned i = 0; i < N - 1; ++i) {
       for (unsigned j = i + 1; j < N; ++j) {
         double order = bondOrders.getOrder(i, j);
@@ -99,12 +88,12 @@ void MolStreamHandler::write(std::ostream& os, const AtomCollection& atoms,
    * valences for each atom, each bond is represented twice in valences, so we
    * halve the sum.
    */
-  const unsigned B = std::accumulate(std::begin(valences), std::end(valences), 0u, std::plus<>()) / 2;
+  const unsigned B = std::accumulate(std::begin(valences), std::end(valences), 0U, std::plus<>()) / 2;
 
   os << std::setprecision(0);
 
   // Header: molecule name
-  os << "Unnamed Molecule" << nl;
+  os << "Unnamed Molecule\n";
 
   // Header: Information about the program
   auto now = time(nullptr);
@@ -119,25 +108,25 @@ void MolStreamHandler::write(std::ostream& os, const AtomCollection& atoms,
      // ss (float scaling factor, 10 digits long: bbbb.aaaaa)
      // EE (energy, 12 digits long: sbbbbb.aaaaa)
      // RRRRRR (registry number)
-     << nl;
+     << "\n";
 
   // Header: Comments
-  os << nl;
+  os << comment << "\n";
 
   // Counts line
   os << std::setw(3) << N             // aaa
      << std::setw(3) << B             // bbb
-     << std::setw(3) << 0u            // lll (number of atom lists)
-     << std::setw(3) << 0u            // fff (obsolete)
-     << std::setw(3) << 0u            // ccc (chiral or not?)
-     << std::setw(3) << 0u            // sss (num s-text entries, irrelevant here)
-     << std::setw(3) << 0u            // xxx (obsolete)
-     << std::setw(3) << 0u            // rrr (obsolete)
-     << std::setw(3) << 0u            // ppp (obsolete)
-     << std::setw(3) << 0u            // iii (obsolete)
-     << std::setw(3) << 999u          // mmm (num add. prop.s, unsupported, default 999)
+     << std::setw(3) << 0U            // lll (number of atom lists)
+     << std::setw(3) << 0U            // fff (obsolete)
+     << std::setw(3) << 0U            // ccc (chiral or not?)
+     << std::setw(3) << 0U            // sss (num s-text entries, irrelevant here)
+     << std::setw(3) << 0U            // xxx (obsolete)
+     << std::setw(3) << 0U            // rrr (obsolete)
+     << std::setw(3) << 0U            // ppp (obsolete)
+     << std::setw(3) << 0U            // iii (obsolete)
+     << std::setw(3) << 999U          // mmm (num add. prop.s, unsupported, default 999)
      << std::setw(6) << formatVersion // vvvvvv (Version string)
-     << nl;
+     << "\n";
 
   // Atom block: one line per atom
   std::vector<std::pair<unsigned, unsigned>> isotopes;
@@ -148,19 +137,19 @@ void MolStreamHandler::write(std::ostream& os, const AtomCollection& atoms,
        << std::setw(10) << atoms.getPosition(i)(1) * Constants::angstrom_per_bohr     // y position
        << std::setw(10) << atoms.getPosition(i)(2) * Constants::angstrom_per_bohr     // z position
        << " " << std::setprecision(0) << std::setw(3) << ElementInfo::symbol(element) // aaa (atom symbol)
-       << std::setw(2) << 0u                                                          // dd (isotope mass difference)
-       << std::setw(3) << 0u                                                          // ccc (local charge)
-       << std::setw(3) << 0u             // sss (atom stereo parity, ignored)
-       << std::setw(3) << 0u             // hhh (hydrogen count, for query, ignored)
-       << std::setw(3) << 0u             // bbb (stereo care box??, ignored)
+       << std::setw(2) << 0U                                                          // dd (isotope mass difference)
+       << std::setw(3) << 0U                                                          // ccc (local charge)
+       << std::setw(3) << 0U             // sss (atom stereo parity, ignored)
+       << std::setw(3) << 0U             // hhh (hydrogen count, for query, ignored)
+       << std::setw(3) << 0U             // bbb (stereo care box??, ignored)
        << std::setw(3) << valences.at(i) // vvv (valence)
-       << std::setw(3) << 0u             // HHH (H0 designator, ISIS/Desktop, ignored)
-       << std::setw(3) << 0u             // rrr (unused)
-       << std::setw(3) << 0u             // iii (unused)
-       << std::setw(3) << 0u             // mmm (atom-atom mapping number, for reactions, ignored)
-       << std::setw(3) << 0u             // nnn (inversion/retention flag, for reactions, ignored)
-       << std::setw(3) << 0u             // eee (exact change flag, for reactions, ignored)
-       << nl;
+       << std::setw(3) << 0U             // HHH (H0 designator, ISIS/Desktop, ignored)
+       << std::setw(3) << 0U             // rrr (unused)
+       << std::setw(3) << 0U             // iii (unused)
+       << std::setw(3) << 0U             // mmm (atom-atom mapping number, for reactions, ignored)
+       << std::setw(3) << 0U             // nnn (inversion/retention flag, for reactions, ignored)
+       << std::setw(3) << 0U             // eee (exact change flag, for reactions, ignored)
+       << "\n";
 
     const unsigned A = ElementInfo::A(element);
     /* If the element type has atomic mass number information and it's not
@@ -174,21 +163,21 @@ void MolStreamHandler::write(std::ostream& os, const AtomCollection& atoms,
 
   // Bond block: one line per bond
   if (bondOrdersOption) {
-    auto& bondOrders = bondOrdersOption.value();
+    const auto& bondOrders = bondOrdersOption.value();
     for (unsigned i = 0; i < N - 1; ++i) {
       for (unsigned j = i + 1; j < N; ++j) {
         // Discretize bond orders to nearest integer
-        unsigned bondOrder = std::round(bondOrders.getOrder(i, j));
+        const unsigned bondOrder = std::round(bondOrders.getOrder(i, j));
 
         if (0 < bondOrder && bondOrder < 4) {
           os << std::setw(3) << (1 + i)   // 111 (index of 1st atom)
              << std::setw(3) << (1 + j)   // 222 (index of 2nd atom)
              << std::setw(3) << bondOrder // ttt (bond type)
-             << std::setw(3) << 0u        // sss (bond stereo, ignored for now)
-             << std::setw(3) << 0u        // xxx (unused)
-             << std::setw(3) << 0u        // rrr (bond topology, ignored)
-             << std::setw(3) << 0u        // ccc (reacting center status, ignored)
-             << nl;
+             << std::setw(3) << 0U        // sss (bond stereo, ignored for now)
+             << std::setw(3) << 0U        // xxx (unused)
+             << std::setw(3) << 0U        // rrr (bond topology, ignored)
+             << std::setw(3) << 0U        // ccc (reacting center status, ignored)
+             << "\n";
         }
       }
     }
@@ -201,13 +190,13 @@ void MolStreamHandler::write(std::ostream& os, const AtomCollection& atoms,
     const auto isotopesEnd = std::end(isotopes);
     while (isotopesIter != isotopesEnd) {
       unsigned elementsRemaining = isotopesEnd - isotopesIter;
-      unsigned elementsOnLine = std::min(8u, elementsRemaining);
+      unsigned elementsOnLine = std::min(8U, elementsRemaining);
       os << "M  ISO" << std::setw(3) << elementsOnLine;
       for (unsigned i = 0; i < elementsOnLine; ++i) {
         os << " " << std::setw(3) << isotopesIter->first << " " << std::setw(3) << isotopesIter->second;
         ++isotopesIter;
       }
-      os << nl;
+      os << "\n";
     }
   }
 
@@ -236,7 +225,8 @@ std::pair<AtomCollection, BondOrderCollection> MolStreamHandler::read(std::istre
     is.ignore(std::numeric_limits<std::streamsize>::max(), is.widen('\n'));
   };
 
-  unsigned atomBlockSize = 0, bondBlockSize = 0;
+  unsigned atomBlockSize = 0;
+  unsigned bondBlockSize = 0;
   std::string line;
 
   // Header: molecule name
@@ -443,5 +433,4 @@ std::pair<AtomCollection, BondOrderCollection> MolStreamHandler::read(std::istre
 }
 
 } // namespace Utils
-
 } // namespace Scine

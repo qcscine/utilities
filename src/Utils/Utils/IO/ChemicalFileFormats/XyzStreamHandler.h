@@ -13,7 +13,6 @@
 #include <fstream>
 
 namespace Scine {
-
 namespace Utils {
 
 class AtomCollection;
@@ -38,18 +37,17 @@ class XyzStreamHandler : public FormattedStreamHandler {
   //!@name Static members
   //!@{
   static AtomCollection read(std::istream& is);
-  static void write(std::ostream& os, const AtomCollection& atoms);
+  static void write(std::ostream& os, const AtomCollection& atoms, const std::string& comment = "");
   //!@}
 
   //!@name FormattedStreamHandler interface
   //!@{
   std::pair<AtomCollection, BondOrderCollection> read(std::istream& /* is */, const std::string& format) const final;
 
-  void write(std::ostream& os, const std::string& format, const AtomCollection& atoms) const final;
+  void write(std::ostream& os, const std::string& format, const AtomCollection& atoms, const std::string& comment = "") const final;
 
   void write(std::ostream& /* os */, const std::string& format, const AtomCollection& /* atoms */,
-             const BondOrderCollection& /* bondOrders */
-             ) const final;
+             const BondOrderCollection& /* bondOrders */, const std::string& comment = "") const final;
 
   std::vector<FormatSupportPair> formats() const final;
 
@@ -60,7 +58,6 @@ class XyzStreamHandler : public FormattedStreamHandler {
 };
 
 } // namespace Utils
-
 } // namespace Scine
 
 #endif

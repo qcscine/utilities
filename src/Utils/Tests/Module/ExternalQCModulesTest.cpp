@@ -7,8 +7,11 @@
 
 #include <Core/Interfaces/Calculator.h>
 #include <Core/ModuleManager.h>
+#include <Utils/ExternalQC/Cp2k/Cp2kCalculator.h>
+#include <Utils/ExternalQC/ExternalProgram.h>
 #include <Utils/ExternalQC/Gaussian/GaussianCalculator.h>
 #include <Utils/ExternalQC/Orca/OrcaCalculator.h>
+#include <Utils/ExternalQC/Turbomole/TurbomoleCalculator.h>
 #include <gmock/gmock.h>
 
 using namespace testing;
@@ -92,6 +95,90 @@ TEST_F(ExternalQCModulesTest, OrcaModuleIsWorkingCorrectly) {
     setenv("ORCA_BINARY_PATH", envVariablePtr, true);
   }
 #endif
+}
+
+TEST_F(ExternalQCModulesTest, Cp2kModuleIsWorkingCorrectly) {
+#ifndef _WIN32
+  const char* envVariablePtr = std::getenv("CP2K_BINARY_PATH");
+  if (envVariablePtr) {
+    unsetenv("CP2K_BINARY_PATH");
+  }
+
+  auto& manager = Core::ModuleManager::getInstance();
+  auto modelName = ExternalQC::Cp2kCalculator::model;
+
+  auto loadedModels = manager.getLoadedModels(Core::Calculator::interface);
+  bool cp2kAvailable = std::find(loadedModels.begin(), loadedModels.end(), modelName) != loadedModels.end();
+  ASSERT_FALSE(cp2kAvailable);
+  ASSERT_FALSE(manager.has(Core::Calculator::interface, modelName));
+  EXPECT_THROW(manager.get<Core::Calculator>(modelName, "Cp2k"), Core::ClassNotImplementedError);
+  EXPECT_THROW(manager.get<Core::Calculator>(Core::Calculator::supports("DFT"), "Cp2k"), std::runtime_error);
+
+  setenv("CP2K_BINARY_PATH", "cp2k", true);
+
+  loadedModels = manager.getLoadedModels(Core::Calculator::interface);
+  cp2kAvailable = std::find(loadedModels.begin(), loadedModels.end(), modelName) != loadedModels.end();
+  ASSERT_TRUE(cp2kAvailable);
+  ASSERT_TRUE(manager.has(Core::Calculator::interface, modelName));
+
+  // These two lines should not throw an exception
+  auto calc1 = manager.get<Core::Calculator>(modelName, "Cp2k");
+  auto calc2 = manager.get<Core::Calculator>(Core::Calculator::supports("DFT"), "Cp2k");
+
+  // Clean up
+  if (!envVariablePtr) {
+    unsetenv("CP2K_BINARY_PATH");
+  }
+  else {
+    setenv("CP2K_BINARY_PATH", envVariablePtr, true);
+  }
+#endif
+}
+
+TEST_F(ExternalQCModulesTest, TurbomoleModuleIsWorkingCorrectly) {
+#ifndef _WIN32
+  const char* envVariablePtr = std::getenv("TURBODIR");
+  if (envVariablePtr) {
+    unsetenv("TURBODIR");
+  }
+
+  auto& manager = Core::ModuleManager::getInstance();
+  auto modelName = ExternalQC::TurbomoleCalculator::model;
+
+  auto loadedModels = manager.getLoadedModels(Core::Calculator::interface);
+  bool turbomoleAvailable = std::find(loadedModels.begin(), loadedModels.end(), modelName) != loadedModels.end();
+  ASSERT_FALSE(turbomoleAvailable);
+  ASSERT_FALSE(manager.has(Core::Calculator::interface, modelName));
+
+  EXPECT_THROW(manager.get<Core::Calculator>(modelName, "Turbomole"), Core::ClassNotImplementedError);
+  EXPECT_THROW(manager.get<Core::Calculator>(Core::Calculator::supports("DFT"), "Turbomole"), std::runtime_error);
+
+  setenv("TURBODIR", "dscf", true);
+
+  loadedModels = manager.getLoadedModels(Core::Calculator::interface);
+  turbomoleAvailable = std::find(loadedModels.begin(), loadedModels.end(), modelName) != loadedModels.end();
+  ASSERT_TRUE(turbomoleAvailable);
+  ASSERT_TRUE(manager.has(Core::Calculator::interface, modelName));
+
+  // These two lines should not throw an exception
+  auto calc1 = manager.get<Core::Calculator>(modelName, "Turbomole");
+  auto calc2 = manager.get<Core::Calculator>(Core::Calculator::supports("DFT"), "Turbomole");
+
+  // Clean up
+  if (!envVariablePtr) {
+    unsetenv("TURBODIR");
+  }
+  else {
+    setenv("TURBODIR", envVariablePtr, true);
+  }
+#endif
+}
+
+TEST_F(ExternalQCModulesTest, WorkingDirectoryCanBeSet) {
+  std::string workingDir = "/home/path/to/testDir";
+  ExternalQC::ExternalProgram externalProgram;
+  externalProgram.setWorkingDirectory(workingDir);
+  ASSERT_THAT(externalProgram.getWorkingDirectory(), NativeFilenames::addTrailingSeparator(workingDir));
 }
 
 } // namespace Tests

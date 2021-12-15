@@ -13,8 +13,8 @@ namespace Utils {
 
 namespace BSplines {
 
-ControlPolygonGenerator::ControlPolygonGenerator(const Eigen::Ref<const Eigen::MatrixXd>& dataPoints,
-                                                 const unsigned degree, const bool uniformKnotVector)
+ControlPolygonGenerator::ControlPolygonGenerator(const Eigen::MatrixXd& dataPoints, const unsigned degree,
+                                                 const bool uniformKnotVector)
   : Generator(dataPoints, degree), uniformKnotVector_(uniformKnotVector) {
 }
 
@@ -22,10 +22,9 @@ Eigen::VectorXd ControlPolygonGenerator::generateKnotVector() {
   if (uniformKnotVector_) {
     return GeneratorUtils::generateKnotVectorByUniformMethod(p_, n_);
   }
-  else {
-    uBar_ = GeneratorUtils::generateParametersByChordLengthMethod(dataPoints_);
-    return GeneratorUtils::generateKnotVectorByDeBoorsMethod(p_, n_, uBar_);
-  }
+
+  uBar_ = GeneratorUtils::generateParametersByChordLengthMethod(dataPoints_);
+  return GeneratorUtils::generateKnotVectorByDeBoorsMethod(p_, n_, uBar_);
 }
 
 Eigen::MatrixXd ControlPolygonGenerator::generateControlPoints() {

@@ -29,6 +29,7 @@ class FileDescriptor : public SettingDescriptor {
     Executable
   };
 
+  FileDescriptor() = default;
   /**
    * @brief Constructor
    *
@@ -39,6 +40,7 @@ class FileDescriptor : public SettingDescriptor {
   std::unique_ptr<SettingDescriptor> clone() const override;
   GenericValue getDefaultGenericValue() const override;
   bool validValue(const GenericValue& v) const override;
+  std::string explainInvalidValue(const GenericValue& v) const override;
 
   //! Get the default file path
   const std::string& getDefaultValue() const;
@@ -121,6 +123,10 @@ inline GenericValue FileDescriptor::getDefaultGenericValue() const {
 
 inline bool FileDescriptor::validValue(const GenericValue& v) const {
   return v.isString();
+}
+
+inline std::string FileDescriptor::explainInvalidValue(const GenericValue& /* v */) const {
+  return "Generic value for string setting '" + getPropertyDescription() + "' is not a string!";
 }
 
 } /* namespace UniversalSettings */

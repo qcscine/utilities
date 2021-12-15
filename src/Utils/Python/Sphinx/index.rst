@@ -9,7 +9,9 @@
    core
    geometry
    bonds
+   md
    optimizer
+   periodicboundaries
    settings
    results
 

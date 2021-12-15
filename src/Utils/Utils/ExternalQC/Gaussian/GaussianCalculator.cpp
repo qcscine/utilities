@@ -7,10 +7,14 @@
 #include "GaussianCalculator.h"
 #include "GaussianCalculatorSettings.h"
 #include "GaussianInputFileCreator.h"
+#include "GaussianOrbitalParser.h"
+#include "GaussianOrbitalWriter.h"
 #include "GaussianOutputParser.h"
 #include <Utils/ExternalQC/ExternalProgram.h>
 #include <Utils/IO/FilesystemHelpers.h>
 #include <Utils/IO/NativeFilenames.h>
+#include <Utils/Scf/LcaoUtils/SpinMode.h>
+#include <Utils/Solvation/ImplicitSolvation.h>
 #include <boost/process.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -28,10 +32,11 @@ std::string GaussianCalculator::name() const {
 }
 
 bool GaussianCalculator::supportsMethodFamily(const std::string& methodFamily) const {
-  if (std::getenv("GAUSSIAN_BINARY_PATH"))
-    return methodFamily == "DFT";
-  else
-    return false;
+  if (std::getenv("GAUSSIAN_BINARY_PATH")) {
+    return methodFamily == "DFT" || methodFamily == "HF";
+  }
+
+  return false;
 }
 
 GaussianCalculator::GaussianCalculator() {
@@ -41,6 +46,7 @@ GaussianCalculator::GaussianCalculator() {
   // Get Gaussian's binary path from an environment variable
   if (const char* pathPtr = std::getenv("GAUSSIAN_BINARY_PATH")) {
     gaussianExecutable_ = std::string(pathPtr);
+    gaussianDirectory_ = NativeFilenames::getParentDirectory(gaussianExecutable_);
   }
 
   applySettings();
@@ -52,9 +58,10 @@ GaussianCalculator::GaussianCalculator(const GaussianCalculator& rhs) {
   this->settings_ =
       std::make_unique<Utils::Settings>(Utils::Settings(valueCollection, rhs.settings().getDescriptorCollection()));
   applySettings();
-  this->results() = rhs.results();
   this->setStructure(rhs.atoms_);
+  this->results() = rhs.results();
   this->gaussianExecutable_ = rhs.gaussianExecutable_;
+  this->gaussianDirectory_ = rhs.gaussianDirectory_;
   this->binaryHasBeenChecked_ = rhs.binaryHasBeenChecked_;
 }
 
@@ -63,12 +70,16 @@ void GaussianCalculator::applySettings() {
     throw Core::InitializationException(
         "Gaussian calculations with an electronic temperature above 0.0 K are not supported.");
   }
-  if (settings_->check()) {
+  if (settings_->valid()) {
     fileNameBase_ = settings_->getString(SettingsNames::gaussianFilenameBase);
     baseWorkingDirectory_ = settings_->getString(SettingsNames::baseWorkingDirectory);
+    /* throws error for wrong input and updates 'any' entries */
+    /* information if solvation is performed is deduced from settings from InputFileCreator and therefore discarded here
+     */
+    Solvation::ImplicitSolvation::solvationNeededAndPossible(availableSolvationModels_, *settings_);
   }
   else {
-    throw Core::InitializationException("Settings are invalid!");
+    settings_->throwIncorrectSettings();
   }
 }
 
@@ -76,6 +87,7 @@ void GaussianCalculator::setStructure(const Utils::AtomCollection& structure) {
   applySettings();
   atoms_ = structure;
   calculationDirectory_ = createNameForCalculationDirectory();
+  results_ = Results{};
 }
 
 std::unique_ptr<Utils::AtomCollection> GaussianCalculator::getStructure() const {
@@ -84,6 +96,7 @@ std::unique_ptr<Utils::AtomCollection> GaussianCalculator::getStructure() const 
 
 void GaussianCalculator::modifyPositions(Utils::PositionCollection newPositions) {
   atoms_.setPositions(std::move(newPositions));
+  results_ = Results{};
 }
 
 const Utils::PositionCollection& GaussianCalculator::getPositions() const {
@@ -99,7 +112,8 @@ PropertyList GaussianCalculator::getRequiredProperties() const {
 }
 
 Utils::PropertyList GaussianCalculator::possibleProperties() const {
-  return Property::Energy | Property::Gradients | Property::AtomicCharges;
+  return Property::Energy | Property::Gradients | Property::AtomicCharges | Property::CoefficientMatrix |
+         Property::ElectronicOccupation;
 }
 
 const Results& GaussianCalculator::calculate(std::string description) {
@@ -118,10 +132,11 @@ const Results& GaussianCalculator::calculateImpl(std::string description) {
   externalProgram.setWorkingDirectory(calculationDirectory_);
   externalProgram.createWorkingDirectory();
   std::string inputFile = externalProgram.generateFullFilename(fileNameBase_ + ".inp");
+  std::string checkpointFile = externalProgram.generateFullFilename(fileNameBase_ + ".chk");
   std::string outputFile = externalProgram.generateFullFilename(fileNameBase_ + ".out");
 
   GaussianInputFileCreator inputFileCreator;
-  inputFileCreator.createInputFile(inputFile, atoms_, *settings_, requiredProperties_);
+  inputFileCreator.createInputFile(inputFile, checkpointFile, atoms_, *settings_, requiredProperties_);
 
   // Check whether the given binary is valid
   if (!binaryIsValid()) {
@@ -131,18 +146,40 @@ const Results& GaussianCalculator::calculateImpl(std::string description) {
 
   GaussianOutputParser parser(outputFile);
 
-  results_.set<Property::Description>(description);
-  if (requiredProperties_.containsSubSet(Property::Energy))
+  results_.set<Property::Description>(std::move(description));
+  if (requiredProperties_.containsSubSet(Property::Energy)) {
     results_.set<Property::Energy>(parser.getEnergy());
-  if (requiredProperties_.containsSubSet(Property::Gradients))
+  }
+  if (requiredProperties_.containsSubSet(Property::Gradients)) {
     results_.set<Property::Gradients>(parser.getGradients());
+  }
   if (requiredProperties_.containsSubSet(Property::AtomicCharges)) {
     results_.set<Property::AtomicCharges>(parser.getCM5Charges());
   }
+  if (requiredProperties_.containsSubSet(Property::ElectronicOccupation) ||
+      requiredProperties_.containsSubSet(Property::CoefficientMatrix)) {
+    GaussianOrbitalParser orbitalParser(fileNameBase_, calculationDirectory_, gaussianDirectory_);
+    if (requiredProperties_.containsSubSet(Property::CoefficientMatrix)) {
+      results_.set<Property::CoefficientMatrix>(orbitalParser.getOrbitals());
+    }
+    if (requiredProperties_.containsSubSet(Property::ElectronicOccupation)) {
+      results_.set<Property::ElectronicOccupation>(orbitalParser.getElectronicOccupation());
+    }
+  }
   results_.set<Property::SuccessfulCalculation>(true);
   results_.set<Property::ProgramName>("gaussian");
+  if (SpinMode::Any == SpinModeInterpreter::getSpinModeFromString(settings_->getString(Utils::SettingsNames::spinMode))) {
+    int multiplicity = settings_->getInt(Utils::SettingsNames::spinMultiplicity);
+    auto spinMode = multiplicity == 1 ? SpinMode::Restricted : SpinMode::Unrestricted;
+    settings_->modifyString(Utils::SettingsNames::spinMode, SpinModeInterpreter::getStringFromSpinMode(spinMode));
+  }
 
   return results_;
+}
+
+void GaussianCalculator::setOrbitals(const MolecularOrbitals& mos) {
+  GaussianOrbitalWriter orbitalWriter(mos);
+  orbitalWriter.updateCheckpointFile(fileNameBase_, calculationDirectory_, gaussianDirectory_);
 }
 
 std::string GaussianCalculator::createNameForCalculationDirectory() const {
@@ -193,10 +230,12 @@ std::string GaussianCalculator::getCalculationDirectory() const {
 }
 
 bool GaussianCalculator::binaryIsValid() {
-  if (binaryHasBeenChecked_)
+  if (binaryHasBeenChecked_) {
     return true;
-  if (gaussianExecutable_.empty())
+  }
+  if (gaussianExecutable_.empty()) {
     return false;
+  }
 
   bp::ipstream out;
   std::error_code ec;
@@ -221,8 +260,9 @@ bool GaussianCalculator::binaryIsValid() {
   }
 
   bool isValid = std::regex_search(outputString, matches, regex);
-  if (isValid)
+  if (isValid) {
     binaryHasBeenChecked_ = true;
+  }
   return isValid;
 }
 

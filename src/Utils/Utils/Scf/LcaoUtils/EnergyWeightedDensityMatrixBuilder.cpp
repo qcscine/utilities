@@ -30,11 +30,14 @@ Eigen::MatrixXd EnergyWeightedDensityMatrixBuilder::generateRestrictedForNumberE
   auto nAOs = C.rows();
   Eigen::MatrixXd m = Eigen::MatrixXd::Zero(nAOs, nAOs);
 
-  for (int i = 0; i < nElectrons / 2; ++i)
+  for (int i = 0; i < nElectrons / 2; ++i) {
     m += 2 * calculateSingleOrbitalEWDensity(C.col(i), orbitalEnergies_.getRestrictedLevelEnergy(i));
+  }
 
-  if ((nElectrons % 2) != 0) // if odd number of electrons
+  // if odd number of electrons
+  if ((nElectrons % 2) != 0) {
     m += calculateSingleOrbitalEWDensity(C.col(nElectrons / 2), orbitalEnergies_.getRestrictedLevelEnergy(nElectrons / 2));
+  }
 
   return m;
 }
@@ -55,10 +58,12 @@ Eigen::MatrixXd EnergyWeightedDensityMatrixBuilder::generateUnrestrictedForNumbe
   auto nAOs = cA.rows();
   Eigen::MatrixXd m = Eigen::MatrixXd::Zero(nAOs, nAOs);
 
-  for (int i = 0; i < nAlpha; ++i)
+  for (int i = 0; i < nAlpha; ++i) {
     m += calculateSingleOrbitalEWDensity(cA.col(i), orbitalEnergies_.getAlphaLevelEnergy(i));
-  for (int i = 0; i < nBeta; ++i)
+  }
+  for (int i = 0; i < nBeta; ++i) {
     m += calculateSingleOrbitalEWDensity(cB.col(i), orbitalEnergies_.getBetaLevelEnergy(i));
+  }
 
   return m;
 }
@@ -100,7 +105,7 @@ EnergyWeightedDensityMatrixBuilder::generateUnrestrictedForSpecifiedOrbitals(con
 }
 
 Eigen::MatrixXd EnergyWeightedDensityMatrixBuilder::calculateSingleOrbitalEWDensity(const Eigen::VectorXd& eigenvector,
-                                                                                    double orbitalEnergy) const {
+                                                                                    double orbitalEnergy) {
   return orbitalEnergy * eigenvector * eigenvector.transpose();
 }
 

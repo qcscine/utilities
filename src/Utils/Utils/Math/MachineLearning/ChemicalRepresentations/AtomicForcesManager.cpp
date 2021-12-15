@@ -15,10 +15,11 @@ namespace Utils {
 namespace MachineLearning {
 
 AtomicForcesManager::AtomicForcesManager(const AtomCollection& structure)
-  : structure_(structure), nAtoms_(structure.size()), currentPositions_(structure.getPositions()) {
-  if (nAtoms_ < 4)
+  : structure_(structure), currentPositions_(structure.getPositions()), nAtoms_(structure.size()) {
+  if (nAtoms_ < 4) {
     throw std::runtime_error("The number of atoms in the molecular system must be larger than 3 in order to generate "
                              "internal force representations.");
+  }
   transformationMatrices_.resize(nAtoms_);
   // Which atoms are close enough to be considered important, is determined only once for the original structure
   determineImportantAtoms();
@@ -46,8 +47,9 @@ void AtomicForcesManager::constructTransformationMatrices() {
     Eigen::MatrixXd inverseMatrix = matrix.inverse();
     Eigen::Vector3d internalCenterOfCharge = inverseMatrix * (centerOfCharge - currentPositions_.row(i)).transpose();
     for (int d = 0; d < 3; ++d) {
-      if (internalCenterOfCharge(d) < 0.0)
+      if (internalCenterOfCharge(d) < 0.0) {
         matrix.col(d) *= -1;
+      }
     }
 
     transformationMatrices_[i] = matrix;
@@ -72,7 +74,7 @@ Eigen::MatrixXd AtomicForcesManager::calculateFeatureMatrix(int atomIndex) {
     auto distance = rowTransformed.norm();
     assert(std::abs(rowTransformed.norm() - row.norm()) < 1e-6);
 
-    rowTransformed *= ElementInfo::Z(structure_.getElement(i)) / pow(distance, 3);
+    rowTransformed *= ElementInfo::Z(structure_.getElement(i)) / std::pow(distance, 3);
     // Add this row to the unsorted features container together with the calculated distance
     unsortedFeatures.emplace_back(std::make_pair(rowTransformed, distance));
   }
@@ -87,25 +89,26 @@ Eigen::MatrixXd AtomicForcesManager::calculateChemicalEnvironment(int atomIndex)
   for (int i : importantAtoms_.at(atomIndex)) {
     Eigen::RowVector3d row = currentPositions_.row(i) - pos;
     auto distance = row.norm();
-    row *= ElementInfo::Z(structure_.getElement(i)) / pow(distance, 3);
+    row *= ElementInfo::Z(structure_.getElement(i)) / std::pow(distance, 3);
     // Add this row to the end of the chemical environment matrix for the atom with index 'atomIndex'
     chemEnv.conservativeResize(chemEnv.rows() + 1, chemEnv.cols());
     chemEnv.row(chemEnv.rows() - 1) = row;
   }
 
-  if (chemEnv.size() < 3)
+  if (chemEnv.size() < 3) {
     throw std::runtime_error("The atom with the index " + std::to_string(atomIndex) +
                              " is too far away from the other atoms. The feature vector could not be generated for it, "
                              "because less than 3 atoms are close enough.");
+  }
 
   return chemEnv;
 }
 
-Eigen::RowVector3d AtomicForcesManager::toGlobalRepresentation(const Eigen::Ref<Eigen::RowVector3d> force, int atomIndex) {
+Eigen::RowVector3d AtomicForcesManager::toGlobalRepresentation(const Eigen::RowVector3d& force, int atomIndex) {
   return transformationMatrices_.at(atomIndex) * force.transpose();
 }
 
-Eigen::RowVector3d AtomicForcesManager::toInternalRepresentation(const Eigen::Ref<Eigen::RowVector3d> force, int atomIndex) {
+Eigen::RowVector3d AtomicForcesManager::toInternalRepresentation(const Eigen::RowVector3d& force, int atomIndex) {
   return transformationMatrices_.at(atomIndex).inverse() * force.transpose();
 }
 
@@ -127,7 +130,8 @@ Eigen::MatrixXd AtomicForcesManager::sortFeatureMatrix(std::vector<std::pair<Eig
               return lhs.second < rhs.second;
             });
 
-  for (int i = 0; i < unsortedFeatures.size(); ++i) {
+  const int featuresSize = unsortedFeatures.size();
+  for (int i = 0; i < featuresSize; ++i) {
     fMat.row(i) = unsortedFeatures[i].first;
   }
 

@@ -43,7 +43,7 @@ class EnergyWeightedDensityMatrixBuilder {
                                                            const std::vector<int>& betaOrbitals) const;
 
  private:
-  Eigen::MatrixXd calculateSingleOrbitalEWDensity(const Eigen::VectorXd& eigenvector, double orbitalEnergy) const;
+  static Eigen::MatrixXd calculateSingleOrbitalEWDensity(const Eigen::VectorXd& eigenvector, double orbitalEnergy);
   const MolecularOrbitals& coefficientMatrix_;
   const SingleParticleEnergies& orbitalEnergies_;
 };

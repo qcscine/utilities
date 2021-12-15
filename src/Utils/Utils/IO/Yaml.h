@@ -20,12 +20,20 @@ namespace Utils {
  */
 class YAMLParsingException : public std::runtime_error {
  public:
-  YAMLParsingException(std::string message) : std::runtime_error(message.c_str()) {
+  YAMLParsingException(const std::string& message) : std::runtime_error(message.c_str()) {
   }
-  const char* what() const throw() {
+  const char* what() const noexcept override {
     return std::runtime_error::what();
   }
 };
+
+/**
+ * @brief Parses data from a YAML::Node (yaml-cpp) into a value collection
+ */
+Utils::UniversalSettings::ValueCollection deserializeValueCollection(const YAML::Node& node);
+
+//! Serializes a value collection into YAML
+std::string yamlSerialize(const Utils::UniversalSettings::ValueCollection& collection);
 
 /**
  * @brief Parses data from a YAML::Node (yaml-cpp) into the value collection of a settings object.
@@ -37,6 +45,15 @@ class YAMLParsingException : public std::runtime_error {
  *                         If false, the function will throw an error if such a case is encountered.
  */
 void nodeToSettings(Settings& settings, const YAML::Node& node, bool allowSuperfluous = false);
+
+/**
+ * @brief Checks whether all top level keys are recognized keywords.
+ *
+ * @param node The yaml node.
+ * @param allowedKeywords The list of recognized keywords.
+ * @throws YAMLParsingException if a key word is not recognized.
+ */
+void checkYamlKeyRecognition(const YAML::Node& node, std::vector<std::string> allowedKeywords);
 
 } // namespace Utils
 } // namespace Scine

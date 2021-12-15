@@ -53,7 +53,7 @@ const std::vector<OpenBabelStreamHandler::FormatSupportPair>& OpenBabelStreamHan
       if (is.fail() && !is.eof()) {
         throw FormattedStreamHandler::FormatMismatchException();
       }
-      else if (is.fail() && is.eof()) {
+      if (is.fail() && is.eof()) {
         break;
       }
 
@@ -120,7 +120,7 @@ const std::vector<OpenBabelStreamHandler::FormatSupportPair>& OpenBabelStreamHan
   // We reserved too much space to avoid reallocations, so we can shrink it now
   formats.shrink_to_fit();
   return formats;
-};
+}
 
 bool OpenBabelStreamHandler::checkForBinary() {
   return !boost::process::search_path("obabel").empty();
@@ -202,7 +202,8 @@ std::pair<AtomCollection, BondOrderCollection> OpenBabelStreamHandler::read(std:
   return MolStreamHandler::read(intermediate);
 }
 
-void OpenBabelStreamHandler::write(std::ostream& os, const std::string& format, const AtomCollection& atoms) const {
+void OpenBabelStreamHandler::write(std::ostream& os, const std::string& format, const AtomCollection& atoms,
+                                   const std::string& comment) const {
   if (!_enabled || !formatSupported(format, SupportType::WriteOnly)) {
     throw FormattedStreamHandler::FormatUnsupportedException();
   }
@@ -211,7 +212,7 @@ void OpenBabelStreamHandler::write(std::ostream& os, const std::string& format, 
    * character parsing / writing
    */
   std::stringstream intermediate;
-  XyzStreamHandler::write(intermediate, atoms);
+  XyzStreamHandler::write(intermediate, atoms, comment);
   intermediate << EOF;
 
   int returnValue = indirect(intermediate, os, "xyz", format);
@@ -221,7 +222,7 @@ void OpenBabelStreamHandler::write(std::ostream& os, const std::string& format, 
 }
 
 void OpenBabelStreamHandler::write(std::ostream& os, const std::string& format, const AtomCollection& atoms,
-                                   const BondOrderCollection& bondOrders) const {
+                                   const BondOrderCollection& bondOrders, const std::string& comment) const {
   if (!_enabled || !formatSupported(format, SupportType::WriteOnly)) {
     throw FormattedStreamHandler::FormatUnsupportedException();
   }
@@ -230,7 +231,7 @@ void OpenBabelStreamHandler::write(std::ostream& os, const std::string& format, 
   /* Here we need to use the MOL format reader/writer to carry bond order
    * information
    */
-  MolStreamHandler::write(intermediate, atoms, bondOrders, "V2000");
+  MolStreamHandler::write(intermediate, atoms, bondOrders, "V2000", comment);
   intermediate << EOF;
 
   int returnValue = indirect(intermediate, os, "mol", format);
@@ -247,7 +248,7 @@ std::vector<OpenBabelStreamHandler::FormatSupportPair> OpenBabelStreamHandler::f
   return {};
 }
 
-bool OpenBabelStreamHandler::formatSupported(const std::string& format, SupportType process) const {
+bool OpenBabelStreamHandler::formatSupported(const std::string& format, SupportType operation) const {
   const auto& formats = getSupportedFormats();
   auto findIter = std::find_if(std::begin(formats), std::end(formats),
                                [&format](const auto& pair) -> bool { return pair.first == format; });
@@ -262,8 +263,8 @@ bool OpenBabelStreamHandler::formatSupported(const std::string& format, SupportT
     return true;
   }
 
-  // Otherwise, the process has to match the SupportType
-  return findIter->second == process;
+  // Otherwise, the operation has to match the SupportType
+  return findIter->second == operation;
 }
 
 std::string OpenBabelStreamHandler::name() const {

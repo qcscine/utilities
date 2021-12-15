@@ -46,11 +46,9 @@ class CoulombMatrix {
 
  private:
   // Constructs the Coulomb matrix (called in the constructor of this class)
-  void generateCoulombMatrix();
+  static Eigen::VectorXd generateCoulombMatrix(const AtomCollection& structure);
   // Returns the distance between the two atoms with indices i and j
-  double interatomicDistance(int i, int j);
-  // The molecular structure.
-  const AtomCollection& structure_;
+  static double interatomicDistance(int i, int j, const AtomCollection& structure);
   // The feature vector corresponding to the elements of the upper triangle of the Coulomb matrix
   Eigen::VectorXd featureVector_;
   // The number of atoms

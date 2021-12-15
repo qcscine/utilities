@@ -92,6 +92,7 @@ TEST_F(AtomCollectionTest, AllowsForRangeBasedLoops) {
     ASSERT_THAT(a.getPosition(), Eq(atoms[i].getPosition()));
     ++i;
   }
+  ASSERT_EQ(atoms.size(), i);
 }
 
 TEST_F(AtomCollectionTest, AtomCollectionsCanBeCombined) {

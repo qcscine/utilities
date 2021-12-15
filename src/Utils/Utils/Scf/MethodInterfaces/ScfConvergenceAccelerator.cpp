@@ -22,8 +22,9 @@ ScfConvergenceAccelerator::~ScfConvergenceAccelerator() {
 }
 
 void ScfConvergenceAccelerator::setScfMixer(scf_mixer_t mixer) {
-  if (mixer == currentScheme_)
+  if (mixer == currentScheme_) {
     return;
+  }
 
   removeCurrentMixer();
   setMixer(mixer);
@@ -36,8 +37,9 @@ scf_mixer_t ScfConvergenceAccelerator::getScfMixer() const {
 }
 
 void ScfConvergenceAccelerator::removeCurrentMixer() {
-  if (activeScfMixer_)
+  if (activeScfMixer_) {
     method_.removeModifier(activeScfMixer_);
+  }
   activeScfMixer_.reset();
 }
 

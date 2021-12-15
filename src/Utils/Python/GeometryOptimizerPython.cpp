@@ -5,6 +5,7 @@
  *            See LICENSE.txt for details.
  */
 
+#include <Utils/GeometryOptimization/GeometryOptimization.h>
 #include <Utils/GeometryOptimization/GeometryOptimizer.h>
 #include <Utils/Optimizer/GradientBased/Bfgs.h>
 #include <Utils/Optimizer/GradientBased/Dimer.h>
@@ -13,10 +14,9 @@
 #include <Utils/Optimizer/HessianBased/Bofill.h>
 #include <Utils/Optimizer/HessianBased/EigenvectorFollowing.h>
 #include <Utils/Optimizer/HessianBased/NewtonRaphson.h>
-#include <pybind11/eigen.h>
+#include <Utils/Pybind.h>
+#include <Utils/UniversalSettings/ValueCollection.h>
 #include <pybind11/functional.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 
 using namespace Scine;
 using namespace Utils;
@@ -29,17 +29,29 @@ using GeometryOptimizationObserver = std::function<void(int, double, const AtomC
 
 template<typename OptimizerType>
 AtomCollection optimizeBase(Core::Calculator& calculator, Core::Log& logger,
-                            const GeometryOptimizationObserver& observer, const Settings& settings) {
+                            const GeometryOptimizationObserver& observer, Settings optSettings) {
   GeometryOptimizer<OptimizerType> geometryOptimizer{calculator};
 
-  if (settings.name() != "empty") {
+  // unfitting setting for optimizer has to be extracted first
+  bool sanityCheck = optSettings.extract(std::string("sanity_check"), true);
+  if (optSettings.name() != "empty") {
+    Settings settings = geometryOptimizer.getSettings();
+    settings.merge(optSettings);
     geometryOptimizer.setSettings(settings);
   }
+  if (sanityCheck && !GeometryOptimization::settingsMakeSense(geometryOptimizer)) {
+    throw std::logic_error("The given calculator settings are too inaccurate for the given convergence criteria of "
+                           "this optimization Task.\n"
+                           "If you want to ignore this sanity check, add the setting 'sanity_check': False "
+                           "to the settings.");
+  }
 
-  geometryOptimizer.addObserver([&](const int& cycle, const double& energy, const Eigen::VectorXd & /* parameters */) -> void {
-    auto structurePtr = calculator.getStructure();
-    observer(cycle, energy, *structurePtr);
-  });
+  if (observer) {
+    geometryOptimizer.addObserver([&](const int& cycle, const double& energy, const Eigen::VectorXd & /* parameters */) -> void {
+      auto structurePtr = calculator.getStructure();
+      observer(cycle, energy, *structurePtr);
+    });
+  }
 
   auto structurePtr = calculator.getStructure();
   // Core::Log logger = Core::Log::silent();
@@ -71,7 +83,7 @@ Settings optimization_settings(Core::Calculator& calculator, OptimizerName optim
       return GeometryOptimizer<NewtonRaphson>(calculator).getSettings();
 
     default:
-      throw std::logic_error("Invalid Optimizer selected");
+      throw std::logic_error("Invalid Optimizer selected.");
   }
 }
 
@@ -100,7 +112,7 @@ AtomCollection optimize(Core::Calculator& calculator, Core::Log& logger, Optimiz
       return optimizeBase<NewtonRaphson>(calculator, logger, observer, settings);
 
     default:
-      throw std::logic_error("Invalid Optimizer selected");
+      throw std::logic_error("Invalid Optimizer selected.");
   }
 }
 
@@ -116,11 +128,11 @@ void init_geometry_optimize(pybind11::module& m) {
       .value("NewtonRaphson", OptimizerName::NewtonRaphson);
 
   m.def("geometry_optimization_settings", &optimization_settings, pybind11::arg("calculator"),
-        pybind11::arg("optimizer") = OptimizerName::SteepestDescent, "Settings available for geometry optimization");
+        Arg("optimizer") = OptimizerName::SteepestDescent, "Settings available for geometry optimization");
 
   m.def("geometry_optimize", &optimize, pybind11::arg("calculator"), pybind11::arg("logger"),
-        pybind11::arg("optimizer") = OptimizerName::SteepestDescent,
-        pybind11::arg("observer") = GeometryOptimizationObserver{}, pybind11::arg("settings") = Settings{"empty"},
+        Arg("optimizer") = OptimizerName::SteepestDescent, pybind11::arg("observer") = GeometryOptimizationObserver{},
+        pybind11::arg("settings") = Settings{"empty"},
         R"delim(
     Geometry optimize a structure using a calculator
 
@@ -129,10 +141,11 @@ void init_geometry_optimize(pybind11::module& m) {
       to optimize within the calculator before passing it to this function.
     :param logger: The logger to which eventual output is written.
     :param optimizer: The optimizer with which to perform the geometry
-      minimization
+      minimization.
     :param observer: A function of signature (int, float, AtomCollection) -> None
       that is called in each iteration with the current cycle number, energy, and
       structure.
+    :param settings: Optional additional settings for the optimization.
 
     :returns: The optimized structure
   )delim");

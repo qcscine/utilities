@@ -26,7 +26,7 @@ class PreconditionerEvaluator {
    * For diagonally dominant matrices H can be approximated with
    * D, the diagonal of H.
    */
-  virtual Eigen::VectorXd evaluate(double eigenvalue) const = 0;
+  virtual Eigen::VectorXd evaluate(const Eigen::VectorXd& vectorToPrecondition, double eigenvalue) const = 0;
 };
 
 } // namespace Utils

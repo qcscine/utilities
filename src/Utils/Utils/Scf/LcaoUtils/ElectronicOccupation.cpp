@@ -31,26 +31,30 @@ int ElectronicOccupation::numberBetaElectrons() const {
 }
 
 const std::vector<int>& ElectronicOccupation::getFilledRestrictedOrbitals() const {
-  if (!specifiedWithOrbitals_)
+  if (!specifiedWithOrbitals_) {
     filledRestrictedOrbitals_ = generateOccupiedArrayFromNumberOfOccupiedOrbitals(nRestrictedElectrons_ / 2);
+  }
   return filledRestrictedOrbitals_;
 }
 
 const std::vector<int>& ElectronicOccupation::getFilledAlphaOrbitals() const {
-  if (!specifiedWithOrbitals_)
+  if (!specifiedWithOrbitals_) {
     filledAlphaOrbitals_ = generateOccupiedArrayFromNumberOfOccupiedOrbitals(nAlphaElectrons_);
+  }
   return filledAlphaOrbitals_;
 }
 
 const std::vector<int>& ElectronicOccupation::getFilledBetaOrbitals() const {
-  if (!specifiedWithOrbitals_)
+  if (!specifiedWithOrbitals_) {
     filledBetaOrbitals_ = generateOccupiedArrayFromNumberOfOccupiedOrbitals(nBetaElectrons_);
+  }
   return filledBetaOrbitals_;
 }
 
 bool ElectronicOccupation::isFilledUpFromTheBottom() const {
-  if (!specifiedWithNumberElectrons_)
+  if (!specifiedWithNumberElectrons_) {
     checkWhetherFilledFromBottom();
+  }
   return specifiedWithNumberElectrons_;
 }
 
@@ -67,8 +71,9 @@ bool ElectronicOccupation::isRestricted() const {
 }
 
 void ElectronicOccupation::makeUnrestricted() {
-  if (isUnrestricted())
+  if (isUnrestricted()) {
     return; // Nothing to be done
+  }
 
   auto restrictedOrbitals = getFilledRestrictedOrbitals();
   fillSpecifiedUnrestrictedOrbitals(restrictedOrbitals, restrictedOrbitals);
@@ -88,8 +93,9 @@ void ElectronicOccupation::fillLowestRestrictedOrbitalsWithElectrons(int nElectr
   restricted_ = true;
   specifiedWithNumberElectrons_ = true;
   nRestrictedElectrons_ = nElectrons;
-  if (nRestrictedElectrons_ % 2 == 1)
+  if (nRestrictedElectrons_ % 2 == 1) {
     hasUnpairedElectron_ = true;
+  }
 }
 
 void ElectronicOccupation::fillLowestUnrestrictedOrbitals(int nAlphaElectrons, int nBetaElectrons) {
@@ -136,15 +142,21 @@ std::vector<int> ElectronicOccupation::generateOccupiedArrayFromNumberOfOccupied
 
 void ElectronicOccupation::checkWhetherFilledFromBottom() const {
   specifiedWithNumberElectrons_ = true;
-  for (int i = 0; i < static_cast<int>(filledRestrictedOrbitals_.size()); ++i)
-    if (filledRestrictedOrbitals_[i] != i)
+  for (int i = 0; i < static_cast<int>(filledRestrictedOrbitals_.size()); ++i) {
+    if (filledRestrictedOrbitals_[i] != i) {
       specifiedWithNumberElectrons_ = false;
-  for (int i = 0; i < static_cast<int>(filledAlphaOrbitals_.size()); ++i)
-    if (filledAlphaOrbitals_[i] != i)
+    }
+  }
+  for (int i = 0; i < static_cast<int>(filledAlphaOrbitals_.size()); ++i) {
+    if (filledAlphaOrbitals_[i] != i) {
       specifiedWithNumberElectrons_ = false;
-  for (int i = 0; i < static_cast<int>(filledBetaOrbitals_.size()); ++i)
-    if (filledBetaOrbitals_[i] != i)
+    }
+  }
+  for (int i = 0; i < static_cast<int>(filledBetaOrbitals_.size()); ++i) {
+    if (filledBetaOrbitals_[i] != i) {
       specifiedWithNumberElectrons_ = false;
+    }
+  }
 }
 
 } // namespace LcaoUtils
