@@ -10,6 +10,7 @@
 
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include <Core/Log.h>
 #include <Eigen/Core>
 
 namespace Scine {
@@ -25,6 +26,9 @@ namespace Utils {
 class SteepestDescent : public Optimizer {
  public:
   static constexpr const char* sdFactorKey = "sd_factor";
+  static constexpr const char* sdUseTrustRadius = "sd_use_trust_radius";
+  static constexpr const char* sdTrustRadius = "sd_trust_radius";
+  static constexpr const char* sdDynamicMultiplier = "sd_dynamic_multiplier";
 
   /// @brief Default constructor.
   SteepestDescent() = default;
@@ -47,31 +51,60 @@ class SteepestDescent : public Optimizer {
    *                   of the optimization function.
    */
   template<class UpdateFunction, class ConvergenceCheckClass>
-  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, ConvergenceCheckClass& check) {
+  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, ConvergenceCheckClass& check,
+               Core::Log& /* log */) {
     if (parameters.size() == 0) {
       throw EmptyOptimizerParametersException();
     }
     double value = 0.0;
     Eigen::VectorXd gradients = Eigen::VectorXd::Zero(parameters.size());
-    int cycle = _startCycle;
+    /* Set "assumed previous parameters" as parametersOld. */
+    Eigen::VectorXd parametersOld(parameters);
+    _cycle = _startCycle;
+
     function(parameters, value, gradients);
-    this->triggerObservers(cycle, value, parameters);
+    this->triggerObservers(_cycle, value, parameters);
     // Init parameters and value stored in the convergence checker
     check.setParametersAndValue(parameters, value);
     bool stop = false;
+    bool previousStepScaling = true;
     while (!stop) {
-      cycle++;
-      constrainedAdd(parameters, -factor * gradients);
+      _cycle++;
+      /* Multiply factor with dynamic multiplier (1.0 per default) only if no scaling has been performed previously */
+      if (!previousStepScaling) {
+        factor *= dynamicMultiplier;
+      }
+      /* Calculate step vector with given gradients and factor */
+      Eigen::VectorXd stepVector = -factor * gradients;
+      /* Apply trust radius check and scaling of step if necessary */
+      if (useTrustRadius) {
+        double maxVal = stepVector.array().abs().maxCoeff();
+        /* Scale step vector if max value exceeds the given trust radius */
+        if (maxVal > trustRadius) {
+          /* Use the minimum of the initial factor and the current factor scaled such as
+           * the maximum step corresponds to the given trust radius. */
+          stepVector.noalias() = std::min(_initFactor, factor * trustRadius / maxVal) * -gradients;
+          previousStepScaling = true;
+          /* Reset factor to initial factor*/
+          factor = _initFactor;
+        }
+        else {
+          previousStepScaling = false;
+        }
+      }
+      /* Apply step on parameters */
+      constrainedAdd(parameters, stepVector);
+      // Calculate things of next step
       function(parameters, value, gradients);
-      this->triggerObservers(cycle, value, parameters);
-      stop = check.checkMaxIterations(cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
+      this->triggerObservers(_cycle, value, parameters);
+      stop = check.checkMaxIterations(_cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
 
       // Check oscillation, perform new calculation if oscillating and lower factor
       if (!stop && this->isOscillating(value)) {
         oscillationCorrection(-factor * gradients, parameters);
         function(parameters, value, gradients);
-        cycle++;
-        this->triggerObservers(cycle, value, parameters);
+        _cycle++;
+        this->triggerObservers(_cycle, value, parameters);
         factor *= 0.95;
         _oscillationCounter++;
       }
@@ -81,7 +114,7 @@ class SteepestDescent : public Optimizer {
         _oscillationCounter = 0;
       }
     }
-    return cycle;
+    return _cycle;
   }
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection
@@ -92,6 +125,18 @@ class SteepestDescent : public Optimizer {
     UniversalSettings::DoubleDescriptor sd_factor("The steepest descent scaling factor.");
     sd_factor.setDefaultValue(factor);
     collection.push_back(SteepestDescent::sdFactorKey, sd_factor);
+    UniversalSettings::BoolDescriptor sd_useTrustRadius("Enable the use of a trust radius for all steps.");
+    sd_useTrustRadius.setDefaultValue(useTrustRadius);
+    collection.push_back(SteepestDescent::sdUseTrustRadius, sd_useTrustRadius);
+    UniversalSettings::DoubleDescriptor sd_trustRadius("The maximum size (RMS) of a taken step.");
+    sd_trustRadius.setMinimum(0.0);
+    sd_trustRadius.setDefaultValue(trustRadius);
+    collection.push_back(SteepestDescent::sdTrustRadius, sd_trustRadius);
+    UniversalSettings::DoubleDescriptor sd_dynamicMultiplier(
+        "The multiplier to increase the scaling factor after each iteration.");
+    sd_dynamicMultiplier.setMinimum(1.0);
+    sd_dynamicMultiplier.setDefaultValue(dynamicMultiplier);
+    collection.push_back(SteepestDescent::sdDynamicMultiplier, sd_dynamicMultiplier);
   };
   /**
    * @brief Updates the steepest descent's options with those values given in the Settings.
@@ -99,6 +144,20 @@ class SteepestDescent : public Optimizer {
    */
   void applySettings(const Settings& settings) final {
     factor = settings.getDouble(SteepestDescent::sdFactorKey);
+    _initFactor = factor;
+
+    useTrustRadius = settings.getBool(SteepestDescent::sdUseTrustRadius);
+    trustRadius = settings.getDouble(SteepestDescent::sdTrustRadius);
+    if (!useTrustRadius && std::fabs(trustRadius - 0.1) > 1e-6) {
+      throw std::logic_error("A trust radius was specified, but the trust radius was not activated. "
+                             "Please also set the setting 'sd_use_trust_radius': true, if you specify a radius.");
+    }
+
+    dynamicMultiplier = settings.getDouble(SteepestDescent::sdDynamicMultiplier);
+    if (!useTrustRadius && std::fabs(dynamicMultiplier - 1.0) > 1e-6) {
+      throw std::logic_error("A dynamic multiplier was specified, but the trust radius was not activated. "
+                             "Please also set the setting 'sd_use_trust_radius': true, if you specify a multiplier.");
+    }
   };
   /**
    * @brief The scaling factor alpha to be used in the steepest descent algorithm.
@@ -107,10 +166,18 @@ class SteepestDescent : public Optimizer {
    * \f[ x_{i,n+1} = x_i - \alpha * g_i \f]
    */
   double factor = 0.1;
+  /// @brief Enable the use of a trust radius for all steps.
+  bool useTrustRadius = false;
+  /// @brief The maximum size (RMS) of a taken step.
+  double trustRadius = 0.1;
+
+  double dynamicMultiplier = 1.0;
 
  private:
   // The number of back-to-back oscillation detections and factor decreases
   unsigned int _oscillationCounter = 0;
+  // @brief The initial scaling factor alpha stored for resetting the factor when necessary.
+  double _initFactor = factor;
 };
 
 } // namespace Utils

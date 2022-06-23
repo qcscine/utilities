@@ -157,7 +157,6 @@ void ScfMethod::onConvergedCalculationStarts() {
   if (densityMatrix_.numberElectrons() != nElectrons_) {
     reinitializeDensityMatrixGuess();
   }
-  densityMatrix_.setUnrestricted(unrestrictedCalculationRunning_);
   electronicOccupationGenerator_->newScfCycleStarted();
 }
 

@@ -9,7 +9,6 @@
 #include "Utils/Constants.h"
 #include "Utils/Geometry/AtomCollection.h"
 #include "Utils/Geometry/ElementInfo.h"
-#include "Utils/Technical/ScopedLocale.h"
 #include "boost/optional.hpp"
 #include <iomanip>
 #include <string>

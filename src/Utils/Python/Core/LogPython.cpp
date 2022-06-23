@@ -59,19 +59,17 @@ void init_log(pybind11::module& m) {
     have a sink to stderr named "cerr". The output domain has a sink to stdout
     named "cout".
 
-    >>> log = Log()
+    >>> log = core.Log()
     >>> log.debug.has_sinks()
     False
     >>> log.error.has_sinks()
     True
     >>> log.debug.line("Hello world")
-    >>> log.debug.add("cout", Log.cout_sink())
+    >>> log.debug.add("cout", core.Log.cout_sink())
     >>> log.debug.has_sinks()
     True
-    >>> log.debug.line("Hello world")
-    Hello world
     >>> log.error.remove("cerr") # Remove the stderr sink from the error domain
-    >>> log.error.add("logfile", Log.file_sink("errors.log")) # Add a file sink instead
+    >>> log.error.add("logfile", core.Log.file_sink("errors.log")) # Add a file sink instead
   )";
 
   logger.def(pybind11::init<>(), "Default initialize");

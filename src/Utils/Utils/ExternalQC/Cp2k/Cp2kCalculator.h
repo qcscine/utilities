@@ -151,10 +151,6 @@ class Cp2kCalculator final : public CloneInterface<Cp2kCalculator, Core::Calcula
    */
   void copyBackupFile(const std::string& from, const std::string& to) const;
   /*
-   * @brief Creates a random name for a calculation directory and creates this directory.
-   */
-  std::string createNameForCalculationDirectory();
-  /*
    * @brief Deletes all *.bak* files in the calculation directory.
    */
   void deleteTemporaryFiles();
@@ -163,7 +159,6 @@ class Cp2kCalculator final : public CloneInterface<Cp2kCalculator, Core::Calcula
   std::unique_ptr<Settings> settings_;
   // The results.
   Results results_;
-  //  std::unique_ptr<ResultsAutoCompleter> autoCompleter_;
   // Base working directory
   std::string baseWorkingDirectory_;
   // Calculation directory
@@ -173,11 +168,12 @@ class Cp2kCalculator final : public CloneInterface<Cp2kCalculator, Core::Calcula
   std::string cp2kExecutable_;
   AtomCollection atoms_;
   PropertyList requiredProperties_;
+  bool isDft_;
   // Keeps track of whether the binary has been checked for validity yet
   bool binaryHasBeenChecked_ = false;
   bool multiProcIsPossible_ = false;
   const std::vector<std::string> availableSolvationModels_ = std::vector<std::string>{};
-  const std::vector<std::string> availableMethodFamilies_ = std::vector<std::string>{"DFT"};
+  const std::vector<std::string> availableMethodFamilies_ = std::vector<std::string>{"DFT", "GFN1"};
 };
 
 } // namespace ExternalQC

@@ -286,6 +286,16 @@ Crtp operator/(double f, const FirstBase<DerivativeT, Crtp>& rhs) {
   return {f / rhs.value(), -f / (rhs.value() * rhs.value()) * rhs.derivatives()};
 }
 
+// double implementation to avoid having to specify
+// using std::exp/sqrt in every file.
+// inline because of ODR.
+inline auto sqrt(double value) -> double {
+  return std::sqrt(value);
+}
+inline auto exp(double value) -> double {
+  return std::exp(value);
+}
+
 // deriving the square root function
 template<typename DerivativeT, typename Crtp>
 Crtp sqrt(const FirstBase<DerivativeT, Crtp>& value) {
@@ -311,14 +321,12 @@ Crtp exp(const FirstBase<DerivativeT, Crtp>& value) {
 // deriving the cos function
 template<typename DerivativeT, typename Crtp>
 Crtp cos(const FirstBase<DerivativeT, Crtp>& value) {
-  ;
   return {std::cos(value.value()), -sin(value.value()) * value.derivatives()};
 }
 
 // deriving the sin function
 template<typename DerivativeT, typename Crtp>
 Crtp sin(const FirstBase<DerivativeT, Crtp>& value) {
-  ;
   return {std::sin(value.value()), cos(value.value()) * value.derivatives()};
 }
 

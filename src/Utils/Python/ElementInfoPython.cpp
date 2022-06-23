@@ -30,6 +30,8 @@ void init_element_info(pybind11::module& m) {
     )delim");
   element_info.def_static("symbol", &ElementInfo::symbol, pybind11::arg("element"),
                           "Translate an ElementType into its string representation");
+  element_info.def_static("all_implemented_elements", &ElementInfo::allImplementedElements,
+                          "Gives a list of all implemented ElementTypes");
   element_info.def_static("mass", &ElementInfo::mass, pybind11::arg("element"),
                           R"delim(
       Standard atomic weight of element type

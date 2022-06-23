@@ -6,6 +6,7 @@
  */
 
 #include "KernelRidgeRegression.h"
+#include "RegressionSettings.h"
 
 namespace Scine {
 namespace Utils {
@@ -39,7 +40,7 @@ void KernelRidgeRegression::trainModel(const Eigen::MatrixXd& featureValues, con
   invertedRegularizedKernelMatrix_ = regularizedKernelMatrix.inverse();
 }
 
-Eigen::VectorXd KernelRidgeRegression::predict(const Eigen::VectorXd& data) const {
+Eigen::VectorXd KernelRidgeRegression::predict(const Eigen::VectorXd& data) {
   if (invertedRegularizedKernelMatrix_.size() == 0) {
     throw std::runtime_error("The model has not been trained yet!");
   }
@@ -70,9 +71,8 @@ void KernelRidgeRegression::setRegularizationFactor(double factor) {
   regularizationFactor_ = factor;
 }
 
-void KernelRidgeRegression::setKernel(
-    std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const std::vector<double>&)> kernel,
-    std::vector<double> hyperparameters) {
+void KernelRidgeRegression::setKernel(std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&)> kernel,
+                                      Eigen::VectorXd hyperparameters) {
   kernel_ = std::move(kernel);
   hyperparameters_ = std::move(hyperparameters);
 }

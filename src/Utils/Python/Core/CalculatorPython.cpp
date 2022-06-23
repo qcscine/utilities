@@ -11,14 +11,16 @@
 #include <Utils/Geometry.h>
 #include <Utils/Geometry/AtomCollection.h>
 #include <Utils/IO/ChemicalFileFormats/ChemicalFileHandler.h>
-#include <Utils/IO/Yaml.h>
 #include <Utils/Settings.h>
+#include <Utils/UniversalSettings/ValueCollection.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <yaml-cpp/yaml.h>
 #include <algorithm>
 #include <iostream>
+
+// Defined in ValueCollectionPython.cpp
+extern void update(Scine::Utils::UniversalSettings::ValueCollection& coll, const pybind11::dict& dictionary, bool preserveTypes);
 
 void inputPreparation(std::string& method_family, std::string& program) {
   if (!program.empty()) {
@@ -61,7 +63,7 @@ std::shared_ptr<Scine::Core::Calculator> getCalculator(std::string method_family
     calc = manager.get<Scine::Core::Calculator>(Scine::Core::Calculator::supports(method_family), program);
   }
   catch (...) {
-    if (program.empty() || program == "any") {
+    if (program.empty() || program == "Any") {
       std::cout << "No SCINE module providing '" << method_family << "' is currently loaded.\n";
       std::cout << "Please add the module to the SCINE_MODULE_PATH\n";
       std::cout << "or load the corresponding Python module in order for it to be accessible.\n";
@@ -79,42 +81,26 @@ std::shared_ptr<Scine::Core::Calculator> getCalculator(std::string method_family
 
 std::shared_ptr<Scine::Core::Calculator> loadSystem(const std::string& path, std::string method_family,
                                                     const pybind11::kwargs& kwargs) {
-  // Read all optional arguments and turn them into a node
-  std::string program;
-  YAML::Node settingsnode;
-
-  for (auto item : kwargs) {
-    const std::string key = item.first.cast<std::string>();
-    std::string value = pybind11::str(item.second).cast<std::string>();
-    if (key == "program") {
-      program = std::move(value);
-    }
-    else {
-      settingsnode[key] = value;
-    }
-  }
-
-  // Load molecule
-  auto readResults = Scine::Utils::ChemicalFileHandler::read(path);
+  // Convert to ValueCollection and read program
+  Scine::Utils::UniversalSettings::ValueCollection collection;
+  update(collection, pybind11::dict(kwargs), true);
+  std::string program = collection.extract("program", std::string{"any"});
   // Generate Calculator
   auto calc = getCalculator(std::move(method_family), program);
   // Apply settings to Calculator
-  nodeToSettings(calc->settings(), settingsnode);
+  calc->settings().merge(collection);
+  if (!calc->settings().valid()) {
+    calc->settings().throwIncorrectSettings();
+  }
   // Set initial structure
+  auto readResults = Scine::Utils::ChemicalFileHandler::read(path);
   calc->setStructure(readResults.first);
   return calc;
 }
 
-std::vector<std::string> getAvailableSettings(std::string method_family, std::string program) {
-  // Get the correct Calculator
+Scine::Utils::Settings getAvailableSettings(std::string method_family, std::string program) {
   auto calc = getCalculator(std::move(method_family), std::move(program));
-  // Get the names of the available settings from the calculator's settings
-  std::vector<std::string> availableSettings;
-  Scine::Utils::UniversalSettings::DescriptorCollection settings = calc->settings().getDescriptorCollection();
-  for (const auto& s : settings) {
-    availableSettings.push_back(s.first);
-  }
-  return availableSettings;
+  return calc->settings();
 }
 
 Scine::Utils::PropertyList getPossiblePropertiesByStrings(std::string method_family, std::string program) {
@@ -183,24 +169,25 @@ void init_calculator(pybind11::module& m) {
   calculator.def("calculate", &Scine::Core::Calculator::calculate, pybind11::arg("dummy") = std::string{},
                  "Execute the calculation");
 
-  calculator.def("get_results", pybind11::overload_cast<>(&Scine::Core::Calculator::results), "Get any strored results.");
+  calculator.def("get_results", pybind11::overload_cast<>(&Scine::Core::Calculator::results), "Get any stored results.");
   calculator.def("has_results", &hasResults, "Check if results are present.");
 
   calculator.def("name", &Scine::Core::Calculator::name, "Yields the name of the calculator");
 
   // Some static helper functions
 
-  m.def("has_calculator", &hasCalculator, pybind11::arg("method_family"), pybind11::arg("program"),
+  m.def("has_calculator", &hasCalculator, pybind11::arg("method_family"), pybind11::arg("program") = "Any",
         "Checks if a calculator with the given method and the given program is available.");
-  m.def("get_calculator", &getCalculator, pybind11::arg("method_family"), pybind11::arg("program"),
+  m.def("get_calculator", &getCalculator, pybind11::arg("method_family"), pybind11::arg("program") = "Any",
         "Generates a calculator with the given method and from the given program.");
   m.def("load_system", &loadSystem, pybind11::arg("path"), pybind11::arg("method_family"),
         "Loads a single system (xyz-file) into a Calculator with the given method and optional settings. (Deprecated)");
   m.def("load_system_into_calculator", &loadSystem, pybind11::arg("path"), pybind11::arg("method_family"),
         "Loads a single system (xyz-file) into a Calculator with the given method and optional settings.");
-  m.def("get_available_settings", &getAvailableSettings, pybind11::arg("method_family"), pybind11::arg("program"),
-        "Lists the available settings of a Calculator with the given method and from the given program");
-  m.def("get_possible_properties", &getPossiblePropertiesByStrings, pybind11::arg("method_family"), pybind11::arg("program"),
+  m.def("get_available_settings", &getAvailableSettings, pybind11::arg("method_family"), pybind11::arg("program") = "Any",
+        "Gives the available default settings of a Calculator with the given method and from the given program");
+  m.def("get_possible_properties", &getPossiblePropertiesByStrings, pybind11::arg("method_family"),
+        pybind11::arg("program") = "Any",
         "Lists the available properties of a Calculator with the given method and from the given program.");
 
   // TODO missing: statesHandler (these need to be bound for them to be useful)

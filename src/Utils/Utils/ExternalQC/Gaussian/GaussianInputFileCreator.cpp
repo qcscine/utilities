@@ -6,7 +6,7 @@
  */
 #include "GaussianInputFileCreator.h"
 #include "GaussianCalculatorSettings.h"
-#include <Utils/CalculatorBasics/PropertyList.h>
+#include <Utils/CalculatorBasics.h>
 #include <Utils/Geometry/AtomCollection.h>
 #include <Utils/IO/MolecularTrajectoryIO.h>
 #include <Utils/Scf/LcaoUtils/SpinMode.h>
@@ -25,6 +25,8 @@ void GaussianInputFileCreator::createInputFile(const std::string& filename, cons
   fout.open(filename);
   createInputFile(fout, checkpointFilename, atoms, settings, requiredProperties);
   fout.close();
+  CalculationRoutines::checkValidityOfChargeAndMultiplicity(settings.getInt(Utils::SettingsNames::molecularCharge),
+                                                            settings.getInt(Utils::SettingsNames::spinMultiplicity), atoms);
 }
 
 void GaussianInputFileCreator::createInputFile(std::ostream& out, const std::string& checkpointFilename,
@@ -58,9 +60,10 @@ void GaussianInputFileCreator::printCalculationType(std::ostream& out, const std
     spinModeMethodAddon = "RO";
   }
   // do nothing for any
-
-  out << "# " << spinModeMethodAddon << settings.getString(Utils::SettingsNames::method) << "/"
-      << settings.getString(Utils::SettingsNames::basisSet);
+  auto methodInput = Scine::Utils::CalculationRoutines::splitIntoMethodAndDispersion(
+      settings.getString(Scine::Utils::SettingsNames::method));
+  out << "# " << spinModeMethodAddon << methodInput.first << "/" << settings.getString(Utils::SettingsNames::basisSet)
+      << " " << translateDispersion(methodInput.second);
   // Scf convergence
   double tolE = settings.getDouble(Scine::Utils::SettingsNames::selfConsistenceCriterion);
   // Gaussian only takes powers of ten -> check for valid input -> check if log is integer

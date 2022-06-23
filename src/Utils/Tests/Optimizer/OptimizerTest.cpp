@@ -12,6 +12,7 @@
 #include "Utils/Optimizer/HessianBased/EigenvectorFollowing.h"
 #include "Utils/Optimizer/HessianBased/NewtonRaphson.h"
 #include <Core/Interfaces/Calculator.h>
+#include <Core/Log.h>
 #include <Utils/CalculatorBasics.h>
 #include <Utils/Settings.h>
 #include <gmock/gmock.h>
@@ -121,6 +122,10 @@ auto const minyaevQuappGradientTestFunction = [](const Eigen::VectorXd& paramete
  * @test
  */
 TEST(OptimizerTests, SDTest) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   SteepestDescent optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.25 * M_PI;
@@ -133,12 +138,43 @@ TEST(OptimizerTests, SDTest) {
   check.gradMaxCoeff = 1.0e-7;
   check.gradRMS = 1.0e-9;
   check.requirement = 4;
-  auto nCycles = optimizer.optimize(positions, gradientTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, gradientTestFunction, check, log);
+
   EXPECT_TRUE(nCycles < 1000);
   EXPECT_NEAR(positions[0], 0.0, 2.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 2.0e-8);
 }
+TEST(OptimizerTests, DynamicSDTest) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
+  SteepestDescent optimizer;
+  optimizer.useTrustRadius = true;
+  optimizer.trustRadius = 0.05;
+  optimizer.dynamicMultiplier = 1.1;
+  Eigen::VectorXd positions(2);
+  positions[0] = 0.25 * M_PI;
+  positions[1] = 0.75 * M_PI;
+  GradientBasedCheck check;
+  check.maxIter = 100;
+  check.deltaValue = 1e-12;
+  check.stepMaxCoeff = 1.0e-7;
+  check.stepRMS = 1.0e-9;
+  check.gradMaxCoeff = 1.0e-7;
+  check.gradRMS = 1.0e-9;
+  check.requirement = 4;
+  auto nCycles = optimizer.optimize(positions, gradientTestFunction, check, log);
+
+  EXPECT_TRUE(nCycles < 100);
+  EXPECT_NEAR(positions[0], 0.0, 2.0e-8);
+  EXPECT_NEAR(positions[1], 0.0, 2.0e-8);
+}
 TEST(OptimizerTests, LbfgsTest) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Lbfgs optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.25 * M_PI;
@@ -150,12 +186,16 @@ TEST(OptimizerTests, LbfgsTest) {
   check.stepRMS = 1.0e-8;
   check.gradMaxCoeff = 1.0e-7;
   check.gradRMS = 1.0e-8;
-  auto nCycles = optimizer.optimize(positions, gradientTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, gradientTestFunction, check, log);
   EXPECT_TRUE(nCycles < 100);
   EXPECT_NEAR(positions[0], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, NewtonRaphsonTest_Minimization) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   NewtonRaphson optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.25 * M_PI;
@@ -167,12 +207,16 @@ TEST(OptimizerTests, NewtonRaphsonTest_Minimization) {
   check.stepRMS = 1.0e-8;
   check.gradMaxCoeff = 1.0e-7;
   check.gradRMS = 1.0e-8;
-  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, NewtonRaphsonTest_PartialMaximization) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   NewtonRaphson optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.25 * M_PI;
@@ -184,12 +228,16 @@ TEST(OptimizerTests, NewtonRaphsonTest_PartialMaximization) {
   check.stepRMS = 1.0e-8;
   check.gradMaxCoeff = 1.0e-7;
   check.gradRMS = 1.0e-8;
-  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[1], M_PI, 1.0e-8);
 }
 TEST(OptimizerTests, NewtonRaphsonTest_Maximization) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   NewtonRaphson optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.51 * M_PI;
@@ -197,12 +245,16 @@ TEST(OptimizerTests, NewtonRaphsonTest_Maximization) {
   GradientBasedCheck check;
   check.maxIter = 50;
   check.deltaValue = 1e-12;
-  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], M_PI, 1.0e-8);
   EXPECT_NEAR(positions[1], M_PI, 1.0e-8);
 }
 TEST(OptimizerTests, EigenvectorFollowingTest_1) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   EigenvectorFollowing optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.49 * M_PI;
@@ -210,12 +262,16 @@ TEST(OptimizerTests, EigenvectorFollowingTest_1) {
   GradientBasedCheck check;
   check.maxIter = 50;
   check.deltaValue = 1e-12;
-  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[1], M_PI, 1.0e-8);
 }
 TEST(OptimizerTests, EigenvectorFollowingTest_2) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   EigenvectorFollowing optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.51 * M_PI;
@@ -223,12 +279,16 @@ TEST(OptimizerTests, EigenvectorFollowingTest_2) {
   GradientBasedCheck check;
   check.maxIter = 50;
   check.deltaValue = 1e-12;
-  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], M_PI, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, EigenvectorFollowingTest_3) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   EigenvectorFollowing optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.51 * M_PI;
@@ -236,12 +296,16 @@ TEST(OptimizerTests, EigenvectorFollowingTest_3) {
   GradientBasedCheck check;
   check.maxIter = 50;
   check.deltaValue = 1e-12;
-  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], M_PI, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, EigenvectorFollowingTest_4) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   EigenvectorFollowing optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.7;
@@ -249,12 +313,16 @@ TEST(OptimizerTests, EigenvectorFollowingTest_4) {
   GradientBasedCheck check;
   check.maxIter = 500;
   check.deltaValue = 1e-12;
-  auto nCycles = optimizer.optimize(positions, shang19HessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, shang19HessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, EigenvectorFollowingTest_5) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   EigenvectorFollowing optimizer;
   Eigen::VectorXd positions(5);
   positions[0] = -0.1;
@@ -265,7 +333,7 @@ TEST(OptimizerTests, EigenvectorFollowingTest_5) {
   GradientBasedCheck check;
   check.maxIter = 50;
   check.deltaValue = 1e-12;
-  auto nCycles = optimizer.optimize(positions, sinSumHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, sinSumHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], -M_PI / 2, 1.0e-8);
   EXPECT_NEAR(positions[1], -M_PI / 2, 1.0e-8);
@@ -274,6 +342,10 @@ TEST(OptimizerTests, EigenvectorFollowingTest_5) {
   EXPECT_NEAR(positions[4], M_PI / 2, 1.0e-8);
 }
 TEST(OptimizerTests, EigenvectorFollowingTest_6) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   EigenvectorFollowing optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.6;
@@ -281,12 +353,16 @@ TEST(OptimizerTests, EigenvectorFollowingTest_6) {
   GradientBasedCheck check;
   check.maxIter = 50;
   check.deltaValue = 1e-12;
-  auto nCycles = optimizer.optimize(positions, osdHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, osdHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, DimerTest_1) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Dimer optimizer;
   Eigen::VectorXd positions(2);
   optimizer.translationMethod = "AMSGRAD";
@@ -297,12 +373,16 @@ TEST(OptimizerTests, DimerTest_1) {
   check.deltaValue = 1e-14;
   check.gradMaxCoeff = 1e-10;
   check.requirement = 4;
-  auto nCycles = optimizer.optimize(positions, gradientTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, gradientTestFunction, check, log);
   EXPECT_TRUE(nCycles < 550);
   EXPECT_NEAR(positions[0], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[1], M_PI, 1.0e-8);
 }
 TEST(OptimizerTests, DimerTest_2) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Dimer optimizer;
   optimizer.translationMethod = "Linesearch";
   Eigen::VectorXd positions(2);
@@ -313,12 +393,16 @@ TEST(OptimizerTests, DimerTest_2) {
   check.deltaValue = 1e-14;
   check.gradMaxCoeff = 1e-10;
   check.requirement = 4;
-  auto nCycles = optimizer.optimize(positions, gradientTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, gradientTestFunction, check, log);
   EXPECT_TRUE(nCycles < 100);
   EXPECT_NEAR(positions[0], M_PI, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, DimerTest_3) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Dimer optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.51 * M_PI;
@@ -326,12 +410,16 @@ TEST(OptimizerTests, DimerTest_3) {
   GradientBasedCheck check;
   check.maxIter = 50;
   check.deltaValue = 1e-12;
-  auto nCycles = optimizer.optimize(positions, gradientTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, gradientTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], M_PI, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, DimerTest_4) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Dimer optimizer;
   optimizer.maxValueMemory = 10;
   Eigen::VectorXd positions(2);
@@ -341,12 +429,16 @@ TEST(OptimizerTests, DimerTest_4) {
   check.maxIter = 50;
   check.deltaValue = 1e-12;
   optimizer.defaultTranslationStep = 1.0;
-  auto nCycles = optimizer.optimize(positions, shang19GradientTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, shang19GradientTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, DimerTest_5) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Dimer optimizer;
   optimizer.translationMethod = "AMSGRAD";
   Eigen::VectorXd positions(5);
@@ -360,7 +452,7 @@ TEST(OptimizerTests, DimerTest_5) {
   check.deltaValue = 1e-14;
   check.gradRMS = 1.0e-10;
   check.requirement = 4;
-  auto nCycles = optimizer.optimize(positions, sinSumGradientTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, sinSumGradientTestFunction, check, log);
   EXPECT_TRUE(nCycles < 500);
   EXPECT_NEAR(positions[0], -M_PI / 2, 1.0e-8);
   EXPECT_NEAR(positions[1], -M_PI / 2, 1.0e-8);
@@ -369,6 +461,10 @@ TEST(OptimizerTests, DimerTest_5) {
   EXPECT_NEAR(positions[4], M_PI / 2, 1.0e-8);
 }
 TEST(OptimizerTests, DimerTest_6) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Dimer optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.0;
@@ -379,12 +475,16 @@ TEST(OptimizerTests, DimerTest_6) {
   check.gradMaxCoeff = 1e-10;
   check.requirement = 4;
   optimizer.defaultTranslationStep = 0.1;
-  auto nCycles = optimizer.optimize(positions, osdGradientTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, osdGradientTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, DimerTest_7) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Dimer optimizer;
   Eigen::VectorXd positions(2);
   optimizer.skipFirstRotation = false;
@@ -419,12 +519,16 @@ TEST(OptimizerTests, DimerTest_7) {
   check.deltaValue = 1e-12;
   check.gradMaxCoeff = 1e-10;
   check.requirement = 4;
-  auto nCycles = optimizer.optimize(positions, minyaevQuappGradientTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, minyaevQuappGradientTestFunction, check, log);
   EXPECT_TRUE(nCycles < 50);
   EXPECT_NEAR(positions[0], M_PI / 2, 1.0e-8);
   EXPECT_NEAR(positions[1], M_PI / 2, 1.0e-8);
 }
 TEST(OptimizerTests, BofillTest_1) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Bofill optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.55 * M_PI;
@@ -436,12 +540,16 @@ TEST(OptimizerTests, BofillTest_1) {
   check.stepRMS = 1.0e-8;
   check.gradMaxCoeff = 1.0e-7;
   check.gradRMS = 1.0e-8;
-  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 100);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[0], M_PI, 1.0e-8);
 }
 TEST(OptimizerTests, BofillTest_2) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Bofill optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.51 * M_PI;
@@ -453,12 +561,16 @@ TEST(OptimizerTests, BofillTest_2) {
   check.stepRMS = 1.0e-8;
   check.gradMaxCoeff = 1.0e-7;
   check.gradRMS = 1.0e-8;
-  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 100);
   EXPECT_NEAR(positions[0], M_PI, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, BofillTest_3) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Bofill optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.55 * M_PI;
@@ -470,12 +582,16 @@ TEST(OptimizerTests, BofillTest_3) {
   check.stepRMS = 1.0e-8;
   check.gradMaxCoeff = 1.0e-7;
   check.gradRMS = 1.0e-8;
-  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 100);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
   EXPECT_NEAR(positions[0], M_PI, 1.0e-8);
 }
 TEST(OptimizerTests, BofillTest_4) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Bofill optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.90 * M_PI;
@@ -487,12 +603,16 @@ TEST(OptimizerTests, BofillTest_4) {
   check.stepRMS = 1.0e-8;
   check.gradMaxCoeff = 1.0e-7;
   check.gradRMS = 1.0e-8;
-  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check);
+  auto nCycles = optimizer.optimize(positions, optionalHessianTestFunction, check, log);
   EXPECT_TRUE(nCycles < 100);
   EXPECT_NEAR(positions[0], M_PI, 1.0e-8);
   EXPECT_NEAR(positions[1], 0.0, 1.0e-8);
 }
 TEST(OptimizerTests, OscillationTest) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Bofill optimizer;
   Eigen::VectorXd positions1(2);
   Eigen::VectorXd positions2(2);
@@ -510,6 +630,10 @@ TEST(OptimizerTests, OscillationTest) {
 }
 
 TEST(OptimizerTests, PrepareRestartTest_SD) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   SteepestDescent optimizer;
   // Add an observer storing the cycle numbers
   std::vector<int> cycleNumbers;
@@ -527,18 +651,22 @@ TEST(OptimizerTests, PrepareRestartTest_SD) {
   optimizer.prepareRestart(4);
   check.maxIter = 6;
 
-  optimizer.optimize(positions, gradientTestFunction, check);
+  optimizer.optimize(positions, gradientTestFunction, check, log);
   ASSERT_THAT(cycleNumbers, ElementsAre(4, 5, 6));
 }
 
 TEST(OptimizerTests, PrepareRestartTest_Bfgs) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Bfgs optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.25 * M_PI;
   positions[1] = 0.75 * M_PI;
   GradientBasedCheck check;
   check.maxIter = 2;
-  optimizer.optimize(positions, gradientTestFunction, check);
+  optimizer.optimize(positions, gradientTestFunction, check, log);
   // Prepare restart
   optimizer.prepareRestart(3);
   // Inverse Hessian should have been cleared
@@ -551,18 +679,22 @@ TEST(OptimizerTests, PrepareRestartTest_Bfgs) {
   optimizer.addObserver(func);
   // Restart and check cycle counts
   check.maxIter = 4;
-  optimizer.optimize(positions, gradientTestFunction, check);
+  optimizer.optimize(positions, gradientTestFunction, check, log);
   ASSERT_THAT(cycleNumbers, ElementsAre(3, 4));
 }
 
 TEST(OptimizerTests, PrepareRestartTest_Dimer) {
+  auto log = Core::Log::silent();
+  log.output.add("cout", Core::Log::coutSink());
+  log.warning.add("cerr", Core::Log::cerrSink());
+  log.error.add("cerr", Core::Log::cerrSink());
   Dimer optimizer;
   Eigen::VectorXd positions(2);
   positions[0] = 0.25 * M_PI;
   positions[1] = 0.75 * M_PI;
   GradientBasedCheck check;
   check.maxIter = 2;
-  optimizer.optimize(positions, gradientTestFunction, check);
+  optimizer.optimize(positions, gradientTestFunction, check, log);
   // Prepare restart
   optimizer.prepareRestart(1);
   // Inverse Hessian should have been cleared
@@ -576,7 +708,7 @@ TEST(OptimizerTests, PrepareRestartTest_Dimer) {
   };
   optimizer.addObserver(func);
   // Restart and check cycles
-  optimizer.optimize(positions, gradientTestFunction, check);
+  optimizer.optimize(positions, gradientTestFunction, check, log);
   ASSERT_THAT(cycleNumbers, ElementsAre(1, 2));
 }
 

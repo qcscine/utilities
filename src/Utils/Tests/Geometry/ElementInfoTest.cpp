@@ -61,23 +61,34 @@ TEST(ElementInfoTest, CanConvertElementTypeToSymbol) {
   ASSERT_THAT(ElementInfo::symbol(ElementType::Rn), Eq(std::string("Rn")));
 }
 
+TEST(ElementInfoTest, CanGiveAllElementTypesAndConvertToSymbol) {
+  auto all = ElementInfo::allImplementedElements();
+  ASSERT_GT(all.size(), 1); // not empty
+  for (const auto& ele : all) {
+    ASSERT_FALSE(ElementInfo::symbol(ele).empty());                // valid symbols
+    ASSERT_FALSE(ElementInfo::symbol(ele) == std::string("None")); // no none
+  }
+  // contains Cn (last element as writing this test)
+  ASSERT_FALSE(std::find(all.begin(), all.end(), ElementType::Cn) == all.end());
+}
+
 TEST(ElementInfoTest, CanGetVdwRadiusForElementInAtomicUnits) {
   double vdwInPicometers = 210.0;
   double vdwInAngstrom = vdwInPicometers / 100.0;
   double vdwInAtomicUnits = vdwInAngstrom * Constants::bohr_per_angstrom;
-  ASSERT_THAT(ElementInfo::vdwRadius(ElementType::Si), Eq(vdwInAtomicUnits));
+  ASSERT_THAT(ElementInfo::vdwRadius(ElementType::Si), DoubleEq(vdwInAtomicUnits));
 }
 
 TEST(ElementInfoTest, CanGetCovalentRadiusForElementInAtomicUnits) {
   double covalentInPicometers = 134.0;
   double covalentInAngstrom = covalentInPicometers / 100.0;
   double covalentInAtomicUnits = covalentInAngstrom * Constants::bohr_per_angstrom;
-  ASSERT_THAT(ElementInfo::covalentRadius(ElementType::Hs), Eq(covalentInAtomicUnits));
+  ASSERT_THAT(ElementInfo::covalentRadius(ElementType::Hs), DoubleEq(covalentInAtomicUnits));
 }
 
 TEST(ElementInfoTest, IsotopeMasses) {
-  ASSERT_THAT(ElementInfo::mass(ElementType::V), Eq(50.942));
-  ASSERT_THAT(ElementInfo::mass(ElementType::V50), Eq(49.94715601));
+  ASSERT_THAT(ElementInfo::mass(ElementType::V), DoubleEq(50.942));
+  ASSERT_THAT(ElementInfo::mass(ElementType::V50), DoubleEq(49.94715601));
 }
 
 TEST(ElementInfoTest, IsotopeBase) {

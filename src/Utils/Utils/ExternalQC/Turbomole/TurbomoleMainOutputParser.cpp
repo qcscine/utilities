@@ -75,7 +75,39 @@ GradientCollection TurbomoleMainOutputParser::getGradients() const {
       gc(i, 2) = std::stod(s[2]);
     }
     catch (...) {
-      throw OutputFileParsingError("Gradient file could not be parsed. ");
+      throw OutputFileParsingError("Gradient file " + files_.gradientFile + " could not be parsed.");
+    }
+  }
+
+  return gc;
+}
+
+GradientCollection TurbomoleMainOutputParser::getPointChargesGradients() const {
+  int nAtoms = getNumberAtoms();
+  GradientCollection gc;
+  gc.resize(nAtoms, 3);
+
+  std::ifstream in(files_.pointChargeGradientFile);
+
+  // skip first line
+  std::string line;
+  std::getline(in, line);
+  for (int i = 0; i < nAtoms; i++) {
+    std::array<std::string, 3> s;
+    in >> s[0] >> s[1] >> s[2];
+    for (std::string& j : s) {
+      const unsigned long e = j.find_first_of("Dd");
+      if (e != std::string::npos) {
+        j[e] = 'E';
+      }
+    }
+    try {
+      gc(i, 0) = std::stod(s[0]);
+      gc(i, 1) = std::stod(s[1]);
+      gc(i, 2) = std::stod(s[2]);
+    }
+    catch (...) {
+      throw OutputFileParsingError("Gradient file " + files_.pointChargeGradientFile + " could not be parsed.");
     }
   }
 

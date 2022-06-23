@@ -153,14 +153,15 @@ class TurbomoleCalculator final : public CloneInterface<TurbomoleCalculator, Cor
    */
   void deleteTemporaryFiles();
   /*
-   * @brief Creates a random name for a calculation directory and creates this directory.
+   * @brief Copies orbital files.
+   * @param from: directory name of the current calculation ("path/from/mos")
+   * @param to: New directory ("path/to/mos")
    */
-  std::string createNameForCalculationDirectory();
+  void copyBackupFiles(const std::string& from, const std::string& to) const;
   // The settings.
   std::unique_ptr<Settings> settings_;
   // The results.
   Results results_;
-  //  std::unique_ptr<ResultsAutoCompleter> autoCompleter_;
   // Base working directory
   std::string baseWorkingDirectory_;
   // Calculation directory

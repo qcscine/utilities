@@ -68,7 +68,7 @@ class HessianUtilities {
    *
    * @return Eigen::MatrixXd
    */
-  Eigen::MatrixXd getBackTransformedInternalEigenvectors();
+  Eigen::MatrixXd getBackTransformedInternalEigenvectors(bool normalize = true);
   /**
    * @brief Returns the transformed (pseudo-internal coordinates) Hessian.
    * @return const Eigen::MatrixXd& The Hessian.

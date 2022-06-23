@@ -261,7 +261,14 @@ class QmmmGeometryOptimizer {
     fullOptimizer->clearObservers();
     mmOptimizer->clearObservers();
   }
-
+  /**
+   * @brief Clears constrained atoms. Should be called between multiple optimize calls
+   *
+   */
+  void clearConstrainedAtoms() {
+    this->fullOptimizer->fixedAtoms = {};
+    this->mmOptimizer->fixedAtoms = {};
+  }
   /**
    * @brief The underlying geometry optimizer that optimizes the full system, public in order to change it's settings.
    */

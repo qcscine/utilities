@@ -44,7 +44,8 @@ template<class OptimizerType>
 bool settingsMakeSense(const OptimizerType& optimizer) {
   const auto settings = optimizer.getCalculatorSettings();
   if (!settings || !settings->valueExists(SettingsNames::selfConsistenceCriterion)) {
-    throw std::runtime_error("Necessary selfConsistenceCriterion not implemented in the applied calculator.");
+    throw std::runtime_error("Necessary '" + std::string(SettingsNames::selfConsistenceCriterion) +
+                             "' not implemented in the applied calculator.");
   }
   const double energyThreshold = settings->getDouble(SettingsNames::selfConsistenceCriterion);
   const GradientBasedCheck check = optimizer.getConvergenceCheck();
@@ -68,7 +69,8 @@ template<class OptimizerType>
 bool settingsMakeSense(const QmmmGeometryOptimizer<OptimizerType>& optimizer) {
   const auto settings = optimizer->getCalculatorSettings();
   if (!settings || !settings->valueExists(SettingsNames::selfConsistenceCriterion)) {
-    throw std::runtime_error("Necessary selfConsistenceCriterion not implemented in the applied calculator.");
+    throw std::runtime_error("Necessary '" + std::string(SettingsNames::selfConsistenceCriterion) +
+                             "' not implemented in the applied calculator.");
   }
   const double energyThreshold = settings->getDouble(SettingsNames::selfConsistenceCriterion);
   const GradientBasedCheck check1 = optimizer->fullOptimizer->getConvergenceCheck();

@@ -146,6 +146,7 @@ class GeometryOptimizerSettings : public Settings {
 
     UniversalSettings::IntListDescriptor geooptFixedAtoms(
         "List of atoms with Cartesian constraints applied to them during the optimization.");
+    geooptFixedAtoms.setDefaultValue(base.fixedAtoms);
     this->_fields.push_back(GeometryOptimizerBase::geooptFixedAtomsKey, std::move(geooptFixedAtoms));
 
     this->resetToDefaults();
@@ -166,74 +167,53 @@ class GeometryOptimizer : public GeometryOptimizerBase {
    * @brief Construct a new GeometryOptimizer object.
    * @param calculator The calculator to be used for the single point/gradient calculations.
    */
-  GeometryOptimizer(Core::Calculator& calculator) : _calculator(calculator) {
-    // With current internal coordinates not possible
-    if (std::is_same<OptimizerType, Lbfgs>::value || std::is_same<OptimizerType, NewtonRaphson>::value ||
-        std::is_same<OptimizerType, Bofill>::value || std::is_same<OptimizerType, EigenvectorFollowing>::value) {
-      this->coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
-    }
+  explicit GeometryOptimizer(Core::Calculator& calculator) : _calculator(calculator) {
+    // WARNING: check for null reference if accessing calculator here, because ReaDuct can plug in a nullptr.
+    /* set private members according to template */
     // Performs better with Cartesian coordinates with current internal coordinates
     if (std::is_same<OptimizerType, Dimer>::value) {
       this->coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
     }
+    // With current internal coordinates not possible
+    if (std::is_same<OptimizerType, Lbfgs>::value || std::is_same<OptimizerType, NewtonRaphson>::value ||
+        std::is_same<OptimizerType, Bofill>::value || std::is_same<OptimizerType, EigenvectorFollowing>::value) {
+      // TODO: fix the Hessian projection in the L-BFGS to allow for internals, others require Hessian in internals
+      this->coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
+      this->_internalAvailable = false;
+    }
   };
   /**
    * @brief See GeometryOptimizerBase::optimize().
-   * @param log The logger to which eventual output is written.
    * @param atoms The AtomCollection (Geometry) to be optimized.
+   * @param log The logger to which eventual output is written.
    *
    * @return int  The final number of optimization cycles carried out.
    */
   int optimize(AtomCollection& atoms, Core::Log& log) final {
-    // Disable L-BFGS + internals for now
-    // TODO: fix the Hessian projection in the L-BFGS to allow for this combination
-    if (std::is_same<OptimizerType, Lbfgs>::value && this->coordinateSystem == CoordinateSystem::Internal) {
-      throw std::runtime_error("Error: The L-BFGS optimizer is currently not allowed with Internal coordinates.");
-    }
-    // Configure Calculator
+    // Configure members
+    _atoms = atoms;
+    _log = std::make_shared<Core::Log>(log);
     _calculator.setStructure(atoms);
-    _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
+    _calculator.setRequiredProperties(_requiredProperties);
     // Transformation into internal coordinates
-    std::shared_ptr<InternalCoordinates> transformation = nullptr;
     if (this->coordinateSystem == CoordinateSystem::Internal) {
-      transformation = std::make_shared<InternalCoordinates>(atoms);
+      if (!_internalAvailable) {
+        throw std::logic_error("Internal coordinates are currently not supported for this optimizer.");
+      }
+      _transformation = std::make_shared<InternalCoordinates>(atoms);
     }
     else if (this->coordinateSystem == CoordinateSystem::CartesianWithoutRotTrans) {
-      transformation = std::make_shared<InternalCoordinates>(atoms, true);
+      _transformation = std::make_shared<InternalCoordinates>(atoms, true);
     }
-    // Define update function
-    const unsigned int nAtoms = atoms.size();
-    // Count cycles for eventual restart
-    int cycle = 0;
-    auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
-      cycle++;
-      Utils::PositionCollection coordinates;
-      if (transformation) {
-        coordinates = transformation->coordinatesToCartesian(parameters);
-      }
-      else {
-        coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
-      }
-      _calculator.modifyPositions(coordinates);
-      _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
-      atoms.setPositions(coordinates);
-      Results results =
-          CalculationRoutines::calculateWithCatch(_calculator, log, "Aborting optimization due to failed calculation");
-      value = results.get<Property::Energy>();
-      if (transformation) {
-        gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
-      }
-      else {
-        gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
-      }
-    };
     // Get initial positions
+    const unsigned int nAtoms = atoms.size();
     Eigen::VectorXd positions;
-    if (transformation) {
-      positions = transformation->coordinatesToInternal(atoms.getPositions());
+    if (_transformation) {
+      positions = _transformation->coordinatesToInternal(atoms.getPositions());
     }
     else {
-      positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), atoms.size() * 3);
+      positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), nAtoms * 3);
+      // set constraints
       if (!fixedAtoms.empty()) {
         optimizer.mask.resizeLike(positions);
         optimizer.mask.setConstant(true);
@@ -248,7 +228,7 @@ class GeometryOptimizer : public GeometryOptimizerBase {
     // Optimize
     int cycles = 0;
     try {
-      cycles = optimizer.optimize(positions, update, check);
+      cycles = callOptimizer(positions);
     }
     catch (const InternalCoordinatesException& e) {
       log.output << "Internal coordinates broke down. Continuing in Cartesians." << Core::Log::nl;
@@ -256,17 +236,17 @@ class GeometryOptimizer : public GeometryOptimizerBase {
       Utils::PositionCollection lastCoordinates = _calculator.getPositions();
       // Disable true internal coordinates
       this->coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
-      transformation = std::make_shared<InternalCoordinates>(atoms, true);
-      Eigen::VectorXd lastPositions = transformation->coordinatesToInternal(lastCoordinates);
+      _transformation = std::make_shared<InternalCoordinates>(_atoms.get(), true);
+      Eigen::VectorXd lastPositions = _transformation->coordinatesToInternal(lastCoordinates);
       // Restart optimization
-      optimizer.prepareRestart(cycle);
-      cycles = optimizer.optimize(lastPositions, update, check);
+      optimizer.prepareRestart(optimizer.getCycle());
+      cycles = callOptimizer(lastPositions);
       positions = lastPositions;
     }
     // Update Atom collection and return
     Utils::PositionCollection coordinates;
-    if (transformation) {
-      coordinates = transformation->coordinatesToCartesian(positions);
+    if (_transformation) {
+      coordinates = _transformation->coordinatesToCartesian(positions);
     }
     else {
       coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), nAtoms, 3);
@@ -338,444 +318,158 @@ class GeometryOptimizer : public GeometryOptimizerBase {
   const GradientBasedCheck& getConvergenceCheck() const override {
     return check;
   };
-  /// @brief The underlying optimizer, public in order to change it's settings.
+  /// @brief The underlying optimizer, public in order to change its settings.
   OptimizerType optimizer;
-  /// @brief The underlying convergence check, public in order to change it's settings.
+  /// @brief The underlying convergence check, public in order to change its settings.
   GradientBasedCheck check;
 
  private:
   Core::Calculator& _calculator;
+  std::shared_ptr<InternalCoordinates> _transformation;
+  std::shared_ptr<Core::Log> _log;
+  // we need to store the atoms as class members to manipulate them in a general lambda function outside of the given
+  // atom scope; they need to be stored such that their manipulation also manipulates the given atoms
+  // used reference_wrapper, which gets a dummy init value to make the class constructable without atoms
+  AtomCollection _dummy = AtomCollection();
+  std::reference_wrapper<AtomCollection> _atoms = std::ref(_dummy);
+  // following members may be adapted in constructur depending on template
+  PropertyList _requiredProperties = Utils::Property::Energy | Utils::Property::Gradients;
+  bool _internalAvailable = true;
+
+  /**
+   * @brief Lambda function passed to mathematical optimizer, which calls it to update value and gradient
+   */
+  const std::function<void(const Eigen::VectorXd&, double&, Eigen::VectorXd&)> _gradientUpdateLambda =
+      [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
+        const unsigned int nAtoms = _atoms.get().size();
+        Utils::PositionCollection coordinates;
+        if (_transformation) {
+          coordinates = _transformation->coordinatesToCartesian(parameters);
+        }
+        else {
+          coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
+        }
+        _calculator.modifyPositions(coordinates);
+        _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
+        _atoms.get().setPositions(coordinates);
+        Results results =
+            CalculationRoutines::calculateWithCatch(_calculator, *_log, "Aborting optimization due to failed calculation");
+        value = results.get<Property::Energy>();
+        if (_transformation) {
+          gradients = _transformation->gradientsToInternal(results.get<Property::Gradients>());
+        }
+        else {
+          gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
+        }
+      };
+  /**
+   * @brief Lambda function passed to mathematical optimizer, which calls it to update value, gradient, and optionally
+   * Hessian
+   */
+  const std::function<void(const Eigen::VectorXd&, double&, Eigen::VectorXd&, Eigen::MatrixXd&, bool)> _hessianUpdateLambda =
+      [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients, Eigen::MatrixXd& hessian,
+          bool calcHessian) {
+        if (!calcHessian) {
+          _gradientUpdateLambda(parameters, value, gradients);
+        }
+        else {
+          const unsigned int nAtoms = _atoms.get().size();
+          Utils::PositionCollection coordinates;
+          if (_transformation) {
+            coordinates = _transformation->coordinatesToCartesian(parameters);
+          }
+          else {
+            coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
+          }
+          _calculator.modifyPositions(coordinates);
+          _atoms.get().setPositions(coordinates);
+
+          _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
+          Results results = CalculationRoutines::calculateWithCatch(_calculator, *_log,
+                                                                    "Aborting optimization due to failed calculation");
+          value = results.get<Property::Energy>();
+          if (_transformation) {
+            gradients = _transformation->gradientsToInternal(results.get<Property::Gradients>());
+            hessian = _transformation->hessianToInternal(results.get<Property::Hessian>());
+          }
+          else {
+            gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
+            hessian = results.get<Property::Hessian>();
+          }
+        }
+      };
+
+  /**
+   * @brief Prepare underlying optimizer, default is to do nothing, since most don't need preparation
+   */
+  inline void optimizerPreparation() {
+    return;
+  };
+  /**
+   * @brief Call the underlying optimizer with a lambda update function; default is gradient update function
+   * @param positions The coordinates of the atoms as a vector, which are optimized
+   * @return int the number of required cycles
+   */
+  inline int callOptimizer(Eigen::VectorXd& positions) {
+    optimizerPreparation();
+    return optimizer.optimize(positions, _gradientUpdateLambda, check, *_log);
+  };
 };
 
-/*=============================*
- *  Approximate Hessian Based
- *=============================*/
-
+/*=====================================================================================*
+ *  Preparation specification via template, set invH and transformation for internals
+ *=====================================================================================*/
 template<>
-inline int GeometryOptimizer<Dimer>::optimize(AtomCollection& atoms, Core::Log& log) {
-  // Configure Calculator
-  _calculator.setStructure(atoms);
-  _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
-  // Transform into internal coordinates
-  std::shared_ptr<InternalCoordinates> transformation = nullptr;
+inline void GeometryOptimizer<Bfgs>::optimizerPreparation() {
   if (this->coordinateSystem == CoordinateSystem::Internal) {
-    transformation = std::make_shared<InternalCoordinates>(atoms);
-  }
-  else if (this->coordinateSystem == CoordinateSystem::CartesianWithoutRotTrans) {
-    transformation = std::make_shared<InternalCoordinates>(atoms, true);
-  }
-  // Define update function
-  const unsigned int nAtoms = atoms.size();
-  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
-    Utils::PositionCollection coordinates;
-    if (transformation) {
-      coordinates = transformation->coordinatesToCartesian(parameters);
-    }
-    else {
-      coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
-    }
-    _calculator.modifyPositions(coordinates);
-    _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
-    atoms.setPositions(coordinates);
-    Results results =
-        CalculationRoutines::calculateWithCatch(_calculator, log, "Aborting optimization due to failed calculation");
-    value = results.get<Property::Energy>();
-    if (transformation) {
-      gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
-    }
-    else {
-      gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
-    }
-  };
-  // Get initial positions
-  Eigen::VectorXd positions;
-  if (transformation) {
-    positions = transformation->coordinatesToInternal(atoms.getPositions());
+    optimizer.invH = _transformation->inverseHessianGuess();
+    // pass a weak ptr to lambda function as shared ptr may cause leaks:
+    // https://floating.io/2017/07/lambda-shared_ptr-memory-leak/
+    std::weak_ptr<InternalCoordinates> transformation(_transformation);
+    optimizer.projection = [transformation](Eigen::MatrixXd& inv) {
+      auto t = transformation.lock();
+      inv = t->projectHessianInverse(inv);
+    };
   }
   else {
-    positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), atoms.size() * 3);
-    if (!fixedAtoms.empty()) {
-      optimizer.mask.resizeLike(positions);
-      optimizer.mask.setConstant(true);
-      for (const int fixedAtom : fixedAtoms) {
-        if (fixedAtom < 0 || fixedAtom >= static_cast<int>(nAtoms)) {
-          throw std::runtime_error("Constrained atom index " + std::to_string(fixedAtom) + " is invalid!");
-        }
-        optimizer.mask.template segment<3>(3 * fixedAtom).setConstant(false);
-      }
-    }
+    optimizer.invH.resize(0, 0);
+    optimizer.projection = nullptr;
   }
-  // Get projection
+}
+template<>
+inline void GeometryOptimizer<Dimer>::optimizerPreparation() {
   if (this->coordinateSystem == CoordinateSystem::Internal) {
-    optimizer.invH = transformation->inverseHessianGuess();
-    optimizer.projection = std::make_shared<std::function<void(Eigen::MatrixXd&)>>(
-        [&transformation](Eigen::MatrixXd& inv) { inv = transformation->projectHessianInverse(inv); });
+    optimizer.invH = _transformation->inverseHessianGuess();
+    // pass a weak ptr to lambda function as shared ptr may cause leaks:
+    // https://floating.io/2017/07/lambda-shared_ptr-memory-leak/
+    std::weak_ptr<InternalCoordinates> transformation(_transformation);
+    optimizer.projection = std::make_shared<std::function<void(Eigen::MatrixXd&)>>([transformation](Eigen::MatrixXd& inv) {
+      auto t = transformation.lock();
+      inv = t->projectHessianInverse(inv);
+    });
   }
   else {
     optimizer.projection = nullptr;
   }
-
-  // Optimize
-  int cycles = 0;
-  try {
-    cycles = optimizer.optimize(positions, update, check);
-  }
-  catch (const InternalCoordinatesException& e) {
-    log.output << "Internal coordinates broke down. Continuing in Cartesians." << Core::Log::nl;
-    // Update coordinates to the last ones that were successfully reconverted
-    Utils::PositionCollection lastCoordinates = _calculator.getPositions();
-    // Disable true internal coordinates
-    this->coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
-    transformation = std::make_shared<InternalCoordinates>(atoms, true);
-    Eigen::VectorXd lastPositions = transformation->coordinatesToInternal(lastCoordinates);
-    // Restart optimization
-    // Get cycle from optimizer because one cycle contains several calls to the update function
-    optimizer.prepareRestart(optimizer.getCycle());
-    cycles = optimizer.optimize(lastPositions, update, check);
-    positions = lastPositions;
-  }
-  // Update Atom collection and return
-  Utils::PositionCollection coordinates;
-  if (transformation) {
-    coordinates = transformation->coordinatesToCartesian(positions);
-  }
-  else {
-    coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), nAtoms, 3);
-  }
-  atoms.setPositions(coordinates);
-  return cycles;
 }
 
+/*====================================================================================*
+ *  Update specification via template, overwrite gradient update with Hessian update
+ *====================================================================================*/
 template<>
-inline int GeometryOptimizer<Bfgs>::optimize(AtomCollection& atoms, Core::Log& log) {
-  // Reset Bfgs
-  this->optimizer.invH.resize(0, 0);
-  // Configure Calculator
-  _calculator.setStructure(atoms);
-  _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
-  // Transformation into internal coordinates
-  std::shared_ptr<InternalCoordinates> transformation = nullptr;
-  if (this->coordinateSystem == CoordinateSystem::Internal) {
-    transformation = std::make_shared<InternalCoordinates>(atoms);
-  }
-  else if (this->coordinateSystem == CoordinateSystem::CartesianWithoutRotTrans) {
-    transformation = std::make_shared<InternalCoordinates>(atoms, true);
-  }
-  // Define update function
-  const unsigned int nAtoms = atoms.size();
-  // Count cycles for eventual restart
-  int cycle = 0;
-  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients) {
-    cycle++;
-    Utils::PositionCollection coordinates;
-    if (transformation) {
-      coordinates = transformation->coordinatesToCartesian(parameters);
-    }
-    else {
-      coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
-    }
-    _calculator.modifyPositions(coordinates);
-    _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
-    atoms.setPositions(coordinates);
-    Results results =
-        CalculationRoutines::calculateWithCatch(_calculator, log, "Aborting optimization due to failed calculation");
-    value = results.get<Property::Energy>();
-    if (transformation) {
-      gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
-    }
-    else {
-      gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
-    }
-  };
-  // Get initial positions
-  Eigen::VectorXd positions;
-  if (transformation) {
-    positions = transformation->coordinatesToInternal(atoms.getPositions());
-  }
-  else {
-    positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), atoms.size() * 3);
-    if (!fixedAtoms.empty()) {
-      optimizer.mask.resizeLike(positions);
-      optimizer.mask.setConstant(true);
-      for (const int fixedAtom : fixedAtoms) {
-        if (fixedAtom < 0 || fixedAtom >= static_cast<int>(nAtoms)) {
-          throw std::runtime_error("Constrained atom index " + std::to_string(fixedAtom) + " is invalid!");
-        }
-        optimizer.mask.template segment<3>(3 * fixedAtom).setConstant(false);
-      }
-    }
-  }
-  // Get projection
-  if (this->coordinateSystem == CoordinateSystem::Internal) {
-    optimizer.invH = transformation->inverseHessianGuess();
-    optimizer.projection = [&transformation](Eigen::MatrixXd& inv) { inv = transformation->projectHessianInverse(inv); };
-  }
-  else {
-    optimizer.projection = nullptr;
-  }
-  // Optimize
-  int cycles = 0;
-  try {
-    cycles = optimizer.optimize(positions, update, check);
-  }
-  catch (const InternalCoordinatesException& e) {
-    log.output << "Internal coordinates broke down. Continuing in Cartesians." << Core::Log::nl;
-    // Update coordinates to the last ones that were successfully reconverted
-    Utils::PositionCollection lastCoordinates = _calculator.getPositions();
-    // Disable true internal coordinates
-    this->coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
-    transformation = std::make_shared<InternalCoordinates>(atoms, true);
-    Eigen::VectorXd lastPositions = transformation->coordinatesToInternal(lastCoordinates);
-    // Restart optimization
-    optimizer.prepareRestart(cycle);
-    cycles = optimizer.optimize(lastPositions, update, check);
-    positions = lastPositions;
-  }
-  // Update Atom collection and return
-  Utils::PositionCollection coordinates;
-  if (transformation) {
-    coordinates = transformation->coordinatesToCartesian(positions);
-  }
-  else {
-    coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), nAtoms, 3);
-  }
-  atoms.setPositions(coordinates);
-  return cycles;
+inline int GeometryOptimizer<Bofill>::callOptimizer(Eigen::VectorXd& positions) {
+  optimizerPreparation();
+  return optimizer.optimize(positions, _hessianUpdateLambda, check, *_log);
 }
-
-/*================================*
- *  Hessian Base Specializations
- *================================*/
 template<>
-inline int GeometryOptimizer<Bofill>::optimize(AtomCollection& atoms, Core::Log& log) {
-  if (this->coordinateSystem == CoordinateSystem::Internal) {
-    throw std::runtime_error("Error: The Bofill optimizer is currently not allowed with Internal coordinates.");
-  }
-  // Configure Calculator
-  _calculator.setStructure(atoms);
-  _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
-  // Transformation into internal basis
-  std::shared_ptr<InternalCoordinates> transformation = nullptr;
-  if (this->coordinateSystem == CoordinateSystem::CartesianWithoutRotTrans) {
-    transformation = std::make_shared<InternalCoordinates>(atoms, true);
-  }
-  // Define update function
-  const unsigned int nAtoms = atoms.size();
-  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients,
-                          Eigen::MatrixXd& hessian, bool calcHessian) {
-    Utils::PositionCollection coordinates;
-    if (transformation) {
-      coordinates = transformation->coordinatesToCartesian(parameters);
-    }
-    else {
-      coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
-    }
-    _calculator.modifyPositions(coordinates);
-    atoms.setPositions(coordinates);
-
-    if (calcHessian) {
-      _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
-      Results results =
-          CalculationRoutines::calculateWithCatch(_calculator, log, "Aborting optimization due to failed calculation");
-      value = results.get<Property::Energy>();
-      if (transformation) {
-        gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
-        hessian = transformation->hessianToInternal(results.get<Property::Hessian>());
-      }
-      else {
-        gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
-        hessian = results.get<Property::Hessian>();
-      }
-    }
-    else {
-      _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
-      Results results =
-          CalculationRoutines::calculateWithCatch(_calculator, log, "Aborting optimization due to failed calculation");
-      value = results.get<Property::Energy>();
-      if (transformation) {
-        gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
-      }
-      else {
-        gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
-      }
-    }
-  };
-  // Get initial positions
-  Eigen::VectorXd positions;
-  if (transformation) {
-    positions = transformation->coordinatesToInternal(atoms.getPositions());
-  }
-  else {
-    positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), nAtoms * 3);
-    if (!fixedAtoms.empty()) {
-      optimizer.mask.resizeLike(positions);
-      optimizer.mask.setConstant(true);
-      for (const int fixedAtom : fixedAtoms) {
-        if (fixedAtom < 0 || fixedAtom >= static_cast<int>(nAtoms)) {
-          throw std::runtime_error("Constrained atom index " + std::to_string(fixedAtom) + " is invalid!");
-        }
-        optimizer.mask.template segment<3>(3 * fixedAtom).setConstant(false);
-      }
-    }
-  }
-
-  // Optimize
-  auto cycles = optimizer.optimize(positions, update, check);
-  // Update Atom collection and return
-  Utils::PositionCollection coordinates;
-  if (transformation) {
-    coordinates = transformation->coordinatesToCartesian(positions);
-  }
-  else {
-    coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), nAtoms, 3);
-  }
-  atoms.setPositions(coordinates);
-  return cycles;
+inline int GeometryOptimizer<EigenvectorFollowing>::callOptimizer(Eigen::VectorXd& positions) {
+  optimizerPreparation();
+  return optimizer.optimize(positions, _hessianUpdateLambda, check, *_log);
 }
-
 template<>
-inline int GeometryOptimizer<NewtonRaphson>::optimize(AtomCollection& atoms, Core::Log& log) {
-  if (this->coordinateSystem == CoordinateSystem::Internal) {
-    throw std::runtime_error("Error: The Newton Raphson optimizer is currently not allowed with Internal coordinates.");
-  }
-  // Configure Calculator
-  _calculator.setStructure(atoms);
-  _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
-  // Transformation into internal basis
-  std::shared_ptr<InternalCoordinates> transformation = nullptr;
-  if (this->coordinateSystem == CoordinateSystem::CartesianWithoutRotTrans) {
-    transformation = std::make_shared<InternalCoordinates>(atoms, true);
-  }
-  // Define update function
-  const unsigned int nAtoms = atoms.size();
-  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients,
-                          Eigen::MatrixXd& hessian, bool /*calcHessian*/) {
-    Utils::PositionCollection coordinates;
-    if (transformation) {
-      coordinates = transformation->coordinatesToCartesian(parameters);
-    }
-    else {
-      coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
-    }
-    _calculator.modifyPositions(coordinates);
-    atoms.setPositions(coordinates);
-    _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
-    Results results =
-        CalculationRoutines::calculateWithCatch(_calculator, log, "Aborting optimization due to failed calculation");
-    value = results.get<Property::Energy>();
-    if (transformation) {
-      gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
-      hessian = transformation->hessianToInternal(results.get<Property::Hessian>());
-    }
-    else {
-      gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
-      hessian = results.get<Property::Hessian>();
-    }
-  };
-  // Get initial positions
-  Eigen::VectorXd positions;
-  if (transformation) {
-    positions = transformation->coordinatesToInternal(atoms.getPositions());
-  }
-  else {
-    positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), nAtoms * 3);
-    if (!fixedAtoms.empty()) {
-      optimizer.mask.resizeLike(positions);
-      optimizer.mask.setConstant(true);
-      for (const int fixedAtom : fixedAtoms) {
-        if (fixedAtom < 0 || fixedAtom >= static_cast<int>(nAtoms)) {
-          throw std::runtime_error("Constrained atom index " + std::to_string(fixedAtom) + " is invalid!");
-        }
-        optimizer.mask.template segment<3>(3 * fixedAtom).setConstant(false);
-      }
-    }
-  }
-
-  // Optimize
-  auto cycles = optimizer.optimize(positions, update, check);
-  // Update Atom collection and return
-  Utils::PositionCollection coordinates;
-  if (transformation) {
-    coordinates = transformation->coordinatesToCartesian(positions);
-  }
-  else {
-    coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), nAtoms, 3);
-  }
-  atoms.setPositions(coordinates);
-  return cycles;
-}
-
-template<>
-inline int GeometryOptimizer<EigenvectorFollowing>::optimize(AtomCollection& atoms, Core::Log& log) {
-  if (this->coordinateSystem == CoordinateSystem::Internal) {
-    throw std::runtime_error(
-        "Error: The EigenvectorFollowing optimizer is currently not allowed with Internal coordinates.");
-  }
-  // Configure Calculator
-  _calculator.setStructure(atoms);
-  _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
-  // Transformation into internal basis
-  std::shared_ptr<InternalCoordinates> transformation = nullptr;
-  if (this->coordinateSystem == CoordinateSystem::CartesianWithoutRotTrans) {
-    transformation = std::make_shared<InternalCoordinates>(atoms, true);
-  }
-  // Define update function
-  const unsigned int nAtoms = atoms.size();
-  auto const update = [&](const Eigen::VectorXd& parameters, double& value, Eigen::VectorXd& gradients,
-                          Eigen::MatrixXd& hessian, bool /*calcHessian*/) {
-    Utils::PositionCollection coordinates;
-    if (transformation) {
-      coordinates = transformation->coordinatesToCartesian(parameters);
-    }
-    else {
-      coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
-    }
-    _calculator.modifyPositions(coordinates);
-    atoms.setPositions(coordinates);
-    _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
-    Results results =
-        CalculationRoutines::calculateWithCatch(_calculator, log, "Aborting optimization due to failed calculation");
-    value = results.get<Property::Energy>();
-    if (transformation) {
-      gradients = transformation->gradientsToInternal(results.get<Property::Gradients>());
-      hessian = transformation->hessianToInternal(results.get<Property::Hessian>());
-    }
-    else {
-      gradients = Eigen::Map<const Eigen::VectorXd>(results.get<Property::Gradients>().data(), nAtoms * 3);
-      hessian = results.get<Property::Hessian>();
-    }
-  };
-  // Get initial positions
-  Eigen::VectorXd positions;
-  if (transformation) {
-    positions = transformation->coordinatesToInternal(atoms.getPositions());
-  }
-  else {
-    positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), nAtoms * 3);
-    if (!fixedAtoms.empty()) {
-      optimizer.mask.resizeLike(positions);
-      optimizer.mask.setConstant(true);
-      for (const int fixedAtom : fixedAtoms) {
-        if (fixedAtom < 0 || fixedAtom >= static_cast<int>(nAtoms)) {
-          throw std::runtime_error("Constrained atom index " + std::to_string(fixedAtom) + " is invalid!");
-        }
-        optimizer.mask.template segment<3>(3 * fixedAtom).setConstant(false);
-      }
-    }
-  }
-
-  // Optimize
-  auto cycles = optimizer.optimize(positions, update, check);
-  // Update Atom collection and return
-  Utils::PositionCollection coordinates;
-  if (transformation) {
-    coordinates = transformation->coordinatesToCartesian(positions);
-  }
-  else {
-    coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), nAtoms, 3);
-  }
-  atoms.setPositions(coordinates);
-  return cycles;
+inline int GeometryOptimizer<NewtonRaphson>::callOptimizer(Eigen::VectorXd& positions) {
+  optimizerPreparation();
+  return optimizer.optimize(positions, _hessianUpdateLambda, check, *_log);
 }
 
 } // namespace Utils

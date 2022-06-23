@@ -4,12 +4,12 @@ Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.
 See LICENSE.txt for details.
 """
 
+import sys
 from dev.conan.base import ScineConan
-
 
 class ScineUtilsConan(ScineConan):
     name = "scine_utilities"
-    version = "4.0.0"
+    version = "5.0.0"
     url = "https://github.com/qcscine/utilities"
     description = """
 Functionality which is used in most SCINE modules. It is vital for the correct
@@ -21,16 +21,19 @@ directly interact with this repository."""
         "python": [True, False],
         "tests": [True, False],
         "coverage": [True, False],
-        "microarch": ["detect", "none"]
+        "microarch": ["detect", "none"],
+        "python_version": "ANY"
     }
+    python_version_string = str(sys.version_info.major) + \
+        "." + str(sys.version_info.minor) 
     default_options = {"shared": True, "python": False,
                        "tests": False, "coverage": False,
-                       "microarch": "none"}
+                       "microarch": "none", "python_version": python_version_string}
     exports = "dev/conan/*.py"
     exports_sources = ["dev/cmake/*", "src/*", "CMakeLists.txt", "README.rst",
                        "LICENSE.txt", "dev/conan/hook.cmake",
                        "dev/conan/glue/*"]
-    requires = ["eigen/[~=3.3.7]", "boost/[>1.65.0]", "yaml-cpp/0.6.3"]
+    requires = ["eigen/[~=3.3.7]", "boost/[>1.65.0]", "yaml-cpp/0.6.3", "lbfgspp/0.1.0"]
     cmake_name = "UtilsOS"
     cmake_definitions = {
         "CMAKE_UNITY_BUILD": "ON",

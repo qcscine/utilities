@@ -16,6 +16,8 @@ include(ImportYamlCpp)
 import_yamlcpp()
 include(ImportIRC)
 import_irc()
+include(ImportLBFGSB)
+import_lbfgspp()
 include(AddEigen)
 include(ImportGTest)
 import_gtest()
@@ -50,6 +52,7 @@ target_link_libraries(UtilsOS
     $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>
     yaml-cpp
     irc
+    lbfgspp
 )
 
 target_include_directories(UtilsOS
@@ -74,7 +77,7 @@ set_target_properties(UtilsOSModule PROPERTIES
 # Headers
 install(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Utils/
-  DESTINATION include/Scine/Utils/
+  DESTINATION include/Scine/Utils
   FILES_MATCHING PATTERN "*.h"
 )
 

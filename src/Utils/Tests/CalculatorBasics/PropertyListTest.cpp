@@ -44,9 +44,14 @@ TEST_F(APropertyListTest, CanAddElectronMatrices) {
 }
 
 TEST_F(APropertyListTest, CanAddEverything) {
-  aPropertyList.addProperty(Property::Energy | Property::Gradients | Property::Hessian | Property::Dipole |
-                            Property::DipoleMatrixAO | Property::DipoleMatrixMO | Property::OneElectronMatrix |
-                            Property::TwoElectronMatrix);
+  aPropertyList.addProperty(
+      Property::Energy | Property::Gradients | Property::Hessian | Property::AtomicHessians | Property::Dipole |
+      Property::DipoleGradient | Property::DipoleMatrixAO | Property::DipoleMatrixMO | Property::DensityMatrix |
+      Property::OneElectronMatrix | Property::TwoElectronMatrix | Property::OverlapMatrix |
+      Property::CoefficientMatrix | Property::OrbitalEnergies | Property::ElectronicOccupation |
+      Property::Thermochemistry | Property::ExcitedStates | Property::AOtoAtomMapping | Property::AtomicCharges |
+      Property::BondOrderMatrix | Property::Description | Property::SuccessfulCalculation | Property::ProgramName |
+      Property::PointChargesGradients | Property::AtomicGtos | Property::GridOccupation | Property::StressTensor);
 }
 
 } // namespace Tests

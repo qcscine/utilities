@@ -16,9 +16,6 @@
 #include <Utils/Scf/LcaoUtils/SpinMode.h>
 #include <Utils/Solvation/ImplicitSolvation.h>
 #include <boost/process.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 #include <regex>
 
 namespace bp = boost::process;
@@ -57,6 +54,7 @@ GaussianCalculator::GaussianCalculator(const GaussianCalculator& rhs) {
   auto valueCollection = dynamic_cast<const Utils::UniversalSettings::ValueCollection&>(rhs.settings());
   this->settings_ =
       std::make_unique<Utils::Settings>(Utils::Settings(valueCollection, rhs.settings().getDescriptorCollection()));
+  this->setLog(rhs.getLog());
   applySettings();
   this->setStructure(rhs.atoms_);
   this->results() = rhs.results();
@@ -66,11 +64,17 @@ GaussianCalculator::GaussianCalculator(const GaussianCalculator& rhs) {
 }
 
 void GaussianCalculator::applySettings() {
-  if (settings_->getDouble(Utils::SettingsNames::electronicTemperature) > 0.0) {
-    throw Core::InitializationException(
-        "Gaussian calculations with an electronic temperature above 0.0 K are not supported.");
-  }
   if (settings_->valid()) {
+    if (settings_->getDouble(Utils::SettingsNames::electronicTemperature) > 0.0) {
+      throw Core::InitializationException(
+          "Gaussian calculations with an electronic temperature above 0.0 K are not supported.");
+    }
+    if ((requiredProperties_.containsSubSet(Property::Gradients) || requiredProperties_.containsSubSet(Property::Hessian)) &&
+        settings_->getDouble(Utils::SettingsNames::selfConsistenceCriterion) > 1e-8) {
+      settings_->modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-8);
+      this->getLog().warning << "Warning: Energy accuracy was increased to 1e-8 to ensure valid gradients/hessian."
+                             << Core::Log::nl;
+    }
     fileNameBase_ = settings_->getString(SettingsNames::gaussianFilenameBase);
     baseWorkingDirectory_ = settings_->getString(SettingsNames::baseWorkingDirectory);
     /* throws error for wrong input and updates 'any' entries */
@@ -86,7 +90,7 @@ void GaussianCalculator::applySettings() {
 void GaussianCalculator::setStructure(const Utils::AtomCollection& structure) {
   applySettings();
   atoms_ = structure;
-  calculationDirectory_ = createNameForCalculationDirectory();
+  calculationDirectory_ = NativeFilenames::createRandomDirectoryName(baseWorkingDirectory_);
   results_ = Results{};
 }
 
@@ -135,8 +139,7 @@ const Results& GaussianCalculator::calculateImpl(std::string description) {
   std::string checkpointFile = externalProgram.generateFullFilename(fileNameBase_ + ".chk");
   std::string outputFile = externalProgram.generateFullFilename(fileNameBase_ + ".out");
 
-  GaussianInputFileCreator inputFileCreator;
-  inputFileCreator.createInputFile(inputFile, checkpointFile, atoms_, *settings_, requiredProperties_);
+  GaussianInputFileCreator::createInputFile(inputFile, checkpointFile, atoms_, *settings_, requiredProperties_);
 
   // Check whether the given binary is valid
   if (!binaryIsValid()) {
@@ -182,14 +185,6 @@ void GaussianCalculator::setOrbitals(const MolecularOrbitals& mos) {
   orbitalWriter.updateCheckpointFile(fileNameBase_, calculationDirectory_, gaussianDirectory_);
 }
 
-std::string GaussianCalculator::createNameForCalculationDirectory() const {
-  boost::uuids::uuid uuid = boost::uuids::random_generator()();
-  std::string uuidString = boost::uuids::to_string(uuid);
-
-  auto directoryName = NativeFilenames::combinePathSegments(baseWorkingDirectory_, uuidString);
-  return NativeFilenames::addTrailingSeparator(directoryName);
-}
-
 const Utils::Settings& GaussianCalculator::settings() const {
   return *settings_;
 }
@@ -206,7 +201,6 @@ class GaussianStatesHandlingIsNotImplementedException : public std::exception {
 
 std::shared_ptr<Core::State> GaussianCalculator::getState() const {
   throw GaussianStatesHandlingIsNotImplementedException();
-  return nullptr;
 }
 
 void GaussianCalculator::loadState(std::shared_ptr<Core::State> /*state*/) {

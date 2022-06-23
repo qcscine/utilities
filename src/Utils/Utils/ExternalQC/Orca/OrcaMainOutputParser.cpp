@@ -108,7 +108,8 @@ GradientCollection OrcaMainOutputParser::getGradients() const {
 }
 
 SingleParticleEnergies OrcaMainOutputParser::getOrbitalEnergies() const {
-  SingleParticleEnergies orbitalEnergies;
+  SingleParticleEnergies oe;
+
   // First go to section about Orbital energies charges
   std::regex r1(R"(ORBITAL ENERGIES)");
   std::smatch m1;
@@ -118,12 +119,12 @@ SingleParticleEnergies OrcaMainOutputParser::getOrbitalEnergies() const {
   }
 
   // Set iterator where to start search for orbital energies
-  auto it = m1[0].second; // end of first match after ORBITAL ENERGIES
+  auto it = m1[0].second; // zeigt ans ende des ersten matches nach ORBITAL ENERGIES
 
   // check whether it's restricted or unrestricted
-  std::regex uhfRegex(R"(SPIN UP ORBITALS)");
-  std::smatch uhfMatch;
-  bool uhfBool = std::regex_search(it, content_.end(), uhfMatch, uhfRegex);
+  std::regex uhf_regex(R"(SPIN UP ORBITALS)");
+  std::smatch uhf_match;
+  bool uhf_bool = std::regex_search(it, content_.end(), uhf_match, uhf_regex);
 
   // Format: NO OCC E(Eh) E(eV)
   std::string spacesAndNumber = " +" + Regex::capturingFloatingPointNumber();
@@ -138,12 +139,11 @@ SingleParticleEnergies OrcaMainOutputParser::getOrbitalEnergies() const {
   }
   auto emptyLineIter = m2[0].second;
 
-  if (uhfBool) {
-    std::vector<double> alphaEnergies;
-    std::vector<double> betaEnergies;
+  if (uhf_bool) {
+    oe.restricted_ = false;
     while (std::regex_search(it, content_.end(), m2, r2) && m2[0].second <= emptyLineIter) {
-      double orbitalEnergy = std::stod(m2[2]);
-      alphaEnergies.push_back(orbitalEnergy);
+      double orbital_energy = std::stod(m2[2]);
+      oe.alphaEnergies_.push_back(orbital_energy);
       it = m2[0].second;
     }
     // find next empty line
@@ -154,13 +154,10 @@ SingleParticleEnergies OrcaMainOutputParser::getOrbitalEnergies() const {
     emptyLineIter = m2[0].second;
 
     while (std::regex_search(it, content_.end(), m2, r2) && m2[0].second <= emptyLineIter) {
-      double orbitalEnergy = std::stod(m2[2]);
-      betaEnergies.push_back(orbitalEnergy);
+      double orbital_energy = std::stod(m2[2]);
+      oe.betaEnergies_.push_back(orbital_energy);
       it = m2[0].second;
     }
-    // Set unrestricted
-    orbitalEnergies.setUnrestricted(alphaEnergies, betaEnergies);
-
   } // end-if uhf
   else {
     // first empty line poits underneath ORBITAL ENERGIES
@@ -168,16 +165,15 @@ SingleParticleEnergies OrcaMainOutputParser::getOrbitalEnergies() const {
     std::regex_search(emptyLineIter, content_.end(), m2, emptyLine);
     auto emptyLineIter = m2[0].second;
 
-    std::vector<double> restrictedEnergies;
+    oe.restricted_ = true;
     while (std::regex_search(it, content_.end(), m2, r2) && m2[0].second <= emptyLineIter) {
-      double orbitalEnergy = std::stod(m2[2]);
-      restrictedEnergies.push_back(orbitalEnergy);
+      double orbital_energy = std::stod(m2[2]);
+      oe.restrictedEnergies_.push_back(orbital_energy);
       it = m2[0].second;
     }
-    orbitalEnergies.setRestricted(restrictedEnergies);
   } // end-else rhf
 
-  return orbitalEnergies;
+  return oe;
 }
 
 double OrcaMainOutputParser::getEnergy() const {

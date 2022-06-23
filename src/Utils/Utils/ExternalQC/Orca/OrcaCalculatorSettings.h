@@ -43,6 +43,7 @@ class OrcaCalculatorSettings : public Scine::Utils::Settings {
   void addElectronicTemperature(UniversalSettings::DescriptorCollection& settings);
   void addScfDamping(UniversalSettings::DescriptorCollection& settings);
   void addHessianCalculationType(UniversalSettings::DescriptorCollection& settings);
+  void addSpecialOption(UniversalSettings::DescriptorCollection& settings);
 
   /**
    * @brief Constructor that populates the OrcaCalculatorSettings.
@@ -67,6 +68,7 @@ class OrcaCalculatorSettings : public Scine::Utils::Settings {
     addScfDamping(_fields);
     addHessianCalculationType(_fields);
     addElectronicTemperature(_fields);
+    addSpecialOption(_fields);
     resetToDefaults();
   };
 };
@@ -103,7 +105,7 @@ inline void OrcaCalculatorSettings::addMethod(UniversalSettings::DescriptorColle
 
 inline void OrcaCalculatorSettings::addBasisSet(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::StringDescriptor basisSet("The basis set used in the ORCA calculation.");
-  basisSet.setDefaultValue("");
+  basisSet.setDefaultValue("def2-SVP");
   settings.push_back(Utils::SettingsNames::basisSet, std::move(basisSet));
 }
 
@@ -202,6 +204,13 @@ inline void OrcaCalculatorSettings::addElectronicTemperature(UniversalSettings::
   electronicTemperature.setMinimum(0.0);
   electronicTemperature.setDefaultValue(0.0);
   settings.push_back(Utils::SettingsNames::electronicTemperature, std::move(electronicTemperature));
+}
+
+inline void OrcaCalculatorSettings::addSpecialOption(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::StringDescriptor specialOption(
+      "Allows to add a custom string to the ORCA input line; recommended for experts only.");
+  specialOption.setDefaultValue("");
+  settings.push_back(ExternalQC::SettingsNames::specialOption, std::move(specialOption));
 }
 
 } // namespace ExternalQC

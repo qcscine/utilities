@@ -4,6 +4,7 @@
  *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
+#include "Utils/DataStructures/PeriodicBoundaries.h"
 #include "Utils/Geometry.h"
 #include "Utils/Math/QuaternionFit.h"
 #include "Utils/MolecularTrajectory.h"
@@ -172,6 +173,49 @@ TEST(GeometryTest, CanGenerateRandomTrajectoryFromAtomCollectionAndBeReproduced)
       }
     }
   }
+}
+
+TEST(GeometryTest, GettersAndSettersOfMolecularTrajectory) {
+  PositionCollection pc(2, 3);
+  pc << 0.0, 0.0, 0.0, 1.0, 0.0, 0.0;
+  auto ec = ElementTypeCollection{ElementType::H, ElementType::O};
+  AtomCollection atoms(ec, pc);
+  int numFrames = 10;
+  double maxDisplacement = 0.1;
+  std::vector<PeriodicBoundaries> randomPbcs;
+  for (int i = 0; i < numFrames; ++i) {
+    Eigen::Matrix3d randomMatrix = Eigen::Matrix3d::Random(3, 3);
+    for (int i = 0; i < 3; ++i) {
+      randomMatrix(i, i) = std::fabs(randomMatrix(i, i));
+    }
+    randomPbcs.push_back(PeriodicBoundaries(randomMatrix));
+  }
+  MolecularTrajectory trajectory = Manipulations::randomDisplacementTrajectory(atoms, numFrames, maxDisplacement, 42);
+  ASSERT_THAT(trajectory.size(), numFrames);
+  ASSERT_THAT(trajectory.molecularSize(), ec.size());
+  ASSERT_THAT(trajectory.getElementTypes(), ec);
+  trajectory.setPbcs(randomPbcs);
+  for (int i = 0; i < numFrames; ++i) {
+    ASSERT_TRUE(trajectory.getPbcs()[i] == randomPbcs[i]);
+  }
+  trajectory.push_back(pc, randomPbcs[0]);
+  ASSERT_THAT(trajectory.size(), numFrames + 1);
+  ASSERT_TRUE(trajectory.getPbcs()[0] == trajectory.getPbcs()[numFrames]);
+
+  ASSERT_THROW(trajectory.push_back(pc), std::runtime_error);
+  ASSERT_THROW(trajectory.push_back(pc, 3.0), std::runtime_error);
+  ASSERT_THROW(trajectory.push_back(pc, 4.0, randomPbcs[0]), std::runtime_error);
+
+  trajectory.clearPbcs();
+  ASSERT_THAT(trajectory.getPbcs().size(), 0);
+  randomPbcs.push_back(randomPbcs[0]);
+  trajectory.setPbcs(randomPbcs);
+
+  trajectory.clear();
+  ASSERT_THAT(trajectory.getElementTypes(), ec);
+  ASSERT_THAT(trajectory.size(), 0);
+  ASSERT_THAT(trajectory.getPbcs().size(), 0);
+  ASSERT_THAT(trajectory.getEnergies().size(), 0);
 }
 
 TEST(GeometryTest, CanAlignTwoPositionCollections) {

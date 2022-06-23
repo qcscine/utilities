@@ -5,14 +5,10 @@
  *            See LICENSE.txt for details.
  */
 #include "Utils/GeometryOptimization/NtOptimizer.h"
-#include "Utils/Optimizer/GradientBased/Lbfgs.h"
-#include "Utils/Optimizer/GradientBased/SteepestDescent.h"
 #include <Core/Interfaces/Calculator.h>
 #include <Utils/CalculatorBasics/PropertyList.h>
 #include <Utils/CalculatorBasics/Results.h>
-#include <Utils/CalculatorBasics/StatesHandler.h>
 #include <Utils/CalculatorBasics/TestCalculator.h>
-#include <Utils/IO/ChemicalFileFormats/XyzStreamHandler.h>
 #include <Utils/Math/QuaternionFit.h>
 #include <Utils/Settings.h>
 #include <Utils/Technical/CloneInterface.h>

@@ -12,6 +12,9 @@
 #include <Core/Interfaces/Calculator.h>
 #include <Core/Log.h>
 #include <Utils/CalculatorBasics/Results.h>
+#include <Utils/Scf/LcaoUtils/SpinMode.h>
+#include <Utils/Settings.h>
+#include <Utils/UniversalSettings/SettingsNames.h>
 #include <boost/exception/diagnostic_information.hpp>
 #include <string>
 
@@ -44,7 +47,7 @@ inline Results calculateWithCatch(Core::Calculator& calculator, Core::Log& log, 
 }
 
 /**
- *  * @brief Give calculator a new logger based on given booleans
+ * @brief Give calculator a new logger based on given booleans
  */
 inline void setLog(Core::Calculator& calculator, bool error, bool warning, bool out) {
   auto log = Core::Log::silent();
@@ -58,6 +61,117 @@ inline void setLog(Core::Calculator& calculator, bool error, bool warning, bool 
     log.error.add("cerr", Core::Log::cerrSink());
   }
   calculator.setLog(log);
+}
+
+/**
+ * @brief Check all valid spin multiplicities within given range and change calculator to lowest energy spin multiplicity
+ *
+ * @param calculator A Scine calculator
+ * @param log A Scine logger
+ * @param maxSpinDifference The range of the multiplicity checks, e.g. 1 will check m=1 and m=5 for a m=3 system
+ */
+inline std::unique_ptr<Core::Calculator> spinPropensity(Core::Calculator& calculator, Core::Log& log, int maxSpinDifference) {
+  // references
+  auto referenceResults = calculator.results();
+  auto refSettings = calculator.settings();
+  int refSpinMultiplicity = refSettings.getInt(Utils::SettingsNames::spinMultiplicity);
+  if (!referenceResults.has<Property::Energy>()) {
+    calculator.setRequiredProperties(Property::Energy);
+    referenceResults = calculator.calculate();
+  }
+  double refEnergy = referenceResults.get<Property::Energy>();
+
+  // clone calculator with silent log to clone all calculators from this one
+  auto bestClone = calculator.clone();
+  setLog(*bestClone, false, false, false);
+  double bestCloneEnergy = std::numeric_limits<double>::max();
+
+  // set to unrestricted if it was restricted and singlet before
+  if (refSpinMultiplicity == 1 && refSettings.getString(Utils::SettingsNames::spinMode) ==
+                                      SpinModeInterpreter::getStringFromSpinMode(SpinMode::Restricted)) {
+    bestClone->settings().modifyString(Utils::SettingsNames::spinMode,
+                                       SpinModeInterpreter::getStringFromSpinMode(SpinMode::Unrestricted));
+  }
+
+  // determine lowest possible multiplicity above 0 and within range
+  int lowestMultiplicity = std::numeric_limits<int>::max();
+  for (int i = refSpinMultiplicity; i > 0 && i >= refSpinMultiplicity - (2 * maxSpinDifference); i = i - 2) {
+    lowestMultiplicity = i;
+  }
+
+  // cycle all multiplicities within range
+  for (int i = lowestMultiplicity; i <= refSpinMultiplicity + (2 * maxSpinDifference); i = i + 2) {
+    if (i == refSpinMultiplicity) {
+      continue;
+    }
+    auto clone = bestClone->clone();
+    clone->settings().modifyInt(SettingsNames::spinMultiplicity, i);
+    Results result;
+    try {
+      result = calculateWithCatch(*clone, log, "");
+    }
+    catch (...) {
+      continue; // calculation failed, skip to next multiplicity
+    }
+    double propensityEnergy = result.get<Property::Energy>();
+    if (propensityEnergy < bestCloneEnergy) {
+      bestClone = clone->clone();
+      bestCloneEnergy = propensityEnergy;
+    }
+  }
+  if (bestCloneEnergy < refEnergy) {
+    log.warning << "PropensityWarning: Detected spin multiplicity propensity; changing multiplicity to "
+                << std::to_string(bestClone->settings().getInt(SettingsNames::spinMultiplicity)) << Core::Log::nl;
+    return bestClone;
+  }
+  // no propensity
+  return calculator.clone();
+}
+
+/**
+ * @brief Split input string into method and dispersion string
+ *
+ * @param input a string specifying both with '-' as delimiter
+ * @throw std::logic_error if more than one '-' present
+ * @return std::pair of method and dispersion correction as strings
+ */
+inline std::pair<std::string, std::string> splitIntoMethodAndDispersion(const std::string& input) {
+  if (input.empty()) {
+    return std::make_pair("", "");
+  }
+  std::string segment;
+  std::vector<std::string> segments;
+  std::stringstream ss(input);
+  while (std::getline(ss, segment, '-')) {
+    segments.push_back(segment);
+  }
+  if (segments.size() > 2) {
+    throw std::logic_error("The provided method '" + input +
+                           "' includes multiple '-' delimiter. Could not split into method and dispersion correction");
+  }
+  // we do not allow space in method specification to avoid unwanted calculation behavior
+  if (segments[0].find(' ') != std::string::npos) {
+    throw std::logic_error("The provided method '" + input + "' includes an empty space. This is currently not allowed.");
+  }
+  std::string dispersion = (segments.size() == 1) ? "" : segments[1];
+  return std::make_pair(segments[0], dispersion);
+}
+
+inline void checkValidityOfChargeAndMultiplicity(int molecularCharge, int spinMultiplicity, const AtomCollection& atoms) {
+  int numberUnpairedElectrons = spinMultiplicity - 1;
+
+  int numElectrons = 0;
+  for (const auto& atom : atoms) {
+    numElectrons += Utils::ElementInfo::Z(atom.getElementType());
+  }
+  // Subtract the charge from the total number of electrons
+  numElectrons -= molecularCharge;
+
+  bool numUnpairedElecIsEven = numberUnpairedElectrons % 2 == 0;
+  bool numElectronsIsEven = numElectrons % 2 == 0;
+  if ((numUnpairedElecIsEven && !numElectronsIsEven) || (!numUnpairedElecIsEven && numElectronsIsEven)) {
+    throw std::logic_error("Invalid charge/multiplicity pair for the given system!");
+  }
 }
 
 } // namespace CalculationRoutines

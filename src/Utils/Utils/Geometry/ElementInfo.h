@@ -57,6 +57,13 @@ class ElementInfo {
   static ElementType elementTypeForSymbol(const std::string& symbol);
 
   /**
+   * @brief Vector of all ElementType enum.
+   *
+   * @return std::vector<ElementType> Returns all possible ElementTypes (excluding None).
+   */
+  static std::vector<ElementType> allImplementedElements();
+
+  /**
    * @brief Translation from ElementType enum to std::string.
    * @param e The ElementType.
    * @return std::string Returns the symbol string.

@@ -7,6 +7,7 @@
 #include "TurbomoleInputFileCreator.h"
 #include "TurbomoleCalculatorSettings.h"
 #include "TurbomoleHelper.h"
+#include <Utils/CalculatorBasics.h>
 #include <Utils/Geometry/AtomCollection.h>
 #include <Utils/Geometry/ElementInfo.h>
 #include <Utils/IO/NativeFilenames.h>
@@ -14,6 +15,7 @@
 #include <math.h>
 #include <boost/process.hpp>
 #include <fstream>
+#include <iomanip>
 
 namespace bp = boost::process;
 
@@ -37,10 +39,10 @@ void TurbomoleInputFileCreator::writeCoordFile(const AtomCollection& atoms) {
   std::ofstream coordStream;
   coordStream.open(files_.coordFile);
   coordStream << "$coord\n";
-  for (int i = 0; i < atoms.size(); i++) {
-    std::string elementName = ElementInfo::symbol(atoms.at(i).getElementType());
+  for (const auto& atom : atoms) {
+    std::string elementName = ElementInfo::symbol(atom.getElementType());
     std::for_each(elementName.begin(), elementName.end(), [](char& c) { c = ::tolower(c); });
-    coordStream << atoms.at(i).getPosition() << " " << elementName << std::endl;
+    coordStream << atom.getPosition() << " " << elementName << std::endl;
   }
   coordStream << "$end";
   coordStream.close();
@@ -48,7 +50,8 @@ void TurbomoleInputFileCreator::writeCoordFile(const AtomCollection& atoms) {
 
 void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, const AtomCollection& atoms) {
   // Check this before because define yields very strange output in case that charge and multiplicity don't match.
-  checkValidityOfChargeAndMultiplicity(settings, atoms);
+  CalculationRoutines::checkValidityOfChargeAndMultiplicity(settings.getInt(Utils::SettingsNames::molecularCharge),
+                                                            settings.getInt(Utils::SettingsNames::spinMultiplicity), atoms);
 
   std::ofstream out;
   // out.exceptions(std::ifstream::failbit | std::ifstream::badbit);
@@ -63,11 +66,7 @@ void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, c
   auto basisSet = settings.getString(Utils::SettingsNames::basisSet);
   TurbomoleHelper helper(calculationDirectory_, turbomoleExecutableBase_);
   helper.mapBasisSetToTurbomoleStringRepresentation(basisSet);
-
-  if (basisSet.empty())
-    out << "\n*\neht\n\n";
-  else
-    out << "\nb all " << basisSet << "\n\n\n*\neht\n\n";
+  out << "\nb all " << basisSet << "\n\n\n*\neht\n\n";
 
   out << settings.getInt(Scine::Utils::SettingsNames::molecularCharge) << "\n";
 
@@ -85,38 +84,41 @@ void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, c
   }
   else if (spinMode == SpinMode::Unrestricted) {
     int numElectrons = multiplicity - 1;
-    if (numElectrons == 0)
+    if (numElectrons == 0) {
       out << "no\ns\n*\n\n";
-    else
+    }
+    else {
       out << "no\nu " << numElectrons << "\n*\n\n";
+    }
   }
   else if (spinMode == SpinMode::RestrictedOpenShell) {
     throw std::logic_error("Spin mode not implemented in Turbomole!");
   }
-  else
+  else {
     throw std::logic_error("Specified unknown spin mode " + SpinModeInterpreter::getStringFromSpinMode(spinMode) +
                            " in settings."); // this should have been handled by settings
+  }
 
   out << "ri\non\n\n";
   // Method
-  auto method = settings.getString(Utils::SettingsNames::method);
-  std::istringstream iss(method);
-  std::vector<std::string> methods((std::istream_iterator<std::string>(iss)), std::istream_iterator<std::string>());
-  // make sure that functional is lowercase only
-  std::transform(std::begin(methods[0]), std::end(methods[0]), std::begin(methods[0]),
-                 [](const auto c) { return std::tolower(c); });
-  out << "dft\non\nfunc " << methods[0] << "\n\n";
+  auto methodInput = Scine::Utils::CalculationRoutines::splitIntoMethodAndDispersion(
+      settings.getString(Scine::Utils::SettingsNames::method));
+  helper.mapDftFunctionalToTurbomoleStringRepresentation(methodInput.first);
+  out << "dft\non\nfunc " << methodInput.first << "\n\n";
   // Dispersion Correction
-  if (methods.size() > 1) {
-    auto vdWType = methods[1];
-    std::for_each(vdWType.begin(), vdWType.end(), [](char& c) { c = ::toupper(c); });
-    auto it = std::find(availableD3Params_.begin(), availableD3Params_.end(), vdWType);
-    if (it - availableD3Params_.begin() == 0)
+  if (!methodInput.second.empty()) {
+    // make sure that dispersion is uppercase only
+    std::for_each(methodInput.second.begin(), methodInput.second.end(), [](char& c) { c = ::toupper(c); });
+    auto it = std::find(availableD3Params_.begin(), availableD3Params_.end(), methodInput.second);
+    if (it - availableD3Params_.begin() == 0) {
       out << "dsp\non\n\n";
-    else if (it - availableD3Params_.begin() == 1)
+    }
+    else if (it - availableD3Params_.begin() == 1) {
       out << "dsp\nbj\n\n";
-    else
+    }
+    else {
       throw std::runtime_error("Invalid dispersion correction!");
+    }
   }
   auto maxScfIterations = settings.getInt(Utils::SettingsNames::maxScfIterations);
 
@@ -137,17 +139,19 @@ void TurbomoleInputFileCreator::checkAndUpdateControlFile(const Settings& settin
   bool functionalIsCorrect = false;
 
   double scfConvCriterion = settings.getDouble(Utils::SettingsNames::selfConsistenceCriterion);
-  auto scfDamping = settings.getBool(Utils::SettingsNames::scfDamping);
+  auto scfDamping = settings.getString(Utils::SettingsNames::scfDamping);
   auto scfOrbitalShift = settings.getDouble(SettingsNames::scfOrbitalShift);
   auto solvent = settings.getString(Utils::SettingsNames::solvent);
 
-  if (!solvent.empty() && solvent != "none")
+  if (!solvent.empty() && solvent != "none") {
     addSolvation(settings);
+  }
 
-  auto method = settings.getString(Utils::SettingsNames::method);
-  std::istringstream iss(method);
-  std::vector<std::string> methods((std::istream_iterator<std::string>(iss)), std::istream_iterator<std::string>());
-  std::for_each(methods[0].begin(), methods[0].end(), [](char& c) { c = ::tolower(c); });
+  auto method =
+      Scine::Utils::CalculationRoutines::splitIntoMethodAndDispersion(settings.getString(Scine::Utils::SettingsNames::method))
+          .first;
+  // make sure that functional is lowercase only
+  std::for_each(method.begin(), method.end(), [](char& c) { c = ::tolower(c); });
 
   std::ifstream in;
   std::ofstream out;
@@ -159,34 +163,69 @@ void TurbomoleInputFileCreator::checkAndUpdateControlFile(const Settings& settin
   auto basisSet = settings.getString(Utils::SettingsNames::basisSet);
   TurbomoleHelper helper(calculationDirectory_, turbomoleExecutableBase_);
   helper.mapBasisSetToTurbomoleStringRepresentation(basisSet);
+  helper.mapDftFunctionalToTurbomoleStringRepresentation(method);
 
   while (std::getline(in, line)) {
-    if ((line.find("$scfdamp") != std::string::npos) && scfDamping)
-      out << "$scfdamp   start=8.500  step=0.10  min=0.10"
-          << "\n";
-    else if ((line.find("scforbitalshift") != std::string::npos))
+    auto it = availableDampingParameter_.find(scfDamping);
+    if ((line.find("$scfdamp") != std::string::npos) && (it != availableDampingParameter_.end())) {
+      out << "$scfdamp   start=" << std::fixed << std::setprecision(3) << it->second[0] << "  step=" << std::fixed
+          << std::setprecision(2) << it->second[1] << "  min=" << std::fixed << std::setprecision(2) << it->second[2] << "\n";
+    }
+    else if ((line.find("scforbitalshift") != std::string::npos)) {
       out << "$scforbitalshift closedshell=" << scfOrbitalShift << "\n";
-    else if (line.find("$end") != std::string::npos)
-      out << "$pop loewdin wiberg\n$end";
-    else if (line.find("$scfconv") != std::string::npos)
+    }
+    else if ((line.find("$drvopt") != std::string::npos) && (!settings.getString(SettingsNames::pointChargesFile).empty()))
+      out << "$drvopt\n  point charges\n";
+    else if (line.find("$end") != std::string::npos) {
+      out << "$pop loewdin wiberg\n";
+      auto pointChargesFile = settings.getString(SettingsNames::pointChargesFile);
+      if (!pointChargesFile.empty()) {
+        // open
+        out << "$point_charges\n";
+        std::ifstream pc;
+        pc.open(pointChargesFile);
+        std::string line;
+        while (std::getline(pc, line)) {
+          out << line << "\n";
+        }
+        pc.close();
+        out << "$point_charge_gradients file=pc_gradient\n";
+      }
+      out << "$end";
+    }
+    else if (line.find("$scfconv") != std::string::npos) {
       out << "$scfconv " << int(round(-log10(scfConvCriterion))) << "\n";
-    else
+    }
+    else {
       out << line << "\n";
+    }
 
-    if (line.find(basisSet) != std::string::npos)
+    if (line.find(basisSet) != std::string::npos) {
       basisSetIsCorrect = true;
-    else if (line.find(methods[0]) != std::string::npos)
+    }
+    else if (line.find(method) != std::string::npos) {
       functionalIsCorrect = true;
+    }
+
+    auto spinMode = SpinModeInterpreter::getSpinModeFromString(settings.getString(Utils::SettingsNames::spinMode));
+    if (line.find("$uhfmo") != std::string::npos && spinMode == SpinMode::Restricted) {
+      throw std::runtime_error(
+          "The requested restricted calculation was converted to an unrestricted calculation. Turbomole automatically "
+          "assigned an UHF spin mode for half-open shell "
+          "cases. If you still want to enforce singlet multiplicity, please choose UHF singlet instead.");
+    }
   }
 
   in.close();
   out.close();
   std::rename(controlBackupFile.c_str(), files_.controlFile.c_str());
 
-  if (!basisSetIsCorrect)
+  if (!basisSetIsCorrect) {
     throw std::runtime_error("Your specified basis set " + basisSet + " is invalid. Check the spelling");
-  if (!functionalIsCorrect)
-    throw std::runtime_error("Your specified DFT functional " + methods[0] + " is invalid. Check the spelling");
+  }
+  if (!functionalIsCorrect) {
+    throw std::runtime_error("Your specified DFT functional " + method + " is invalid. Check the spelling");
+  }
 }
 
 void TurbomoleInputFileCreator::addSolvation(const Settings& settings) {
@@ -197,16 +236,18 @@ void TurbomoleInputFileCreator::addSolvation(const Settings& settings) {
   std::ofstream out;
   out.open(files_.solvationInputFile);
 
-  std::unordered_map<std::string, double>::iterator it = availableSolventModels_.find(solvent);
+  std::unordered_map<std::string, std::pair<double, double>>::iterator it = availableSolventModels_.find(solvent);
   if (it != availableSolventModels_.end()) {
-    out << it->second << "\n\n\n\n\n\n\n\n\n\n\n\n"
+    out << it->second.first << "\n\n\n\n\n\n\n"
+        << it->second.second << "\n\n\n\n"
         << "r all b"
         << "\n"
         << "*"
         << "\n\n\n";
   }
-  else
+  else {
     throw std::runtime_error("The solvent '" + solvent + "' is currently not supported.");
+  }
   out.close();
 
   // run cosmoprep
@@ -216,24 +257,6 @@ void TurbomoleInputFileCreator::addSolvation(const Settings& settings) {
   std::string executable = NativeFilenames::combinePathSegments(turbomoleExecutableBase_, "cosmoprep");
   TurbomoleHelper helper(calculationDirectory_, turbomoleExecutableBase_);
   helper.execute("cosmoprep", files_.solvationInputFile);
-}
-
-void TurbomoleInputFileCreator::checkValidityOfChargeAndMultiplicity(const Settings& settings, const AtomCollection& atoms) {
-  int numberUnpairedElectrons = settings.getInt(Utils::SettingsNames::spinMultiplicity) - 1;
-  int charge = settings.getInt(Utils::SettingsNames::molecularCharge);
-
-  int numElectrons = 0;
-  for (const auto& atom : atoms) {
-    numElectrons += Utils::ElementInfo::Z(atom.getElementType());
-  }
-  // Subtract the charge from the total number of electrons
-  numElectrons -= charge;
-
-  bool numUnpairedElecIsEven = numberUnpairedElectrons % 2 == 0;
-  bool numElectronsIsEven = numElectrons % 2 == 0;
-  if ((numUnpairedElecIsEven && !numElectronsIsEven) || (!numUnpairedElecIsEven && numElectronsIsEven)) {
-    throw std::logic_error("Invalid charge/multiplicity pair for the given system!");
-  }
 }
 
 } // namespace ExternalQC

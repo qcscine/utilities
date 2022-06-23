@@ -5,6 +5,7 @@
  *            See LICENSE.txt for details.
  */
 #include "Cp2kMainOutputParser.h"
+#include <Utils/Constants.h>
 #include <Utils/ExternalQC/Exceptions.h>
 #include <Utils/Geometry/ElementInfo.h>
 #include <Utils/IO/Regex.h>
@@ -353,6 +354,42 @@ std::vector<int> Cp2kMainOutputParser::getNumberOfElectrons() const {
     ++iter;
   }
   return nElectrons;
+}
+
+Eigen::Matrix3d Cp2kMainOutputParser::getStressTensor() const {
+  Eigen::Matrix3d stress = Eigen::Matrix3d::Zero();
+  int rowCount = 0;
+  std::regex startRegex("STRESS TENSOR");
+  std::stringstream stream(content_);
+  std::string line;
+  bool parseStress = false;
+  // parse output line by line
+  while (std::getline(stream, line)) {
+    if (!line.empty()) {
+      std::smatch match;
+      if (parseStress) { // we are reading matrix and getting the first 3 lines with 3 floating point numbers
+        std::regex numbers("\\s+" + Regex::capturingFloatingPointNumber() + "\\s+" +
+                           Regex::capturingFloatingPointNumber() + "\\s+" + Regex::capturingFloatingPointNumber());
+        if (std::regex_search(line, match, numbers)) {
+          if (match.size() != 4) {
+            throw OutputFileParsingError("Stress tensor could not be read.");
+          }
+          for (int i = 0; i < 3; ++i) {
+            stress(rowCount, i) = std::stod(match[i + 1]);
+          }
+          rowCount++;
+          if (rowCount == 3) {
+            // CP2K gives stress tensor in GPa
+            return stress * 1e9 * Constants::hartree_per_joule * std::pow(Constants::meter_per_bohr, 3);
+          }
+        }
+      }
+      else if (std::regex_search(line, match, startRegex)) { // we have to start reading matrix
+        parseStress = true;
+      }
+    }
+  }
+  throw OutputFileParsingError("Stress tensor could not be read.");
 }
 
 int Cp2kMainOutputParser::getSymmetryNumber() const {

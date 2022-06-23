@@ -5,6 +5,7 @@
  *            See LICENSE.txt for details.
  */
 #include "Utils/ExternalQC/Cp2k/Cp2kCalculator.h"
+#include "Utils/CalculatorBasics.h"
 #include "Utils/ExternalQC/Cp2k/Cp2kCalculatorSettings.h"
 #include "Utils/ExternalQC/Cp2k/Cp2kInputFileCreator.h"
 #include "Utils/ExternalQC/Cp2k/Cp2kMainOutputParser.h"
@@ -15,12 +16,8 @@
 #include "Utils/IO/NativeFilenames.h"
 #include "Utils/Properties/Thermochemistry/ThermochemistryCalculator.h"
 #include "Utils/Scf/LcaoUtils/SpinMode.h"
-#include "Utils/Solvation/ImplicitSolvation.h"
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/process.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 #include <regex>
 
 namespace bp = boost::process;
@@ -60,6 +57,7 @@ Cp2kCalculator::Cp2kCalculator(const Cp2kCalculator& rhs) {
   auto valueCollection = dynamic_cast<const Utils::UniversalSettings::ValueCollection&>(rhs.settings());
   this->settings_ =
       std::make_unique<Utils::Settings>(Utils::Settings(valueCollection, rhs.settings().getDescriptorCollection()));
+  this->setLog(rhs.getLog());
   applySettings();
   this->setStructure(rhs.atoms_);
   this->results() = rhs.results();
@@ -68,27 +66,58 @@ Cp2kCalculator::Cp2kCalculator(const Cp2kCalculator& rhs) {
 }
 
 void Cp2kCalculator::applySettings() {
-  if (settings_->valid()) {
-    fileNameBase_ = settings_->getString(SettingsNames::cp2kFilenameBase);
-    baseWorkingDirectory_ = settings_->getString(SettingsNames::baseWorkingDirectory);
-    // throws error for wrong input and updates 'any' entries */
-    // information if solvation is performed is deduced from settings from InputFileCreator and therefore discarded here
-    Solvation::ImplicitSolvation::solvationNeededAndPossible(availableSolvationModels_, *settings_);
-    if (settings_->getDouble(Utils::SettingsNames::electronicTemperature) > 0.0 &&
-        settings_->getInt(SettingsNames::additionalMos) == 0) {
-      throw Core::InitializationException("Specified non-zero electronic temperature, "
-                                          "but no additional molecular orbitals!");
+  if (!settings_->valid()) {
+    settings_->throwIncorrectSettings();
+  }
+  fileNameBase_ = settings_->getString(SettingsNames::cp2kFilenameBase);
+  baseWorkingDirectory_ = settings_->getString(SettingsNames::baseWorkingDirectory);
+  if (settings_->getDouble(Utils::SettingsNames::electronicTemperature) > 0.0) {
+    if (settings_->getInt(SettingsNames::additionalMos) == 0) {
+      throw std::logic_error("Specified non-zero electronic temperature, but no additional molecular orbitals!");
+    }
+    if (!settings_->getString(SettingsNames::orbitalTransformation).empty()) {
+      throw std::logic_error(
+          "Specified non-zero electronic temperature and orbital transformation. This is not possible.");
     }
   }
-  else {
-    settings_->throwIncorrectSettings();
+  auto method = CalculationRoutines::splitIntoMethodAndDispersion(settings_->getString(Utils::SettingsNames::method)).first;
+  auto basisSet = settings_->getString(Utils::SettingsNames::basisSet);
+  std::for_each(method.begin(), method.end(), [](char& c) { c = ::toupper(c); });
+  std::for_each(basisSet.begin(), basisSet.end(), [](char& c) { c = ::toupper(c); });
+  if (method == "DFT") {
+    throw std::logic_error("Specified 'DFT' as method, please specify a specific functional instead.");
+  }
+  // change these assumption and sanity checks if we change our model definition for semi-empirics
+  isDft_ = std::find(availableMethodFamilies_.begin(), availableMethodFamilies_.end(), method) ==
+           availableMethodFamilies_.end();
+  if (!isDft_ && !basisSet.empty() && basisSet != "NONE") {
+    throw std::logic_error(
+        "Specify an empty string for the basis_set, if you want to carry out semiempiric calculations.");
+  }
+
+  if (method == "ANY") {
+    if (isDft_) {
+      settings_->modifyString(Utils::SettingsNames::method, "PBE");
+      this->getLog().warning << "Specified 'any' for the method. Falling back to the default 'PBE'." << Core::Log::nl;
+    }
+    else {
+      throw std::logic_error("Specified 'any' for the method for semiempiric calculation. This is not supported.");
+    }
+  }
+  // survived errors, check potential warnings
+  if ((requiredProperties_.containsSubSet(Property::Gradients) || requiredProperties_.containsSubSet(Property::Hessian) ||
+       requiredProperties_.containsSubSet(Property::Thermochemistry)) &&
+      settings_->getDouble(Utils::SettingsNames::selfConsistenceCriterion) > 1e-8) {
+    settings_->modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-8);
+    this->getLog().warning << "Warning: Energy accuracy was increased to 1e-8 to ensure valid gradients/hessian."
+                           << Core::Log::nl;
   }
 }
 
 void Cp2kCalculator::setStructure(const Utils::AtomCollection& structure) {
   applySettings();
   atoms_ = structure;
-  calculationDirectory_ = createNameForCalculationDirectory();
+  calculationDirectory_ = NativeFilenames::createRandomDirectoryName(baseWorkingDirectory_);
   results_ = Results{};
 }
 
@@ -125,11 +154,17 @@ PropertyList Cp2kCalculator::getRequiredProperties() const {
 PropertyList Cp2kCalculator::possibleProperties() const {
   return Property::Energy | Property::Gradients | Property::Hessian | Property::AtomicCharges |
          Property::DensityMatrix | Property::GridOccupation | Property::Thermochemistry | Property::OverlapMatrix |
-         Property::AOtoAtomMapping | Property::BondOrderMatrix;
+         Property::AOtoAtomMapping | Property::BondOrderMatrix | Property::StressTensor;
 }
 
 const Results& Cp2kCalculator::calculate(std::string description) {
   applySettings();
+  auto method = CalculationRoutines::splitIntoMethodAndDispersion(settings_->getString(Utils::SettingsNames::method)).first;
+  std::for_each(method.begin(), method.end(), [](char& c) { c = ::toupper(c); });
+  if (method.empty() || method == "NONE") {
+    throw std::logic_error(
+        "Please specify a method ('GFN1' for 'GFN1' or a density functional such as 'PBE' for DFT).");
+  }
   // all properties that cannot be parsed from a CP2K Hessian calculation
   std::vector<Property> nonHessProperties = {Property::BondOrderMatrix, Property::DensityMatrix,
                                              Property::OverlapMatrix, Property::GridOccupation, Property::AtomicCharges};
@@ -187,12 +222,12 @@ const Results& Cp2kCalculator::calculateImpl(const std::string& description) {
   std::string additionalOutputFile =
       externalProgram.generateFullFilename(settings_->getString(SettingsNames::additionalOutputFile) + "-1_0.Log");
 
-  auto inputCreator = Cp2kInputFileCreator();
-  inputCreator.createInputFile(inputFile, atoms_, *settings_, requiredProperties_, fileNameBase_);
+  auto inputCreator = Cp2kInputFileCreator(atoms_, *settings_, requiredProperties_, isDft_);
+  inputCreator.createInputFile(inputFile, fileNameBase_);
 
   // Check whether the given binary is valid
   if (!binaryIsValid()) {
-    throw std::runtime_error("No or incorrect information about the binary path for Cp2k was given.");
+    throw std::runtime_error("No or incorrect information about the binary path for CP2K was given.");
   }
 
   // Delete output file before the calculation if it already exists.
@@ -254,6 +289,9 @@ const Results& Cp2kCalculator::calculateImpl(const std::string& description) {
   if (requiredProperties_.containsSubSet(Property::AOtoAtomMapping)) {
     results_.set<Property::AOtoAtomMapping>(parser.getAtomAoIndex(atoms_.getElements()));
   }
+  if (requiredProperties_.containsSubSet(Property::StressTensor)) {
+    results_.set<Property::StressTensor>(parser.getStressTensor());
+  }
   if (requiredProperties_.containsSubSet(Property::Hessian)) {
     results_.set<Property::Hessian>(parser.getHessian());
   }
@@ -270,14 +308,6 @@ const Results& Cp2kCalculator::calculateImpl(const std::string& description) {
   results_.set<Property::ProgramName>("cp2k");
 
   return results_;
-}
-
-std::string Cp2kCalculator::createNameForCalculationDirectory() {
-  boost::uuids::uuid uuid = boost::uuids::random_generator()();
-  std::string uuidString = boost::uuids::to_string(uuid);
-
-  auto directoryName = NativeFilenames::combinePathSegments(baseWorkingDirectory_, uuidString);
-  return NativeFilenames::addTrailingSeparator(directoryName);
 }
 
 const Utils::Settings& Cp2kCalculator::settings() const {

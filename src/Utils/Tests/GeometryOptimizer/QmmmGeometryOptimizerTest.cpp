@@ -45,6 +45,7 @@ class QmmmGeoOptMockCalculator : public Core::Calculator {
   QmmmGeoOptMockCalculator() {
     this->settings_ = std::make_unique<QmmmGeoOptMockCalculatorSettings>();
     this->underlyingCalculator_ = std::make_unique<TestCalculator>();
+    this->underlyingCalculator_->setPrecision(7);
   };
   ~QmmmGeoOptMockCalculator() override = default;
   void setStructure(const AtomCollection& structure) final {
@@ -100,7 +101,7 @@ class QmmmGeoOptMockCalculator : public Core::Calculator {
   AtomCollection structure_;
   Results results_;
   std::unique_ptr<Settings> settings_;
-  std::unique_ptr<Core::Calculator> underlyingCalculator_;
+  std::unique_ptr<TestCalculator> underlyingCalculator_;
   Core::Calculator* cloneImpl() const final {
     return nullptr;
   }
@@ -144,6 +145,11 @@ TEST_F(AQmmmGeometryOptimizerTest, QmmmGeometryOptimizerConvergenceWorksCorrectl
   Core::Log log = Core::Log::silent();
   QmmmGeometryOptimizer<Bfgs> qmmmGeometryOptimizer(calculator);
 
+  // BFGS settings
+  Settings settingsBfgs = qmmmGeometryOptimizer.fullOptimizer->getSettings();
+  settingsBfgs.modifyBool(Bfgs::bfgsUseTrustRadius, false);
+  qmmmGeometryOptimizer.fullOptimizer->setSettings(settingsBfgs);
+  qmmmGeometryOptimizer.mmOptimizer->setSettings(settingsBfgs);
   // Optimizer settings
   const int maxFullOptMicroiter = 30;
   Settings settings = qmmmGeometryOptimizer.getSettings();
@@ -161,6 +167,7 @@ TEST_F(AQmmmGeometryOptimizerTest, QmmmGeometryOptimizerConvergenceWorksCorrectl
 
   // Reset
   numberOfCalculations = 0;
+  qmmmGeometryOptimizer.clearConstrainedAtoms();
 
   // Modified optimizer settings
   settings = qmmmGeometryOptimizer.getSettings();
@@ -176,6 +183,7 @@ TEST_F(AQmmmGeometryOptimizerTest, QmmmGeometryOptimizerConvergenceWorksCorrectl
 
   // Reset
   numberOfCalculations = 0;
+  qmmmGeometryOptimizer.clearConstrainedAtoms();
 
   // Modified optimizer settings
   settings = qmmmGeometryOptimizer.getSettings();

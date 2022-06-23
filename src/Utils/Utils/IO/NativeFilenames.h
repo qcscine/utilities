@@ -36,6 +36,12 @@ class NativeFilenames {
   static std::string addTrailingSeparator(const std::string& path);
   /*! @brief removes the extension from the file called filename. */
   static std::string removeExtension(const std::string& filename);
+  /*
+   * @brief Creates a random name for a directory.
+   * @param The directory where the random directory name is created.
+   * @return The full path to the directory as string.
+   */
+  static std::string createRandomDirectoryName(const std::string& baseDirectory);
 
  private:
   /*! concatenates path segments by adding a separator if necessary. */

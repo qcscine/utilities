@@ -4,11 +4,12 @@ See LICENSE.txt for details.
 """
 
 import pytest
+import locale
 import scine_utilities as scine
 import os
 
 
-def test_IO():
+def test_io_xyz_file():
     # Write a sample XYZ file
     sample_XYZ = """50
 
@@ -63,6 +64,33 @@ H	-2.879290	4.799710	-3.348950
 H	-5.331970	4.415900	-3.118460
 H	-6.148750	2.165060	-2.346420"""
 
+    # Test reading an XYZ file
+    ref_locale = locale.getlocale()
+    with open("sample.xyz", "w") as xyz_file:
+        xyz_file.write(sample_XYZ)
+
+    (xyz_atoms, xyz_BO) = scine.io.read("sample.xyz")
+    test_locale = locale.getlocale()
+    assert test_locale[0] == ref_locale[0]
+    assert test_locale[1] == ref_locale[1]
+    assert xyz_BO.empty()
+    assert xyz_atoms.size() == 50
+    assert xyz_atoms.elements[0] == scine.ElementType.Fe
+
+    # Write the read atoms into a file and re-read
+    scine.io.write("out.xyz", xyz_atoms)
+    test_locale = locale.getlocale()
+    assert test_locale[0] == ref_locale[0]
+    assert test_locale[1] == ref_locale[1]
+    (reread_xyz_atoms, reread_xyz_BO) = scine.io.read("out.xyz")
+    assert xyz_atoms == reread_xyz_atoms
+
+    # Clean up
+    os.remove("sample.xyz")
+    os.remove("out.xyz")
+
+
+def test_io_mol_file():
     sample_MOL = """
  OpenBabel02081817133D
 
@@ -173,36 +201,28 @@ H	-6.148750	2.165060	-2.346420"""
  49 42  1  0  0  0  0
 M  END"""
 
-    # Test reading an XYZ file
-    with open("sample.xyz", "w") as xyz_file:
-        xyz_file.write(sample_XYZ)
-
-    (xyz_atoms, xyz_BO) = scine.io.read("sample.xyz")
-    assert xyz_BO.empty()
-    assert xyz_atoms.size() == 50
-    assert xyz_atoms.elements[0] == scine.ElementType.Fe
-
-    # Write the read atoms into a file and re-read
-    scine.io.write("out.xyz", xyz_atoms)
-    (reread_xyz_atoms, reread_xyz_BO) = scine.io.read("out.xyz")
-    assert xyz_atoms == reread_xyz_atoms
-
-    # Clean up
-    os.remove("sample.xyz")
-    os.remove("out.xyz")
-
     # Test reading a MOL file
+    ref_locale = locale.getlocale()
     with open("sample.mol", "w") as mol_file:
         mol_file.write(sample_MOL)
 
     (mol_atoms, mol_BO) = scine.io.read("sample.mol")
+    test_locale = locale.getlocale()
+    assert test_locale[0] == ref_locale[0]
+    assert test_locale[1] == ref_locale[1]
     assert mol_atoms.size() == 50
     assert mol_atoms.elements[0] == scine.ElementType.Fe
     assert mol_BO.get_system_size() == 50
 
     # Write the read info into a file and re-read
     scine.io.write_topology("out.mol", mol_atoms, mol_BO)
+    test_locale = locale.getlocale()
+    assert test_locale[0] == ref_locale[0]
+    assert test_locale[1] == ref_locale[1]
     (reread_mol_atoms, reread_mol_BO) = scine.io.read("out.mol")
+    test_locale = locale.getlocale()
+    assert test_locale[0] == ref_locale[0]
+    assert test_locale[1] == ref_locale[1]
     assert mol_atoms == reread_mol_atoms
     assert mol_BO == reread_mol_BO
 

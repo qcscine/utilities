@@ -34,6 +34,11 @@ inline std::pair<int, int> getMatrixDimensions(const Eigen::MatrixXd& matrix) {
 }
 
 template<>
+inline std::pair<int, int> getMatrixDimensions(const Eigen::Matrix3d& /* matrix */) {
+  return {3, 3};
+}
+
+template<>
 inline std::pair<int, int> getMatrixDimensions(const Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>& matrix) {
   return {matrix.rows(), matrix.cols()};
 }
@@ -41,6 +46,11 @@ inline std::pair<int, int> getMatrixDimensions(const Eigen::Matrix<double, Eigen
 template<class MatrixType>
 inline double getElement(int row, int col, const MatrixType& matrix) {
   return matrix[row][col];
+}
+
+template<>
+inline double getElement(int row, int col, const Eigen::Matrix3d& matrix) {
+  return matrix.col(col)(row);
 }
 
 template<>

@@ -81,6 +81,10 @@ class IrcOptimizerBase {
    * the removal of all observers can increase performance as the observers are given
    * as std::functions and can not be added via templates.
    */
+  virtual void prepareRestart(const int cycleNumber) = 0;
+
+  virtual void reset() = 0;
+
   virtual void clearObservers() = 0;
   /**
    * @brief The size of the initial step along the chosen mode.
@@ -240,7 +244,7 @@ class IrcOptimizer : public IrcOptimizerBase {
     // Optimize
     int cycles = 0;
     try {
-      cycles = optimizer.optimize(positions, update, check);
+      cycles = optimizer.optimize(positions, update, check, log);
     }
     catch (const InternalCoordinatesException& e) {
       log.output << "Internal coordinates broke down. Continuing in Cartesians." << Core::Log::nl;
@@ -252,7 +256,7 @@ class IrcOptimizer : public IrcOptimizerBase {
       Eigen::VectorXd lastPositions = transformation->coordinatesToInternal(lastCoordinates);
       // Restart optimization
       optimizer.prepareRestart(cycle);
-      cycles = optimizer.optimize(lastPositions, update, check);
+      cycles = optimizer.optimize(lastPositions, update, check, log);
       positions = lastPositions;
     }
     // Update AtomCollection and return
@@ -265,7 +269,6 @@ class IrcOptimizer : public IrcOptimizerBase {
     atoms.setPositions(coordinates);
     return cycles;
   }
-
   /**
    * @brief Function to apply the given settings to underlying classes.
    * @param settings The new settings.
@@ -284,6 +287,14 @@ class IrcOptimizer : public IrcOptimizerBase {
   Settings getSettings() const override {
     return IRCOptimizerSettings<OptimizerType, GradientBasedCheck>(*this, optimizer, check);
   };
+
+  void prepareRestart(const int cycleNumber) final {
+    optimizer.prepareRestart(cycleNumber);
+  }
+
+  void reset() final {
+    optimizer.reset();
+  }
   /**
    * @brief Get the settings of the calculator used for the energy calculations during the optimization.
    * @return std::shared_ptr<Settings> The settings of the calculator.

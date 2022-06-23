@@ -44,8 +44,71 @@ void init_molecular_trajectory(pybind11::module& m) {
   molecular_trajectory.def("get_energies", &MolecularTrajectory::getEnergies, "Returns the energies of the trajectory");
 
   // Sequence magic methods
-  molecular_trajectory.def("__getitem__", pybind11::overload_cast<int>(&MolecularTrajectory::operator[], pybind11::const_),
-                           "Access a PositionCollection frame of the trajectory");
+  molecular_trajectory.def(
+      "__getitem__",
+      [&](MolecularTrajectory& traj, int i) -> PositionCollection {
+        if (i >= traj.size()) {
+          throw std::out_of_range("Given index is out of range");
+        }
+        if (i < 0) {
+          if (-1 * i > traj.size()) {
+            throw std::out_of_range("Given index is out of range");
+          }
+          return traj[traj.size() + i];
+        }
+        return traj[i];
+      },
+      "Access a PositionCollection frame of the trajectory.");
+  molecular_trajectory.def(
+      "__getitem__",
+      [&](MolecularTrajectory& traj, pybind11::slice slice) -> MolecularTrajectory {
+        auto energies = traj.getEnergies();
+        bool addEnergies = energies.size() > 0;
+        std::size_t start = 0, stop = 0, step = 0, slicelength = 0;
+        if (!slice.compute(traj.size(), &start, &stop, &step, &slicelength)) {
+          throw pybind11::error_already_set();
+        }
+        MolecularTrajectory sliced = MolecularTrajectory();
+        sliced.setElementTypes(traj.getElementTypes());
+        for (std::size_t i = 0; i < slicelength; ++i, start += step) {
+          if (addEnergies) {
+            sliced.push_back(traj.at(start), energies.at(start));
+          }
+          else {
+            sliced.push_back(traj.at(start));
+          }
+        }
+        return sliced;
+      },
+      "Access a sub-trajectory of the trajectory based on slicing.");
+  molecular_trajectory.def(
+      "__delitem__",
+      [&](MolecularTrajectory& traj, int i) {
+        const int N = traj.size();
+        if (i >= N || -1 * i > N) {
+          throw std::out_of_range("Cannot delete out of range index");
+        }
+        if (i < 0) {
+          i = N + i;
+        }
+        auto energies = traj.getEnergies();
+        bool addEnergies = energies.size() > 0;
+        MolecularTrajectory result = MolecularTrajectory();
+        result.setElementTypes(traj.getElementTypes());
+        for (int j = 0; j < N; ++j) {
+          if (j == i) {
+            continue;
+          }
+          if (addEnergies) {
+            result.push_back(traj.at(j), energies.at(j));
+          }
+          else {
+            result.push_back(traj.at(j));
+          }
+        }
+        traj = result;
+      },
+      "Allow the python delete function based on index.");
 
   molecular_trajectory.def(
       "__iter__", [](const MolecularTrajectory& m) { return pybind11::make_iterator(m.begin(), m.end()); },

@@ -10,6 +10,7 @@
 
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include <Core/Log.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
@@ -44,7 +45,7 @@ class NewtonRaphson : public Optimizer {
    *                   of the optimization function.
    */
   template<class UpdateFunction>
-  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, GradientBasedCheck& check) {
+  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, GradientBasedCheck& check, Core::Log& /* log */) {
     /* number of parameters treated */
     unsigned int nParams = parameters.size();
     if (nParams == 0) {
@@ -57,15 +58,15 @@ class NewtonRaphson : public Optimizer {
     auto hessian = std::make_unique<Eigen::MatrixXd>(nParams, nParams);
     hessian->setZero();
 
-    int cycle = _startCycle;
+    _cycle = _startCycle;
     /* Initial update */
     function(parameters, value, gradients, *hessian, true);
-    this->triggerObservers(cycle, value, parameters);
+    this->triggerObservers(_cycle, value, parameters);
     // Init parameters and value stored in the convergence checker
     check.setParametersAndValue(parameters, value);
     bool stop = false;
     while (!stop) {
-      cycle++;
+      _cycle++;
       // Decompose Hessian, use SVD in order to be less strict on the Hessian's requirements
       Eigen::JacobiSVD<Eigen::MatrixXd> svd(*hessian, Eigen::ComputeFullV | Eigen::ComputeFullU);
       svd.setThreshold(svdThreshold);
@@ -78,18 +79,18 @@ class NewtonRaphson : public Optimizer {
       constrainedAdd(parameters, -steps);
       // Update and check convergence
       function(parameters, value, gradients, *hessian, true);
-      this->triggerObservers(cycle, value, parameters);
-      stop = check.checkMaxIterations(cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
+      this->triggerObservers(_cycle, value, parameters);
+      stop = check.checkMaxIterations(_cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
 
       // Check oscillation, if oscillating modify step and calculate new Hessian
       if (!stop && this->isOscillating(value)) {
         oscillationCorrection(steps, parameters);
         function(parameters, value, gradients, *hessian, true);
-        cycle++;
-        this->triggerObservers(cycle, value, parameters);
+        _cycle++;
+        this->triggerObservers(_cycle, value, parameters);
       }
     }
-    return cycle;
+    return _cycle;
   }
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection

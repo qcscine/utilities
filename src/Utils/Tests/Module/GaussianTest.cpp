@@ -6,6 +6,7 @@
  */
 
 #include <Utils/DataStructures/MolecularOrbitals.h>
+#include <Utils/ExternalQC/Exceptions.h>
 #include <Utils/ExternalQC/ExternalProgram.h>
 #include <Utils/ExternalQC/Gaussian/GaussianCalculator.h>
 #include <Utils/ExternalQC/Gaussian/GaussianCalculatorSettings.h>
@@ -140,7 +141,7 @@ TEST_F(AGaussianTest, CloneInterfaceWorksCorrectly) {
 TEST_F(AGaussianTest, InputCreationWorkCorrectly) {
   // Set up.
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
-  calculator.settings().modifyString(Utils::SettingsNames::method, "PBEPBE");
+  calculator.settings().modifyString(Utils::SettingsNames::method, "PBEPBE-D3BJ");
   calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2SVP FORCE_FAILURE");
   calculator.settings().modifyString(Utils::SettingsNames::spinMode, "restricted_open_shell");
   calculator.settings().modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-6);
@@ -156,6 +157,11 @@ TEST_F(AGaussianTest, InputCreationWorkCorrectly) {
   auto structure = Utils::XyzStreamHandler::read(stream);
 
   calculator.setStructure(structure);
+
+  // set incorrect charge/multiplicity pair
+  calculator.settings().modifyInt(Utils::SettingsNames::molecularCharge, 1);
+  ASSERT_THROW(calculator.calculate(""), std::logic_error);
+  calculator.settings().modifyInt(Utils::SettingsNames::molecularCharge, 0);
 
   try {
     calculator.calculate("");
@@ -179,7 +185,8 @@ TEST_F(AGaussianTest, InputCreationWorkCorrectly) {
   }
   input.close();
   // Without a chk file being present a harris guess should be used instead of read
-  ASSERT_THAT(line, Eq("# ROPBEPBE/def2SVP FORCE_FAILURE SCF=(Conver=6) guess=harris Force Pop=Hirshfeld"));
+  ASSERT_THAT(line, Eq("# ROPBEPBE/def2SVP FORCE_FAILURE EmpiricalDispersion=GD3BJ SCF=(Conver=8) guess=harris Force "
+                       "Pop=Hirshfeld"));
 
   // Check whether the calculation directory can be deleted.
   bool isDir = FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
@@ -195,7 +202,7 @@ TEST_F(AGaussianTest, InvalidAccuracyIsCaught) {
   calculator.settings().modifyString(Utils::SettingsNames::method, "PBEPBE");
   calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2SVP FORCE_FAILURE");
   calculator.settings().modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 2e-6);
-  calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::AtomicCharges);
+  calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::AtomicCharges);
 
   std::stringstream stream("5\n\n"
                            "C     0.00000000   0.00000001  -0.00000097\n"
@@ -457,6 +464,22 @@ TEST_F(AGaussianTest, UnrestrictedGaussianCalculationIsPerformedCorrectlyViaScin
     ASSERT_THAT(deleted, Eq(true));
   }
 #endif
+}
+
+TEST_F(AGaussianTest, ScfConvergenceIncreasedForPropertyCalculation) {
+  // set low scf convergence criterion
+  calculator.settings().modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-4);
+  // request Hessian calculation
+  calculator.setRequiredProperties(Property::Energy | Property::Hessian);
+  calculator.setLog(Core::Log::silent());
+  // Trigger the applySettings() function via cloning
+  ASSERT_THAT(calculator.settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(1e-4));
+  auto secondCalculator = calculator.clone();
+  ASSERT_THAT(secondCalculator->settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(1e-8));
+  // request calculation of gradients
+  calculator.setRequiredProperties(Property::Energy | Property::Gradients);
+  auto thirdCalculator = calculator.clone();
+  ASSERT_THAT(thirdCalculator->settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(1e-8));
 }
 
 } // namespace Tests

@@ -115,6 +115,30 @@ class Optimizer {
     _prevFollowedEigenvector.resize(0);
   }
   /**
+   * @brief Reset an already initialized optimizer
+   *
+   * This function is used to reset an optimizer instance for rerunning its
+   * optimize function. If a derived optimizer e.g. stores an optional Hessian
+   * projection function or a custom Hessian initialisation, the specification
+   * of this function shall allow for its removal.
+   * This base implementation changes the cycle count the optimizer starts with
+   * back to 1 when the optimize function is called and clears the value memory for
+   * oscillating correction.
+   */
+  virtual void reset() {
+    this->prepareRestart(1);
+  };
+
+  /**
+   * @brief Read the current value of the cycle counter variable.
+   *
+   * @return The current cycle number.
+   */
+  int getCycle() const {
+    return _cycle;
+  };
+
+  /**
    * @brief checks if value has been oscillating over the last maxValueMemory steps
    *
    * @param value  value of the last step
@@ -304,6 +328,8 @@ class Optimizer {
 
   //! The cycle number the optimize function starts counting with
   int _startCycle = 1;
+  //! The current cycle number of the optimize function
+  int _cycle;
   //! Last iteration function values for oscillation testing
   std::deque<double> _valueMemory;
 

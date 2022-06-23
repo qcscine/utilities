@@ -144,8 +144,6 @@ TEST_F(AThermochemistryTest, DifferentConstructionsAreEqual) {
   // C2v symmetry
   arbitraryTCCalculator->setMolecularSymmetryNumber(2);
   ThermochemicalComponentsContainer container3 = arbitraryTCCalculator->calculate();
-  std::cout << container1.overall.gibbsFreeEnergy << std::endl;
-  std::cout << container2.overall.gibbsFreeEnergy << std::endl;
   ASSERT_TRUE(container1.isApprox(container2, 1e-6));
   ASSERT_TRUE(container1.isApprox(container3, 1e-6));
   ASSERT_TRUE(container2.isApprox(container3, 1e-12));

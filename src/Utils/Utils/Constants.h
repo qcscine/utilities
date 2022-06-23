@@ -38,6 +38,7 @@ constexpr double elementaryCharge = 1.6021766208e-19; // C
 // Note: the inverse fine structure constant is also
 // the speed of light in Hartree atomic units.
 constexpr double inverseFineStructureConstant = 137.035999139;
+constexpr double molarGasConstant = 8.3144598;     // J mol^-1 K^-1
 constexpr double planckConstant = 6.626070040e-34; // J s
 constexpr double speedOfLight = 2.99792458e8;      // m s^-1
 

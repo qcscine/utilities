@@ -41,7 +41,11 @@ class PeriodicSystemTest : public Test {
   void SetUp() override {
     randomElements = ElementTypeCollection{ElementType::Am, ElementType::Ce, ElementType::Ca};
     randomPositions = Eigen::MatrixX3d::Random(3, 3);
-    pbc.setCellMatrix(Eigen::Matrix3d::Random(3, 3));
+    Eigen::Matrix3d randomMatrix = Eigen::Matrix3d::Random(3, 3);
+    for (int i = 0; i < 3; ++i) {
+      randomMatrix(i, i) = std::fabs(randomMatrix(i, i));
+    }
+    pbc.setCellMatrix(randomMatrix);
   }
 };
 

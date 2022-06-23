@@ -19,10 +19,12 @@ struct TurbomoleFiles {
   std::string filenameBase;
   std::string alphaFile;
   std::string betaFile;
+  std::string mosFile;
   std::string controlFile;
   std::string energyFile;
   std::string hessianFile;
   std::string gradientFile;
+  std::string pointChargeGradientFile;
   std::string alphaBakFile;
   std::string betaBakFile;
   std::string ridftFile;
@@ -38,10 +40,12 @@ inline void setCorrectTurbomoleFileNames(TurbomoleFiles& files, const std::strin
   files.defineInputFile = NativeFilenames::combinePathSegments(files.filenameBase, "tm.input");
   files.alphaFile = NativeFilenames::combinePathSegments(files.filenameBase, "alpha");
   files.betaFile = NativeFilenames::combinePathSegments(files.filenameBase, "beta");
+  files.mosFile = NativeFilenames::combinePathSegments(files.filenameBase, "mos");
   files.controlFile = NativeFilenames::combinePathSegments(files.filenameBase, "control");
   files.energyFile = NativeFilenames::combinePathSegments(files.filenameBase, "energy");
   files.hessianFile = NativeFilenames::combinePathSegments(files.filenameBase, "hessian");
   files.gradientFile = NativeFilenames::combinePathSegments(files.filenameBase, "gradient");
+  files.pointChargeGradientFile = NativeFilenames::combinePathSegments(files.filenameBase, "pc_gradient");
   files.alphaBakFile = NativeFilenames::combinePathSegments(files.filenameBase, "alpha.bak");
   files.betaBakFile = NativeFilenames::combinePathSegments(files.filenameBase, "beta.bak");
   files.ridftFile = NativeFilenames::combinePathSegments(files.filenameBase, "ridft.out");

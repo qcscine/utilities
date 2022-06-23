@@ -143,10 +143,6 @@ class OrcaCalculator final : public CloneInterface<OrcaCalculator, Core::Calcula
    */
   void copyBackupFile(const std::string& from, const std::string& to) const;
   /*
-   * @brief Creates a random name for a calculation directory and creates this directory.
-   */
-  std::string createNameForCalculationDirectory();
-  /*
    * @brief Deletes all .tmp files in the calculation directory.
    */
   void deleteTemporaryFiles();

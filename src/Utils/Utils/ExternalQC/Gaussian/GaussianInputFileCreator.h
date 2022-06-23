@@ -51,6 +51,9 @@ class GaussianInputFileCreator {
                                    const PropertyList& requiredProperties);
   static void printTitle(std::ostream& out);
   static void printStructure(std::ostream& out, const AtomCollection& atoms, const Settings& settings);
+  static inline std::string translateDispersion(const std::string& scineDispersion) {
+    return (scineDispersion.empty()) ? "" : "EmpiricalDispersion=G" + scineDispersion;
+  };
 };
 
 } // namespace ExternalQC

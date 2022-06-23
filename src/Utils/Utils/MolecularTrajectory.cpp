@@ -35,24 +35,55 @@ MolecularTrajectory::EnergyContainer MolecularTrajectory::getEnergies() const {
   return energies_;
 }
 
+std::vector<PeriodicBoundaries> MolecularTrajectory::getPbcs() const {
+  std::vector<PeriodicBoundaries> pbcs;
+  std::transform(pbcs_.begin(), pbcs_.end(), std::back_inserter(pbcs),
+                 [&](Eigen::Matrix3d m) -> PeriodicBoundaries { return PeriodicBoundaries(m); });
+  return pbcs;
+}
+
+void MolecularTrajectory::setPbcs(const PbcContainer& pbcs) {
+  if (static_cast<int>(pbcs.size()) != size()) {
+    throw std::runtime_error(
+        "The number of pbcs does not match the number of structures in this molecular trajectory.");
+  }
+  pbcs_ = pbcs;
+}
+
+void MolecularTrajectory::setPbcs(const std::vector<PeriodicBoundaries>& pbcs) {
+  PbcContainer newPbcs;
+  std::transform(pbcs.begin(), pbcs.end(), std::back_inserter(newPbcs),
+                 [&](PeriodicBoundaries pbc) -> Eigen::Matrix3d { return pbc.getCellMatrix(); });
+  setPbcs(newPbcs);
+}
+
 void MolecularTrajectory::clearEnergies() {
   energies_.clear();
+}
+
+void MolecularTrajectory::clearPbcs() {
+  pbcs_.clear();
 }
 
 void MolecularTrajectory::clear() {
   structureVector_.clear();
   energies_.clear();
+  pbcs_.clear();
 }
 
 void MolecularTrajectory::resize(int n) {
   structureVector_.resize(static_cast<Container::size_type>(n));
   energies_.resize(static_cast<Container::size_type>(n));
+  pbcs_.resize(static_cast<Container::size_type>(n));
 }
 
 void MolecularTrajectory::push_back(PositionCollection p) {
   assert(additionOfPositionCollectionIsAllowed(p));
   if (!energies_.empty()) {
     throw std::runtime_error("Energy container is not empty. Clear energies first, before a structure only is added.");
+  }
+  if (!pbcs_.empty()) {
+    throw std::runtime_error("Pbc container is not empty. Clear pbcs first, before a structure only is added.");
   }
   structureVector_.push_back(std::move(p));
 }
@@ -65,6 +96,32 @@ void MolecularTrajectory::push_back(PositionCollection p, double e) {
   }
   structureVector_.push_back(std::move(p));
   energies_.push_back(e);
+}
+
+void MolecularTrajectory::push_back(PositionCollection p, PeriodicBoundaries pbc) {
+  assert(additionOfPositionCollectionIsAllowed(p));
+  if (static_cast<int>(pbcs_.size()) != size()) {
+    throw std::runtime_error(
+        "The number of pbcs does not match the number of structures in this molecular trajectory.");
+  }
+  structureVector_.push_back(std::move(p));
+  pbcs_.push_back(pbc.getCellMatrix());
+}
+
+void MolecularTrajectory::push_back(PositionCollection p, double e, PeriodicBoundaries pbc) {
+  assert(additionOfPositionCollectionIsAllowed(p));
+  auto s = size();
+  if (static_cast<int>(energies_.size()) != s) {
+    throw std::runtime_error(
+        "The number of energies does not match the number of structures in this molecular trajectory.");
+  }
+  if (static_cast<int>(pbcs_.size()) != s) {
+    throw std::runtime_error(
+        "The number of pbcs does not match the number of structures in this molecular trajectory.");
+  }
+  structureVector_.push_back(std::move(p));
+  energies_.push_back(e);
+  pbcs_.push_back(pbc.getCellMatrix());
 }
 
 bool MolecularTrajectory::empty() const {
@@ -135,12 +192,18 @@ const MolecularTrajectory& MolecularTrajectory::operator*=(double f) {
   for (auto& s : structureVector_) {
     s *= f;
   }
+  for (auto& pbc : pbcs_) {
+    pbc *= f;
+  }
   return *this;
 }
 
 const MolecularTrajectory& MolecularTrajectory::operator/=(double f) {
   for (auto& s : structureVector_) {
     s /= f;
+  }
+  for (auto& pbc : pbcs_) {
+    pbc /= f;
   }
   return *this;
 }

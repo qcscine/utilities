@@ -6,7 +6,7 @@
  */
 #include "OrcaInputFileCreator.h"
 #include "OrcaCalculatorSettings.h"
-#include <Utils/CalculatorBasics/PropertyList.h>
+#include <Utils/CalculatorBasics.h>
 #include <Utils/Geometry/AtomCollection.h>
 #include <Utils/IO/MolecularTrajectoryIO.h>
 #include <Utils/Scf/LcaoUtils/SpinMode.h>
@@ -23,6 +23,8 @@ void OrcaInputFileCreator::createInputFile(const std::string& filename, const At
   fout.open(filename);
   createInputFile(fout, atoms, settings, requiredProperties);
   fout.close();
+  CalculationRoutines::checkValidityOfChargeAndMultiplicity(settings.getInt(Utils::SettingsNames::molecularCharge),
+                                                            settings.getInt(Utils::SettingsNames::spinMultiplicity), atoms);
 }
 
 void OrcaInputFileCreator::createInputFile(std::ostream& out, const AtomCollection& atoms, const Settings& settings,
@@ -34,7 +36,9 @@ void OrcaInputFileCreator::createInputFile(std::ostream& out, const AtomCollecti
 
 void OrcaInputFileCreator::printCalculationType(std::ostream& out, const Settings& settings,
                                                 const PropertyList& requiredProperties) {
-  out << "! " << settings.getString(Utils::SettingsNames::method) << " "
+  auto methodInput = Scine::Utils::CalculationRoutines::splitIntoMethodAndDispersion(
+      settings.getString(Scine::Utils::SettingsNames::method));
+  out << "! " << methodInput.first << " " << methodInput.second << " "
       << settings.getString(Utils::SettingsNames::basisSet) << std::endl;
 
   auto spinMode = SpinModeInterpreter::getSpinModeFromString(settings.getString(Utils::SettingsNames::spinMode));
@@ -65,6 +69,11 @@ void OrcaInputFileCreator::printCalculationType(std::ostream& out, const Setting
     std::string freqType = (settings.getString(SettingsNames::hessianCalculationType) == "analytical") ? "AnFreq" : "NumFreq";
     out << "! " << freqType << std::endl;
   }
+  auto specialOption = settings.getString(Scine::Utils::ExternalQC::SettingsNames::specialOption);
+  if (!specialOption.empty()) {
+    out << "! " << specialOption << std::endl;
+  }
+
   // Number of processes and memory per core
   int numProcs = settings.getInt(Utils::SettingsNames::externalProgramNProcs);
   out << "%maxcore " << settings.getInt(Utils::SettingsNames::externalProgramMemory) / numProcs << std::endl;

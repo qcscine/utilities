@@ -8,15 +8,11 @@
 #define UTILS_TESTCALCULATO_resultsH
 
 #include <Core/Interfaces/Calculator.h>
-#include <Utils/Technical/CloneInterface.h>
-
-/* move to cpp */
+#include <Core/Interfaces/WavefunctionOutputGenerator.h>
 #include <Utils/CalculatorBasics/PropertyList.h>
 #include <Utils/CalculatorBasics/Results.h>
-#include <Utils/Constants.h>
-#include <Utils/GeometricDerivatives/NumericalHessianCalculator.h>
 #include <Utils/Geometry/AtomCollection.h>
-#include <Utils/Settings.h>
+#include <Utils/Technical/CloneInterface.h>
 
 namespace Scine {
 namespace Utils {
@@ -46,7 +42,7 @@ namespace Utils {
  * Analytical first derivatives and numerical second derivatives are available.
  *
  */
-class TestCalculator : public CloneInterface<TestCalculator, Core::Calculator> {
+class TestCalculator : public CloneInterface<TestCalculator, Core::Calculator>, public Core::WavefunctionOutputGenerator {
  public:
   TestCalculator();
   ~TestCalculator() override = default;
@@ -67,12 +63,34 @@ class TestCalculator : public CloneInterface<TestCalculator, Core::Calculator> {
   Utils::Results& results() final;
   const Utils::Results& results() const final;
   std::unique_ptr<Utils::AtomCollection> getStructure() const final;
+  void generateWavefunctionInformation(const std::string& out) final;
+  void generateWavefunctionInformation(std::ostream& out) final;
+  /**
+   * @brief Set the precision of the calculator.
+   * @param value The exponent to the expression 10^(-value).
+   */
+  void setPrecision(double value);
+  /**
+   * @brief Get the precision of the calculator.
+   * @return The precision set for the calculator
+   */
+  double getPrecision();
 
  private:
   PropertyList _requiredProperties{};
   AtomCollection _structure;
   Results _results;
   std::shared_ptr<Settings> _settings;
+  /**
+   * @brief The default precision of the calculator.
+   */
+  double _precision = 13.0;
+  /**
+   * @brief Truncate a given value to the set precision.
+   * @param value The value to be truncated
+   * @return The truncated value.
+   */
+  double truncateOff(double value);
 };
 
 } // namespace Utils

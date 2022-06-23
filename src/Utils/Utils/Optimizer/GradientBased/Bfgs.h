@@ -11,6 +11,7 @@
 #include "Utils/Optimizer/GradientBased/Gdiis.h"
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include <Core/Log.h>
 #include <Eigen/Core>
 
 namespace Scine {
@@ -41,6 +42,7 @@ namespace Utils {
  */
 class Bfgs : public Optimizer {
  public:
+  static constexpr const char* bfgsMinIter = "bfgs_min_iterations";
   static constexpr const char* bfgsUseTrustRadius = "bfgs_use_trust_radius";
   static constexpr const char* bfgsTrustRadius = "bfgs_trust_radius";
   static constexpr const char* bfgsUseGdiis = "bfgs_use_gdiis";
@@ -67,11 +69,17 @@ class Bfgs : public Optimizer {
    *                   of the optimization function.
    */
   template<class UpdateFunction, class ConvergenceCheckClass>
-  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, ConvergenceCheckClass& check) {
+  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, ConvergenceCheckClass& check,
+               Core::Log& /* log */) {
     /* number of parameters treated */
     unsigned int nParams = parameters.size();
     if (nParams == 0) {
       throw EmptyOptimizerParametersException();
+    }
+    if (check.maxIter <= static_cast<unsigned int>(minIter)) {
+      throw std::logic_error(
+          "Maximum number of cycles is smaller or equal to the minimum number of cycles.\n"
+          "Please set the maximum number of cycles at least one larger than the minimum number of cycles.");
     }
     double value = 0.0;
 
@@ -88,11 +96,12 @@ class Bfgs : public Optimizer {
     /* Set "assumed previous parameters" as parametersOld. */
     Eigen::VectorXd parametersOld(parameters);
     /* Get start cycle */
-    int cycle = _startCycle;
+    _cycle = _startCycle;
     function(parameters, value, gradients);
-    this->triggerObservers(cycle, value, parameters);
+    this->triggerObservers(_cycle, value, parameters);
     // Init parameters and value stored in the convergence checker
     check.setParametersAndValue(parameters, value);
+
     /* start with one steepest descent step */
     Eigen::VectorXd stepVector = -invH * gradients;
     /* Rotate the (now) old parameter values to the local variables. */
@@ -111,12 +120,19 @@ class Bfgs : public Optimizer {
     /* Update the parameters */
     constrainedAdd(parameters, stepVector);
     bool stop = false;
+    bool minIterPerformed = false;
     while (!stop) {
-      cycle++;
+      _cycle++;
       function(parameters, value, gradients);
-      this->triggerObservers(cycle, value, parameters);
+      this->triggerObservers(_cycle, value, parameters);
+      /* Once minIterPerformed is true, it no longer needs to be checked */
+      if (!minIterPerformed) {
+        minIterPerformed = (_cycle > minIter) ? true : false;
+      }
+      /* Check stop criteria only after requested initial updates have been performed */
+      stop = (check.checkMaxIterations(_cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients))) &&
+             minIterPerformed;
 
-      stop = check.checkMaxIterations(cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
       if (stop) {
         break;
       }
@@ -127,7 +143,7 @@ class Bfgs : public Optimizer {
       double dxTdg = dx.dot(dg);
       const double dgTinvHdg = dg.transpose() * invH * dg;
       /* Set initial inverse Hessian to dxTdg / dgTdg * I */
-      if (cycle == 2) {
+      if (_cycle == _startCycle + 1) {
         invH.diagonal() *= 2.0 * dxTdg / dg.dot(dg);
       }
 
@@ -135,16 +151,14 @@ class Bfgs : public Optimizer {
       const double sigma2 = 0.9;
       const double sigma3 = 9.0;
       double delta = 1.0;
-
       if (fabs(dxTdg) < fabs((1.0 - sigma2) * dgTinvHdg)) {
         delta = sigma2 * dgTinvHdg / (dgTinvHdg - dxTdg);
       }
       else if (fabs(dxTdg) > fabs((1.0 + sigma3) * dgTinvHdg)) {
         delta = -sigma3 * dgTinvHdg / (dgTinvHdg - dxTdg);
       }
-
       /* Update dx by dx = delta * dx + (1.0 - delta) * invH * dg */
-      if (delta != 1.0) {
+      if (fabs(delta - 1.0) > 1e-12) {
         dx.noalias() = delta * dx + (1.0 - delta) * invH * dg;
         dxTdg = dx.dot(dg);
       }
@@ -152,10 +166,21 @@ class Bfgs : public Optimizer {
       if (fabs(dxTdg) < 1e-9) {
         dxTdg = (dxTdg < 0.0) ? -1e-9 : 1e-9;
       }
-      /* Update inverse approximate Hessian */
-      const double alpha = (dxTdg + dg.transpose() * invH * dg) / (dxTdg * dxTdg);
-      const double beta = 1.0 / dxTdg;
-      invH += alpha * (dx * dx.transpose()) - beta * (invH * dg * dx.transpose() + dx * dg.transpose() * invH);
+
+      if (dxTdg > 0.0) {
+        /* Update inverse approximate Hessian */
+        const double alpha = (dxTdg + dg.transpose() * invH * dg) / (dxTdg * dxTdg);
+        const double beta = 1.0 / dxTdg;
+        invH += alpha * (dx * dx.transpose()) - beta * (invH * dg * dx.transpose() + dx * dg.transpose() * invH);
+      }
+      /* Reset invH, if positive definitness is not given*/
+      else {
+        invH.noalias() = Eigen::MatrixXd::Identity(nParams, nParams) * 0.5;
+        /* Flush GDIIS */
+        if (useGdiis) {
+          diis.flush();
+        }
+      }
       if (projection) {
         projection(invH);
       }
@@ -168,7 +193,7 @@ class Bfgs : public Optimizer {
       if (useGdiis) {
         diis.update(parameters, gradients);
         if (mask.size() > 0) {
-          // Revert constrained parameters to old values
+          /* Revert constrained parameters to old values */
           parameters = mask.select(parameters, parametersOld);
         }
       }
@@ -193,7 +218,7 @@ class Bfgs : public Optimizer {
       }
       constrainedAdd(parameters, stepVector);
     }
-    return cycle;
+    return _cycle;
   }
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection
@@ -201,6 +226,11 @@ class Bfgs : public Optimizer {
    * @param collection The DescriptorCollection to which new fields shall be added.
    */
   void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
+    UniversalSettings::IntDescriptor bfgs_minIter(
+        "The minimal number of cycles to be performed before the stop criteria is checked.");
+    bfgs_minIter.setDefaultValue(minIter);
+    bfgs_minIter.setMinimum(1.0);
+    collection.push_back(Bfgs::bfgsMinIter, bfgs_minIter);
     UniversalSettings::BoolDescriptor bfgs_useTrustRadius("Enable the use of a trust radius for all steps.");
     bfgs_useTrustRadius.setDefaultValue(useTrustRadius);
     collection.push_back(Bfgs::bfgsUseTrustRadius, bfgs_useTrustRadius);
@@ -223,11 +253,12 @@ class Bfgs : public Optimizer {
    * @param settings The settings to update the option of the BFGS with.
    */
   void applySettings(const Settings& settings) final {
+    minIter = settings.getInt(Bfgs::bfgsMinIter);
     useTrustRadius = settings.getBool(Bfgs::bfgsUseTrustRadius);
     trustRadius = settings.getDouble(Bfgs::bfgsTrustRadius);
     useGdiis = settings.getBool(Bfgs::bfgsUseGdiis);
     gdiisMaxStore = settings.getInt(Bfgs::bfgsGdiisMaxStore);
-    if (!useTrustRadius && std::fabs(trustRadius - 0.1) > 1e-6) {
+    if (!useTrustRadius && std::fabs(trustRadius - 0.3) > 1e-6) {
       throw std::logic_error("A trust radius was specified, but the trust radius was not activated. "
                              "Please also set the setting 'bfgs_use_trust_radius': true, if you specify a radius.");
     }
@@ -245,18 +276,34 @@ class Bfgs : public Optimizer {
    * @param cycleNumber The cycle number the optimizer starts with.
    */
   void prepareRestart(const int cycleNumber) final {
-    // Set start cycle number
+    /* Set start cycle number */
     _startCycle = cycleNumber;
-    // Remove inverse Hessian and projection function
+    /* Remove inverse Hessian and projection function */
     (this->invH).resize(0, 0);
     this->projection = nullptr;
-    // Clear value memory for oscillating correction
+    /* Clear value memory for oscillating correction */
     _valueMemory.clear();
   };
+  /**
+   * @brief Minimal number of cycles before the stop criteria are checked.
+   *
+   * The B matrix gets initialised in cycle 1,
+   * which corresponds to an SD step with the gradients scaled by 0.5.
+   * In cycle 2, the diagonal elements get set to certain values and the matrix updated once.
+   *
+   * Per default, with minIter set to 1, in cycle 2 the stop criteria are checked before anything
+   * is done with the matrix.
+   * Hence, the optimization can converge with 0 updates on the B matrix .
+   *
+   * Example for the case minIter is set to 2:
+   * The stop criteria are not checked in cycle 2 and the B matrix gets manipulated as described above.
+   * In cycle 3, the stop criteria are checked again.
+   */
+  int minIter = 1;
   /// @brief Enable the use of a trust radius for all steps.
-  bool useTrustRadius = false;
+  bool useTrustRadius = true;
   /// @brief The maximum size (RMS) of a taken step.
-  double trustRadius = 0.1;
+  double trustRadius = 0.3;
   /// @brief Switch to enable the use of a GDIIS possibly accelerating convergence.
   bool useGdiis = true;
   /// @brief The maximum number of old steps used in the GDIIS.

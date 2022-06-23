@@ -6,6 +6,7 @@
  */
 
 #include "Utils/CalculatorBasics/TestCalculator.h"
+#include "Utils/Bonds/BondDetector.h"
 #include "Utils/CalculatorBasics/PropertyList.h"
 #include "Utils/CalculatorBasics/Results.h"
 #include "Utils/Constants.h"
@@ -23,6 +24,15 @@ class TestSettings : public Settings {
     UniversalSettings::DoubleDescriptor convergence_threshold("Energy convergence limit.");
     convergence_threshold.setDefaultValue(1e-12);
     this->_fields.push_back(SettingsNames::selfConsistenceCriterion, convergence_threshold);
+
+    UniversalSettings::IntDescriptor multiplicity("multiplicity");
+    multiplicity.setDefaultValue(1);
+    this->_fields.push_back(SettingsNames::spinMultiplicity, multiplicity);
+
+    UniversalSettings::StringDescriptor spin_mode("spin mode");
+    spin_mode.setDefaultValue("restricted");
+    this->_fields.push_back(SettingsNames::spinMode, spin_mode);
+
     this->resetToDefaults();
   };
   ~TestSettings() override = default;
@@ -52,7 +62,7 @@ PropertyList TestCalculator::getRequiredProperties() const {
   return _requiredProperties;
 }
 PropertyList TestCalculator::possibleProperties() const {
-  return Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian;
+  return Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian | Utils::Property::BondOrderMatrix;
 }
 const Results& TestCalculator::calculate(std::string /*dummy*/) {
   auto positions = _structure.getPositions();
@@ -86,6 +96,8 @@ const Results& TestCalculator::calculate(std::string /*dummy*/) {
       const double wellDepth = 0.2 * scaling;
       // compose energy contribution
       energy += wellDepth * (lj12 - 2.0 * lj6) + egauss;
+      // truncate energy
+      energy = truncateOff(energy);
       /*
        * Gradient
        */
@@ -102,12 +114,26 @@ const Results& TestCalculator::calculate(std::string /*dummy*/) {
       g(j, 2) -= (rDeriv / dist) * r[2];
     }
   }
+  // truncate gradients
+  for (unsigned int i = 0; i < nAtoms; i++) {
+    g(i, 0) = truncateOff(g(i, 0));
+    g(i, 1) = truncateOff(g(i, 1));
+    g(i, 2) = truncateOff(g(i, 2));
+  }
   _results = Results();
   _results.set<Property::SuccessfulCalculation>(true);
   _results.set<Property::Energy>(energy);
+  if (_settings->getInt(SettingsNames::spinMultiplicity) != 1) {
+    _results.set<Property::Energy>(energy - _settings->getInt(SettingsNames::spinMultiplicity));
+  }
   _results.set<Property::Gradients>(g);
+  if (_requiredProperties.containsSubSet(Scine::Utils::Property::BondOrderMatrix)) {
+    auto bos = BondDetector::detectBonds(_structure);
+    _results.set<Property::BondOrderMatrix>(bos);
+  }
   if (_requiredProperties.containsSubSet(Scine::Utils::Property::Hessian)) {
-    NumericalHessianCalculator nhCalc(*this);
+    auto copy(*this);
+    NumericalHessianCalculator nhCalc(copy);
     auto hessResults = nhCalc.calculate();
     _results.set<Property::Hessian>(hessResults.get<Property::Hessian>());
   }
@@ -135,6 +161,26 @@ const Utils::Results& TestCalculator::results() const {
 }
 std::unique_ptr<Utils::AtomCollection> TestCalculator::getStructure() const {
   return std::make_unique<AtomCollection>(_structure);
+}
+void TestCalculator::generateWavefunctionInformation(const std::string& out) {
+  std::ofstream fileOut(out);
+  if (!fileOut.is_open()) {
+    throw std::runtime_error("Impossible to open file " + out + ".");
+  }
+  generateWavefunctionInformation(fileOut);
+}
+void TestCalculator::generateWavefunctionInformation(std::ostream& out) {
+  out << "This is a test wavefunction output information." << std::endl;
+}
+void TestCalculator::setPrecision(double value) {
+  _precision = value;
+}
+double TestCalculator::getPrecision() {
+  return _precision;
+}
+double TestCalculator::truncateOff(double value) {
+  double factor_10 = std::pow(10.0, _precision);
+  return std::trunc(value * factor_10) / factor_10;
 }
 
 } // namespace Utils

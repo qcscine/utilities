@@ -75,6 +75,10 @@ void init_bond_order_collection(pybind11::module& m) {
     )delim");
   bond_order_collection.def("get_order", &getBOOrder, pybind11::arg("i"), pybind11::arg("j"), "Get a bond order");
   bond_order_collection.def("empty", &BondOrderCollection::empty, "Checks whether there are no entries in the BO matrix");
+  bond_order_collection.def(
+      "set_to_absolute_values", &BondOrderCollection::setToAbsoluteValues,
+      "Transfers all values to absolute values. Bonds across periodic boundaries can be signalled by negative "
+      "bond orders. This method essentially removes this information.");
 
   // Operators
   bond_order_collection.def(pybind11::self == pybind11::self);

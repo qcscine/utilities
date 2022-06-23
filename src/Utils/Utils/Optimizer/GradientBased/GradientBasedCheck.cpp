@@ -83,7 +83,7 @@ void GradientBasedCheck::addSettingsDescriptors(UniversalSettings::DescriptorCol
   collection.push_back(GradientBasedCheck::gconvMaxIterKey, max_iter);
 
   UniversalSettings::IntDescriptor requirements(
-      "The number of threasholds besides the value one that need to converge for overall convergence.");
+      "The number of thresholds besides the value one that need to converge for overall convergence.");
   requirements.setDefaultValue(requirement);
   requirements.setMaximum(4);
   requirements.setMinimum(0);

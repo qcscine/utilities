@@ -13,7 +13,15 @@ namespace Scine {
 namespace Utils {
 
 void FockDiisModifier::onOverlapCalculated() {
-  initialize();
+  if (!initialized) {
+    initialize();
+    initialized = true;
+  }
+
+  mixer_.setNAOs(m->getNumberAtomicOrbitals());
+  mixer_.setOverlapMatrix(m->getOverlapMatrix());
+
+  mixer_.setUnrestricted(m->unrestrictedCalculationRunning());
 }
 
 void FockDiisModifier::onFockCalculated() {
@@ -28,10 +36,6 @@ void FockDiisModifier::initialize() {
   if (m->basisSetIsOrthogonal()) {
     setOrthogonal(true);
   }
-  mixer_.setNAOs(m->getNumberAtomicOrbitals());
-  mixer_.setOverlapMatrix(m->getOverlapMatrix());
-
-  mixer_.setUnrestricted(m->unrestrictedCalculationRunning());
 }
 
 bool FockDiisModifier::sameNumberOfElectronsInMethodAndInDensityMatrix() {

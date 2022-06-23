@@ -100,6 +100,11 @@ class Cp2kMainOutputParser {
    */
   std::vector<int> getNumberOfElectrons() const;
   /**
+   * @brief Parse the stress tensor from the CP2K output.
+   * @return The stress tensor.
+   */
+  Eigen::Matrix3d getStressTensor() const;
+  /**
    * @brief Parse the molecular symmetry for which the thermochemistry should be computed.
    * @return The molecular symmetry number.
    */

@@ -10,6 +10,7 @@
 
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include <Core/Log.h>
 #include <Eigen/Core>
 
 namespace Scine {
@@ -46,7 +47,7 @@ class EigenvectorFollowing : public Optimizer {
    *                   of the optimization function.
    */
   template<class UpdateFunction>
-  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, GradientBasedCheck& check) {
+  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, GradientBasedCheck& check, Core::Log& /* log */) {
     /* number of parameters treated */
     unsigned int nParams = parameters.size();
     if (nParams == 0) {
@@ -57,17 +58,17 @@ class EigenvectorFollowing : public Optimizer {
     Eigen::VectorXd gradients = Eigen::VectorXd::Zero(nParams);
     auto hessian = std::make_unique<Eigen::MatrixXd>(nParams, nParams);
     hessian->setZero();
-    int cycle = _startCycle;
+    _cycle = _startCycle;
     /* Initial update */
     function(parameters, value, gradients, *hessian, true);
-    this->triggerObservers(cycle, value, parameters);
+    this->triggerObservers(_cycle, value, parameters);
     // Init parameters and value stored in the convergence checker
     check.setParametersAndValue(parameters, value);
     bool stop = false;
     Eigen::VectorXd prevFollowedEigenvector;
     prevFollowedEigenvector.resize(nParams);
     while (!stop) {
-      cycle++;
+      _cycle++;
       Eigen::VectorXd steps = modeMaximizationWithHessian(gradients, *hessian, modeToFollow);
       // Check trustradius and take a step
       const double maxVal = steps.array().abs().maxCoeff();
@@ -77,17 +78,17 @@ class EigenvectorFollowing : public Optimizer {
       // Update and check convergence
       constrainedAdd(parameters, steps);
       function(parameters, value, gradients, *hessian, true);
-      this->triggerObservers(cycle, value, parameters);
-      stop = check.checkMaxIterations(cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
+      this->triggerObservers(_cycle, value, parameters);
+      stop = check.checkMaxIterations(_cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
       // Check oscillation, if oscillating modify step and calculate new Hessian
       if (!stop && this->isOscillating(value)) {
         oscillationCorrection(steps, parameters);
         function(parameters, value, gradients, *hessian, true);
-        cycle++;
-        this->triggerObservers(cycle, value, parameters);
+        _cycle++;
+        this->triggerObservers(_cycle, value, parameters);
       }
     }
-    return cycle;
+    return _cycle;
   }
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection

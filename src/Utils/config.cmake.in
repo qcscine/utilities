@@ -35,6 +35,7 @@ endif()
 
 if(NOT @BUILD_SHARED_LIBS@)
   find_dependency(irc REQUIRED)
+  find_dependency(lbfgspp REQUIRED)
 endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/ScineUtilsOSTargets.cmake)

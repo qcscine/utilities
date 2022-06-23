@@ -116,6 +116,17 @@ class ResultsAutoCompleter {
    */
   void setCoreCharges(std::vector<double> coreCharges);
 
+  /**
+   * @brief Calculates Thermochemistry from results and given multiplicity.
+   * Thermochemistry is stored in the results.
+   *
+   * The default symmetry factor (1) is assumed, potentially leading to wrong rotational contributions for symmetric
+   * molecules.
+   * The default temperature of 298.5 K is assumed.
+   *
+   */
+  void generateThermochemistry(Results& results, const AtomCollection& atomCollection, int spinMultiplicity);
+
  private:
   std::map<Property, PropertyList> requiredPropertiesMap_;
   /** \brief  List of Properties to be autocompleted if possible */

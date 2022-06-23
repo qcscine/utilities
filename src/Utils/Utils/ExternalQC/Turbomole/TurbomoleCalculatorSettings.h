@@ -40,6 +40,7 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
   void addSolvent(UniversalSettings::DescriptorCollection& settings);
   void addSolvation(UniversalSettings::DescriptorCollection& settings);
   void addSteerOrbitals(UniversalSettings::DescriptorCollection& settings);
+  void addPointChargesFile(UniversalSettings::DescriptorCollection& settings);
 
   /**
    * @brief Constructor that populates the TurbomoleCalculatorSettings.
@@ -61,6 +62,7 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
     addSolvent(_fields);
     addSolvation(_fields);
     addSteerOrbitals(_fields);
+    addPointChargesFile(_fields);
     resetToDefaults();
   };
 };
@@ -97,7 +99,7 @@ inline void TurbomoleCalculatorSettings::addMethod(UniversalSettings::Descriptor
 
 inline void TurbomoleCalculatorSettings::addBasisSet(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::StringDescriptor basisSet("The basis set used in the Turbomole calculation.");
-  basisSet.setDefaultValue("def-SV(P)"); // Turbomole's internal default
+  basisSet.setDefaultValue("def2-SVP");
   settings.push_back(Utils::SettingsNames::basisSet, std::move(basisSet));
 }
 
@@ -138,8 +140,12 @@ inline void TurbomoleCalculatorSettings::addTemperature(UniversalSettings::Descr
 }
 
 inline void TurbomoleCalculatorSettings::addScfDamping(UniversalSettings::DescriptorCollection& settings) {
-  Utils::UniversalSettings::BoolDescriptor scfDamping("Switch SCF damping on/off.");
-  scfDamping.setDefaultValue(false);
+  Utils::UniversalSettings::OptionListDescriptor scfDamping("Specify SCF damping (low/medium/high).");
+  scfDamping.addOption("default");
+  scfDamping.addOption("low");
+  scfDamping.addOption("medium");
+  scfDamping.addOption("high");
+  scfDamping.setDefaultOption("default");
   settings.push_back(Utils::SettingsNames::scfDamping, std::move(scfDamping));
 }
 
@@ -147,7 +153,7 @@ inline void TurbomoleCalculatorSettings::addScfOrbitalShift(UniversalSettings::D
   Utils::UniversalSettings::DoubleDescriptor scfOrbitalShift(
       "Shift closed shells to lower energies to aid convergence.");
   // internal default
-  scfOrbitalShift.setDefaultValue(0.1);
+  scfOrbitalShift.setDefaultValue(0.4);
   settings.push_back(SettingsNames::scfOrbitalShift, std::move(scfOrbitalShift));
 }
 
@@ -167,7 +173,7 @@ inline void TurbomoleCalculatorSettings::addSolvent(UniversalSettings::Descripto
 
 inline void TurbomoleCalculatorSettings::addSolvation(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::StringDescriptor solvationOption(
-      "Sets the implicit solvation model in the TURBOMOLE calculation. Currently,nothing is available.");
+      "Sets the implicit solvation model in the TURBOMOLE calculation.");
   solvationOption.setDefaultValue("");
   settings.push_back(Utils::SettingsNames::solvation, std::move(solvationOption));
 }
@@ -177,6 +183,14 @@ inline void TurbomoleCalculatorSettings::addSteerOrbitals(UniversalSettings::Des
       "Converts internal coordinates used by default to cartesian coordinates.");
   steerOrbitals.setDefaultValue(false);
   settings.push_back(SettingsNames::steerOrbitals, std::move(steerOrbitals));
+}
+
+inline void TurbomoleCalculatorSettings::addPointChargesFile(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::StringDescriptor pointChargesFile(
+      "Sets the file name for a Turbomole point charges file. Note that the expected line format for the point "
+      "charges file is <x> <y> <z> <q>.");
+  pointChargesFile.setDefaultValue("");
+  settings.push_back(SettingsNames::pointChargesFile, std::move(pointChargesFile));
 }
 
 } // namespace ExternalQC

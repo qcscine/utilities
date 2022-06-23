@@ -249,7 +249,7 @@ int countNearestNeighbors(const PositionCollection& positions, const Position& p
  * the given collection and is therefore not considered a nearest neighbor.
  * @return int The number of nearest neighbors.
  */
-int countNearestNeighbors(const PositionCollection& positions, const Position& pos, const PeriodicBoundaries& pbc,
+int countNearestNeighbors(PositionCollection positions, Position pos, const PeriodicBoundaries& pbc,
                           double margin = 0.1, double thresholdForSame = 0.01);
 
 /**

@@ -34,13 +34,15 @@ void init_periodic_boundaries(pybind11::module& m) {
 
     \gamma &= \sphericalangle (\vec{a}, \vec{b})\\
       \end{split})delim");
-  periodic_boundaries.def(pybind11::init<double>(), pybind11::arg("cubeLength") = 1.0,
+  periodic_boundaries.def(pybind11::init<double, const std::string&>(), pybind11::arg("cubeLength") = 1.0,
+                          pybind11::arg("periodicity") = "xyz",
                           "Initialize cubic periodic boundaries with the given side length.");
-  periodic_boundaries.def(pybind11::init<const Eigen::Matrix3d>(), pybind11::arg("matrix"),
+  periodic_boundaries.def(pybind11::init<const Eigen::Matrix3d, const std::string&>(), pybind11::arg("matrix"),
+                          pybind11::arg("periodicity") = "xyz",
                           "Initialize periodic boundaries with a particular cell matrix.");
-  periodic_boundaries.def(pybind11::init<const Eigen::Vector3d&, const Eigen::Vector3d&, bool, bool>(),
+  periodic_boundaries.def(pybind11::init<const Eigen::Vector3d&, const Eigen::Vector3d&, bool, bool, const std::string&>(),
                           pybind11::arg("lengths"), pybind11::arg("angles"), pybind11::arg("isBohr") = true,
-                          pybind11::arg("isDegrees") = true,
+                          pybind11::arg("isDegrees") = true, pybind11::arg("periodicity") = "xyz",
                           "Initialize from lengths of cell vectors and angles between them");
   periodic_boundaries.def(
       pybind11::init<std::string, std::string, bool, bool>(), pybind11::arg("periodicBoundariesString"),
@@ -58,6 +60,10 @@ void init_periodic_boundaries(pybind11::module& m) {
 
   periodic_boundaries.def_property("matrix", &PeriodicBoundaries::getCellMatrix, &PeriodicBoundaries::setCellMatrix,
                                    "The underlying matrix governing the periodic boundaries.");
+
+  periodic_boundaries.def(
+      "is_ortho_rhombic", &PeriodicBoundaries::isOrthoRhombic, pybind11::arg("eps") = 1e-2,
+      "Returns whether the cell is orthorhombic. The optional parameter gives the tolerance around 90 degrees.");
 
   periodic_boundaries.def(
       "transform", pybind11::overload_cast<const PositionCollection&, bool>(&PeriodicBoundaries::transform, pybind11::const_),
@@ -113,7 +119,8 @@ void init_periodic_boundaries(pybind11::module& m) {
                           "Translate given PositionCollection into the unit cell. Optionally you can give an "
                           "additional shift vector in Relative Coordinates.");
 
-  periodic_boundaries.def("__str__", &PeriodicBoundaries::getPeriodicBoundariesString, "String of all cell lengths and angles.");
+  periodic_boundaries.def("__str__", &PeriodicBoundaries::getPeriodicBoundariesString, pybind11::arg("delimiter") = ",",
+                          "String of all cell lengths and angles.");
 
   // operators
   periodic_boundaries.def(pybind11::self == pybind11::self);

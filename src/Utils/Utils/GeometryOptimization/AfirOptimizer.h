@@ -123,7 +123,7 @@ class AfirOptimizer : public AfirOptimizerBase {
     // Optimize
     int cycles = 0;
     try {
-      cycles = optimizer.optimize(positions, update, check);
+      cycles = optimizer.optimize(positions, update, check, log);
     }
     catch (const InternalCoordinatesException& e) {
       log.output << "Internal coordinates broke down. Continuing in Cartesians." << Core::Log::nl;
@@ -136,7 +136,7 @@ class AfirOptimizer : public AfirOptimizerBase {
       check.transformation = transformation;
       // Restart optimization
       optimizer.prepareRestart(cycle);
-      cycles = optimizer.optimize(lastPositions, update, check);
+      cycles = optimizer.optimize(lastPositions, update, check, log);
       positions = lastPositions;
     }
     // Update Atom collection and return
@@ -293,7 +293,7 @@ inline int AfirOptimizer<Bfgs>::optimize(AtomCollection& atoms, Core::Log& log) 
   // Optimize
   int cycles = 0;
   try {
-    cycles = optimizer.optimize(positions, update, check);
+    cycles = optimizer.optimize(positions, update, check, log);
   }
   catch (const InternalCoordinatesException& e) {
     log.output << "Internal coordinates broke down. Continuing in cartesians." << Core::Log::nl;
@@ -306,7 +306,7 @@ inline int AfirOptimizer<Bfgs>::optimize(AtomCollection& atoms, Core::Log& log) 
     // Restart optimization
     optimizer.prepareRestart(cycle);
     Eigen::VectorXd lastPositions = Eigen::Map<const Eigen::VectorXd>(lastCoordinates.data(), atoms.size() * 3);
-    cycles = optimizer.optimize(lastPositions, update, check);
+    cycles = optimizer.optimize(lastPositions, update, check, log);
     positions = lastPositions;
   }
   // Update Atom collection and return

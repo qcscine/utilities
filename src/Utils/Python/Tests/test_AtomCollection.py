@@ -29,6 +29,10 @@ def test_position_access():
     a.positions = [pos_a, pos_b]
     assert numpy.array_equal(a.get_position(0), pos_a)
     assert numpy.array_equal(a.get_position(1), pos_b)
+    assert numpy.array_equal(a[1].position, pos_b)
+    assert numpy.array_equal(a[-1].position, pos_b)
+    assert numpy.array_equal(a[0].position, pos_a)
+    assert numpy.array_equal(a[-2].position, pos_a)
 
 
 def test_vector_functions():
@@ -57,3 +61,12 @@ def test_sequence_functions():
 
     element_symbol_strings = ",".join([str(atom.element) for atom in a])
     assert element_symbol_strings == "F,Ca,Br"
+
+def test_out_of_range():
+    a = scine.AtomCollection(3)
+    with pytest.raises(IndexError) as excinfo:
+        _ = a[10]
+    assert "out of range" in str(excinfo.value)
+    with pytest.raises(IndexError) as excinfo:
+        _ = a[-10]
+    assert "out of range" in str(excinfo.value)

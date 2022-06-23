@@ -90,7 +90,7 @@ void init_module_manager(pybind11::module& m) {
 
       >>> m = core.ModuleManager()
       >>> m.models(core.Calculator.INTERFACE)
-      []
+      ['TEST', 'LENNARDJONES']
     )");
 
   module_manager.def("has", &module_manager_has, pybind11::arg("interface"), pybind11::arg("model"),
@@ -128,6 +128,5 @@ void init_module_manager(pybind11::module& m) {
 
       >>> m = core.ModuleManager()
       >>> m.get(core.Calculator.INTERFACE, "PM6") # if Sparrow is not loaded
-      None
     )");
 }

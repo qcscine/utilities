@@ -11,7 +11,7 @@ namespace Scine {
 namespace Utils {
 
 ScopedLocale::ScopedLocale(const std::string& targetLocale) {
-  originalLocale_ = std::locale().name();
+  originalLocale_ = std::locale("").name();
   std::locale::global(std::locale(targetLocale.c_str()));
 }
 

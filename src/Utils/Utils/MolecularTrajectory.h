@@ -7,6 +7,7 @@
 #ifndef UTILS_MOLECULARTRAJECTORY_H
 #define UTILS_MOLECULARTRAJECTORY_H
 
+#include "Utils/DataStructures/PeriodicBoundaries.h"
 #include "Utils/Typenames.h"
 
 namespace Scine {
@@ -24,6 +25,7 @@ class MolecularTrajectory {
   using Container = std::vector<PositionCollection>;
   // The energy container is always either kept empty or the same size as the container of structures.
   using EnergyContainer = std::vector<double>;
+  using PbcContainer = std::vector<Eigen::Matrix3d>;
   using iterator = Container::iterator;
   using const_iterator = Container::const_iterator;
   using reference = Container::reference;
@@ -57,14 +59,41 @@ class MolecularTrajectory {
    */
   void setEnergies(const EnergyContainer& energies);
   /**
+   * @brief Setter for the periodic boundaries.
+   *
+   *        Pbcs can only be set if the size of the pbc vector
+   *        matches the size of the structure vector.
+   *
+   * @param pbcs The pbcs in a vector as matrices.
+   */
+  void setPbcs(const PbcContainer& pbcs);
+  /**
+   * @brief Setter for the periodic boundaries.
+   *
+   *        Pbcs can only be set if the size of the pbc vector
+   *        matches the size of the structure vector.
+   *
+   * @param pbcs The pbcs in a vector as true PeriodicBoundaries objects.
+   */
+  void setPbcs(const std::vector<PeriodicBoundaries>& pbcs);
+  /**
    * @brief Getter for the vector of energies corresponding to the structures.
    * @return The vector of energies.
    */
   EnergyContainer getEnergies() const;
   /**
+   * @brief Getter for the vector of periodic boundaries corresponding to the structures.
+   * @return The vector of pbcs.
+   */
+  std::vector<PeriodicBoundaries> getPbcs() const;
+  /**
    * @brief Clears the energy container.
    */
   void clearEnergies();
+  /**
+   * @brief Clears the pbc container.
+   */
+  void clearPbcs();
   /**
    * @brief Clears all steps in the trajectory, element information is retained.
    */
@@ -96,6 +125,34 @@ class MolecularTrajectory {
    * @param e The corresponding energy.
    */
   void push_back(PositionCollection p, double e);
+  /**
+   * @brief Adds a new set of positions (a frame) with a corresponding pbc.
+   *
+   *        This function is only usable if the pbc vector already
+   *        has the same size as the structure vector. Therefore, if a few
+   *        structures are added without a pbc, the pbcs have to be
+   *        first set for the other structures, before this function becomes
+   *        applicable.
+   *
+   * @param p The new positions to be added.
+   * @param pbc The corresponding pbc.
+   */
+  void push_back(PositionCollection p, PeriodicBoundaries pbc);
+  /**
+   * @brief Adds a new set of positions (a frame) with a corresponding energy
+   *        and periodic boundaries.
+   *
+   *        This function is only usable if the energy and pbc vector already
+   *        have the same size as the structure vector. Therefore, if a few
+   *        structures are added without an energy or pbc, they have to be
+   *        first set for the other structures, before this function becomes
+   *        applicable.
+   *
+   * @param p The new positions to be added.
+   * @param e The corresponding energy.
+   * @param pbc The corresponding periodic boundaries.
+   */
+  void push_back(PositionCollection p, double e, PeriodicBoundaries pbc);
   /**
    * @brief Checks if there are structures present.
    * @return true If no PositionCollections are stored.
@@ -207,17 +264,20 @@ class MolecularTrajectory {
    */
   MolecularTrajectory operator/(double f) const;
 
- private:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW // See http://eigen.tuxfamily.org/dox-devel/group__TopicStructHavingEigenMembers.html
+
+      private :
+    /**
+     * @brief Checks if a reset of the elements with a given collection is allowed.
+     * @param ec The Element collection.
+     * @return true If the reset is allowed.
+     * @return false If the reset is not allowed.
+     */
+    bool
+    resettingElementTypeCollectionIsAllowed(const ElementTypeCollection& ec) const;
   /**
-   * @brief Checks if a reset of the elements with a given collection is allowed.
-   * @param ec The Element collection.
-   * @return true If the reset is allowed.
-   * @return false If the reset is not allowed.
-   */
-  bool resettingElementTypeCollectionIsAllowed(const ElementTypeCollection& ec) const;
-  /**
-   * @brief Checks if the addition of a given collection of positionsis allowed.
-   * @param ec The collection of positions.
+   * @brief Checks if the addition of a given collection of positions is allowed.
+   * @param p The collection of positions.
    * @return true If the addition is allowed.
    * @return false If the addition is not allowed.
    */
@@ -225,6 +285,7 @@ class MolecularTrajectory {
   Container structureVector_;
   ElementTypeCollection elements_;
   EnergyContainer energies_;
+  PbcContainer pbcs_;
 };
 
 } /* namespace Utils */

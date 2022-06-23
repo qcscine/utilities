@@ -30,7 +30,7 @@ namespace ImplicitSolvation {
  * @throws std::logic_error for wrong input
  * @return bool whether implicit solvation has to be applied or not
  */
-static bool solvationNeededAndPossible(std::vector<std::string> availableSolvationModels, Settings& settings) {
+inline bool solvationNeededAndPossible(std::vector<std::string> availableSolvationModels, Settings& settings) {
   std::string solvent = settings.getString(Utils::SettingsNames::solvent);
   std::string solvation = settings.getString(Utils::SettingsNames::solvation);
   /* make all strings lowercase */
@@ -75,9 +75,7 @@ static bool solvationNeededAndPossible(std::vector<std::string> availableSolvati
   // solvent is specified as 'any' -> warning and select water
   if (solvent == "any") {
     // TODO proper warning
-    std::cout << "Warning, specified implicit solvation with '" + solvation +
-                     "', but solvent was set to 'any'. "
-                     "Using water as default."
+    std::cerr << "Warning, specified implicit solvation with '" + solvation + "', but solvent was set to 'any'. Using water as default."
               << std::endl;
     solvent = "water";
   }

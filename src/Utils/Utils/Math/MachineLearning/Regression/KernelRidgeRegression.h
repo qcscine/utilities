@@ -10,6 +10,7 @@
 
 #include "../Kernels.h"
 #include "RegressionModel.h"
+#include <Utils/Settings.h>
 #include <Utils/Technical/CloneInterface.h>
 #include <memory>
 
@@ -39,7 +40,7 @@ class KernelRidgeRegression : public CloneInterface<KernelRidgeRegression, Regre
    * model.
    * @return A vector of predicted target values. The length of this vector is equal to the number of targets.
    */
-  Eigen::VectorXd predict(const Eigen::VectorXd& data) const override;
+  Eigen::VectorXd predict(const Eigen::VectorXd& data) override;
 
   /**
    * @brief Setter for the regularization factor. Note that a very small value can lead to overfitting or to
@@ -54,13 +55,12 @@ class KernelRidgeRegression : public CloneInterface<KernelRidgeRegression, Regre
    *                        hyperparameters of the standard kernels, see the Kernels.h file, where some standard
    *                        kernels are implemented.
    */
-  void setKernel(std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const std::vector<double>&)> kernel,
-                 std::vector<double> hyperparameters);
+  void setKernel(std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&)> kernel,
+                 Eigen::VectorXd hyperparameters);
 
  private:
   // The kernel function.
-  std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const std::vector<double>&)> kernel_ =
-      Kernels::linearKernel;
+  std::function<double(const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&)> kernel_ = Kernels::linearKernel;
   // The inverted regularized kernel matrix: (K + alpha*I)^(-1)
   Eigen::MatrixXd invertedRegularizedKernelMatrix_;
   // Target values stored in a matrix (number of target values per data point x number of data points)
@@ -72,7 +72,7 @@ class KernelRidgeRegression : public CloneInterface<KernelRidgeRegression, Regre
   // Regularization factor
   double regularizationFactor_ = 1e-3;
   // Hyperparameters of the kernel
-  std::vector<double> hyperparameters_;
+  Eigen::VectorXd hyperparameters_;
 };
 
 } // namespace MachineLearning

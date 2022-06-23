@@ -156,7 +156,6 @@ class GeoOptMockCalculator : public Core::Calculator {
     h(4, 6) = -h(6, 7);
     h(5, 6) = -h(6, 8);
     h(5, 7) = -h(7, 8);
-
     r_ = Results();
     r_.set<Property::SuccessfulCalculation>(true);
     r_.set<Property::Energy>(e);
@@ -237,6 +236,83 @@ TEST(GeometryOptimizerTests, SteepestDescent) {
   EXPECT_NEAR(r23, std::sqrt(10), 1.0e-8);
 }
 
+TEST(GeometryOptimizerTests, DynamicSteepestDescent) {
+  Core::Log logger = Core::Log::silent();
+  std::shared_ptr<Core::Calculator> mockCalculator = std::make_shared<GeoOptMockCalculator>();
+  GeometryOptimizer<SteepestDescent> geo(*mockCalculator);
+  geo.coordinateSystem = CoordinateSystem::Cartesian;
+  geo.check.maxIter = 50;
+  geo.optimizer.factor = 0.001;
+  geo.optimizer.useTrustRadius = true;
+  geo.optimizer.trustRadius = 0.005;
+  geo.optimizer.dynamicMultiplier = 1.1;
+  geo.check.stepMaxCoeff = 1.0e-7;
+  geo.check.stepRMS = 1.0e-9;
+  geo.check.gradMaxCoeff = 1.0e-7;
+  geo.check.gradRMS = 1.0e-9;
+  geo.check.deltaValue = 1.0e-12;
+  geo.check.requirement = 4;
+  ASSERT_TRUE(GeometryOptimization::settingsMakeSense(geo));
+  const ElementTypeCollection elements{ElementType::H, ElementType::H, ElementType::H};
+  Eigen::MatrixX3d positions = Eigen::MatrixX3d::Zero(3, 3);
+  positions(0, 0) = -M_PI;
+  positions(2, 0) = M_PI;
+  AtomCollection atoms(elements, positions);
+  auto nIter = geo.optimize(atoms, logger);
+
+  // Check results
+  EXPECT_TRUE(static_cast<unsigned>(nIter) < geo.check.maxIter);
+  auto p1 = atoms.getPosition(0);
+  auto p2 = atoms.getPosition(1);
+  auto p3 = atoms.getPosition(2);
+  auto r12 = (p1 - p2).norm();
+  auto r23 = (p3 - p2).norm();
+  EXPECT_NEAR(r12, std::sqrt(10), 1.0e-8);
+  EXPECT_NEAR(r23, std::sqrt(10), 1.0e-8);
+}
+
+TEST(GeometryOptimizerTests, BfgsCatchMaxIterMinIterLogicError) {
+  Core::Log logger = Core::Log::silent();
+  std::shared_ptr<Core::Calculator> mockCalculator = std::make_shared<GeoOptMockCalculator>();
+  GeometryOptimizer<Bfgs> geo(*mockCalculator);
+  geo.coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
+  geo.check.maxIter = 5;
+  geo.check.stepMaxCoeff = 1.0e-7;
+  geo.check.stepRMS = 1.0e-8;
+  geo.check.gradMaxCoeff = 1.0e-7;
+  geo.check.gradRMS = 1.0e-8;
+  geo.check.deltaValue = 1.0e-12;
+  const ElementTypeCollection elements{ElementType::H, ElementType::H, ElementType::H};
+  Eigen::MatrixX3d positions = Eigen::MatrixX3d::Zero(3, 3);
+  positions(0, 0) = 0.9 * M_PI;
+  positions(2, 0) = 0.9 * M_PI;
+  AtomCollection atoms(elements, positions);
+  std::string exceptionString = "";
+  geo.optimizer.minIter = 6;
+  // Should throw error because minIter > maxIter
+  try {
+    geo.optimize(atoms, logger);
+  }
+  catch (const std::logic_error& e) {
+    exceptionString = e.what();
+  }
+  ASSERT_STREQ(exceptionString.c_str(),
+               "Maximum number of cycles is smaller or equal to the minimum number of cycles."
+               "\nPlease set the maximum number of cycles at least one larger than the minimum number of cycles.");
+  geo.optimizer.minIter = 5;
+  exceptionString = "";
+  // Should throw error because minIter == maxIter
+  try {
+    geo.optimize(atoms, logger);
+  }
+  catch (const std::logic_error& e) {
+    exceptionString = e.what();
+  }
+  ASSERT_STREQ(exceptionString.c_str(),
+               "Maximum number of cycles is smaller or equal to the minimum number of cycles."
+               "\nPlease set the maximum number of cycles at least one larger than the minimum number of cycles.");
+}
+
 TEST(GeometryOptimizerTests, Bfgs) {
   Core::Log logger = Core::Log::silent();
   std::shared_ptr<Core::Calculator> mockCalculator = std::make_shared<GeoOptMockCalculator>();
@@ -293,20 +369,24 @@ TEST(GeometryOptimizerTests, Bfgs2) {
   // Check results
   PositionCollection reference = PositionCollection::Zero(5, 3);
   // clang-format off
-  reference << -7.1884413565e+00, +1.3427519106e-03, -2.1582324899e-01,
-               -3.5853153517e+00, +6.7871512273e-05, -1.1227585886e-01,
-               -2.0744585666e+00, +1.3260367874e+00, +1.2281489967e-01,
-               -2.0999655137e+00, -8.2964494935e-01, +9.8383633867e-01,
-               -2.0338472592e+00, -4.9779730464e-01, -1.3127867837e+00;
+  reference << -7.1884833496,    0.0005965537,   -0.2143588034,
+                -3.5853174437,    0.0000306966,   -0.1122029043,
+                -2.0746307140,    1.3262980443,    0.1222965263,
+                -2.0993813077,   -0.8293835169,    0.9833404851,
+                -2.0342152327,   -0.4975366208,   -1.3133099569;
   // clang-format on
   positions = atoms.getPositions();
   for (unsigned int i = 0; i < reference.array().size(); i++) {
     EXPECT_NEAR(reference.data()[i], positions.data()[i], 1.0e-8);
   }
-  ASSERT_EQ(nIter, 90);
+  ASSERT_EQ(nIter, 135);
+  // Increase minimum number of iterations
+  geo.optimizer.minIter = 2;
+  auto nIter2 = geo.optimize(atoms, logger);
+  ASSERT_TRUE(nIter2 > geo.optimizer.minIter);
 }
 
-TEST(GeometryOptimizerTests, Bfgs_NoDiis) {
+TEST(GeometryOptimizerTests, BfgsNoDiis) {
   Core::Log logger = Core::Log::silent();
   std::shared_ptr<Core::Calculator> mockCalculator = std::make_shared<GeoOptMockCalculator>();
   GeometryOptimizer<Bfgs> geo(*mockCalculator);

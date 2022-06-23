@@ -51,7 +51,7 @@ TEST_F(AMatrixWithDerivativesTest, CanSumTwoMatricesWithDerivatives) {
 
   for (int i = 0; i < arbitraryDimension; ++i) {
     for (int j = 0; j < arbitraryDimension; ++j) {
-      EXPECT_EQ(result.get<DerivativeOrder::Zero>()(i, j), actualResult(i, j));
+      EXPECT_DOUBLE_EQ(result.get<DerivativeOrder::Zero>()(i, j), actualResult(i, j));
     }
   }
 }
@@ -61,10 +61,11 @@ TEST_F(AMatrixWithDerivativesTest, CanSubtractTwoMatricesWithDerivatives) {
   Eigen::MatrixXd actualResult = randomValuesA - randomValuesB;
   for (int i = 0; i < arbitraryDimension; ++i) {
     for (int j = 0; j < arbitraryDimension; ++j) {
-      EXPECT_EQ(result.get<DerivativeOrder::Zero>()(i, j), actualResult(i, j));
+      EXPECT_DOUBLE_EQ(result.get<DerivativeOrder::Zero>()(i, j), actualResult(i, j));
     }
   }
 }
+
 TEST_F(AMatrixWithDerivativesTest, CanSumDerivativesOfTwoMatricesWithDerivatives) {
   auto result = matrixA + matrixB;
   Eigen::Matrix<AutomaticDifferentiation::First3D, Eigen::Dynamic, Eigen::Dynamic> actualResult =
@@ -72,9 +73,10 @@ TEST_F(AMatrixWithDerivativesTest, CanSumDerivativesOfTwoMatricesWithDerivatives
 
   for (int i = 0; i < arbitraryDimension; ++i) {
     for (int j = 0; j < arbitraryDimension; ++j) {
-      EXPECT_EQ(result.get<DerivativeOrder::One>()(i, j).value(), (randomDerivativesA + randomDerivativesB)(i, j).value());
-      EXPECT_EQ(result.get<DerivativeOrder::One>()(i, j).derivatives(),
-                (randomDerivativesA + randomDerivativesB)(i, j).derivatives());
+      EXPECT_DOUBLE_EQ(result.get<DerivativeOrder::One>()(i, j).value(),
+                       (randomDerivativesA + randomDerivativesB)(i, j).value());
+      EXPECT_TRUE(result.get<DerivativeOrder::One>()(i, j).derivatives().isApprox(
+          (randomDerivativesA + randomDerivativesB)(i, j).derivatives()));
     }
   }
 }
@@ -86,9 +88,9 @@ TEST_F(AMatrixWithDerivativesTest, CanSubtractDerivativesOfTwoMatricesWithDeriva
 
   for (int i = 0; i < arbitraryDimension; ++i) {
     for (int j = 0; j < arbitraryDimension; ++j) {
-      EXPECT_EQ(result.get<DerivativeOrder::One>()(i, j).value(), actualResult(i, j).value());
-      EXPECT_EQ(result.get<DerivativeOrder::One>()(i, j).derivatives(),
-                (randomDerivativesA - randomDerivativesB)(i, j).derivatives());
+      EXPECT_DOUBLE_EQ(result.get<DerivativeOrder::One>()(i, j).value(), actualResult(i, j).value());
+      EXPECT_TRUE(result.get<DerivativeOrder::One>()(i, j).derivatives().isApprox(
+          (randomDerivativesA - randomDerivativesB)(i, j).derivatives()));
     }
   }
 }

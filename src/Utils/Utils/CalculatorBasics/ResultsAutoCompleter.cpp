@@ -93,6 +93,10 @@ void ResultsAutoCompleter::generateThermochemistry(Results& results, const AtomC
   // Get spin multiplicity
   LcaoUtils::ElectronicOccupation electronicOccupation = results.get<Property::ElectronicOccupation>();
   int spinMultiplicity = abs(electronicOccupation.numberAlphaElectrons() - electronicOccupation.numberBetaElectrons()) + 1;
+  generateThermochemistry(results, atomCollection, spinMultiplicity);
+}
+
+void ResultsAutoCompleter::generateThermochemistry(Results& results, const AtomCollection& atomCollection, int spinMultiplicity) {
   double electronicEnergy = results.get<Property::Energy>();
   std::unique_ptr<ThermochemistryCalculator> thermochemistryCalculator =
       std::make_unique<ThermochemistryCalculator>(results.get<Property::Hessian>(), atomCollection.getElements(),

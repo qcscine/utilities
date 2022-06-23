@@ -5,7 +5,6 @@
  *            See LICENSE.txt for details.
  */
 
-#include "Utils/Scf/ConvergenceAccelerators/ConvergenceAcceleratorFactory.h"
 #include <Core/Log.h>
 #include <Utils/DataStructures/DipoleMatrix.h>
 #include <Utils/DataStructures/MatrixWithDerivatives.h>
@@ -78,17 +77,10 @@ struct TestElectronicPart final : public ElectronicContributionCalculator {
         twoElMat(i, j) = (mullikenCharges[i] - 1.0) * (mullikenCharges[j] - 1.0) / double(std::abs(i - j));
       }
     }
-    if (denmat_.unrestricted()) {
-      alpha = beta = twoElMat;
-      alpha -= 0.1 * denmat_.betaMatrix();
-      beta -= 0.1 * denmat_.alphaMatrix();
-    }
     if (fieldContribution_) {
       fieldContribution_->calculate(denmat_, DerivativeOrder::Zero);
     }
     twoElMat = twoElMat.selfadjointView<Eigen::Lower>();
-    alpha = alpha.selfadjointView<Eigen::Lower>();
-    beta = beta.selfadjointView<Eigen::Lower>();
   }
   void finalize(Utils::DerivativeOrder order) final {
     calculateDensityDependentPart(order);
@@ -100,39 +92,20 @@ struct TestElectronicPart final : public ElectronicContributionCalculator {
   }
 
   SpinAdaptedMatrix getMatrix() const final {
-    Eigen::MatrixXd fock = oneElMat;
+    Eigen::MatrixXd fock = oneElMat + twoElMat;
     if (fieldContribution_) {
       fock += fieldContribution_->getElectronicContribution().restrictedMatrix();
     }
-    if (denmat_.restricted()) {
-      return SpinAdaptedMatrix::createRestricted(fock + twoElMat);
-    }
-    return SpinAdaptedMatrix::createUnrestricted(fock + alpha, fock + beta);
+    return SpinAdaptedMatrix::createRestricted(std::move(fock));
   }
 
   double calculateElectronicEnergy() const final {
     auto nAOs = denmat_.restrictedMatrix().rows();
     double electronicEnergy = 0.0;
     for (unsigned int i = 0; i < nAOs; i++) {
-      electronicEnergy += 0.5 * denmat_.restricted(i, i) * 2 * oneElMat(i, i);
+      electronicEnergy += 0.5 * denmat_.restricted(i, i) * (twoElMat(i, i) + 2 * oneElMat(i, i));
       for (unsigned int j = 0; j < i; j++) {
-        electronicEnergy += denmat_.restricted(i, j) * 2 * oneElMat(i, j);
-      }
-    }
-    if (denmat_.restricted()) {
-      for (unsigned int i = 0; i < nAOs; i++) {
-        electronicEnergy += 0.5 * denmat_.restricted(i, i) * twoElMat(i, i);
-        for (unsigned int j = 0; j < i; j++) {
-          electronicEnergy += denmat_.restricted(i, j) * twoElMat(i, j);
-        }
-      }
-    }
-    else {
-      for (unsigned int i = 0; i < nAOs; i++) {
-        electronicEnergy += 0.5 * (denmat_.alpha(i, i) * alpha(i, i) + denmat_.beta(i, i) * beta(i, i));
-        for (unsigned int j = 0; j < i; j++) {
-          electronicEnergy += denmat_.alpha(i, j) * alpha(i, j) + denmat_.beta(i, j) * beta(i, j);
-        }
+        electronicEnergy += denmat_.restricted(i, j) * (twoElMat(i, j) + 2 * oneElMat(i, j));
       }
     }
     if (fieldContribution_) {
@@ -148,7 +121,7 @@ struct TestElectronicPart final : public ElectronicContributionCalculator {
   const DensityMatrix& denmat_;
   const AtomsOrbitalsIndexes& aoIndex_;
   Eigen::MatrixXd oneElMat;
-  Eigen::MatrixXd twoElMat, alpha, beta;
+  Eigen::MatrixXd twoElMat;
   std::shared_ptr<AdditiveElectronicContribution> fieldContribution_;
 }; // namespace Tests
 
@@ -166,7 +139,7 @@ struct TestInitializer final : public StructureDependentInitializer {
 
   AtomsOrbitalsIndexes aoIndexes_;
   std::vector<double> coreCharges_;
-  void initialize(const Utils::ElementTypeCollection& /*elements*/) override {
+  void initialize(const Utils::ElementTypeCollection& /*elements*/) {
     aoIndexes_ = AtomsOrbitalsIndexes(10);
     coreCharges_.resize(10);
     for (int i = 0; i < 10; ++i) {
@@ -175,22 +148,22 @@ struct TestInitializer final : public StructureDependentInitializer {
     }
   }
 
-  AtomsOrbitalsIndexes getAtomsOrbitalsIndexes() const override {
+  AtomsOrbitalsIndexes getAtomsOrbitalsIndexes() const {
     return aoIndexes_;
   }
-  unsigned getNumberElectronsForUnchargedSpecies() const override {
+  unsigned getNumberElectronsForUnchargedSpecies() const {
     return 10;
   }
-  std::vector<double> getCoreCharges() const override {
+  std::vector<double> getCoreCharges() const {
     return coreCharges_;
   }
-  bool unrestrictedCalculationPossible() const override {
-    return true;
+  bool unrestrictedCalculationPossible() const {
+    return false;
   }
 };
 
 struct DummyScfMethod : public ScfMethod {
-  DummyScfMethod() : ScfMethod(true, Utils::DerivativeOrder::Zero, false) {
+  DummyScfMethod() : ScfMethod(false, Utils::DerivativeOrder::Zero, false) {
     overlapCalculator_ = std::make_shared<TestOverlapCalculator>();
     densityMatrixGuess_ = std::make_shared<TestDenMatGuessCalc>();
     initializer_ = std::make_shared<TestInitializer>();
@@ -277,7 +250,6 @@ class ALcaoTest : public Test {
  protected:
   void SetUp() override {
     lcaoMethod_.initialize();
-    log = Core::Log::silent();
   }
 };
 
@@ -316,6 +288,7 @@ TEST_F(ALcaoTest, CanScfAModelSystem) {
 
   scfMethod_.setConvergenceCriteria(t);
   scfMethod_.setMaxIterations(100);
+  Core::Log log;
   scfMethod_.convergedCalculation(log, Utils::Derivative::None);
 
   EXPECT_LE(*(scfMethod_.getCurrentConvergenceValues()[0]), 1e-9);
@@ -330,7 +303,8 @@ TEST_F(ALcaoTest, CanScfAModelSystem) {
 
 TEST_F(ALcaoTest, CanScfAModelSystemWithAdditiveHamiltonian) {
   scfMethod_.setConvergenceCriteria({1e-9, 1e-9});
-  scfMethod_.setMaxIterations(400);
+  scfMethod_.setMaxIterations(800);
+  Core::Log log;
   scfMethod_.convergedCalculation(log, Utils::Derivative::None);
   scfMethod_.addElectronicContribution(std::make_shared<FieldContribution>(
       scfMethod_.getOverlapMatrix(), scfMethod_.getMolecularOrbitals().restrictedMatrix(),
@@ -339,16 +313,6 @@ TEST_F(ALcaoTest, CanScfAModelSystemWithAdditiveHamiltonian) {
 
   EXPECT_LE(*(scfMethod_.getCurrentConvergenceValues()[0]), 1e-9);
   EXPECT_LE(*(scfMethod_.getCurrentConvergenceValues()[1]), 1e-9);
-}
-
-TEST_F(ALcaoTest, CanCalculateUnrestricted) {
-  scfMethod_.setConvergenceCriteria({1e-9, 1e-9});
-  scfMethod_.setMaxIterations(400);
-  scfMethod_.setUnrestrictedCalculation(true);
-  scfMethod_.setScfMixer(scf_mixer_t::fock_diis);
-  ASSERT_NO_THROW(scfMethod_.convergedCalculation(log, Utils::Derivative::None));
-  scfMethod_.setUnrestrictedCalculation(false);
-  ASSERT_NO_THROW(scfMethod_.convergedCalculation(log, Utils::Derivative::None));
 }
 } // namespace Tests
 } // namespace Utils

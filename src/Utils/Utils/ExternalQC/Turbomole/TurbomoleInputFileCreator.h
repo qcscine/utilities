@@ -47,19 +47,27 @@ class TurbomoleInputFileCreator {
   void checkAndUpdateControlFile(const Settings& settings);
   // execution of "cosmoprep"
   void addSolvation(const Settings& settings);
-  // helper function to check if charge and multiplicity are valid
-  void checkValidityOfChargeAndMultiplicity(const Settings& settings, const AtomCollection& atoms);
   std::string& calculationDirectory_;
   std::string& turbomoleExecutableBase_;
   std::string defineExecutableBase_ = "define";
-  // maps the available solvents to the corresponding dielectric constant
-  // Constants have been taken from CRC Handbook of Chemistry and Physics, 101st edition,
-  // section "Permittivity (Dielectric Constant) of Liquids"
-  std::unordered_map<std::string, double> availableSolventModels_ = {
-      {"acetone", 21.01}, {"ammonia", 16.61}, {"benzene", 2.2825}, {"chloroform", 4.8069}, {"dmso", 47.24},
-      {"ethanol", 25.3},  {"hexane", 1.8865}, {"h2o", 80.1},       {"methanol", 33.0},     {"nitrobenzene", 35.6},
-      {"thf", 7.52},      {"toluene", 2.379}, {"water", 80.1}};
+  // maps the available solvents to the corresponding dielectric constants and radii of the solvent molecules in
+  // Angstrom. Constants have been taken from the ADF documentation (https://www.scm.com/doc/ADF/Input/COSMO.html, last
+  // visited Sept 06, 2021).
+  std::unordered_map<std::string, std::pair<double, double>> availableSolventModels_ = {
+      {"acetone", std::make_pair(21.7, 3.08)},  {"ammonia", std::make_pair(16.9, 2.24)},
+      {"benzene", std::make_pair(2.3, 3.28)},   {"chloroform", std::make_pair(4.8, 3.17)},
+      {"dmso", std::make_pair(46.7, 3.04)},     {"ethanol", std::make_pair(24.5, 2.85)},
+      {"hexane", std::make_pair(1.88, 3.74)},   {"h2o", std::make_pair(78.4, 1.93)},
+      {"methanol", std::make_pair(32.6, 2.53)}, {"nitrobenzene", std::make_pair(34.8, 3.44)},
+      {"thf", std::make_pair(7.58, 3.18)},      {"toluene", std::make_pair(2.38, 3.48)},
+      {"water", std::make_pair(78.4, 1.93)},    {"isopropanol", std::make_pair(19.9, 3.12)}};
+
   const std::vector<std::string> availableD3Params_ = {"D3", "D3BJ"};
+  // Sets of damping parameters to aid SCF convergence. The old
+  // Fock operator is added to the current one with a specific weight (first parameter). This weight is reduced in
+  // specific steps (second parameter) until a minimum is reached (third parameter).
+  std::unordered_map<std::string, std::vector<double>> availableDampingParameter_{
+      {"low", {1.5, 0.05, 0.1}}, {"medium", {5.0, 0.1, 0.5}}, {"high", {8.5, 0.1, 0.5}}};
   TurbomoleFiles files_;
 };
 

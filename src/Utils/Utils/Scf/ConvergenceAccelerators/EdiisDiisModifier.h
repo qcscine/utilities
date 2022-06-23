@@ -28,7 +28,7 @@ class EdiisDiisModifier : public ScfModifier {
   EdiisDiisModifier();
   void onOverlapCalculated() override;
   void onFockCalculated() override;
-  void setSpaceSize(int n);
+  void setSpaceSize(unsigned n);
   void initialize() override;
 
  private:
@@ -38,6 +38,7 @@ class EdiisDiisModifier : public ScfModifier {
   FockDiis diis_;
   Ediis ediis_;
 
+  bool initialized;
   SpinAdaptedMatrix getCombinedFockMatrix();
   SpinAdaptedMatrix mixedFockMatrix(double errMax);
 };

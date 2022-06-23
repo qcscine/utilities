@@ -9,7 +9,6 @@
 #include <Utils/IO/FilesystemHelpers.h>
 #include <Utils/IO/NativeFilenames.h>
 #include <boost/process.hpp>
-#include <iostream>
 
 namespace bp = boost::process;
 

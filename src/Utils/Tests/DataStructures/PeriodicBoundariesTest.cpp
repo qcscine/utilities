@@ -130,7 +130,7 @@ TEST_F(APeriodicBoundariesTest, ClassIsInitializedCorrectly) {
   std::string expectedString = std::to_string(a1 * Constants::bohr_per_angstrom) + "," +
                                std::to_string(b1 * Constants::bohr_per_angstrom) + "," +
                                std::to_string(c1 * Constants::bohr_per_angstrom) + "," + std::to_string(alpha1) + "," +
-                               std::to_string(beta1) + "," + std::to_string(gamma1);
+                               std::to_string(beta1) + "," + std::to_string(gamma1) + ",xyz";
   EXPECT_EQ(pbc1.getPeriodicBoundariesString(), expectedString);
 
   PeriodicBoundaries pbc2 = PeriodicBoundaries(lengths2, angles2, false);
@@ -175,9 +175,12 @@ TEST_F(APeriodicBoundariesTest, ClassIsInitializedCorrectly) {
                       std::to_string(alpha2) + "; " + std::to_string(beta2) + ";" + std::to_string(gamma2);
   PeriodicBoundaries pbc6 = PeriodicBoundaries(input, ";", false);
   EXPECT_TRUE(pbc2.getCellMatrix().isApprox(pbc6.getCellMatrix(), 1e-5));
-  input += ";xyz";
+  input += ";xz";
   PeriodicBoundaries pbc7 = PeriodicBoundaries(input, ";", false);
-  EXPECT_TRUE(pbc7 == pbc6);
+  EXPECT_TRUE(pbc7 != pbc6);
+  ASSERT_THAT(pbc7.getPeriodicityString(), "xz");
+  std::vector<bool> expected = {true, false, true};
+  ASSERT_THAT(pbc7.getPeriodicity(), expected);
 
   // reassignments
   pbc2.setCellMatrix(pbc1.getCellMatrix());
@@ -191,6 +194,18 @@ TEST_F(APeriodicBoundariesTest, ClassIsInitializedCorrectly) {
   PeriodicBoundaries pbc8 = PeriodicBoundaries(Eigen::Matrix3d::Identity());
   pbc1 = Eigen::Matrix3d::Identity();
   ASSERT_THAT(pbc1, pbc8);
+}
+
+TEST_F(APeriodicBoundariesTest, OrthoRhombicWorks) {
+  PeriodicBoundaries pbc1 = PeriodicBoundaries(lengths1, angles1, false);
+  PeriodicBoundaries pbc2 = PeriodicBoundaries(lengths2, angles2, false);
+  ASSERT_TRUE(pbc1.isOrthoRhombic());
+  ASSERT_FALSE(pbc2.isOrthoRhombic());
+}
+
+TEST_F(APeriodicBoundariesTest, InverseIsConsistent) {
+  PeriodicBoundaries pbc = PeriodicBoundaries(lengths1, angles1, false);
+  ASSERT_TRUE(pbc.getInverseCellMatrix().isApprox(pbc.getCellMatrix().inverse()));
 }
 
 TEST_F(APeriodicBoundariesTest, MultiplicationsWork) {

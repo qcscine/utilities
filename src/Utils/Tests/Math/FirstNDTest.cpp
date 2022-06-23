@@ -172,10 +172,11 @@ TEST_F(AFirstNDClass, CorrectForDivision_X_X) {
 
   FirstND r = X / X;
 
-  ASSERT_THAT(r.value(), DoubleEq(1));
-  ASSERT_THAT(r.derivative(0), DoubleEq(0));
-  ASSERT_THAT(r.derivative(1), DoubleEq(0));
-  ASSERT_THAT(r.derivative(2), DoubleEq(0));
+  // LT because DoubleEq is buggy with intel in this case
+  ASSERT_LT(std::fabs(r.value() - 1.0), 1e-12);
+  ASSERT_LT(std::fabs(r.derivative(0) - 0.0), 1e-12);
+  ASSERT_LT(std::fabs(r.derivative(1) - 0.0), 1e-12);
+  ASSERT_LT(std::fabs(r.derivative(2) - 0.0), 1e-12);
 }
 
 // Tests, that the division of two FirstND objects leads to the correct result.

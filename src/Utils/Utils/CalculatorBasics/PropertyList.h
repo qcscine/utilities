@@ -21,6 +21,7 @@
 #include <Utils/Properties/Thermochemistry/ThermochemistryCalculator.h>
 #include <Utils/Scf/LcaoUtils/ElectronicOccupation.h>
 #include <Utils/Typenames.h>
+#include <Eigen/Core>
 #include <array>
 #include <type_traits>
 #include <unordered_map>
@@ -56,7 +57,8 @@ enum class Property : unsigned {
   ProgramName = (1 << 22),
   PointChargesGradients = (1 << 23),
   AtomicGtos = (1 << 24),
-  GridOccupation = (1 << 25)
+  GridOccupation = (1 << 25),
+  StressTensor = (1 << 26)
 };
 
 // clang-format off
@@ -87,11 +89,12 @@ using PropertyTypeTuple =
     std::string, /*Property::ProgramName*/
     GradientCollection, /*Property::PointChargesGradients*/
     std::unordered_map<int, AtomicGtos>, /*Property::AtomicGtos*/
-    std::vector<int> /*Property::GridOccupation*/
+    std::vector<int>, /*Property::GridOccupation*/
+    Eigen::Matrix3d /*Property::StressTensor*/
     >;
 // clang-format on
 
-static_assert(std::tuple_size<PropertyTypeTuple>::value == 26,
+static_assert(std::tuple_size<PropertyTypeTuple>::value == 27,
               "Tuple does not contain as many elements as there are properties");
 
 constexpr std::array<Property, std::tuple_size<PropertyTypeTuple>::value> allProperties{{Property::Energy,
@@ -119,7 +122,8 @@ constexpr std::array<Property, std::tuple_size<PropertyTypeTuple>::value> allPro
                                                                                          Property::ProgramName,
                                                                                          Property::PointChargesGradients,
                                                                                          Property::AtomicGtos,
-                                                                                         Property::GridOccupation}};
+                                                                                         Property::GridOccupation,
+                                                                                         Property::StressTensor}};
 
 // Python binding names
 constexpr std::array<const char*, std::tuple_size<PropertyTypeTuple>::value> allPropertyNames{"energy",
@@ -147,7 +151,8 @@ constexpr std::array<const char*, std::tuple_size<PropertyTypeTuple>::value> all
                                                                                               "program_name",
                                                                                               "point_charges_gradients",
                                                                                               "atomic_gtos",
-                                                                                              "grid_occupation"};
+                                                                                              "grid_occupation",
+                                                                                              "stress_tensor"};
 
 /* other variants of doing this:
  * - Use a constexpr map datatype
@@ -214,6 +219,8 @@ class PropertyList {
   void addProperty(const Property v) {
     properties_ = properties_ | v;
   }
+
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
  private:
   Property properties_;

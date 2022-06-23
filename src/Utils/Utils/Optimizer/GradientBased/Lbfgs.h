@@ -10,6 +10,7 @@
 
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include <Core/Log.h>
 #include <Eigen/Core>
 
 namespace Scine {
@@ -52,7 +53,8 @@ class Lbfgs : public Optimizer {
    *                   of the optimization function.
    */
   template<class UpdateFunction, class ConvergenceCheckClass>
-  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, ConvergenceCheckClass& check) {
+  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, ConvergenceCheckClass& check,
+               Core::Log& /* log */) {
     /* number of parameters treated */
     unsigned int nParams = parameters.size();
     if (nParams == 0) {
@@ -74,8 +76,8 @@ class Lbfgs : public Optimizer {
     Eigen::VectorXd parametersOld(parameters);
     double oldValue = value;
     function(parameters, value, gradients);
-    int cycle = _startCycle;
-    this->triggerObservers(cycle, value, parameters);
+    _cycle = _startCycle;
+    this->triggerObservers(_cycle, value, parameters);
     // Init parameters and value stored in the convergence checker
     check.setParametersAndValue(parameters, value);
     /* start with one steepest descent step */
@@ -84,7 +86,7 @@ class Lbfgs : public Optimizer {
     bool stop = false;
     int btc = 0; // a counter for the number of consecutive backtracking steps
     while (!stop) {
-      cycle++;
+      _cycle++;
       /* Rotate the (now) old parameter values to the local variables. */
       parametersOld.noalias() = parameters;
       /* Rotate the (now) old gradient values to the local variable. */
@@ -102,8 +104,8 @@ class Lbfgs : public Optimizer {
       constrainedAdd(parameters, currentStepLength * stepVector);
       /* Update gradients/value and check convergence */
       function(parameters, value, gradients);
-      this->triggerObservers(cycle, value, parameters);
-      stop = check.checkMaxIterations(cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
+      this->triggerObservers(_cycle, value, parameters);
+      stop = check.checkMaxIterations(_cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
       // Check oscillation, perform new calculation if oscillating
       if (!stop && this->isOscillating(value)) {
         stepVector -= 0.5 * currentStepLength * stepVector;
@@ -111,8 +113,8 @@ class Lbfgs : public Optimizer {
         gradientsOld.noalias() = gradients;
         oscillationCorrection(currentStepLength * stepVector, parameters);
         function(parameters, value, gradients);
-        cycle++;
-        this->triggerObservers(cycle, value, parameters);
+        _cycle++;
+        this->triggerObservers(_cycle, value, parameters);
       }
       if (stop) {
         break;
@@ -209,7 +211,7 @@ class Lbfgs : public Optimizer {
         stepVector.noalias() += (alpha[i] - beta) * dx.col(i);
       }
     }
-    return cycle;
+    return _cycle;
   }
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection

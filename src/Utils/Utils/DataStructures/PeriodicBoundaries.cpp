@@ -11,20 +11,23 @@
 namespace Scine {
 namespace Utils {
 
-PeriodicBoundaries::PeriodicBoundaries(double cubeLength)
-  : PeriodicBoundaries(Eigen::Matrix3d::Identity() * cubeLength) {
+PeriodicBoundaries::PeriodicBoundaries(double cubeLength, const std::string& periodicity)
+  : PeriodicBoundaries(Eigen::Matrix3d::Identity() * cubeLength, periodicity) {
 }
 
-PeriodicBoundaries::PeriodicBoundaries(const PeriodicBoundaries& rhs) : PeriodicBoundaries(rhs.getCellMatrix()) {
+PeriodicBoundaries::PeriodicBoundaries(const PeriodicBoundaries& rhs, const std::string& periodicity)
+  : PeriodicBoundaries(rhs.getCellMatrix(), periodicity) {
 }
 
-PeriodicBoundaries::PeriodicBoundaries(Eigen::Matrix3d matrix) : _matrix(std::move(matrix)) {
+PeriodicBoundaries::PeriodicBoundaries(Eigen::Matrix3d matrix, const std::string& periodicity)
+  : _matrix(std::move(matrix)) {
   setMembers();
+  setPeriodicity(periodicity);
 }
 
 PeriodicBoundaries::PeriodicBoundaries(const Eigen::Vector3d& lengths, const Eigen::Vector3d& angles, bool isBohr,
-                                       bool isDegrees) {
-  constructMembersFromLengthsAndAngles(lengths, angles, isBohr, isDegrees);
+                                       bool isDegrees, const std::string& periodicity) {
+  constructMembersFromLengthsAndAngles(lengths, angles, isBohr, isDegrees, periodicity);
 }
 
 PeriodicBoundaries::PeriodicBoundaries(std::string periodicBoundariesString, const std::string& delimiter, bool isBohr,
@@ -37,16 +40,11 @@ PeriodicBoundaries::PeriodicBoundaries(std::string periodicBoundariesString, con
     periodicBoundariesString.erase(0, pos + delimiter.length());
   }
   entries.push_back(periodicBoundariesString); // fill in remaining string
+  std::string periodicity = "xyz";
   // sanity check
   if (entries.size() != 6) {
     if (entries.size() == 7) {
-      std::string periodicity = entries.back();
-      // remove space and make all lowercase
-      periodicity.erase(std::remove(periodicity.begin(), periodicity.end(), ' '), periodicity.end());
-      std::for_each(periodicity.begin(), periodicity.end(), [](char& c) { c = ::tolower(c); });
-      if (periodicity != "xyz") {
-        throw std::logic_error("Requested periodicity " + periodicity + "; this is not implemented yet.");
-      }
+      periodicity = entries.back();
     }
     else {
       throw std::logic_error("The given string does not contain 3 cell lengths and 3 cell angles.");
@@ -60,27 +58,17 @@ PeriodicBoundaries::PeriodicBoundaries(std::string periodicBoundariesString, con
     angles[i] = std::stod(entries[i + 3]);
   }
   // construct all class variables
-  constructMembersFromLengthsAndAngles(lengths, angles, isBohr, isDegrees);
+  constructMembersFromLengthsAndAngles(lengths, angles, isBohr, isDegrees, periodicity);
 }
 
-void PeriodicBoundaries::constructMembersFromLengthsAndAngles(const Eigen::Vector3d& lengths,
-                                                              const Eigen::Vector3d& angles, bool isBohr, bool isDegrees) {
-  double an = lengths[0];
-  double bn = lengths[1];
-  double cn = lengths[2];
-  double alpha = angles[0];
-  double beta = angles[1];
-  double gamma = angles[2];
-  if (!isBohr) {
-    an *= Constants::bohr_per_angstrom;
-    bn *= Constants::bohr_per_angstrom;
-    cn *= Constants::bohr_per_angstrom;
-  }
-  if (!isDegrees) {
-    alpha = getDegrees(alpha);
-    beta = getDegrees(beta);
-    gamma = getDegrees(gamma);
-  }
+void PeriodicBoundaries::constructMembersFromLengthsAndAngles(const Eigen::Vector3d& lengths, const Eigen::Vector3d& angles,
+                                                              bool isBohr, bool isDegrees, const std::string& periodicity) {
+  const double an = (isBohr) ? lengths[0] : lengths[0] * Constants::bohr_per_angstrom;
+  const double bn = (isBohr) ? lengths[1] : lengths[1] * Constants::bohr_per_angstrom;
+  const double cn = (isBohr) ? lengths[2] : lengths[2] * Constants::bohr_per_angstrom;
+  const double alpha = (isDegrees) ? getRadians(angles[0]) : angles[0];
+  const double beta = (isDegrees) ? getRadians(angles[1]) : angles[1];
+  const double gamma = (isDegrees) ? getRadians(angles[2]) : angles[2];
   // basis vectors of cell in standard basis, b is init later directly via rotation
   Eigen::Vector3d a = Eigen::Vector3d::Zero();
   Eigen::Vector3d c = Eigen::Vector3d::Zero();
@@ -89,8 +77,8 @@ void PeriodicBoundaries::constructMembersFromLengthsAndAngles(const Eigen::Vecto
   // convention that b is in x-y axis --> rotate by gamma along z-axis
   Eigen::Matrix3d rotM;
   // clang-format off
-  rotM << std::cos(getRadians(gamma)), -std::sin(getRadians(gamma)), 0.0,
-          std::sin(getRadians(gamma)),  std::cos(getRadians(gamma)), 0.0,
+  rotM << std::cos(gamma), -std::sin(gamma), 0.0,
+          std::sin(gamma),  std::cos(gamma), 0.0,
           0.0, 0.0, 1.0;
   // clang-format on
   Eigen::Vector3d b = rotM * a;
@@ -98,22 +86,23 @@ void PeriodicBoundaries::constructMembersFromLengthsAndAngles(const Eigen::Vecto
   b *= (bn / an);
   reduceNoise(b);
   // c0 is known because a only has entry along x axis
-  c[0] = std::cos(getRadians(beta)) * cn;
+  c[0] = std::cos(beta) * cn;
   // for c1 we use dot product with b, because b is defined in x-y plane -> b[2] = 0
-  c[1] = bn * cn * std::cos(getRadians(alpha)) - b[0] * c[0];
+  c[1] = bn * cn * std::cos(alpha) - b[0] * c[0];
   c[1] /= b[1];
   // for c2 we can use norm
   c[2] = std::sqrt(std::pow(cn, 2) - std::pow(c[0], 2) - std::pow(c[1], 2));
   // assert that angles of created vectors are identical to input angles
-  assert(getDegrees(std::acos(a.dot(b) / (a.norm() * b.norm()))) - gamma < _eps);
-  assert(getDegrees(std::acos(c.dot(b) / (c.norm() * b.norm()))) - alpha < _eps);
-  assert(getDegrees(std::acos(a.dot(c) / (a.norm() * c.norm()))) - beta < _eps);
+  assert(std::acos(a.dot(b) / (a.norm() * b.norm())) - gamma < _eps);
+  assert(std::acos(c.dot(b) / (c.norm() * b.norm())) - alpha < _eps);
+  assert(std::acos(a.dot(c) / (a.norm() * c.norm())) - beta < _eps);
   _matrix = Eigen::Matrix3d::Zero();
   _matrix.row(0) = a;
   _matrix.row(1) = b;
   _matrix.row(2) = c;
   reduceNoise(_matrix);
   setMembers();
+  setPeriodicity(periodicity);
 }
 
 void PeriodicBoundaries::reduceNoise(Eigen::Vector3d& vec) const {
@@ -135,6 +124,10 @@ void PeriodicBoundaries::reduceNoise(Eigen::Matrix3d& mat) const {
 }
 
 void PeriodicBoundaries::setMembers() {
+  if (_matrix(0, 0) < 0 || _matrix(1, 1) < 0 || _matrix(2, 2) < 0) {
+    throw std::runtime_error("Periodic boundaries received unphysical information where a unit vector extends "
+                             "into the opposite direction to where it should extend.");
+  }
   /* vectors */
   Eigen::Vector3d a = _matrix.row(0);
   Eigen::Vector3d b = _matrix.row(1);
@@ -194,8 +187,10 @@ void PeriodicBoundaries::translatePositionsIntoCellInPlace(Eigen::Ref<Position> 
                                                            const Eigen::RowVector3d& relShift) const {
   transformInPlace(position, false);
   for (int i = 0; i < 3; ++i) {
-    // floor is 0 for [0,1), negative no problem, because - and -  leads to right addition
-    position[i] -= floor(position[i]);
+    if (_periodicity[i]) {
+      // floor is 0 for [0,1), negative no problem, because - and -  leads to right addition
+      position[i] -= floor(position[i]);
+    }
   }
   position += relShift;
   transformInPlace(position);
@@ -211,21 +206,21 @@ void PeriodicBoundaries::translatePositionsIntoCellInPlace(PositionCollection& p
 }
 
 double PeriodicBoundaries::fastMinimumImageDistanceSquared(const Position& p1, const Position& p2) const {
-  double x = _aNorm;
-  double y = _bNorm;
-  double z = _cNorm;
+  const double& x = _aNorm;
+  const double& y = _bNorm;
+  const double& z = _cNorm;
   double distX = std::fabs(p1[0] - p2[0]);
   double distY = std::fabs(p1[1] - p2[1]);
   double distZ = std::fabs(p1[2] - p2[2]);
   // minimum image convention
-  if (distX > x * 0.5) {
+  if (_periodicity[0] && distX > x * 0.5) {
     distX -= x;
   }
-  if (distY > y * 0.5) {
+  if (_periodicity[1] && distY > y * 0.5) {
     distY -= y;
     distX -= _matrix(1, 0); // subtract b0 from distX for non-orthorhombic cells
   }
-  if (distZ > z * 0.5) {
+  if (_periodicity[2] && distZ > z * 0.5) {
     distZ -= z;
     distX -= _matrix(2, 0); // subtract c0 from distX for non-orthorhombic cells
     distY -= _matrix(2, 1); // subtract c1 from distY for non-orthorhombic cells
@@ -234,14 +229,12 @@ double PeriodicBoundaries::fastMinimumImageDistanceSquared(const Position& p1, c
 }
 
 double PeriodicBoundaries::bruteForceMinimumImageDistanceSquared(const Position& p1, const Position& p2) const {
-  Position pos2 = p2;
-  std::vector<double> distances = getAllImageDistancesSquared(p1, pos2);
+  std::vector<double> distances = getAllImageDistancesSquared(p1, p2);
   return *std::min_element(distances.begin(), distances.end());
 }
 
 Displacement PeriodicBoundaries::bruteForceMinimumImageDisplacementVector(const Position& p1, const Position& p2) const {
-  Position pos2 = p2;
-  std::vector<Displacement> displacements = getAllImageDisplacementVectors(p1, pos2);
+  std::vector<Displacement> displacements = getAllImageDisplacementVectors(p1, p2);
   std::vector<double> distances;
   for (auto const& disp : displacements) {
     distances.push_back(disp.squaredNorm());
@@ -250,24 +243,28 @@ Displacement PeriodicBoundaries::bruteForceMinimumImageDisplacementVector(const 
   return displacements[minIndex];
 }
 
-std::vector<double> PeriodicBoundaries::getAllImageDistancesSquared(const Position& p1, Eigen::Ref<Position> p2) const {
+std::vector<double> PeriodicBoundaries::getAllImageDistancesSquared(const Position& p1, const Position& p2) const {
   std::vector<Displacement> displacements = getAllImageDisplacementVectors(p1, p2);
   std::vector<double> result;
-  result.reserve(27);
   for (auto const& disp : displacements) {
     result.push_back(disp.squaredNorm());
   }
   return result;
 }
 
-std::vector<Displacement> PeriodicBoundaries::getAllImageDisplacementVectors(const Position& p1, Eigen::Ref<Position> p2) const {
+std::vector<Displacement> PeriodicBoundaries::getAllImageDisplacementVectors(const Position& p1, Position p2) const {
   std::vector<Displacement> displacements;
-  displacements.reserve(27);
-  // cycle through all neighbor cell images
+  // cycle through all neighbor cell images based on allowed periodicity
   // p1 and p2 have to already be within cell
-  for (int i = -1; i < 2; ++i) {
-    for (int j = -1; j < 2; ++j) {
-      for (int k = -1; k < 2; ++k) {
+  // not the case if we are missing one or more periodicities
+  assert(!_periodicity[0] || !_periodicity[1] || !_periodicity[2] || isWithinCell(p1));
+  assert(!_periodicity[0] || !_periodicity[1] || !_periodicity[2] || isWithinCell(p2));
+  int iRange = (_periodicity[0]) ? 1 : 0;
+  int jRange = (_periodicity[1]) ? 1 : 0;
+  int kRange = (_periodicity[2]) ? 1 : 0;
+  for (int i = -1 * iRange; i <= iRange; ++i) {
+    for (int j = -1 * jRange; j <= jRange; ++j) {
+      for (int k = -1 * kRange; k <= kRange; ++k) {
         Eigen::RowVector3d shift;
         shift << i, j, k;
         transformInPlace(shift);
@@ -306,6 +303,7 @@ bool PeriodicBoundaries::isWithinCell(const PositionCollection& positions) const
 
 PeriodicBoundaries& PeriodicBoundaries::operator=(const PeriodicBoundaries& rhs) {
   this->setCellMatrix(rhs._matrix);
+  this->setPeriodicity(rhs._periodicity);
   return *this;
 }
 
@@ -315,7 +313,7 @@ PeriodicBoundaries& PeriodicBoundaries::operator=(const Eigen::Matrix3d& rhs) {
 }
 
 bool operator==(const PeriodicBoundaries& lhs, const PeriodicBoundaries& rhs) {
-  return lhs.getCellMatrix().isApprox(rhs.getCellMatrix());
+  return lhs.getCellMatrix().isApprox(rhs.getCellMatrix()) && lhs.getPeriodicity() == rhs.getPeriodicity();
 }
 
 bool operator!=(const PeriodicBoundaries& lhs, const PeriodicBoundaries& rhs) {
@@ -323,8 +321,8 @@ bool operator!=(const PeriodicBoundaries& lhs, const PeriodicBoundaries& rhs) {
 }
 
 PeriodicBoundaries PeriodicBoundaries::operator*(const Eigen::Vector3d& scalingFactors) const {
-  Eigen::Matrix3d newMatrix = this->_matrix.array().colwise() * scalingFactors.array();
-  return PeriodicBoundaries(newMatrix);
+  PeriodicBoundaries super = *this;
+  return super *= scalingFactors;
 }
 
 PeriodicBoundaries& PeriodicBoundaries::operator*=(const Eigen::Vector3d& scalingFactors) {
@@ -335,13 +333,32 @@ PeriodicBoundaries& PeriodicBoundaries::operator*=(const Eigen::Vector3d& scalin
 
 PeriodicBoundaries PeriodicBoundaries::operator*(double scalingFactor) const {
   PeriodicBoundaries super = *this;
-  super.setCellMatrix(_matrix * scalingFactor);
-  return super;
+  return super *= scalingFactor;
 }
 
 PeriodicBoundaries& PeriodicBoundaries::operator*=(double scalingFactor) {
   this->setCellMatrix(_matrix * scalingFactor);
   return *this;
+}
+
+PeriodicBoundaries PeriodicBoundaries::operator+(const Eigen::Matrix3d& matrix) const {
+  auto super = PeriodicBoundaries(*this);
+  super += matrix;
+  return super;
+}
+
+PeriodicBoundaries& PeriodicBoundaries::operator+=(const Eigen::Matrix3d& matrix) {
+  Eigen::Matrix3d newMatrix = this->_matrix + matrix;
+  this->setCellMatrix(newMatrix);
+  return *this;
+}
+
+PeriodicBoundaries PeriodicBoundaries::operator+(const PeriodicBoundaries& other) const {
+  return *this + other.getCellMatrix();
+}
+
+PeriodicBoundaries& PeriodicBoundaries::operator+=(const PeriodicBoundaries& other) {
+  return *this += other.getCellMatrix();
 }
 
 } // namespace Utils

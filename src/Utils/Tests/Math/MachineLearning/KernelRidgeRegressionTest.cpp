@@ -130,7 +130,9 @@ TEST_F(AKernelRidgeRegressionTest, NonlinearRegressionWorksCorrectly) {
 
   // Try the Gaussian kernel with bad sigma first
   krr.setRegularizationFactor(1e-6);
-  krr.setKernel(Kernels::gaussianKernel, {10.0});
+  Eigen::VectorXd sigma(1);
+  sigma[0] = 10.0;
+  krr.setKernel(Kernels::gaussianKernel, sigma);
   krr.trainModel(nonlinearDataFeatures, nonlinearDataTargets);
 
   predictions = krr.predict(pointToPredict);
@@ -142,7 +144,8 @@ TEST_F(AKernelRidgeRegressionTest, NonlinearRegressionWorksCorrectly) {
 
   // Try the Gaussian kernel with good sigma and even better regularization factor
   krr.setRegularizationFactor(1e-8);
-  krr.setKernel(Kernels::gaussianKernel, {1.0});
+  sigma[0] = 1.0;
+  krr.setKernel(Kernels::gaussianKernel, sigma);
   krr.trainModel(nonlinearDataFeatures, nonlinearDataTargets);
 
   predictions = krr.predict(pointToPredict);
@@ -151,7 +154,8 @@ TEST_F(AKernelRidgeRegressionTest, NonlinearRegressionWorksCorrectly) {
 
   // Small sigma will lead to overfitting
   krr.setRegularizationFactor(1e-8);
-  krr.setKernel(Kernels::gaussianKernel, {0.01});
+  sigma[0] = 0.01;
+  krr.setKernel(Kernels::gaussianKernel, sigma);
   krr.trainModel(nonlinearDataFeatures, nonlinearDataTargets);
 
   predictions = krr.predict(pointToPredict);
@@ -160,7 +164,8 @@ TEST_F(AKernelRidgeRegressionTest, NonlinearRegressionWorksCorrectly) {
 
   // Large regularization factor will also yield bad results for the first target prediction
   krr.setRegularizationFactor(10.0);
-  krr.setKernel(Kernels::gaussianKernel, {1.0});
+  sigma[0] = 1.0;
+  krr.setKernel(Kernels::gaussianKernel, sigma);
   krr.trainModel(nonlinearDataFeatures, nonlinearDataTargets);
 
   predictions = krr.predict(pointToPredict);
@@ -169,7 +174,7 @@ TEST_F(AKernelRidgeRegressionTest, NonlinearRegressionWorksCorrectly) {
   // Test that the other kernels also work
   // Laplacian kernel:
   krr.setRegularizationFactor(1e-8);
-  krr.setKernel(Kernels::laplacianKernel, {1.0});
+  krr.setKernel(Kernels::laplacianKernel, sigma);
   krr.trainModel(nonlinearDataFeatures, nonlinearDataTargets);
   predictions = krr.predict(pointToPredict);
   // Good results, but not as good as the Gaussian kernel
@@ -178,7 +183,9 @@ TEST_F(AKernelRidgeRegressionTest, NonlinearRegressionWorksCorrectly) {
 
   // Polynomial kernel of third degree:
   krr.setRegularizationFactor(1e-8);
-  krr.setKernel(Kernels::polynomialKernel, {3, 1.0, 1.0});
+  Eigen::VectorXd hyperparams(3);
+  hyperparams << 3, 1.0, 1.0;
+  krr.setKernel(Kernels::polynomialKernel, hyperparams);
   krr.trainModel(nonlinearDataFeatures, nonlinearDataTargets);
   predictions = krr.predict(pointToPredict);
   EXPECT_THAT(predictions(0), DoubleNear(-0.0806046, 5e-2));
@@ -193,7 +200,9 @@ TEST_F(AKernelRidgeRegressionTest, NonlinearRegressionWorksCorrectly) {
 
   // Polynomial kernel of fifth degree (better results)
   krr.setRegularizationFactor(1e-8);
-  krr.setKernel(Kernels::polynomialKernel, {5, 1.0, 1.0});
+  Eigen::VectorXd newHyperparams(3);
+  newHyperparams << 5, 1.0, 1.0;
+  krr.setKernel(Kernels::polynomialKernel, newHyperparams);
   krr.trainModel(nonlinearDataFeatures, nonlinearDataTargets);
   predictions = krr.predict(pointToPredict);
   EXPECT_THAT(predictions(0), DoubleNear(-0.0806046, 1e-3));

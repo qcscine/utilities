@@ -8,7 +8,6 @@
 #include <Utils/Constants.h>
 #include <Utils/Geometry/AtomCollection.h>
 #include <Utils/IO/ChemicalFileFormats/OpenBabelStreamHandler.h>
-#include <Utils/Technical/ScopedLocale.h>
 #include <gmock/gmock.h>
 #include <boost/optional.hpp>
 #include <sstream>

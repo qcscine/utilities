@@ -42,7 +42,6 @@ class Cp2kCalculatorSettings : public Scine::Utils::Settings {
   void addTemperature(UniversalSettings::DescriptorCollection& settings);
   void addScfMixing(UniversalSettings::DescriptorCollection& settings);
   void addElectronicTemperature(UniversalSettings::DescriptorCollection& settings);
-  void addVdWFunctional(UniversalSettings::DescriptorCollection& settings);
   void addAdditionalMos(UniversalSettings::DescriptorCollection& settings);
   void addOrbitalTransformation(UniversalSettings::DescriptorCollection& settings);
   void addOuterScf(UniversalSettings::DescriptorCollection& settings);
@@ -51,8 +50,6 @@ class Cp2kCalculatorSettings : public Scine::Utils::Settings {
   void addScfGuess(UniversalSettings::DescriptorCollection& settings);
   void addDipoleCorrection(UniversalSettings::DescriptorCollection& settings);
   void addAdditionalOutput(UniversalSettings::DescriptorCollection& settings);
-  void addSolvent(UniversalSettings::DescriptorCollection& settings);
-  void addSolvation(UniversalSettings::DescriptorCollection& settings);
 
   /**
    * @brief Constructor that populates the Cp2kCalculatorSettings.
@@ -76,7 +73,6 @@ class Cp2kCalculatorSettings : public Scine::Utils::Settings {
     addTemperature(_fields);
     addScfMixing(_fields);
     addElectronicTemperature(_fields);
-    addVdWFunctional(_fields);
     addAdditionalMos(_fields);
     addOrbitalTransformation(_fields);
     addOuterScf(_fields);
@@ -85,8 +81,6 @@ class Cp2kCalculatorSettings : public Scine::Utils::Settings {
     addScfGuess(_fields);
     addDipoleCorrection(_fields);
     addAdditionalOutput(_fields);
-    addSolvent(_fields);
-    addSolvation(_fields);
     resetToDefaults();
   };
 };
@@ -146,7 +140,7 @@ inline void Cp2kCalculatorSettings::addSelfConsistenceCriterion(UniversalSetting
 
 inline void Cp2kCalculatorSettings::addMethod(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::StringDescriptor method("The method used in the CP2K calculation.");
-  method.setDefaultValue("PBE");
+  method.setDefaultValue(""); // empty to avoid sneaky DFT instead of semi-empirics
   settings.push_back(Utils::SettingsNames::method, std::move(method));
 }
 
@@ -227,19 +221,6 @@ inline void Cp2kCalculatorSettings::addElectronicTemperature(UniversalSettings::
   settings.push_back(Utils::SettingsNames::electronicTemperature, std::move(electronicTemperature));
 }
 
-inline void Cp2kCalculatorSettings::addVdWFunctional(UniversalSettings::DescriptorCollection& settings) {
-  Utils::UniversalSettings::OptionListDescriptor vdwFunctional("Sets the dispersion correction.");
-  vdwFunctional.addOption("");
-  vdwFunctional.addOption("DFTD3(BJ)");
-  vdwFunctional.addOption("DFTD3");
-  vdwFunctional.addOption("DFTD2");
-  vdwFunctional.addOption("DRSLL");
-  vdwFunctional.addOption("LMKLL");
-  vdwFunctional.addOption("RVV10");
-  vdwFunctional.setDefaultOption("");
-  settings.push_back(SettingsNames::vdwFunctional, std::move(vdwFunctional));
-}
-
 inline void Cp2kCalculatorSettings::addAdditionalMos(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::IntDescriptor additionalMos("Specify the number of additional molecular orbitals.");
   additionalMos.setMinimum(0);
@@ -309,19 +290,6 @@ inline void Cp2kCalculatorSettings::addAdditionalOutput(UniversalSettings::Descr
   Utils::UniversalSettings::StringDescriptor additionalOutput("Filename of additional output file.");
   additionalOutput.setDefaultValue("additional_output");
   settings.push_back(SettingsNames::additionalOutputFile, std::move(additionalOutput));
-}
-
-inline void Cp2kCalculatorSettings::addSolvent(UniversalSettings::DescriptorCollection& settings) {
-  Utils::UniversalSettings::StringDescriptor solventOption("Sets the implicit solvent.");
-  solventOption.setDefaultValue("");
-  settings.push_back(Utils::SettingsNames::solvent, std::move(solventOption));
-}
-
-inline void Cp2kCalculatorSettings::addSolvation(UniversalSettings::DescriptorCollection& settings) {
-  Utils::UniversalSettings::StringDescriptor solvationOption(
-      "Sets the implicit solvation model in the CP2K calculation.");
-  solvationOption.setDefaultValue("");
-  settings.push_back(Utils::SettingsNames::solvation, std::move(solvationOption));
 }
 
 } // namespace ExternalQC

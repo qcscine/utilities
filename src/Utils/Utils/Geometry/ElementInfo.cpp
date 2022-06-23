@@ -59,6 +59,17 @@ ElementType ElementInfo::elementTypeForSymbol(const std::string& symbol) {
   return it->second;
 }
 
+std::vector<ElementType> ElementInfo::allImplementedElements() {
+  unsigned nEle = stringToElementType().size();
+  std::vector<ElementType> result;
+  // start at 1, because 0th is none element
+  // leave out last 2, because of two explicit H isotope ElementTypes
+  for (unsigned i = 1; i < nEle - 2; ++i) {
+    result.push_back(element(i));
+  }
+  return result;
+}
+
 std::string ElementInfo::symbol(ElementType e) {
   if (A(e) != 0) {
     e = base(e);
@@ -284,7 +295,7 @@ const std::unordered_map<std::string, ElementType>& ElementInfo::stringToElement
       {"cf", ElementType::Cf},     {"es", ElementType::Es}, {"fm", ElementType::Fm}, {"md", ElementType::Md},
       {"no", ElementType::No},     {"lr", ElementType::Lr}, {"rf", ElementType::Rf}, {"db", ElementType::Db},
       {"sg", ElementType::Sg},     {"bh", ElementType::Bh}, {"hs", ElementType::Hs}, {"mt", ElementType::Mt},
-      {"ds", ElementType::Ds},     {"rg", ElementType::Rg}, {"cn", ElementType::Cn}, {"none", ElementType::none}};
+      {"ds", ElementType::Ds},     {"rg", ElementType::Rg}, {"cn", ElementType::Cn}};
   return map;
 }
 

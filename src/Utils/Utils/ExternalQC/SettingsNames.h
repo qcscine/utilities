@@ -16,9 +16,10 @@ namespace SettingsNames {
 static constexpr const char* baseWorkingDirectory = "base_working_directory";
 static constexpr const char* deleteTemporaryFiles = "delete_tmp_files";
 static constexpr const char* steerOrbitals = "steer_orbitals";
+static constexpr const char* pointChargesFile = "point_charges_file";
 // orca
 static constexpr const char* orcaFilenameBase = "orca_filename_base";
-static constexpr const char* pointChargesFile = "point_charges_file";
+static constexpr const char* specialOption = "special_option";
 // cp2k
 static constexpr const char* cp2kFilenameBase = "cp2k_filename_base";
 static constexpr const char* moleculePeriodicBoundaries = "28.35, 28.35, 28.35, 90.0, 90.0, 90.0, XYZ";

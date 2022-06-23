@@ -56,7 +56,7 @@ int NtOptimizer::optimize(AtomCollection& atoms, Core::Log& log) {
       // Run micro iterations
       Eigen::VectorXd positions = Eigen::Map<const Eigen::VectorXd>(atoms.getPositions().data(), atoms.size() * 3);
       try {
-        bfgs.optimize(positions, microIterUpdate, microIterCheck);
+        bfgs.optimize(positions, microIterUpdate, microIterCheck, log);
       }
       catch (...) {
         if (cycle > 5) {
@@ -65,7 +65,7 @@ int NtOptimizer::optimize(AtomCollection& atoms, Core::Log& log) {
           _calculator.modifyPositions(coordinates);
           return cycle;
         }
-        throw std::runtime_error("NT micro iterations failed.");
+        throw std::runtime_error("NT micro iterations failed:\n" + boost::current_exception_diagnostic_information());
       }
       coordinates = Eigen::Map<const Utils::PositionCollection>(positions.data(), nAtoms, 3);
       atoms.setPositions(coordinates);
@@ -111,6 +111,12 @@ int NtOptimizer::optimize(AtomCollection& atoms, Core::Log& log) {
     atoms.setPositions(coordinates);
     _calculator.modifyPositions(coordinates);
   }
+
+  // Perform final extraction
+  coordinates = this->extractTsGuess();
+  atoms.setPositions(coordinates);
+  _calculator.modifyPositions(coordinates);
+
   return cycle;
 }
 

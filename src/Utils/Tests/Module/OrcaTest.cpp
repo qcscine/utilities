@@ -41,7 +41,7 @@ TEST_F(AOrcaTest, SettingsAreSetCorrectly) {
   calculator.settings().modifyInt(Utils::SettingsNames::molecularCharge, 1);
   calculator.settings().modifyInt(Utils::SettingsNames::spinMultiplicity, 2);
   calculator.settings().modifyInt(Utils::SettingsNames::maxScfIterations, 125);
-  calculator.settings().modifyString(Utils::SettingsNames::method, "PBE D3BJ");
+  calculator.settings().modifyString(Utils::SettingsNames::method, "PBE-D3BJ");
   calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2-SVP");
   calculator.settings().modifyString(Utils::SettingsNames::spinMode, "unrestricted");
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, "test_1");
@@ -52,6 +52,7 @@ TEST_F(AOrcaTest, SettingsAreSetCorrectly) {
   calculator.settings().modifyString(Utils::SettingsNames::solvation, "cpcm");
   calculator.settings().modifyString(Utils::SettingsNames::solvent, "water");
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::hessianCalculationType, "numerical");
+  calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::specialOption, "NOSOSCF");
 
   ASSERT_TRUE(calculator.settings().valid());
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::externalProgramNProcs), Eq(2));
@@ -59,7 +60,7 @@ TEST_F(AOrcaTest, SettingsAreSetCorrectly) {
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::molecularCharge), Eq(1));
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::spinMultiplicity), Eq(2));
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::maxScfIterations), Eq(125));
-  ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::method), Eq("PBE D3BJ"));
+  ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::method), Eq("PBE-D3BJ"));
   ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::basisSet), Eq("def2-SVP"));
   ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::spinMode), Eq("unrestricted"));
   ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory), Eq("test_1"));
@@ -72,6 +73,7 @@ TEST_F(AOrcaTest, SettingsAreSetCorrectly) {
   ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::solvent), Eq("water"));
   ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::hessianCalculationType),
               Eq("numerical"));
+  ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::specialOption), Eq("NOSOSCF"));
 }
 
 TEST_F(AOrcaTest, OrbitalEnergiesAreParsedCorrectly) {
@@ -299,7 +301,7 @@ TEST_F(AOrcaTest, CloneInterfaceWorksCorrectly) {
 TEST_F(AOrcaTest, StatesHandlingAndInputCreationWorkCorrectly) {
   // Set up.
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
-  calculator.settings().modifyString(Utils::SettingsNames::method, "PBE D3BJ");
+  calculator.settings().modifyString(Utils::SettingsNames::method, "PBE-D3BJ");
   calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2-SVP FORCE_FAILURE");
 
   std::stringstream stream("5\n\n"
@@ -312,6 +314,11 @@ TEST_F(AOrcaTest, StatesHandlingAndInputCreationWorkCorrectly) {
   auto structure = Utils::XyzStreamHandler::read(stream);
 
   calculator.setStructure(structure);
+
+  // set incorrect charge/multiplicity pair
+  calculator.settings().modifyInt(Utils::SettingsNames::molecularCharge, 1);
+  ASSERT_THROW(calculator.calculate(""), std::logic_error);
+  calculator.settings().modifyInt(Utils::SettingsNames::molecularCharge, 0);
 
   try {
     calculator.calculate("");
@@ -623,7 +630,7 @@ TEST_F(AOrcaTest, OrcaCalculationIsPerformedCorrectlyViaScine) {
   if (envVariablePtr) {
     // Set-up
     calculator.settings().modifyInt(Utils::SettingsNames::externalProgramNProcs, 1);
-    calculator.settings().modifyString(Utils::SettingsNames::method, "PBE D3BJ");
+    calculator.settings().modifyString(Utils::SettingsNames::method, "PBE-D3BJ");
     calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2-SVP");
     calculator.setRequiredProperties(Property::Energy);
 
@@ -653,6 +660,22 @@ TEST_F(AOrcaTest, OrcaCalculationIsPerformedCorrectlyViaScine) {
     logger.output << "Orca calculations were not tested directly as no binary path was specified." << Core::Log::endl;
   }
 #endif
+}
+
+TEST_F(AOrcaTest, ScfConvergenceIncreasedForPropertyCalculation) {
+  // set low scf convergence criterion
+  calculator.settings().modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-4);
+  // request Hessian calculation
+  calculator.setRequiredProperties(Property::Energy | Property::Hessian);
+  auto silentLog = Core::Log::silent();
+  calculator.setLog(silentLog);
+  // Trigger the applySettings() function via cloning
+  auto secondCalculator = calculator.clone();
+  ASSERT_THAT(secondCalculator->settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(1e-8));
+  // request calculation of gradients
+  calculator.setRequiredProperties(Property::Energy | Property::Gradients);
+  auto thirdCalculator = calculator.clone();
+  ASSERT_THAT(thirdCalculator->settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(1e-8));
 }
 
 } // namespace Tests

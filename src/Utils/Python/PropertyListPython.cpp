@@ -37,6 +37,7 @@ void init_property_list(pybind11::module& m) {
   property.value("AOtoAtomMapping", Property::AOtoAtomMapping);
   property.value("PointChargesGradients", Property::PointChargesGradients);
   property.value("GridOccupation", Property::GridOccupation);
+  property.value("StressTensor", Property::StressTensor);
   property.value("Description", Property::Description);
   property.value("SuccessfulCalculation", Property::SuccessfulCalculation);
   property.value("ProgramName", Property::ProgramName);

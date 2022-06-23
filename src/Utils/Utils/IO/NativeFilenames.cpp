@@ -7,6 +7,9 @@
 
 #include "NativeFilenames.h"
 #include <boost/filesystem.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 namespace Scine {
 namespace Utils {
@@ -48,6 +51,14 @@ std::string NativeFilenames::removeExtension(const std::string& filename) {
     return filename;
   }
   return filename.substr(0, lastdot);
+}
+
+std::string NativeFilenames::createRandomDirectoryName(const std::string& baseDirectory) {
+  boost::uuids::uuid uuid = boost::uuids::random_generator()();
+  std::string uuidString = boost::uuids::to_string(uuid);
+
+  auto directoryName = NativeFilenames::combinePathSegments(baseDirectory, uuidString);
+  return NativeFilenames::addTrailingSeparator(directoryName);
 }
 
 } // namespace Utils

@@ -54,7 +54,7 @@ const Eigen::MatrixXd& HessianUtilities::getInternalEigenvectors() {
   return *_internalEVectors;
 }
 
-Eigen::MatrixXd HessianUtilities::getBackTransformedInternalEigenvectors() {
+Eigen::MatrixXd HessianUtilities::getBackTransformedInternalEigenvectors(bool normalize) {
   if (!_internalEVectors) {
     this->calculateInternal();
   }
@@ -66,7 +66,8 @@ Eigen::MatrixXd HessianUtilities::getBackTransformedInternalEigenvectors() {
     for (int i = 0; i < N; ++i) {
       ret.middleRows(3 * i, 3) *= 1. / std::sqrt(masses[i]);
     }
-    ret.colwise().normalize();
+    if (normalize)
+      ret.colwise().normalize();
     return ret;
   }
 

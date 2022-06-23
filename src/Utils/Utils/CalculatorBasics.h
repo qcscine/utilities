@@ -11,8 +11,9 @@
 #include "Utils/CalculatorBasics/CalculationRoutines.h"
 #include "Utils/CalculatorBasics/PropertyList.h"
 #include "Utils/CalculatorBasics/Results.h"
+#include "Utils/CalculatorBasics/ResultsAutoCompleter.h"
 #include "Utils/CalculatorBasics/StatesHandler.h"
+#include "Utils/CalculatorBasics/TestCalculator.h"
 #include "Utils/Typenames.h"
-#include <Utils/CalculatorBasics/ResultsAutoCompleter.h>
 
 #endif // UTILS_CALCULATORBASICS_H_

@@ -11,7 +11,6 @@
 #include <boost/asio.hpp>
 #include <boost/process.hpp>
 #include <boost/process/async.hpp>
-#include <iostream>
 #include <regex>
 
 namespace Scine {
@@ -19,6 +18,7 @@ namespace Utils {
 namespace ExternalQC {
 
 namespace bp = boost::process;
+namespace bfs = boost::filesystem;
 
 TurbomoleHelper::TurbomoleHelper(std::string& calculationDirectory, std::string& turbomoleExecutableBase)
   : calculationDirectory_(calculationDirectory), turbomoleExecutableBase_(turbomoleExecutableBase) {
@@ -46,6 +46,9 @@ void TurbomoleHelper::execute(std::string binaryName, bool outputToFile) {
   if (outputToFile) {
     std::string outputFileName = binaryName + ".out";
     std::string outputFile = NativeFilenames::combinePathSegments(calculationDirectory_, outputFileName);
+    // Delete output file before the calculation if it already exists.
+    // Necessary since otherwise boost just pipes into the old output file which may lead to problems.
+    bfs::remove(outputFile);
     bp::child c(binary, bp::std_out > outputFile, bp::std_err > err, workingDirectory);
     c.wait();
   }
@@ -112,6 +115,18 @@ void TurbomoleHelper::mapBasisSetToTurbomoleStringRepresentation(std::string& ba
   }
   else
     throw std::runtime_error("Basis set " + basisSetString + " currently not supported by Turbomole calculator.");
+}
+
+void TurbomoleHelper::mapDftFunctionalToTurbomoleStringRepresentation(std::string& functionalString) {
+  // make sure that functional is lowercase only
+  std::transform(std::begin(functionalString), std::end(functionalString), std::begin(functionalString),
+                 [](const auto c) { return std::tolower(c); });
+
+  // check if functional should contain a delimiter
+  std::unordered_map<std::string, std::string>::iterator it = correctedDftFunctionals_.find(functionalString);
+  if (it != correctedDftFunctionals_.end()) {
+    functionalString = it->second;
+  }
 }
 
 } // namespace ExternalQC

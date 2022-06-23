@@ -14,6 +14,9 @@ void init_constants(pybind11::module& m) {
   m.attr("ELEMENTARY_CHARGE") = Constants::elementaryCharge;
   m.attr("AVOGADRO_NUMBER") = Constants::avogadroNumber;
   m.attr("PI") = Constants::pi;
+  m.attr("BOLTZMANN_CONSTANT") = Constants::boltzmannConstant;
+  m.attr("PLANCK_CONSTANT") = Constants::planckConstant;
+  m.attr("MOLAR_GAS_CONSTANT") = Constants::molarGasConstant;
   m.attr("ATOMIC_MASS_UNIT") = Constants::atomicMassUnit;
   m.attr("ELECTRON_REST_MASS") = Constants::electronRestMass;
   m.attr("INVERSE_FINE_STRUCTURE_CONSTANT") = Constants::inverseFineStructureConstant;

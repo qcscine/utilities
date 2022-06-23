@@ -8,6 +8,34 @@ It is intended that only the first two groups (``New Features and Feature Update
 ``Important Technical Changes``) are important for the average user, while
 the last one is mainly aimed at developers and users that link deeply into the code.
 
+Release 5.0.0
+-------------
+
+New Features and Feature Updates
+................................
+- Add second version of Newton Trajectory algorithm (NT2) for elementary step induction
+- Add Gaussian process regression
+- Improve BFGS: guarantees positive-definite approximate Hessian
+- B-Splines: interpolation and compression of trajectories including energy
+- Enable optimization of a geometry together with its unit cell
+  - CP2K:
+    - Add xTB support
+    - Add stress tensor
+- Enable point charge embedding for Turbomole
+- Add linear sum assignment algorithm
+- Add functionality to evaluate the spin contamination of a single determinant
+- Add Python bindings for WavefunctionOutputGenerator and casting utilities
+  from Calculator and CalculatorWithReference.
+
+Important Technical Changes
+...........................
+- Calculators:
+  - Harmonize dispersion correction input
+
+Development Changes
+...................
+- Code deduplication
+
 Release 4.0.0
 -------------
 

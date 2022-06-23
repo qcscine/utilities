@@ -13,6 +13,7 @@
 
 namespace Scine {
 namespace Utils {
+class Settings;
 namespace MachineLearning {
 
 /**
@@ -40,7 +41,7 @@ class RegressionModel {
    * @param data A vector containing the values for the features of the data point which shall be predicted by the model.
    * @return A vector of predicted target values. The length of this vector is equal to the number of targets.
    */
-  virtual Eigen::VectorXd predict(const Eigen::VectorXd& data) const = 0;
+  virtual Eigen::VectorXd predict(const Eigen::VectorXd& data) = 0;
 
   /**
    * @brief Method allowing to clone the derived class into a RegressionModel

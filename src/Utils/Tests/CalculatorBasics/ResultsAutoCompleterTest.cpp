@@ -176,12 +176,24 @@ TEST_F(AResultsAutoCompleterTest, CanComputeThermochemistry) {
   // Insufficient information for calculating Atomic Charges so they should not be there
   ASSERT_FALSE(arbitraryResults.has<Property::AtomicCharges>());
 
+  // take thermochemistry and also calculate it with other function
+  int multiplicity = 2;
+  auto thermoResult = arbitraryResults.take<Property::Thermochemistry>();
+  ASSERT_FALSE(arbitraryResults.has<Property::Thermochemistry>()); // now gone because we took it
+  arbitraryResultsAutoCompleter->generateThermochemistry(arbitraryResults, structure, multiplicity);
+  ASSERT_TRUE(arbitraryResults.has<Property::Thermochemistry>()); // now back
+
   // Check whether computed Thermochemical properties match orca_test_calc.out
   ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().vibrationalComponent.zeroPointVibrationalEnergy,
               DoubleNear(0.02101209, 1e-5));
   ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().overall.enthalpy, DoubleNear(-75.79347127, 1e-5));
   ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().overall.entropy * 298.15, DoubleNear(0.02210368, 1e-5));
-  ASSERT_THAT(arbitraryResults.get<Property::Thermochemistry>().overall.gibbsFreeEnergy, DoubleNear(-75.81557495, 1e-5));
+  // Check with first calculated properties
+  ASSERT_THAT(thermoResult.vibrationalComponent.zeroPointVibrationalEnergy, DoubleNear(0.02101209, 1e-5));
+  ASSERT_THAT(thermoResult.overall.enthalpy, DoubleNear(-75.79347127, 1e-5));
+  ASSERT_THAT(thermoResult.overall.entropy * 298.15, DoubleNear(0.02210368, 1e-5));
+  ASSERT_THAT(thermoResult.overall.gibbsFreeEnergy, DoubleNear(-75.81557495, 1e-5));
+  ASSERT_THAT(thermoResult.overall.gibbsFreeEnergy, DoubleNear(-75.81557495, 1e-5));
 }
 
 TEST_F(AResultsAutoCompleterTest, CanComputeThermochemistryReverseOccupation) {

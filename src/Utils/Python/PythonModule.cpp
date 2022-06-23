@@ -15,6 +15,7 @@ void init_atomic_gtos(pybind11::module& m);
 void init_atomic_second_derivative_collection(pybind11::module& m);
 void init_bond_detector(pybind11::module& m);
 void init_bond_order_collection(pybind11::module& m);
+void init_bspline_functionalities(pybind11::module& m);
 void init_conceptual_dft(pybind11::module& m);
 void init_constants(pybind11::module& m);
 void init_core_submodule(pybind11::module& m);
@@ -54,6 +55,7 @@ void init_structural_completion(pybind11::module& m);
 void init_thermochemical_calculator(pybind11::module& m);
 void init_typenames(pybind11::module& m);
 void init_value_collection(pybind11::module& m);
+void init_regression_functionalities(pybind11::module& m);
 
 PYBIND11_MODULE(scine_utilities, m) {
   m.doc() = "Pybind11 Bindings for SCINE-Utilities";
@@ -105,4 +107,6 @@ PYBIND11_MODULE(scine_utilities, m) {
   init_geometry_optimize(m);
   init_io(m);
   init_iterative_diagonalizer(m);
+  init_bspline_functionalities(m);
+  init_regression_functionalities(m);
 }

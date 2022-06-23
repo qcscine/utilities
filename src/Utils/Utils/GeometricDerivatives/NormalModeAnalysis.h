@@ -32,11 +32,25 @@ NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const At
  * @param hessian   The hessian (non-mass weighted, in cartesian coordinates).
  * @param elements  The elements of the underlying structure.
  * @param positions The atom positions of the underlying structure.
+ * @param normalize If true (default value), returns the normalized MW normal modes.
+ *                  Returns the MW normal modes otherwise, with the norm given by the reduced mass.
  * @return The normal modes obtained from the mass weighted Hessian back-scaled to Cartesian coordinates summarized in a
  * container.
  */
 NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
-                                          const PositionCollection& positions);
+                                          const PositionCollection& positions, bool normalize = true);
+
+/**
+ * @brief Calculate the unnormalized normal modes of a structure with a given Hessian.
+ *
+ * @param hessian   The Hessian (non-mass weighted, in Cartesian coordinates).
+ * @param elements  The elements of the underlying structure.
+ * @param positions The atom positions of the underlying structure.
+ * @return The normal modes obtained from the mass-weighted Hessian back-scaled to Cartesian coordinates summarized in a
+ * container.
+ */
+NormalModesContainer calculateUnnormalizedNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
+                                                      const PositionCollection& positions);
 
 /**
  * @brief Calculate the normal modes container of structure with given hessian s.t.

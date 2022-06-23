@@ -35,12 +35,8 @@ void ChargeSimple::addVector(const std::vector<double>& q) {
 }
 
 const std::vector<double>& ChargeSimple::extrapolate() {
-  // std::cout << "charges: " << std::endl;
   for (int a = 0; a < nAtoms_; a++) {
-    // std::cout << (1.0-damping_) << "*" << qVectors[(index_+1)%2][a] << " + " << damping_ <<"*" <<qVectors[index_][a]
-    // << " = ";
     qVectors[(index_ + 1) % 2][a] = (1.0 - damping_) * qVectors[(index_ + 1) % 2][a] + damping_ * qVectors[index_][a];
-    // std::cout << qVectors[(index_+1)%2][a] << std::endl;
   }
 
   return qVectors[(index_ + 1) % 2];

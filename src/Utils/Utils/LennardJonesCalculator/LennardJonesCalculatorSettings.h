@@ -17,8 +17,6 @@ namespace SettingsNames {
 static constexpr const char* lennardJonesSigma = "lj_sigma";
 static constexpr const char* lennardJonesEpsilon = "lj_epsilon";
 static constexpr const char* lennardJonesCutoff = "lj_cutoff";
-static constexpr const char* lennardJonesUsePBCs = "lj_use_pbcs";
-static constexpr const char* lennardJonesBoxsize = "lj_boxsize";
 } // namespace SettingsNames
 
 /**
@@ -42,6 +40,10 @@ class LennardJonesCalculatorSettings : public Scine::Utils::Settings {
 };
 
 inline void LennardJonesCalculatorSettings::populateSettings(UniversalSettings::DescriptorCollection& settings) {
+  UniversalSettings::DoubleDescriptor convergence_threshold("Energy convergence limit.");
+  convergence_threshold.setDefaultValue(1e-12);
+  settings.push_back(SettingsNames::selfConsistenceCriterion, convergence_threshold);
+
   Utils::UniversalSettings::DoubleDescriptor lennardJonesSigma(
       "The sigma parameter for the Lennard-Jones potential in bohr.");
   lennardJonesSigma.setMinimum(0.);
@@ -60,16 +62,10 @@ inline void LennardJonesCalculatorSettings::populateSettings(UniversalSettings::
   lennardJonesCutoff.setDefaultValue(16.);
   settings.push_back(Scine::Utils::SettingsNames::lennardJonesCutoff, std::move(lennardJonesCutoff));
 
-  Utils::UniversalSettings::BoolDescriptor lennardJonesUsePBCs("Whether periodic boundary conditions are to be used.");
-  lennardJonesUsePBCs.setDefaultValue(false);
-  settings.push_back(Scine::Utils::SettingsNames::lennardJonesUsePBCs, std::move(lennardJonesUsePBCs));
-
-  Utils::UniversalSettings::DoubleDescriptor lennardJonesBoxsize(
-      "The side length of the cubic simulation cell in bohr. Has to be more than twice as large as cut-off radius. "
-      "Only active if periodic boundary conditions are turned on.");
-  lennardJonesBoxsize.setMinimum(0.);
-  lennardJonesBoxsize.setDefaultValue(40);
-  settings.push_back(Scine::Utils::SettingsNames::lennardJonesBoxsize, std::move(lennardJonesBoxsize));
+  Utils::UniversalSettings::StringDescriptor lennardJonesPBCs(
+      "The periodic boundary conditions. Empty if not applied.");
+  lennardJonesPBCs.setDefaultValue("");
+  settings.push_back(Scine::Utils::SettingsNames::periodicBoundaries, std::move(lennardJonesPBCs));
 }
 
 } // namespace Utils

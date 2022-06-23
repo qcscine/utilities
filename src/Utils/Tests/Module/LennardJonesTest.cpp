@@ -27,20 +27,18 @@ TEST_F(ALennardJonesTest, SettingsAreSetCorrectly) {
   calculator.settings().modifyDouble(Utils::SettingsNames::lennardJonesSigma, 4.0);
   calculator.settings().modifyDouble(Utils::SettingsNames::lennardJonesEpsilon, 3.0);
   calculator.settings().modifyDouble(Utils::SettingsNames::lennardJonesCutoff, 2.0);
-  calculator.settings().modifyBool(Utils::SettingsNames::lennardJonesUsePBCs, true);
-  calculator.settings().modifyDouble(Utils::SettingsNames::lennardJonesBoxsize, 5.0);
+  std::string pbc = "5.0,5.0,5.0,90.0,90.0,90.0";
+  calculator.settings().modifyString(Utils::SettingsNames::periodicBoundaries, pbc);
 
   ASSERT_THAT(calculator.settings().getDouble(Utils::SettingsNames::lennardJonesSigma), Eq(4.0));
   ASSERT_THAT(calculator.settings().getDouble(Utils::SettingsNames::lennardJonesEpsilon), Eq(3.0));
   ASSERT_THAT(calculator.settings().getDouble(Utils::SettingsNames::lennardJonesCutoff), Eq(2.0));
-  ASSERT_TRUE(calculator.settings().getBool(Utils::SettingsNames::lennardJonesUsePBCs));
-  ASSERT_THAT(calculator.settings().getDouble(Utils::SettingsNames::lennardJonesBoxsize), Eq(5.0));
+  ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::periodicBoundaries), Eq(pbc));
 }
 
 TEST_F(ALennardJonesTest, SettingsCompatibilityIsChecked) {
   calculator.settings().modifyDouble(Utils::SettingsNames::lennardJonesCutoff, 4.0);
-  calculator.settings().modifyBool(Utils::SettingsNames::lennardJonesUsePBCs, true);
-  calculator.settings().modifyDouble(Utils::SettingsNames::lennardJonesBoxsize, 5.0);
+  calculator.settings().modifyString(Utils::SettingsNames::periodicBoundaries, "5.0,5.0,5.0,90.0,90.0,90.0");
 
   std::stringstream stream("2\n\n"
                            "Ar    0.00000000   0.00000000   0.00000000\n"
@@ -84,7 +82,7 @@ TEST_F(ALennardJonesTest, CanCalculateWithPBCs) {
 
   auto structure = Utils::XyzStreamHandler::read(stream);
   calculator.setStructure(structure);
-  calculator.settings().modifyBool(Utils::SettingsNames::lennardJonesUsePBCs, true);
+  calculator.settings().modifyString(Utils::SettingsNames::periodicBoundaries, "40.0,40.0,40.0,90.0,90.0,90.0");
   calculator.calculate("test description");
   ASSERT_THAT(calculator.results().get<Property::Description>(), Eq("test description"));
   // Reference energy and gradients obtained from CP2K version 7.0, git:a515b01
@@ -99,6 +97,36 @@ TEST_F(ALennardJonesTest, CanCalculateWithPBCs) {
   calculator.calculate("");
   EXPECT_NEAR(calculator.results().get<Property::Energy>(), 0.0, 1e-4);
   ASSERT_TRUE(calculator.results().get<Property::Gradients>().isZero());
+}
+
+TEST_F(ALennardJonesTest, CanCalculateStressTensor) {
+  std::stringstream stream("4\n\n"
+                           "Ar    0.80000000   0.00000000  42.00000000\n"
+                           "Ar    0.00000000   0.34000000  19.00000000\n"
+                           "Ar    0.10000000   0.00000000  23.00000000\n"
+                           "Ar   21.00000000  11.00000000   0.10000000\n");
+
+  auto structure = Utils::XyzStreamHandler::read(stream);
+  calculator.setStructure(structure);
+  calculator.settings().modifyString(Utils::SettingsNames::periodicBoundaries, "40.0,40.0,40.0,90.0,90.0,90.0");
+  calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::StressTensor);
+  calculator.calculate("test description");
+  ASSERT_THAT(calculator.results().get<Property::Description>(), Eq("test description"));
+  ASSERT_TRUE(calculator.results().has<Property::StressTensor>());
+  // Reference energy and gradients obtained from CP2K version 7.0, git:a515b01
+  EXPECT_NEAR(calculator.results().get<Property::Energy>(), 0.840893103151347, 1e-4);
+  Eigen::Matrix<double, 4, 3> cp2kForces;
+  cp2kForces << 1.00491747, -0.36529297, 1.51911449, -0.85950985, 0.36528270, -1.96914319, -0.14540762, 0.00001026,
+      0.45002870, 0.00000000, 0.00000000, 0.00000000;
+  ASSERT_TRUE(calculator.results().get<Property::Gradients>().isApprox(-1.0 * cp2kForces, 1e-4));
+  std::cout << calculator.results().get<Property::StressTensor>() << std::endl;
+
+  // With a cut-off smaller than the interatomic distances the energy should be zero
+  calculator.settings().modifyDouble(Utils::SettingsNames::lennardJonesCutoff, 0.2);
+  calculator.calculate("");
+  EXPECT_NEAR(calculator.results().get<Property::Energy>(), 0.0, 1e-4);
+  ASSERT_TRUE(calculator.results().get<Property::Gradients>().isZero());
+  ASSERT_TRUE(calculator.results().get<Property::StressTensor>().isZero());
 }
 
 } // namespace Tests

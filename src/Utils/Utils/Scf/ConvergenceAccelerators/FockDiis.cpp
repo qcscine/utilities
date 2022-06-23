@@ -19,7 +19,6 @@ FockDiis::FockDiis() {
 void FockDiis::setUnrestricted(bool b) {
   unrestricted_ = b;
   diisError_.setUnrestricted(b);
-  restart();
 }
 
 void FockDiis::setSubspaceSize(int n) {

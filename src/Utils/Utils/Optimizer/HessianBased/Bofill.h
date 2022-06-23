@@ -10,6 +10,7 @@
 
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include <Core/Log.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
@@ -51,7 +52,7 @@ class Bofill : public Optimizer {
    *                   of the optimization function.
    */
   template<class UpdateFunction>
-  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, GradientBasedCheck& check) {
+  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, GradientBasedCheck& check, Core::Log& /* log */) {
     /* number of parameters treated */
     unsigned int nParams = parameters.size();
     if (nParams == 0) {
@@ -63,10 +64,10 @@ class Bofill : public Optimizer {
     /* Initialize Hessian matrix */
     Eigen::MatrixXd hessian = Eigen::MatrixXd::Identity(nParams, nParams);
     /* Initial update */
-    int cycle = _startCycle;
+    _cycle = _startCycle;
     bool hessianUpdateRequired = true;
     function(parameters, value, gradients, hessian, hessianUpdateRequired);
-    this->triggerObservers(cycle, value, parameters);
+    this->triggerObservers(_cycle, value, parameters);
     // Init parameters and value stored in the convergence checker
     check.setParametersAndValue(parameters, value);
     /* Initialize 'old' variables */
@@ -74,7 +75,7 @@ class Bofill : public Optimizer {
     Eigen::VectorXd gOld(gradients);
     bool stop = false;
     while (!stop) {
-      cycle++;
+      _cycle++;
       bool alreadyCalculatedThisCycle = false;
       Eigen::VectorXd steps;
       try {
@@ -102,12 +103,12 @@ class Bofill : public Optimizer {
       // Update
       gOld = gradients;
       if (!alreadyCalculatedThisCycle) {
-        hessianUpdateRequired = ((cycle - _startCycle) % hessianUpdate == 0);
+        hessianUpdateRequired = ((_cycle - _startCycle) % hessianUpdate == 0);
         function(parameters, value, gradients, hessian, hessianUpdateRequired);
       }
       // Check convergence
-      this->triggerObservers(cycle, value, parameters);
-      stop = check.checkMaxIterations(cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
+      this->triggerObservers(_cycle, value, parameters);
+      stop = check.checkMaxIterations(_cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients));
 
       // Check oscillation, perform new hessian calculation if oscillating
       if (!stop && this->isOscillating(value)) {
@@ -116,8 +117,8 @@ class Bofill : public Optimizer {
         this->oscillationCorrection(steps, parameters);
         hessianUpdateRequired = true;
         function(parameters, value, gradients, hessian, hessianUpdateRequired);
-        cycle++;
-        this->triggerObservers(cycle, value, parameters);
+        _cycle++;
+        this->triggerObservers(_cycle, value, parameters);
       }
       Eigen::VectorXd dx = parameters - xOld;
       Eigen::VectorXd dg = gradients - gOld;
@@ -140,7 +141,7 @@ class Bofill : public Optimizer {
         }
       }
     }
-    return cycle;
+    return _cycle;
   }
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection

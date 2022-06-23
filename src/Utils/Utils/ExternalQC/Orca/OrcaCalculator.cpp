@@ -18,9 +18,6 @@
 #include "Utils/Scf/LcaoUtils/SpinMode.h"
 #include "Utils/Solvation/ImplicitSolvation.h"
 #include <boost/process.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 #include <regex>
 
 namespace bp = boost::process;
@@ -60,6 +57,7 @@ OrcaCalculator::OrcaCalculator(const OrcaCalculator& rhs) {
   auto valueCollection = dynamic_cast<const Utils::UniversalSettings::ValueCollection&>(rhs.settings());
   this->settings_ =
       std::make_unique<Utils::Settings>(Utils::Settings(valueCollection, rhs.settings().getDescriptorCollection()));
+  this->setLog(rhs.getLog());
   applySettings();
   this->setStructure(rhs.atoms_);
   this->results() = rhs.results();
@@ -68,20 +66,20 @@ OrcaCalculator::OrcaCalculator(const OrcaCalculator& rhs) {
 }
 
 void OrcaCalculator::applySettings() {
-  if (settings_->getDouble(Utils::SettingsNames::electronicTemperature) > 0.0) {
-    throw Core::InitializationException(
-        "ORCA calculations with an electronic temperature above 0.0 K are not supported.");
-  }
   if (settings_->valid()) {
+    if (settings_->getDouble(Utils::SettingsNames::electronicTemperature) > 0.0) {
+      throw Core::InitializationException(
+          "ORCA calculations with an electronic temperature above 0.0 K are not supported.");
+    }
     fileNameBase_ = settings_->getString(SettingsNames::orcaFilenameBase);
     baseWorkingDirectory_ = settings_->getString(SettingsNames::baseWorkingDirectory);
     // throws error for wrong input and updates 'any' entries */
     // information if solvation is performed is deduced from settings from InputFileCreator and therefore discarded here
     Solvation::ImplicitSolvation::solvationNeededAndPossible(availableSolvationModels_, *settings_);
-    if (requiredProperties_.containsSubSet(Property::Gradients) &&
+    if ((requiredProperties_.containsSubSet(Property::Gradients) || requiredProperties_.containsSubSet(Property::Hessian)) &&
         settings_->getDouble(Utils::SettingsNames::selfConsistenceCriterion) > 1e-8) {
       settings_->modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-8);
-      this->getLog().warning << "Warning: Energy accuracy was increased to 1e-8 to ensure valid gradients as "
+      this->getLog().warning << "Warning: Energy accuracy was increased to 1e-8 to ensure valid gradients/hessian as "
                                 "recommended by ORCA developers."
                              << Core::Log::nl;
     }
@@ -100,7 +98,7 @@ void OrcaCalculator::applySettings() {
 void OrcaCalculator::setStructure(const Utils::AtomCollection& structure) {
   applySettings();
   atoms_ = structure;
-  calculationDirectory_ = createNameForCalculationDirectory();
+  calculationDirectory_ = NativeFilenames::createRandomDirectoryName(baseWorkingDirectory_);
   results_ = Results{};
 }
 
@@ -216,14 +214,6 @@ const Results& OrcaCalculator::calculateImpl(std::string description) {
   }
 
   return results_;
-}
-
-std::string OrcaCalculator::createNameForCalculationDirectory() {
-  boost::uuids::uuid uuid = boost::uuids::random_generator()();
-  std::string uuidString = boost::uuids::to_string(uuid);
-
-  auto directoryName = NativeFilenames::combinePathSegments(baseWorkingDirectory_, uuidString);
-  return NativeFilenames::addTrailingSeparator(directoryName);
 }
 
 const Utils::Settings& OrcaCalculator::settings() const {

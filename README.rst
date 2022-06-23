@@ -29,7 +29,7 @@ Dependencies
 
 Required software, minimum required versions in brackets, for this SCINE project are:
 
-- A C++ compiler supporting the C++14 standard
+- A C++ compiler supporting the C++17 standard
 - CMake (3.9)
 - Boost (1.65.0)
 - Eigen3 (3.3.2)
@@ -42,7 +42,7 @@ commands::
 
     git submodule init
     git submodule update
-    mkdir build inst
+    mkdir build
     cd build
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../inst ..
     make -j 4
@@ -72,5 +72,6 @@ SCINE Utilities makes use of the following third-party libraries:
 - `Eigen <http://eigen.tuxfamily.org>`_
 - `Google Test <https://github.com/google/googletest>`_
 - `IRC <https://github.com/rmeli/irc>`_
+- `LBFGSB <https://github.com/yixuan/LBFGSpp>`_
 - `pybind11 <https://github.com/pybind/pybind11>`_
 - `yaml-cpp <https://github.com/jbeder/yaml-cpp>`_

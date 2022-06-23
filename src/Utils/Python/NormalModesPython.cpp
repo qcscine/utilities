@@ -36,10 +36,10 @@ void init_normal_modes(pybind11::module& m) {
       pybind11::arg("hessian"), pybind11::arg("atoms"), "Calculate the mass weighted normal modes.");
   normal_modes_submodule.def(
       "calculate",
-      pybind11::overload_cast<const HessianMatrix&, const ElementTypeCollection&, const PositionCollection&>(
+      pybind11::overload_cast<const HessianMatrix&, const ElementTypeCollection&, const PositionCollection&, bool>(
           &NormalModeAnalysis::calculateNormalModes),
       pybind11::arg("hessian"), pybind11::arg("elements"), pybind11::arg("positions"),
-      "Calculate the mass weighted normal modes.");
+      pybind11::arg("normalize") = false, "Calculate the mass weighted normal modes.");
 
   pybind11::class_<NormalMode> normalMode(normal_modes_submodule, "mode");
 

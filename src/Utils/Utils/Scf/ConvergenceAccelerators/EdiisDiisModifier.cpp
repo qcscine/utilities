@@ -16,13 +16,30 @@ EdiisDiisModifier::EdiisDiisModifier() {
   setSpaceSize(6);
 }
 
-void EdiisDiisModifier::setSpaceSize(int n) {
+void EdiisDiisModifier::setSpaceSize(unsigned n) {
   diis_.setSubspaceSize(n);
   ediis_.setSubspaceSize(n);
 }
 
 void EdiisDiisModifier::onOverlapCalculated() {
-  initialize();
+  if (!initialized) {
+    initialize();
+    initialized = true;
+  }
+
+  diis_.setNAOs(m->getNumberAtomicOrbitals());
+  ediis_.setNAOs(m->getNumberAtomicOrbitals());
+  ediis_.restart();
+  diis_.setOverlapMatrix(m->getOverlapMatrix());
+
+  if (m->unrestrictedCalculationRunning()) {
+    ediis_.setUnrestricted(true);
+    diis_.setUnrestricted(true);
+  }
+  else {
+    diis_.setUnrestricted(false);
+    ediis_.setUnrestricted(false);
+  }
 }
 
 void EdiisDiisModifier::onFockCalculated() {
@@ -42,14 +59,6 @@ void EdiisDiisModifier::initialize() {
   if (m->basisSetIsOrthogonal()) {
     setOrthogonal(true);
   }
-
-  diis_.setNAOs(m->getNumberAtomicOrbitals());
-  ediis_.setNAOs(m->getNumberAtomicOrbitals());
-  ediis_.restart();
-  diis_.setOverlapMatrix(m->getOverlapMatrix());
-
-  ediis_.setUnrestricted(m->unrestrictedCalculationRunning());
-  diis_.setUnrestricted(m->unrestrictedCalculationRunning());
 }
 
 void EdiisDiisModifier::setOrthogonal(bool o) {

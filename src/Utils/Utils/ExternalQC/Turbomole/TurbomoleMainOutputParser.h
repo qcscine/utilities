@@ -59,6 +59,11 @@ class TurbomoleMainOutputParser {
    */
   GradientCollection getGradients() const;
   /**
+   * @brief Parse the gradients with respect to coordinates of point charges from the Turbomole output.
+   * @return GradientCollection
+   */
+  GradientCollection getPointChargesGradients() const;
+  /**
    * @brief Parses the hessian matrix from the Turbomole output.
    * @return HessianMatrix
    */

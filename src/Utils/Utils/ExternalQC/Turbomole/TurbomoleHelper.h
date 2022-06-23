@@ -9,6 +9,7 @@
 #define TURBOMOLEHELPER_H
 
 #include <string>
+#include <unordered_map>
 
 namespace Scine {
 namespace Utils {
@@ -42,10 +43,30 @@ class TurbomoleHelper {
    * @note  Supports currently only Ahlrich's basis sets, Dunning basis set and Pople-style basis sets.
    */
   void mapBasisSetToTurbomoleStringRepresentation(std::string& basisSetString);
+  /**
+   * @brief Converts the DFT functional string to the turbomole input format if necessary (some DFT functional require a
+   * "-" delimiter, e.g. b3-lyp).
+   */
+  void mapDftFunctionalToTurbomoleStringRepresentation(std::string& functionalString);
 
  private:
   std::string& calculationDirectory_;
   std::string& turbomoleExecutableBase_;
+  std::unordered_map<std::string, std::string> correctedDftFunctionals_ = {{"b3lyp", "b3-lyp"},
+                                                                           {"svwn", "s-vwn"},
+                                                                           {"svwn_gaussian", "s-vwn_Gaussian"},
+                                                                           {"b3lyp_gaussian", "b3-lyp_Gaussian"},
+                                                                           {"blyp", "b-lyp"},
+                                                                           {"m062x", "m06-2x"},
+                                                                           {"b2plyp", "b2-plyp"},
+                                                                           {"camb3lyp", "cam-b3lyp"},
+                                                                           {"bvwn", "b-vwn"},
+                                                                           {"bp", "b-p"},
+                                                                           {"bhlyp", "bh-lyp"},
+                                                                           {"m06l", "m06-l"},
+                                                                           {"b97d", "b97-d"},
+                                                                           {"pbeh3c", "pbeh-3c"},
+                                                                           {"b973c", "b97-3c"}};
 };
 
 } // namespace ExternalQC

@@ -15,9 +15,11 @@ namespace Utils {
 
 void EdiisModifier::onOverlapCalculated() {
   mixer_.setNAOs(m->getNumberAtomicOrbitals());
-  mixer_.setUnrestricted(m->unrestrictedCalculationRunning());
-
   mixer_.restart();
+
+  if (m->unrestrictedCalculationRunning()) {
+    mixer_.setUnrestricted(true);
+  }
 }
 
 void EdiisModifier::onFockCalculated() {

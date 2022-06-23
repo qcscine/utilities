@@ -11,11 +11,12 @@
 #include "Utils/Optimizer/GradientBased/Gdiis.h"
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include <Core/Log.h>
 #include <Utils/Geometry/AtomCollection.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cmath>
-#include <iostream>
+
 namespace Scine {
 namespace Utils {
 
@@ -89,10 +90,6 @@ class Dimer : public Optimizer {
   static constexpr const char* dimerMinimizationCycle = "dimer_minimization_cycle";
   /// @brief Default constructor.
   Dimer() = default;
-  /// @brief Read only access to cycle counter variable
-  int getCycle() const {
-    return _cycle;
-  }
   /**
    * @brief The main routine of the optimizer that carries out the actual optimization.
    *
@@ -112,7 +109,7 @@ class Dimer : public Optimizer {
    *                   of the optimization function.
    */
   template<class UpdateFunction, class ConvergenceCheckClass>
-  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, ConvergenceCheckClass& check) {
+  int optimize(Eigen::VectorXd& parameters, UpdateFunction&& function, ConvergenceCheckClass& check, Core::Log& log) {
     /* number of parameters treated */
     unsigned int nParams = parameters.size();
     if (nParams == 0) {
@@ -130,7 +127,7 @@ class Dimer : public Optimizer {
     this->triggerObservers(_cycle, value, parameters);
     // Init parameters and value stored in the convergence checker
     check.setParametersAndValue(parameters, value);
-    createDimerAxis(nParams, function, parameters, value);
+    createDimerAxis(nParams, function, parameters, value, log);
     bool stop = false;
     while (!stop) {
       _cycle++;
@@ -144,10 +141,10 @@ class Dimer : public Optimizer {
       if (determineIfPerformRotation(_cycle, parameters, function)) {
         _numberOfPerformedRotationCycles++;
         if (_cycle == _startCycle + 1) {
-          rotationWithPhi(parameters, value, maxRotationCycles, function);
+          rotationWithPhi(parameters, value, maxRotationCycles, function, log);
         }
         else {
-          rotationWithGradient(parameters, value, maxRotationCycles, function);
+          rotationWithGradient(parameters, value, maxRotationCycles, function, log);
         }
         /* Reset scaling after rotation */
         currentStepLength = defaultTranslationStep;
@@ -208,7 +205,7 @@ class Dimer : public Optimizer {
         this->triggerObservers(_cycle, value, parameters);
         defaultTranslationStep *= 0.95;
         currentStepLength = defaultTranslationStep;
-        rotationWithGradient(parameters, value, maxRotationCycles, function);
+        rotationWithGradient(parameters, value, maxRotationCycles, function, log);
       }
       else {
         defaultTranslationStep = 1.0;
@@ -218,8 +215,8 @@ class Dimer : public Optimizer {
         }
       }
     } // end of optimization while loop
-    std::cout << "\n    Number of individual rotations: " << _sumRotations << std::endl;
-    std::cout << "\n    Number of gradient calls: " << _gradientCalls << std::endl;
+    log.output << Core::Log::nl << "    Number of individual rotations: " << _sumRotations << Core::Log::nl;
+    log.output << Core::Log::nl << "    Number of gradient calls: " << _gradientCalls << Core::Log::nl;
     return _cycle;
   }
 
@@ -513,16 +510,17 @@ class Dimer : public Optimizer {
    * @return void
    */
   template<class UpdateFunction>
-  void createDimerAxis(const int& nParams, UpdateFunction&& function, const Eigen::VectorXd& parameters, const double value) {
+  void createDimerAxis(const int& nParams, UpdateFunction&& function, const Eigen::VectorXd& parameters,
+                       const double value, Core::Log& log) {
     bool randomNecessary = false;
     if (guessVector) {
       if ((*guessVector).size() == nParams) {
         _dimerAxis.noalias() = *guessVector;
       }
       else {
-        std::cout << "ERROR, given guess vector has different size than parameters. "
-                     "Continuing transition state search, but omitting the guess."
-                  << std::endl;
+        log.warning << "Warning, given guess vector has different size than parameters. "
+                       "Continuing transition state search, but omitting the guess."
+                    << Core::Log::nl;
         guessVector = nullptr;
         randomNecessary = true;
       }
@@ -740,7 +738,7 @@ class Dimer : public Optimizer {
    */
   template<class UpdateFunction>
   void rotationWithPhi(const Eigen::VectorXd& parameters, const double value, const unsigned int maxRotationCycles,
-                       UpdateFunction&& function) {
+                       UpdateFunction&& function, Core::Log& log) {
     bool reachedTolerance = false;
     unsigned int m = 0; // for lbfgs
     double cPhiMin = 0.0;
@@ -854,9 +852,9 @@ class Dimer : public Optimizer {
       _parametersR1.noalias() = parameters + radius * _dimerAxis;
     } // end of for loop for rotation
     if (!reachedTolerance) {
-      std::cout << "WARNING: Did not reach tolerance in rotation, last angle in radiant was: " << phiMin << std::endl;
-      std::cout << "If this angle is very high, optimization might not converge or converge to wrong saddle point "
-                << std::endl;
+      log.warning << "Warning, did not reach tolerance in rotation, last angle in radiant was: " << phiMin << Core::Log::nl
+                  << "If this angle is very high, optimization might not converge or converge to wrong saddle point "
+                  << Core::Log::nl;
       _sumRotations += maxRotationCycles;
       /* if break, R1 has already been calculated, but without break, calculation necessary. */
       function(_parametersR1, value1, _gradientsR1);
@@ -887,7 +885,7 @@ class Dimer : public Optimizer {
    */
   template<class UpdateFunction>
   void rotationWithGradient(const Eigen::VectorXd& parameters, const double value, const unsigned int maxRotationCycles,
-                            UpdateFunction&& function) {
+                            UpdateFunction&& function, Core::Log& log) {
     Eigen::VectorXd preRotationDimerAxis = _dimerAxis;
     _rotationGradientThreshold = rotationGradientThresholdOtherCycles;
     unsigned int m = 0; // for lbfgs
@@ -937,9 +935,9 @@ class Dimer : public Optimizer {
         return;
       }
     } // end of for loop for rotation
-    std::cout << "WARNING: Did not reach tolerance in rotation, norm of last rotation gradient was: " << _orthoG.norm()
-              << std::endl;
-    std::cout << "If this is very high, the optimization might not converge or converge to wrong saddle point " << std::endl;
+    log.warning << "Warning, did not reach tolerance in rotation, norm of last rotation gradient was: " << _orthoG.norm()
+                << Core::Log::nl << "If this is very high, the optimization might not converge or converge to wrong saddle point "
+                << Core::Log::nl;
     intervalOfRotations = 1;
     _sumRotations += maxRotationCycles;
     determineDirectionOfDimerToBeMaximized(value, parameters, value1, function);

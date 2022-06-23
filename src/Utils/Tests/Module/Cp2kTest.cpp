@@ -31,7 +31,6 @@ class ACp2kTest : public Test {
 
   void siSetUp() {
     calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
-    calculator.settings().modifyString(Utils::SettingsNames::method, "PBE");
     calculator.settings().modifyString(Utils::SettingsNames::basisSet, "SZV-MOLOPT-GTH");
 
     double length = 5.430697500 * Constants::bohr_per_angstrom;
@@ -55,11 +54,12 @@ class ACp2kTest : public Test {
   void SetUp() final {
     pathToResource = boost::dll::program_location().parent_path();
     pathToResource /= "Resources";
+    calculator.settings().modifyString(Utils::SettingsNames::method, "PBE");
   }
 };
 
 TEST_F(ACp2kTest, SettingsAreSetCorrectly) {
-  calculator.settings().modifyString(Utils::SettingsNames::method, "BLYP");
+  calculator.settings().modifyString(Utils::SettingsNames::method, "BLYP-D3BJ");
   calculator.settings().modifyString(Utils::SettingsNames::basisSet, "SZV-MOLOPT-GTH");
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, "test_1");
   calculator.settings().modifyString(Utils::SettingsNames::periodicBoundaries, "10,10,10,90,90,90");
@@ -71,15 +71,12 @@ TEST_F(ACp2kTest, SettingsAreSetCorrectly) {
   calculator.settings().modifyString(Utils::SettingsNames::spinMode, "unrestricted");
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::cp2kFilenameBase, "test_2");
   calculator.settings().modifyDouble(Utils::SettingsNames::temperature, 300.3);
-  calculator.settings().modifyString(Utils::SettingsNames::solvation, "none");
-  calculator.settings().modifyString(Utils::SettingsNames::solvent, "none");
   calculator.settings().modifyDouble(ExternalQC::SettingsNames::planeWaveCutoff, 200.0);
   calculator.settings().modifyDouble(ExternalQC::SettingsNames::relMultiGridCutoff, 40.0);
   calculator.settings().modifyInt(ExternalQC::SettingsNames::nGrids, 4);
   calculator.settings().modifyBool(ExternalQC::SettingsNames::deleteTemporaryFiles, false);
   calculator.settings().modifyString(SettingsNames::scfDamping, "direct_p_mixing");
   calculator.settings().modifyDouble(SettingsNames::electronicTemperature, 300.0);
-  calculator.settings().modifyString(ExternalQC::SettingsNames::vdwFunctional, "DFTD3(BJ)");
   calculator.settings().modifyInt(ExternalQC::SettingsNames::additionalMos, 20);
   calculator.settings().modifyString(ExternalQC::SettingsNames::orbitalTransformation, "cg");
   calculator.settings().modifyInt(ExternalQC::SettingsNames::outerScf, 20);
@@ -94,14 +91,12 @@ TEST_F(ACp2kTest, SettingsAreSetCorrectly) {
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::molecularCharge), Eq(1));
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::spinMultiplicity), Eq(2));
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::maxScfIterations), Eq(125));
-  ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::method), Eq("BLYP"));
+  ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::method), Eq("BLYP-D3BJ"));
   ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::basisSet), Eq("SZV-MOLOPT-GTH"));
   ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::spinMode), Eq("unrestricted"));
   ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory), Eq("test_1"));
   ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::cp2kFilenameBase), Eq("test_2"));
   ASSERT_THAT(calculator.settings().getDouble(Utils::SettingsNames::temperature), Eq(300.3));
-  ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::solvation), Eq("none"));
-  ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::solvent), Eq("none"));
   ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::periodicBoundaries), Eq("10,10,10,90,90,90"));
   ASSERT_THAT(calculator.settings().getDouble(ExternalQC::SettingsNames::planeWaveCutoff), Eq(200.0));
   ASSERT_THAT(calculator.settings().getDouble(ExternalQC::SettingsNames::relMultiGridCutoff), Eq(40.0));
@@ -109,7 +104,6 @@ TEST_F(ACp2kTest, SettingsAreSetCorrectly) {
   ASSERT_THAT(calculator.settings().getBool(ExternalQC::SettingsNames::deleteTemporaryFiles), Eq(false));
   ASSERT_THAT(calculator.settings().getString(SettingsNames::scfDamping), Eq("direct_p_mixing"));
   ASSERT_THAT(calculator.settings().getDouble(Utils::SettingsNames::electronicTemperature), Eq(300.0));
-  ASSERT_THAT(calculator.settings().getString(ExternalQC::SettingsNames::vdwFunctional), Eq("DFTD3(BJ)"));
   ASSERT_THAT(calculator.settings().getInt(ExternalQC::SettingsNames::additionalMos), Eq(20));
   ASSERT_THAT(calculator.settings().getString(ExternalQC::SettingsNames::orbitalTransformation), Eq("cg"));
   ASSERT_THAT(calculator.settings().getInt(ExternalQC::SettingsNames::outerScf), Eq(20));
@@ -162,6 +156,21 @@ TEST_F(ACp2kTest, OutputIsParsedCorrectly) {
   auto gridCounts = parser.getGridCounts();
   for (unsigned long i = 0; i < gridCounts.size(); ++i) {
     ASSERT_EQ(gridCounts[i], refGridCounts[i]);
+  }
+  // check stress tensor
+  Eigen::Matrix3d refStress;
+  // clang-format off
+  refStress << 0.05594641, -0.01426121,  0.00000000,
+              -0.01426121,  0.04939261, -0.00000000,
+               0.00000000, -0.00000000, -0.00042539;
+  // clang-format on
+  // adapt to right unit
+  refStress *= 1e9 * Constants::hartree_per_joule * std::pow(Constants::meter_per_bohr, 3);
+  auto stress = parser.getStressTensor();
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      ASSERT_THAT(stress(i, j), DoubleNear(refStress(i, j), 1e-8));
+    }
   }
 }
 
@@ -418,6 +427,12 @@ TEST_F(ACp2kTest, CloneInterfaceWorksCorrectly) {
 TEST_F(ACp2kTest, StatesHandlingAndInputCreationWorkCorrectly) {
   // Set up.
   siSetUp();
+
+  // set incorrect charge/multiplicity pair
+  calculator.settings().modifyInt(Utils::SettingsNames::molecularCharge, 1);
+  ASSERT_THROW(calculator.calculate(""), Core::UnsuccessfulCalculationException);
+  calculator.settings().modifyInt(Utils::SettingsNames::molecularCharge, 0);
+
   calculator.settings().modifyInt(Utils::SettingsNames::maxScfIterations, 1);
 
   try {
@@ -599,6 +614,36 @@ TEST_F(ACp2kTest, Cp2kCalculationIsPerformedCorrectlyViaScine) {
 #endif
 }
 
+TEST_F(ACp2kTest, Cp2kSemiempiricalCalculationIsPerformedCorrectlyViaScine) {
+#ifndef _WIN32
+  const char* envVariablePtr = std::getenv("CP2K_BINARY_PATH");
+  if (envVariablePtr) {
+    // Set-up
+    siSetUp();
+    calculator.setRequiredProperties(Property::Energy);
+    calculator.settings().modifyString(Utils::SettingsNames::method, "GFN1");
+    calculator.settings().modifyString(Utils::SettingsNames::basisSet, "");
+    calculator.settings().modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-6);
+
+    // Calculate
+    const auto& results = calculator.calculate("");
+    // Assert energy
+    ASSERT_THAT(results.get<Property::Energy>(), DoubleNear(-14.556796617316774, 1e-6));
+
+    // Check whether the calculation directory can be deleted.
+    bool isDir = FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
+    boost::filesystem::remove_all(calculator.getCalculationDirectory());
+    bool deleted = !FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
+    ASSERT_THAT(isDir, Eq(true));
+    ASSERT_THAT(deleted, Eq(true));
+  }
+  else {
+    auto logger = Core::Log();
+    logger.output << "Cp2k calculations were not tested directly as no binary path was specified." << Core::Log::endl;
+  }
+#endif
+}
+
 TEST_F(ACp2kTest, CutoffDataIsWorking) {
   // setup data
   double energy = 0.0;
@@ -672,6 +717,22 @@ TEST_F(ACp2kTest, AutomatedCutoffSelectionWithDummyDataIsWorking) {
   optimizer.determineOptimalGridCutoffs();
   ASSERT_THAT(calculator.settings().getDouble(ExternalQC::SettingsNames::planeWaveCutoff), DoubleEq(350.0));
   ASSERT_THAT(calculator.settings().getDouble(ExternalQC::SettingsNames::relMultiGridCutoff), DoubleEq(70.0));
+}
+
+TEST_F(ACp2kTest, ScfConvergenceIncreasedForPropertyCalculation) {
+  // set low scf convergence criterion
+  calculator.settings().modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-4);
+  // request Hessian calculation
+  calculator.setRequiredProperties(Property::Energy | Property::Hessian);
+  calculator.setLog(Core::Log::silent());
+  // Trigger the applySettings() function via cloning
+  ASSERT_THAT(calculator.settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(1e-4));
+  auto secondCalculator = calculator.clone();
+  ASSERT_THAT(secondCalculator->settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(1e-8));
+  // request calculation of gradients
+  calculator.setRequiredProperties(Property::Energy | Property::Gradients);
+  auto thirdCalculator = calculator.clone();
+  ASSERT_THAT(thirdCalculator->settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(1e-8));
 }
 
 } // namespace Tests

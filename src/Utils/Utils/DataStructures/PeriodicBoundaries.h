@@ -40,12 +40,12 @@ namespace Utils {
  */
 class PeriodicBoundaries {
  public:
-  explicit PeriodicBoundaries(double cubeLength = 1.0);
-  PeriodicBoundaries(const PeriodicBoundaries& rhs);
-  explicit PeriodicBoundaries(Eigen::Matrix3d matrix);
+  explicit PeriodicBoundaries(double cubeLength = 1.0, const std::string& periodicity = "xyz");
+  PeriodicBoundaries(const PeriodicBoundaries& rhs, const std::string& periodicity = "xyz");
+  explicit PeriodicBoundaries(Eigen::Matrix3d matrix, const std::string& periodicity = "xyz");
 
   explicit PeriodicBoundaries(const Eigen::Vector3d& lengths, const Eigen::Vector3d& angles, bool isBohr = true,
-                              bool isDegrees = true);
+                              bool isDegrees = true, const std::string& periodicity = "xyz");
 
   explicit PeriodicBoundaries(std::string periodicBoundariesString, const std::string& delimiter = ",",
                               bool isBohr = true, bool isDegrees = true);
@@ -74,6 +74,7 @@ class PeriodicBoundaries {
    * @return void
    */
   inline void transformInPlace(PositionCollection& positions, bool relativeToCartesian = true) const {
+    assert(positions.cols() == 3);
     if (relativeToCartesian) {
       positions *= _matrix;
     }
@@ -89,9 +90,7 @@ class PeriodicBoundaries {
    * @return void
    */
   inline void transformInPlace(Eigen::Ref<Position> position, bool relativeToCartesian = true) const {
-    if (position.cols() != 3) {
-      throw std::runtime_error("The given position(s) are not of dimension 3. This is not possible.");
-    }
+    assert(position.cols() == 3);
     if (relativeToCartesian) {
       position *= _matrix;
     }
@@ -180,7 +179,7 @@ class PeriodicBoundaries {
    * @param p2 Second Position
    * @return std::vector<double> squared Distances
    */
-  std::vector<double> getAllImageDistancesSquared(const Position& p1, Eigen::Ref<Position> p2) const;
+  std::vector<double> getAllImageDistancesSquared(const Position& p1, const Position& p2) const;
 
   /**
    * @brief Gets the displacement vectors pointing from a Position to all images of another Position.
@@ -188,7 +187,7 @@ class PeriodicBoundaries {
    * @param p2 Second Position
    * @return std::vector<double> displacement vectors
    */
-  std::vector<Displacement> getAllImageDisplacementVectors(const Position& p1, Eigen::Ref<Position> p2) const;
+  std::vector<Displacement> getAllImageDisplacementVectors(const Position& p1, Position p2) const;
 
   /**
    * @brief Determine whether the smallest distance between two positions is between their real space positions or
@@ -214,9 +213,14 @@ class PeriodicBoundaries {
    */
   bool isWithinCell(const PositionCollection& positions) const;
 
-  inline std::string getPeriodicBoundariesString() const {
-    return std::to_string(_aNorm) + "," + std::to_string(_bNorm) + "," + std::to_string(_cNorm) + "," +
-           std::to_string(_alpha) + "," + std::to_string(_beta) + "," + std::to_string(_gamma);
+  inline bool isOrthoRhombic(double eps = 1e-2) const {
+    return std::fabs(_alpha - 90.0) < eps && std::fabs(_beta - 90.0) < eps && std::fabs(_gamma - 90.0) < eps;
+  };
+
+  inline std::string getPeriodicBoundariesString(const std::string& delimiter = ",") const {
+    return std::to_string(_aNorm) + delimiter + std::to_string(_bNorm) + delimiter + std::to_string(_cNorm) +
+           delimiter + std::to_string(_alpha) + delimiter + std::to_string(_beta) + delimiter + std::to_string(_gamma) +
+           delimiter + getPeriodicityString();
   };
 
   inline Eigen::Matrix3d getCellMatrix() const {
@@ -227,6 +231,43 @@ class PeriodicBoundaries {
     _matrix = std::move(matrix);
     setMembers();
   };
+
+  inline Eigen::Matrix3d getInverseCellMatrix() const {
+    return _invMatrix;
+  };
+
+  inline std::vector<bool> getPeriodicity() const {
+    return _periodicity;
+  }
+
+  inline void setPeriodicity(std::vector<bool> periodicity) {
+    _periodicity = std::move(periodicity);
+  }
+
+  inline std::string getPeriodicityString() const {
+    std::string out;
+    if (_periodicity[0]) {
+      out += "x";
+    }
+    if (_periodicity[1]) {
+      out += "y";
+    }
+    if (_periodicity[2]) {
+      out += "z";
+    }
+    return out;
+  };
+
+  inline void setPeriodicity(std::string periodicity) {
+    cleanPeriodicityString(periodicity);
+    std::vector<std::string> possible = {"", "none", "x", "y", "z", "xy", "xz", "yz", "xyz"};
+    if (std::find(possible.begin(), possible.end(), periodicity) == possible.end()) {
+      throw std::logic_error("Requested periodicity " + periodicity + "; this is not implemented.");
+    }
+    _periodicity[0] = periodicity.find('x') != std::string::npos;
+    _periodicity[1] = periodicity.find('y') != std::string::npos;
+    _periodicity[2] = periodicity.find('z') != std::string::npos;
+  }
 
   inline Eigen::Vector3d getA() const {
     return _matrix.row(0);
@@ -260,6 +301,21 @@ class PeriodicBoundaries {
     return _biggestDistanceSquared;
   };
 
+  inline double getVolume() const {
+    double angleTerm = 1 - std::pow(std::cos(getRadians(_alpha)), 2) - std::pow(std::cos(getRadians(_beta)), 2) -
+                       std::pow(std::cos(getRadians(_gamma)), 2) +
+                       2 * std::cos(getRadians(_alpha)) * std::cos(getRadians(_beta)) * std::cos(getRadians(_gamma));
+    return _aNorm * _bNorm * _cNorm * sqrt(angleTerm);
+  };
+
+  inline Eigen::Matrix3d getCellMatrixWithNormalizedVectors() const {
+    Eigen::Matrix3d result = _matrix;
+    result.row(0) /= _aNorm;
+    result.row(1) /= _bNorm;
+    result.row(2) /= _cNorm;
+    return result;
+  };
+
   PeriodicBoundaries& operator=(const PeriodicBoundaries& rhs);
   PeriodicBoundaries& operator=(const Eigen::Matrix3d& rhs);
   /**
@@ -286,11 +342,35 @@ class PeriodicBoundaries {
    * @return The bigger periodic boundaries
    */
   PeriodicBoundaries& operator*=(double scalingFactor);
+  /**
+   * @brief Operator overload, increase periodic boundaries
+   * @param matrix The matrix to be added to the periodic boundaries cell matrix
+   * @return The bigger periodic boundaries
+   */
+  PeriodicBoundaries operator+(const Eigen::Matrix3d& matrix) const;
+  /**
+   * @brief Operator overload, increase periodic boundaries in place
+   * @param matrix The matrix to be added to the periodic boundaries cell matrix
+   * @return The bigger periodic boundaries
+   */
+  PeriodicBoundaries& operator+=(const Eigen::Matrix3d& matrix);
+  /**
+   * @brief Operator overload, increase periodic boundaries
+   * @param other The PeriodicBoundaries to be added to the periodic boundaries cell matrix
+   * @return The bigger periodic boundaries
+   */
+  PeriodicBoundaries operator+(const PeriodicBoundaries& other) const;
+  /**
+   * @brief Operator overload, increase periodic boundaries in place
+   * @param other The PeriodicBoundaries to be added to the periodic boundaries cell matrix
+   * @return The bigger periodic boundaries
+   */
+  PeriodicBoundaries& operator+=(const PeriodicBoundaries& other);
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW // See http://eigen.tuxfamily.org/dox-devel/group__TopicStructHavingEigenMembers.html
-
       private : Eigen::Matrix3d _matrix;
   Eigen::Matrix3d _invMatrix;
+  std::vector<bool> _periodicity = {true, true, true};
   const double _eps = 1e-6;
   /* lengths */
   double _aNorm;
@@ -309,6 +389,11 @@ class PeriodicBoundaries {
 
   void reduceNoise(Eigen::Matrix3d& mat) const;
 
+  inline void cleanPeriodicityString(std::string& periodicity) {
+    periodicity.erase(std::remove(periodicity.begin(), periodicity.end(), ' '), periodicity.end());
+    std::for_each(periodicity.begin(), periodicity.end(), [](char& c) { c = ::tolower(c); });
+  };
+
   void setMembers();
 
   // @brief Convenience functions for angle conversions
@@ -321,7 +406,7 @@ class PeriodicBoundaries {
   };
 
   void constructMembersFromLengthsAndAngles(const Eigen::Vector3d& lengths, const Eigen::Vector3d& angles, bool isBohr,
-                                            bool isDegrees);
+                                            bool isDegrees, const std::string& periodicity);
 };
 
 bool operator==(const PeriodicBoundaries& lhs, const PeriodicBoundaries& rhs);

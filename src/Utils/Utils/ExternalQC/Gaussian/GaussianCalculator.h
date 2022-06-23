@@ -147,10 +147,6 @@ class GaussianCalculator final : public Utils::CloneInterface<GaussianCalculator
    * @brief Apply settings.
    */
   void applySettings();
-  /*
-   * @brief Creates a random name for a calculation directory and creates this directory.
-   */
-  std::string createNameForCalculationDirectory() const;
   // The settings.
   std::unique_ptr<Utils::Settings> settings_;
   // The results.

@@ -41,7 +41,12 @@ MolecularTrajectory NormalModesContainer::getModeAsMolecularTrajectory(int modeI
 
   // Calculate number of structures from scaling factor, this formula gives a reasonable value
   // of 40 structures for a step size of 0.1 and scaling factor of 2.
+  double num = 2 * scalingFactor / stepSizeForModeVisualization;
   auto numStructures = static_cast<int>(2 * scalingFactor / stepSizeForModeVisualization);
+  if (std::fabs(num - numStructures - 1) < std::fabs(num - numStructures)) {
+    // cast caused the wrong int
+    numStructures++;
+  }
 
   // For loop to construct the molecular trajectory
   for (int i = 0; i < numStructures; i++) {

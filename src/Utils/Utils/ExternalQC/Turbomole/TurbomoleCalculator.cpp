@@ -12,6 +12,7 @@
 #include "Utils/ExternalQC/Turbomole/TurbomoleHelper.h"
 #include "Utils/ExternalQC/Turbomole/TurbomoleInputFileCreator.h"
 #include "Utils/ExternalQC/Turbomole/TurbomoleMainOutputParser.h"
+#include "Utils/ExternalQC/Turbomole/TurbomoleState.h"
 #include "Utils/IO/FilesystemHelpers.h"
 #include "Utils/IO/NativeFilenames.h"
 #include "Utils/Properties/Thermochemistry/ThermochemistryCalculator.h"
@@ -20,9 +21,6 @@
 #include <stdlib.h>
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/process.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
 namespace bp = boost::process;
 namespace bfs = boost::filesystem;
@@ -57,6 +55,7 @@ TurbomoleCalculator::TurbomoleCalculator(const TurbomoleCalculator& rhs) {
   auto valueCollection = dynamic_cast<const Utils::UniversalSettings::ValueCollection&>(rhs.settings());
   this->settings_ =
       std::make_unique<Utils::Settings>(Utils::Settings(valueCollection, rhs.settings().getDescriptorCollection()));
+  this->setLog(rhs.getLog());
   applySettings();
   this->setStructure(rhs.atoms_);
   this->results() = rhs.results();
@@ -95,24 +94,25 @@ void TurbomoleCalculator::initializeProgram() {
     const std::string numProcsChar = temp_str.str();
     setenv("PARA_ARCH", "SMP", 1);
     setenv("PARNODES", numProcsChar.c_str(), 1);
-    setenv("TM_PAR_FORK", "on", 1);
   }
 }
 
 void TurbomoleCalculator::applySettings() {
-  if (settings_->getDouble(Utils::SettingsNames::electronicTemperature) > 0.0) {
-    throw Core::InitializationException(
-        "Turbomole calculations with an electronic temperature above 0.0 K are not supported.");
-  }
   if (settings_->valid()) {
+    if (settings_->getDouble(Utils::SettingsNames::electronicTemperature) > 0.0) {
+      throw Core::InitializationException(
+          "Turbomole calculations with an electronic temperature above 0.0 K are not supported.");
+    }
     baseWorkingDirectory_ = settings_->getString(SettingsNames::baseWorkingDirectory);
     // throws error for wrong input and updates 'any' entries */
     // information if solvation is performed is deduced from settings from InputFileCreator and therefore discarded here
     Solvation::ImplicitSolvation::solvationNeededAndPossible(availableSolvationModels_, *settings_);
-    if (requiredProperties_.containsSubSet(Property::Gradients) &&
+    if ((requiredProperties_.containsSubSet(Property::Gradients) || requiredProperties_.containsSubSet(Property::Hessian)) &&
         settings_->getDouble(Utils::SettingsNames::selfConsistenceCriterion) > 1e-8) {
       settings_->modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-8);
-      this->getLog().warning << "Warning: Energy accuracy was increased to 1e-8 to ensure valid gradients." << Core::Log::nl;
+      this->getLog().warning << "Warning: Energy accuracy was increased to 1e-8 to ensure valid gradients/hessian "
+                                "as recommended by TURBOMOLE developers."
+                             << Core::Log::nl;
     }
   }
   else {
@@ -123,7 +123,7 @@ void TurbomoleCalculator::applySettings() {
 void TurbomoleCalculator::setStructure(const Utils::AtomCollection& structure) {
   applySettings();
   atoms_ = structure;
-  calculationDirectory_ = createNameForCalculationDirectory();
+  calculationDirectory_ = NativeFilenames::createRandomDirectoryName(baseWorkingDirectory_);
   results_ = Results{};
 }
 
@@ -150,7 +150,7 @@ PropertyList TurbomoleCalculator::getRequiredProperties() const {
 
 PropertyList TurbomoleCalculator::possibleProperties() const {
   return Property::Energy | Property::Gradients | Property::Hessian | Property::BondOrderMatrix |
-         Property::Thermochemistry | Property::AtomicCharges;
+         Property::PointChargesGradients | Property::Thermochemistry | Property::AtomicCharges;
 }
 
 const Results& TurbomoleCalculator::calculate(std::string description) {
@@ -159,8 +159,8 @@ const Results& TurbomoleCalculator::calculate(std::string description) {
   try {
     return calculateImpl(description);
   }
-  catch (...) {
-    throw Core::UnsuccessfulCalculationException(boost::current_exception_diagnostic_information());
+  catch (std::runtime_error& e) {
+    throw Core::UnsuccessfulCalculationException(e.what()); // boost::current_exception_diagnostic_information());
   }
 }
 
@@ -213,7 +213,8 @@ const Results& TurbomoleCalculator::calculateImpl(std::string description) {
       throw std::runtime_error("Orbital steering can only be performed for unrestricted calculations. ");
   }
 
-  if (requiredProperties_.containsSubSet(Property::Gradients)) {
+  if (requiredProperties_.containsSubSet(Property::Gradients) ||
+      requiredProperties_.containsSubSet(Property::PointChargesGradients)) {
     helper.execute("rdgrad", true);
   }
   if (requiredProperties_.containsSubSet(Property::Hessian) || requiredProperties_.containsSubSet(Property::Thermochemistry)) {
@@ -240,6 +241,9 @@ const Results& TurbomoleCalculator::calculateImpl(std::string description) {
   if (requiredProperties_.containsSubSet(Property::AtomicCharges)) {
     results_.set<Property::AtomicCharges>(parser.getLoewdinCharges());
   }
+  if (requiredProperties_.containsSubSet(Property::PointChargesGradients)) {
+    results_.set<Property::PointChargesGradients>(parser.getPointChargesGradients());
+  }
   if (requiredProperties_.containsSubSet(Property::Thermochemistry)) {
     auto thermoCalc = ThermochemistryCalculator(results_.get<Property::Hessian>(), atoms_,
                                                 settings_->getInt(Utils::SettingsNames::spinMultiplicity),
@@ -255,14 +259,6 @@ const Results& TurbomoleCalculator::calculateImpl(std::string description) {
   return results_;
 }
 
-std::string TurbomoleCalculator::createNameForCalculationDirectory() {
-  boost::uuids::uuid uuid = boost::uuids::random_generator()();
-  std::string uuidString = boost::uuids::to_string(uuid);
-
-  auto directoryName = NativeFilenames::combinePathSegments(baseWorkingDirectory_, uuidString);
-  return NativeFilenames::addTrailingSeparator(directoryName);
-}
-
 const Utils::Settings& TurbomoleCalculator::settings() const {
   return *settings_;
 }
@@ -271,19 +267,38 @@ Utils::Settings& TurbomoleCalculator::settings() {
   return *settings_;
 }
 
-class TurbomoleStatesHandlingIsNotImplementedException : public std::exception {
-  const char* what() const noexcept final {
-    return "States handling is not available for Turbomole calculations.";
-  }
-};
+void TurbomoleCalculator::copyBackupFiles(const std::string& from, const std::string& to) const {
+  std::string mosFromFile = NativeFilenames::combinePathSegments(from, "mos");
+  std::string alphaFromFile = NativeFilenames::combinePathSegments(from, "alpha");
+  std::string betaFromFile = NativeFilenames::combinePathSegments(from, "beta");
 
-std::shared_ptr<Core::State> TurbomoleCalculator::getState() const {
-  throw TurbomoleStatesHandlingIsNotImplementedException();
-  return nullptr;
+  std::string mosToFile = NativeFilenames::combinePathSegments(to, "mos");
+  std::string alphaToFile = NativeFilenames::combinePathSegments(to, "alpha");
+  std::string betaToFile = NativeFilenames::combinePathSegments(to, "beta");
+
+  try {
+    if (bfs::exists(mosFromFile)) {
+      FilesystemHelpers::copyFile(mosFromFile, mosToFile);
+    }
+    else if (bfs::exists(alphaFromFile) && bfs::exists(betaFromFile)) {
+      FilesystemHelpers::copyFile(alphaFromFile, alphaToFile);
+      FilesystemHelpers::copyFile(betaFromFile, betaToFile);
+    }
+  }
+  catch (std::runtime_error& e) {
+    throw TurbomoleStateSavingException();
+  }
 }
 
-void TurbomoleCalculator::loadState(std::shared_ptr<Core::State> /*state*/) {
-  throw TurbomoleStatesHandlingIsNotImplementedException();
+std::shared_ptr<Core::State> TurbomoleCalculator::getState() const {
+  auto ret = std::make_shared<TurbomoleState>(this->getCalculationDirectory());
+  this->copyBackupFiles(this->getCalculationDirectory(), ret->stateIdentifier);
+  return ret;
+}
+
+void TurbomoleCalculator::loadState(std::shared_ptr<Core::State> state) {
+  auto turbomoleState = std::dynamic_pointer_cast<TurbomoleState>(state);
+  this->copyBackupFiles(turbomoleState->stateIdentifier, this->getCalculationDirectory());
 }
 
 const Utils::Results& TurbomoleCalculator::results() const {

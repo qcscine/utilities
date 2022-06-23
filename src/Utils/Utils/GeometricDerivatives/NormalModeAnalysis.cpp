@@ -17,9 +17,9 @@ namespace Scine {
 namespace Utils {
 namespace NormalModeAnalysis {
 
-inline NormalModesContainer calculate(HessianUtilities& diagonalizer, int nAtoms) {
+inline NormalModesContainer calculate(HessianUtilities& diagonalizer, int nAtoms, bool normalize) {
   Eigen::VectorXd eigenvalues = diagonalizer.getInternalEigenvalues();
-  Eigen::MatrixXd cartesianDisplacements = diagonalizer.getBackTransformedInternalEigenvectors();
+  Eigen::MatrixXd cartesianDisplacements = diagonalizer.getBackTransformedInternalEigenvectors(normalize);
 
   NormalModesContainer modesContainer;
   DisplacementCollection dc(nAtoms, 3);
@@ -36,16 +36,16 @@ inline NormalModesContainer calculate(HessianUtilities& diagonalizer, int nAtoms
 }
 
 NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const AtomCollection& atoms) {
-  return calculateNormalModes(hessian, atoms.getElements(), atoms.getPositions());
+  return calculateNormalModes(hessian, atoms.getElements(), atoms.getPositions(), true);
 }
 
 NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
-                                          const PositionCollection& positions) {
+                                          const PositionCollection& positions, bool normalize) {
   int nAtoms = elements.size();
 
   HessianUtilities diagonalizer(hessian, elements, positions, true);
 
-  return calculate(diagonalizer, nAtoms);
+  return calculate(diagonalizer, nAtoms, normalize);
 }
 
 NormalModesContainer calculateOrthogonalNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
@@ -55,7 +55,7 @@ NormalModesContainer calculateOrthogonalNormalModes(const HessianMatrix& hessian
 
   HessianUtilities diagonalizer(hessian, elements, positions, gradient, true);
 
-  return calculate(diagonalizer, nAtoms);
+  return calculate(diagonalizer, nAtoms, true);
 }
 
 double getWaveNumber(double value) {

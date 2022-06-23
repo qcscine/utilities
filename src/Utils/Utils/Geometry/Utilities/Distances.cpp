@@ -7,7 +7,6 @@
 #include "Distances.h"
 #include "Properties.h"
 #include <iomanip>
-#include <iostream>
 
 namespace Scine {
 namespace Utils {
@@ -46,7 +45,7 @@ double distanceSquared(const Position& p1, const Position& p2, const PeriodicBou
   if ((pos1 - pos2).squaredNorm() < 0.5 * pbc.getSmallestPerpendicularSquared())
     return pbc.fastMinimumImageDistanceSquared(pos1, pos2);
   else
-    return pbc.bruteForceMinimumImageDistanceSquared(p1, p2);
+    return pbc.bruteForceMinimumImageDistanceSquared(pos1, pos2);
 }
 
 BondOrderCollection nearestNeighborsBondOrders(const PositionCollection& positions, double margin) {
@@ -193,13 +192,16 @@ int countNearestNeighbors(const PositionCollection& positions, const Position& p
   return nearestNeighborsInPositions(positions, pos, margin, thresholdForSame).size();
 }
 
-int countNearestNeighbors(const PositionCollection& positions, const Position& pos, const PeriodicBoundaries& pbc,
-                          double margin, double thresholdForSame) {
+int countNearestNeighbors(PositionCollection positions, Position pos, const PeriodicBoundaries& pbc, double margin,
+                          double thresholdForSame) {
   // more complex with PBC, because images could be within same shell
   // algorithm very similar to determine if nearest neighbor, but consider every image of every other position
   std::vector<double> preLimNeighborDistances;
   // init minimum distance with largest possible value but leave room for margin
   double minDistance = std::numeric_limits<double>::max() - margin - 1e-6;
+  // we need to ensure that positions are within cell for proper allImageDistances
+  pbc.translatePositionsIntoCellInPlace(positions);
+  pbc.translatePositionsIntoCellInPlace(pos);
   for (int i = 0; i < positions.rows(); ++i) {
     Position other = positions.row(i);
     std::vector<double> distances = pbc.getAllImageDistancesSquared(pos, other);
