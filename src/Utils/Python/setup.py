@@ -57,7 +57,6 @@ setuptools.setup(
     author_email="scine@phys.chem.ethz.ch",
     description="Utilities used in all SCINE modules",
     long_description=long_description,
-    long_description_content_type="text/markdown",
     url="https://www.scine.ethz.ch",
     packages=["scine_utilities"],
     package_data=collect_data("scine_utilities"),

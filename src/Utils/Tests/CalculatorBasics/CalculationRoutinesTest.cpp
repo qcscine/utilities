@@ -77,6 +77,11 @@ TEST_F(ACalculationRoutinesTest, DispersionSplitting) {
   ASSERT_THAT(outCorrect.first, std::string{"pbe"});
   ASSERT_THAT(outCorrect.second, std::string{"d3bj"});
 
+  std::string correctException = "dlpno-ccsd(t)";
+  auto outCorrectException = CalculationRoutines::splitIntoMethodAndDispersion(correctException);
+  ASSERT_THAT(outCorrectException.first, std::string{"dlpno-ccsd(t)"});
+  ASSERT_THAT(outCorrectException.second, std::string{""});
+
   std::string noDisp = "pbe";
   auto outNoDisp = CalculationRoutines::splitIntoMethodAndDispersion(noDisp);
   ASSERT_THAT(outNoDisp.first, std::string{"pbe"});

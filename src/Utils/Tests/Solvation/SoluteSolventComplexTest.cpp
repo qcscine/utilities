@@ -4,14 +4,10 @@
  *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
-#include "Utils/IO/ChemicalFileFormats/ChemicalFileHandler.h"
-#include "Utils/IO/ChemicalFileFormats/XyzStreamHandler.h"
 #include "Utils/Solvation/RandomIndexGenerator.h"
 #include "Utils/Solvation/SoluteSolventComplex.h"
 #include <Core/Log.h>
 #include <gmock/gmock.h>
-#include <fstream>
-#include <iostream>
 #include <random>
 
 using namespace testing;
@@ -30,6 +26,17 @@ static void assertPositionCollectionsEqual(const PositionCollection& p1, const P
     ASSERT_THAT(p1.row(i).y(), DoubleNear(p2.row(i).y(), 1e-15));
     ASSERT_THAT(p1.row(i).z(), DoubleNear(p2.row(i).z(), 1e-15));
   }
+}
+
+TEST(SoluteSolventComplexTest, CheckDefaultSettings) {
+  SoluteSolventComplex::SolventPlacementSettings settings;
+  ASSERT_THAT(settings.resolution, 18);
+  ASSERT_THAT(settings.solventOffset, 0.0);
+  ASSERT_THAT(settings.maxDistance, 5.0);
+  ASSERT_THAT(settings.stepSize, 1.0);
+  ASSERT_THAT(settings.numRotamers, 3);
+  ASSERT_THAT(settings.strategicSolv, true);
+  ASSERT_THAT(settings.coverageThreshold, 0.85);
 }
 
 TEST(SoluteSolventComplexTest, DoesCheckDistanceWork) {
@@ -183,6 +190,20 @@ TEST(SoluteSolventComplexTest, DoesStrategyDeciderWork) {
   ASSERT_THAT(SoluteSolventComplex::solvationStrategy(0), 1);
 }
 
+TEST(SoluteSolventComplexTest, EmptyRandomIndexGeneratorAndSetter) {
+  int size = 100;
+  int seed = 40;
+  SoluteSolventComplex::RandomIndexGenerator empty;
+  empty.setSeed(seed);
+  empty.setSize(size);
+  int i = 1;
+  while (i < 101) {
+    int randInt = empty.next();
+    ASSERT_THAT(true, randInt >= 0 && randInt < 100);
+    i += 1;
+  }
+}
+
 // Test if Random Index Generator produces same number with same seed and if the number lies between 0 and size - 1
 TEST(SoluteSolventComplexTest, DoesRandomIndexGeneratorWork) {
   int size = 100;
@@ -198,6 +219,28 @@ TEST(SoluteSolventComplexTest, DoesRandomIndexGeneratorWork) {
     ASSERT_THAT(randInt1, randInt2);
     ASSERT_THAT(true, randInt1 >= 0 && randInt1 < 100);
     i += 1;
+  }
+}
+
+TEST(SoluteSolventComplexTest, DoesDifferentListSizeThrowError) {
+  try {
+    SoluteSolventComplex::getSolventIndices(10, {4, 5, 3}, 2);
+  }
+  catch (const std::runtime_error& re) {
+    ASSERT_STREQ(re.what(), "The same number of ratios and solvents has to be given.");
+  }
+}
+
+TEST(SoluteSolventComplexTest, GetCorrectIndexList) {
+  std::vector<int> testOneRound = SoluteSolventComplex::getSolventIndices(6, {3, 2, 1}, 3);
+  std::vector<int> test_match = {0, 0, 0, 1, 1, 2};
+  for (unsigned long int i = 0; i < test_match.size(); i++) {
+    ASSERT_THAT(testOneRound.at(i), test_match.at(i));
+  }
+  std::vector<int> testTwoRounds = SoluteSolventComplex::getSolventIndices(8, {3, 2, 1}, 3);
+  std::vector<int> test_match2 = {0, 0, 0, 1, 1, 2, 0, 0};
+  for (unsigned long int i = 0; i < test_match2.size(); i++) {
+    ASSERT_THAT(testTwoRounds.at(i), test_match2.at(i));
   }
 }
 
@@ -264,6 +307,17 @@ TEST(SoluteSolventComplexTest, DoesMergeSolventVectorWork) {
   }
 }
 
+TEST(SoluteSolventComplexTest, DoesMergeSolventIndicesWork) {
+  std::vector<std::vector<int>> test = {{0, 0, 1}, {2, 0, 1, 1}, {0, 0, 1, 1, 2}};
+  std::vector<int> control = {0, 0, 1, 2, 0, 1, 1, 0, 0, 1, 1, 2};
+
+  std::vector<int> flatTest = SoluteSolventComplex::mergeSolventShellIndices(test);
+
+  for (int i = 0; i < int(control.size()); i++) {
+    ASSERT_THAT(flatTest[i], control[i]);
+  }
+}
+
 TEST(SoluteSolventComplexTest, DoesSolvateAddsCorrectNumberOfSolvents) {
   ElementTypeCollection waterEC(3);
   waterEC.at(0) = ElementType::O;
@@ -280,11 +334,18 @@ TEST(SoluteSolventComplexTest, DoesSolvateAddsCorrectNumberOfSolvents) {
   AtomCollection solute;
   solute.push_back(Atom(ElementType::Na, Position(0, 0, 0)));
 
-  int sampleRes = 18;
+  SoluteSolventComplex::SolventPlacementSettings testSettings;
+  testSettings.resolution = 18;
+  testSettings.solventOffset = 0.0;
+  testSettings.maxDistance = 7.0;
+  testSettings.stepSize = 1.0;
+  testSettings.numRotamers = 3;
+  testSettings.strategicSolv = false;
+  testSettings.coverageThreshold = 1.0;
+
   int numSolvents = 24;
 
-  auto solventComplex =
-      SoluteSolventComplex::solvate(solute, solute.size(), water, numSolvents, 5, sampleRes, 0, 7, 1, 3, false);
+  auto solventComplex = SoluteSolventComplex::solvate(solute, solute.size(), water, numSolvents, 5, testSettings);
 
   ASSERT_THAT(numSolvents, SoluteSolventComplex::mergeSolventShellVector(solventComplex).size() / water.size());
 
@@ -293,18 +354,19 @@ TEST(SoluteSolventComplexTest, DoesSolvateAddsCorrectNumberOfSolvents) {
   auto iterComplex = solute;
 
   while (i < 18) {
-    auto newComplex = SoluteSolventComplex::solvate(iterComplex, solute.size(), water, 1, i + 5, sampleRes, 0, 7, 1, 3);
+    auto newComplex = SoluteSolventComplex::solvate(iterComplex, solute.size(), water, 1, i + 5, testSettings);
     iterComplex += SoluteSolventComplex::mergeSolventShellVector(newComplex);
     i++;
   }
 
-  auto iterComplexSurface = MolecularSurface::getVisibleMolecularSurface(iterComplex, 0, solute.size(), sampleRes);
+  auto iterComplexSurface =
+      MolecularSurface::getVisibleMolecularSurface(iterComplex, 0, solute.size(), testSettings.resolution);
 
   ASSERT_THAT((iterComplex.size() - solute.size()) / water.size(), 18);
   ASSERT_THAT(iterComplexSurface.size(), 0);
 }
 
-// Run this test only in release builds
+//// Run this test only in release builds
 #ifdef NDEBUG
 TEST(SoluteSolventComplexTest, DoesSolvateFinishesSolventShell) {
   ElementTypeCollection waterEC(3);
@@ -322,19 +384,26 @@ TEST(SoluteSolventComplexTest, DoesSolvateFinishesSolventShell) {
   AtomCollection solute;
   solute.push_back(Atom(ElementType::Na, Position(0, 0, 0)));
 
-  int sampleRes = 18;
+  SoluteSolventComplex::SolventPlacementSettings testSettings1;
+  testSettings1.resolution = 18;
+  testSettings1.solventOffset = 0.0;
+  testSettings1.maxDistance = 7.0;
+  testSettings1.stepSize = 1.0;
+  testSettings1.numRotamers = 3;
+  testSettings1.strategicSolv = false;
+  testSettings1.coverageThreshold = 1.0;
+
   int numShells = 2;
 
-  auto solventComplex =
-      SoluteSolventComplex::solvateShells(solute, solute.size(), water, numShells, 5, sampleRes, 0, 7, 1, 3, false);
+  auto solventComplex = SoluteSolventComplex::solvateShells(solute, solute.size(), water, numShells, 5, testSettings1);
   auto soluteComplex = solute + SoluteSolventComplex::mergeSolventShellVector(solventComplex);
-
   // calculate solvent vector with reduced coverage
-  auto reducedSolventComplex =
-      SoluteSolventComplex::solvateShells(solute, solute.size(), water, numShells, 5, sampleRes, 0, 7, 1, 3, false, 0.75);
+  SoluteSolventComplex::SolventPlacementSettings testSettings2 = testSettings1;
+  testSettings2.coverageThreshold = 0.75;
 
-  auto soluteComplexSurface =
-      MolecularSurface::getVisibleMolecularSurface(soluteComplex, solute.size(), solute.size() + 18 * 3, sampleRes);
+  auto reducedSolventComplex = SoluteSolventComplex::solvateShells(solute, solute.size(), water, numShells, 5, testSettings2);
+  auto soluteComplexSurface = MolecularSurface::getVisibleMolecularSurface(
+      soluteComplex, solute.size(), solute.size() + 18 * 3, testSettings1.resolution);
 
   // first solvent shell is full after addition of 18 water molecules
   ASSERT_THAT(soluteComplexSurface.size(), 0);
@@ -363,11 +432,18 @@ TEST(SoluteSolventComplexTest, DoesGiveSolventVectorGiveCorrectStructure) {
   AtomCollection solute;
   solute.push_back(Atom(ElementType::Na, Position(0, 0, 0)));
 
-  int sampleRes = 18;
+  SoluteSolventComplex::SolventPlacementSettings testSettings;
+  testSettings.resolution = 18;
+  testSettings.solventOffset = 0.0;
+  testSettings.maxDistance = 7.0;
+  testSettings.stepSize = 1.0;
+  testSettings.numRotamers = 3;
+  testSettings.strategicSolv = false;
+  testSettings.coverageThreshold = 1.0;
+
   int numShells = 1;
 
-  auto solventComplex =
-      SoluteSolventComplex::solvateShells(solute, solute.size(), water, numShells, 5, sampleRes, 0, 7, 1, 3, false);
+  auto solventComplex = SoluteSolventComplex::solvateShells(solute, solute.size(), water, numShells, 5, testSettings);
   auto soluteComplex = solute + SoluteSolventComplex::mergeSolventShellVector(solventComplex);
 
   auto solventSizeVector = SoluteSolventComplex::transferSolventShellVector(solventComplex);
@@ -380,8 +456,8 @@ TEST(SoluteSolventComplexTest, DoesGiveSolventVectorGiveCorrectStructure) {
 
   Core::Log log = Core::Log::silent();
   // give solvent shell vector from soluteComplex with threshold of 100%
-  auto givenSolventShellVector =
-      SoluteSolventComplex::giveSolventShellVector(soluteComplex, solute.size(), solventSizeVector, sampleRes, log);
+  auto givenSolventShellVector = SoluteSolventComplex::giveSolventShellVector(
+      soluteComplex, solute.size(), solventSizeVector, testSettings.resolution, log);
 
   // solvent vector obtained by giveSolventShellVector function has to be the same as solventComplex
   ASSERT_THAT(givenSolventShellVector.size(), solventComplex.size() + 1);
@@ -390,7 +466,7 @@ TEST(SoluteSolventComplexTest, DoesGiveSolventVectorGiveCorrectStructure) {
   assertPositionCollectionsEqual(givenSolventShellVector[0][17].getPositions(), solventComplex[0][17].getPositions());
 
   auto reducedSolventShellVector = SoluteSolventComplex::giveSolventShellVector(
-      soluteComplex, solute.size(), solventSizeVector, sampleRes, log, true, 0.90);
+      soluteComplex, solute.size(), solventSizeVector, testSettings.resolution, log, true, 0.90);
 
   // reduced solvent shell vector due to threshold
   ASSERT_THAT(reducedSolventShellVector.size(), solventComplex.size() + 1);
@@ -398,6 +474,107 @@ TEST(SoluteSolventComplexTest, DoesGiveSolventVectorGiveCorrectStructure) {
   ASSERT_THAT(reducedSolventShellVector[1].size(), 1);
   // Assure that first solvent molecule in 2nd shell is the same as the last solvent molecule of org solvent shell vector
   assertPositionCollectionsEqual(reducedSolventShellVector[1][0].getPositions(), solventComplex[0][17].getPositions());
+}
+
+TEST(SoluteSolventComplexTest, DoesAdditionOfMixedSolventsWork) {
+  // Formaldehyde
+  PositionCollection methanalPC(4, 3);
+  methanalPC.row(0) = Position(2, 0, 0);
+  methanalPC.row(1) = Position(0, 0, 0);
+  methanalPC.row(2) = Position(-1.8, 1.5, 0);
+  methanalPC.row(3) = Position(-1.8, -1.5, 0);
+
+  ElementTypeCollection methanalEC(4);
+  methanalEC.at(0) = ElementType::O;
+  methanalEC.at(1) = ElementType::C;
+  methanalEC.at(2) = ElementType::H;
+  methanalEC.at(3) = ElementType::H;
+
+  AtomCollection methanal(methanalEC, methanalPC);
+  // Water
+  ElementTypeCollection waterEC(3);
+  waterEC.at(0) = ElementType::O;
+  waterEC.at(1) = ElementType::H;
+  waterEC.at(2) = ElementType::H;
+
+  PositionCollection waterPC0(3, 3);
+  waterPC0.row(0) = Position(0, 0, 0);
+  waterPC0.row(1) = Position(-1.8, 1.25, 0);
+  waterPC0.row(2) = Position(-1.8, -1.25, 0);
+
+  AtomCollection water(waterEC, waterPC0);
+
+  // Argon
+  AtomCollection argon;
+  argon.push_back(Atom(ElementType::Ar, Position(0, 0, 0)));
+
+  std::vector<AtomCollection> solventList = {methanal, water, argon};
+
+  AtomCollection solute;
+  solute.push_back(Atom(ElementType::Na, Position(0, 0, 0)));
+
+  SoluteSolventComplex::SolventPlacementSettings testSettings;
+
+  testSettings.maxDistance = 2.5;
+  testSettings.stepSize = 1.5;
+
+  // Test number of solvents
+  int numSolvents = 19;
+  auto solventComplexTuple = SoluteSolventComplex::solvateMix(solute, solute.size(), solventList,
+                                                              std::vector<int>{2, 6, 11}, numSolvents, 42, testSettings);
+  auto solventComplex = std::get<0>(solventComplexTuple);
+  auto solventIndices = std::get<1>(solventComplexTuple);
+
+  auto soluteComplex = solute + SoluteSolventComplex::mergeSolventShellVector(solventComplex);
+  auto flatIndices = SoluteSolventComplex::mergeSolventShellIndices(solventIndices);
+
+  // Check for correct size of cluster
+  ASSERT_THAT(soluteComplex.size(), 1 + 2 * 4 + 6 * 3 + 11 * 1);
+  ASSERT_THAT(flatIndices.size(), numSolvents);
+  // Matching sizes of shell and solvent sizes
+  std::vector<int> matchShellSize = {17, 2};
+  // Sizes of Indices {4, 3, 1}
+  std::vector<std::vector<int>> matchSolventSize = {{3, 3, 1, 1, 1, 1, 4, 1, 1, 1, 3, 4, 1, 3, 3, 1, 1}, {3, 1}};
+  std::vector<std::vector<int>> matchSolventIndices = {{1, 1, 2, 2, 2, 2, 0, 2, 2, 2, 1, 0, 2, 1, 1, 2, 2}, {1, 2}};
+  for (int i = 0; i < int(solventComplex.size()); i++) {
+    ASSERT_THAT(solventComplex[i].size(), matchShellSize[i]);
+    ASSERT_THAT(solventIndices[i].size(), matchShellSize[i]);
+    for (int j = 0; j < int(solventComplex[i].size()); j++) {
+      ASSERT_THAT(solventComplex[i][j].size(), matchSolventSize[i][j]);
+      ASSERT_THAT(solventIndices[i][j], matchSolventIndices[i][j]);
+    }
+  }
+
+  // Test number of shells
+  int numShells = 2;
+  SoluteSolventComplex::SolventPlacementSettings testSettingsShell = testSettings;
+  testSettingsShell.coverageThreshold = 0.40;
+
+  auto solventComplexShellTuple = SoluteSolventComplex::solvateShellsMix(
+      solute, solute.size(), solventList, std::vector<int>{11, 6, 2}, numShells, 42, testSettingsShell);
+
+  auto solventComplexShell = std::get<0>(solventComplexShellTuple);
+  auto solventComplexShellIndices = std::get<1>(solventComplexShellTuple);
+
+  auto soluteComplexShell = solute + SoluteSolventComplex::mergeSolventShellVector(solventComplexShell);
+
+  ASSERT_THAT(solventComplexShell.size(), numShells + 1);
+  ASSERT_THAT(solventComplexShellIndices.size(), numShells + 1);
+  // Matching sizes of shell and solvent sizes
+  std::vector<int> matchShellSize2 = {9, 22};
+  std::vector<std::vector<int>> matchSolventSize2 = {
+      {4, 4, 3, 4, 4, 1, 3, 4, 4}, {3, 4, 3, 3, 3, 3, 4, 4, 3, 3, 3, 4, 4, 4, 3, 4, 3, 3, 3, 4, 4, 3}};
+  std::vector<std::vector<int>> matchSolventIndices2 = {
+      {0, 0, 1, 0, 0, 2, 1, 0, 0}, {1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1}};
+
+  for (int i = 0; i < int(solventComplexShell.size()) - 1; i++) {
+    ASSERT_THAT(solventComplexShellIndices[i].size(), matchShellSize2[i]);
+    ASSERT_THAT(solventComplexShell[i].size(), matchShellSize2[i]);
+    for (int j = 0; j < int(solventComplexShell[i].size()); j++) {
+      ASSERT_THAT(solventComplexShell[i][j].size(), matchSolventSize2[i][j]);
+      ASSERT_THAT(solventComplexShellIndices[i][j], matchSolventIndices2[i][j]);
+    }
+  }
 }
 
 } /* namespace Tests */

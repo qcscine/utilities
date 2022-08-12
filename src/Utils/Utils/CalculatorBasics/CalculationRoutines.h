@@ -139,6 +139,21 @@ inline std::pair<std::string, std::string> splitIntoMethodAndDispersion(const st
   if (input.empty()) {
     return std::make_pair("", "");
   }
+  // check for exceptions
+  // if input contains one of these as a substring
+  // we return the input as method and empty dispersion
+  std::vector<std::string> exceptions = {
+      "PNO-CC",
+      "HF-3C",
+      "PBEH-3C",
+      "B97-3C",
+  };
+  std::string inputCopy(input.size(), 0);
+  std::transform(input.begin(), input.end(), inputCopy.begin(), [](unsigned char c) { return std::toupper(c); });
+  if (std::any_of(exceptions.begin(), exceptions.end(),
+                  [&, inputCopy](const std::string& e) { return inputCopy.find(e) != std::string::npos; }))
+    return std::make_pair(input, "");
+
   std::string segment;
   std::vector<std::string> segments;
   std::stringstream ss(input);

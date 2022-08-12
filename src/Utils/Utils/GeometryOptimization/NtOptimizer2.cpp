@@ -53,7 +53,7 @@ int NtOptimizer2::optimize(AtomCollection& atoms, Core::Log& log) {
         // Apply Cartesian constraints
         auto bos = results.get<Property::BondOrderMatrix>();
         auto gradientMatrix = results.get<Property::Gradients>();
-        this->updateGradients(atoms, value, gradientMatrix, bos);
+        this->updateGradients(atoms, value, gradientMatrix, bos, cycle);
         gradients = Eigen::Map<const Eigen::VectorXd>(gradientMatrix.data(), nAtoms * 3);
       };
       // Run micro iterations
@@ -100,7 +100,7 @@ int NtOptimizer2::optimize(AtomCollection& atoms, Core::Log& log) {
     auto bos = results.get<Property::BondOrderMatrix>();
     this->triggerObservers(cycle, value, Eigen::Map<const Eigen::VectorXd>(coordinates.data(), nAtoms * 3));
     // Evaluate additional force
-    this->updateGradients(atoms, value, gradients, bos, true);
+    this->updateGradients(atoms, value, gradients, bos, cycle, true);
     // Add energy to energy vector
     _values.push_back(value);
     // Add coordinates to trajectory
@@ -176,15 +176,105 @@ void NtOptimizer2::sanityCheck(const AtomCollection& atoms) const {
       }
     }
   }
+  if (std::find(possibleExtractionOptions.begin(), possibleExtractionOptions.end(), extractionCriterion) ==
+      possibleExtractionOptions.end()) {
+    std::string options = "\nValid options are:\n";
+    for (const auto& criterion : possibleExtractionOptions) {
+      options += "'" + criterion + "'\n";
+    }
+    throw std::logic_error("Extract criterion " + extractionCriterion + " is not a valid option." + options);
+  }
 }
 
 void NtOptimizer2::updateGradients(const AtomCollection& atoms, const double& /* energy */, GradientCollection& gradients,
-                                   const BondOrderCollection& bondOrders, bool addForce) const {
-  // define reaction coordinate based on LHS and RHS list
+                                   const BondOrderCollection& bondOrders, int cycle, bool addForce) {
+  const auto& positions = atoms.getPositions();
+  eliminateReactiveAtomsGradients(positions, gradients);
+  auto reactions = inferReactions(bondOrders);
+  ReactionMapping associations = reactions.first;
+  ReactionMapping dissociations = reactions.second;
+  // define reaction coordinate
   GradientCollection reactionCoordinate(gradients);
   reactionCoordinate.setZero();
+  double maxScale = 0.0;
+  // association
+  for (const auto& [left, right] : associations) {
+    double r12cov = NtUtils::smallestCovalentRadius(atoms, left) + NtUtils::smallestCovalentRadius(atoms, right);
+    Displacement c2c = NtUtils::centerToCenterVector(positions, left, right);
+    double dist = c2c.norm();
+    double bo = 0.0;
+    for (const auto& l : left) {
+      for (const auto& r : right) {
+        bo += bondOrders.getOrder(l, r);
+      }
+    }
+    /* Check if one should keep pushing along the reaction coordinate */
+    /* Keep pushing until 10% above attractive bond order stop OR distance 10% below distance stop */
+    if (bo > 1.1 * check.attractiveBondOrderStop || dist < 0.9 * this->check.attractiveDistanceStop * r12cov) {
+      if (_firstCoordinateReachedIndex == -1) {
+        _firstCoordinateReachedIndex = cycle;
+      }
+      continue;
+    }
+    double scale = dist - r12cov;
+    if (scale < 0) {
+      scale = 0.1;
+    }
+    maxScale = std::max(maxScale, scale);
+    c2c *= scale / dist;
+    for (const auto& l : left) {
+      for (const auto& r : right) {
+        reactionCoordinate.row(l) += c2c;
+        reactionCoordinate.row(r) -= c2c;
+      }
+    }
+  }
+  // dissociation
+  for (const auto& [left, right] : dissociations) {
+    double bo = 0.0;
+    Displacement c2c = NtUtils::centerToCenterVector(positions, left, right);
+    double dist = c2c.norm();
+    for (const auto& l : left) {
+      for (const auto& r : right) {
+        bo += bondOrders.getOrder(l, r);
+      }
+    }
+    /* Check if one should keep pulling along the reaction coordinate */
+    /* Keep pulling until 30% bellow repulsive bond order stop */
+    if (bo < 0.7 * this->check.repulsiveBondOrderStop) {
+      if (_firstCoordinateReachedIndex == -1) {
+        _firstCoordinateReachedIndex = cycle;
+      }
+      continue;
+    }
+    const double scale = 0.8;
+    maxScale = std::max(maxScale, scale);
+    c2c *= scale / dist;
+    for (const auto& l : left) {
+      for (const auto& r : right) {
+        reactionCoordinate.row(l) -= c2c;
+        reactionCoordinate.row(r) += c2c;
+      }
+    }
+  }
+  if (maxScale != 0.0) {
+    reactionCoordinate *= 0.5 * (totalForceNorm / maxScale);
+  }
 
-  const auto& positions = atoms.getPositions();
+  /* Update gradients */
+  // replace gradient along reaction coordinate with fixed force for both sides
+  if (addForce) {
+    gradients += reactionCoordinate;
+  }
+  // Apply Cartesian constraints
+  if (!this->fixedAtoms.empty()) {
+    for (const auto& a : fixedAtoms) {
+      gradients.row(a).setZero();
+    }
+  }
+}
+
+void NtOptimizer2::eliminateReactiveAtomsGradients(const PositionCollection& positions, GradientCollection& gradients) const {
   // remove gradient along reaction coordinates
   /* Loop over all reactive atoms */
   for (auto const& reactiveAtomIndex : _reactiveAtomsList) {
@@ -206,16 +296,14 @@ void NtOptimizer2::updateGradients(const AtomCollection& atoms, const double& /*
     PositionCollection constraintsMatrixOrtho = (constraintsMatrix.transpose() * saesEigenVec).transpose();
     /* Determine rank of matrix (eigenvalues > 1e-6) */
     unsigned int rank = 0;
-    int lastRowIndex = constraintsMatrixOrtho.rows() - 1;
+    long lastRowIndex = constraintsMatrixOrtho.rows() - 1;
     /* Determine rank of matrix */
-    for (int i = constraintsMatrixOrtho.rows() - 1; i > -1; i--) {
+    for (long i = constraintsMatrixOrtho.rows() - 1; i > -1; i--) {
       /* Break loop over eigenvalues if it is < 1e-6 */
       if (saesEigenVal.col(0)[i] < 1e-6) {
         break;
       }
-      else {
-        rank += 1;
-      }
+      rank += 1;
     }
     /* Manipulate gradients of reactive atom */
     /* Can not be orthogonal to more than 2 axis, hence set the gradient to 0 */
@@ -230,94 +318,130 @@ void NtOptimizer2::updateGradients(const AtomCollection& atoms, const double& /*
       proj /= proj.norm();
       gradients.row(reactiveAtomIndex) = (gradients.row(reactiveAtomIndex).dot(proj)) * proj;
     }
-    /* Substract projection along the axis from gradient */
+    /* Subtract projection along the axis from gradient */
     else if (rank == 1) {
       Eigen::Vector3d a2a = constraintsMatrixOrtho.row(lastRowIndex) / (constraintsMatrixOrtho.row(lastRowIndex).norm());
       gradients.row(reactiveAtomIndex) -= (gradients.row(reactiveAtomIndex).dot(a2a)) * a2a;
     }
   }
+}
 
-  double maxScale = 0.0;
-  for (unsigned int i = 0; i < associationList.size() / 2; i++) {
-    const auto& l = associationList[2 * i];
-    const auto& r = associationList[2 * i + 1];
-    const auto bo = bondOrders.getOrder(l, r);
-    double r12cov = ElementInfo::covalentRadius(atoms.getElement(l)) + ElementInfo::covalentRadius(atoms.getElement(r));
-    double dist = (positions.row(l) - positions.row(r)).norm();
-    /* Check if one should keep pushing along the reaction coordinate */
-    /* Keep pushing until 10% above attractive bond order stop OR distance 10% below distance stop */
-    if (bo > 1.1 * check.attractiveBondOrderStop || dist < 0.9 * this->check.attractiveDistanceStop * r12cov) {
-      continue;
+std::pair<NtOptimizer2::ReactionMapping, NtOptimizer2::ReactionMapping>
+NtOptimizer2::inferReactions(const BondOrderCollection& bondOrders) const {
+  std::vector<ReactionMapping> maps;
+  // we do the exact same thing for associations and dissociations
+  std::vector<std::vector<int>> reactionLists = {associationList, dissociationList};
+  for (const auto& reactionList : reactionLists) {
+    // we restructure the single list with included logic into list of pairs
+    std::vector<std::pair<int, int>> reactions;
+    for (unsigned int i = 0; i < reactionList.size() / 2; i++) {
+      const auto& left = reactionList[2 * i];
+      const auto& right = reactionList[2 * i + 1];
+      reactions.emplace_back(left, right);
     }
-    Eigen::Vector3d a2a = positions.row(l) - positions.row(r);
-    const double norm = a2a.norm();
-    r12cov = ElementInfo::covalentRadius(atoms.getElement(l)) + ElementInfo::covalentRadius(atoms.getElement(r));
-    double scale = norm - r12cov;
-    if (scale < 0) {
-      scale = 0.1;
+    // now we need to combine duplicates
+    // we pretty much build now a map that allows duplicate keys
+    // reason is, if we have a duplicate index X on the left side, we want to distinguish if X takes part in genuinely
+    // different reaction coordinates, e.g. X - Y and X - Z, or if we have an eta bond reaction coordinate X - Y-Z
+    // we distinguish this in our data structure with:
+    // <X, {Y}>
+    // <X, {Z}>
+    // for different reaction coordinates and
+    // <X, {Y, Z}>
+    // for an eta bond reaction coordinate. The value can have any length and is not limited to two
+    // we determine the case based on the fact if Y and Z are part of the same molecule (second case) or not (first case)
+    std::vector<std::pair<int, std::vector<int>>> rightCorrectedReactions;
+    std::vector<int> sanitizedLeftIndices;
+    for (unsigned long i = 0; i < reactions.size(); ++i) {
+      if (std::find(sanitizedLeftIndices.begin(), sanitizedLeftIndices.end(), reactions[i].first) !=
+          sanitizedLeftIndices.end()) {
+        continue; // no need to check same index again
+      }
+      sanitizedLeftIndices.push_back(reactions[i].first);
+      std::vector<int> values = {reactions[i].second};
+      for (unsigned long j = i + 1; j < reactions.size(); ++j) {
+        if (reactions[i].first == reactions[j].first) {
+          values.push_back(reactions[j].second);
+        }
+      }
+      if (values.size() > 1) {
+        // we had a duplicate, let's check if the shared values are part of the same molecule
+        std::vector<std::vector<int>> molecules = NtUtils::connectedNuclei(values, bondOrders);
+        // add entry for each molecule, since each represents a genuine reaction coordinate
+        for (const auto& molecule : molecules) {
+          rightCorrectedReactions.emplace_back(reactions[i].first, molecule);
+        }
+      }
+      else {
+        // no duplicate simply copy into new data structure
+        rightCorrectedReactions.emplace_back(reactions[i].first, values);
+      }
     }
-    maxScale = std::max(maxScale, scale);
-    a2a *= scale / norm;
-    reactionCoordinate.row(l) += a2a;
-    reactionCoordinate.row(r) -= a2a;
-  }
-  for (unsigned int i = 0; i < dissociationList.size() / 2; i++) {
-    const auto& l = dissociationList[2 * i];
-    const auto& r = dissociationList[2 * i + 1];
-    const auto bo = bondOrders.getOrder(l, r);
-    /* Check if one should keep pulling along the reaction coordinate */
-    /* Keep pulling until 30% bellow repulsive bond order stop */
-    if (bo < 0.7 * this->check.repulsiveBondOrderStop) {
-      continue;
+    // now we need to do the exact same thing for the right side and check if there are indices on the right side
+    // or lists of indices that have different reaction partners and check if they are again different reaction
+    // coordinates or eta bond formations
+    ReactionMapping allCorrectedReactions;
+    std::vector<std::vector<int>> sanitizedRightIndices;
+    for (unsigned long i = 0; i < rightCorrectedReactions.size(); ++i) {
+      if (std::find(sanitizedRightIndices.begin(), sanitizedRightIndices.end(), rightCorrectedReactions[i].second) !=
+          sanitizedRightIndices.end()) {
+        continue;
+      }
+      sanitizedRightIndices.push_back(rightCorrectedReactions[i].second);
+      std::vector<int> values = {rightCorrectedReactions[i].first};
+      for (unsigned long j = i + 1; j < rightCorrectedReactions.size(); ++j) {
+        if (rightCorrectedReactions[i].second == rightCorrectedReactions[j].second) {
+          values.push_back(rightCorrectedReactions[j].first);
+        }
+      }
+      if (values.size() > 1) {
+        std::vector<std::vector<int>> molecules = NtUtils::connectedNuclei(values, bondOrders);
+        for (const auto& molecule : molecules) {
+          allCorrectedReactions.emplace_back(molecule, rightCorrectedReactions[i].second);
+        }
+      }
+      else {
+        allCorrectedReactions.emplace_back(values, rightCorrectedReactions[i].second);
+      }
     }
-    Eigen::Vector3d a2a = positions.row(l) - positions.row(r);
-    const double norm = a2a.norm();
-    const double scale = 0.8;
-    maxScale = std::max(maxScale, scale);
-    a2a *= scale / norm;
-    reactionCoordinate.row(l) -= a2a;
-    reactionCoordinate.row(r) += a2a;
+    maps.push_back(allCorrectedReactions);
   }
-  if (maxScale != 0.0) {
-    reactionCoordinate *= 0.5 * (totalForceNorm / maxScale);
-  }
-
-  /* Update gradients */
-  // replace gradient along reaction coordinate with fixed force for both sides
-  if (addForce) {
-    gradients += reactionCoordinate;
-  }
-  // Apply Cartesian constraints
-  if (!this->fixedAtoms.empty()) {
-    for (const auto& a : fixedAtoms) {
-      gradients.row(a).setZero();
-    }
-  }
+  return std::make_pair(maps[0], maps[1]);
 }
 
 bool NtOptimizer2::convergedOptimization(const AtomCollection& atoms, const BondOrderCollection& bondOrders) const {
+  auto reactions = inferReactions(bondOrders);
+  ReactionMapping associations = reactions.first;
+  ReactionMapping dissociations = reactions.second;
   const auto& positions = atoms.getPositions();
-  bool done = true;
-  for (unsigned int i = 0; i < this->associationList.size() / 2; i++) {
-    const auto& l = this->associationList[2 * i];
-    const auto& r = this->associationList[2 * i + 1];
-    const auto bo = bondOrders.getOrder(l, r);
-    const double r12cov =
-        ElementInfo::covalentRadius(atoms.getElement(l)) + ElementInfo::covalentRadius(atoms.getElement(r));
-    double dist = (positions.row(l) - positions.row(r)).norm();
+  // associations
+  for (const auto& [left, right] : associations) {
+    double r12cov = NtUtils::smallestCovalentRadius(atoms, left) + NtUtils::smallestCovalentRadius(atoms, right);
+    Displacement c2c = NtUtils::centerToCenterVector(positions, left, right);
+    double dist = c2c.norm();
+    double bo = 0.0;
+    for (const auto& l : left) {
+      for (const auto& r : right) {
+        bo += bondOrders.getOrder(l, r);
+      }
+    }
     if (bo < this->check.attractiveBondOrderStop && dist > this->check.attractiveDistanceStop * r12cov) {
       return false;
     }
   }
-  for (unsigned int i = 0; i < this->dissociationList.size() / 2; i++) {
-    const auto& l = this->dissociationList[2 * i];
-    const auto& r = this->dissociationList[2 * i + 1];
-    const auto bo = bondOrders.getOrder(l, r);
+  // dissociations
+  for (const auto& [left, right] : dissociations) {
+    double bo = 0.0;
+    for (const auto& l : left) {
+      for (const auto& r : right) {
+        bo += bondOrders.getOrder(l, r);
+      }
+    }
     if (bo > this->check.repulsiveBondOrderStop) {
       return false;
     }
   }
-  return done;
+  return true;
 }
 
 PositionCollection NtOptimizer2::extractTsGuess() const {
@@ -353,16 +477,33 @@ PositionCollection NtOptimizer2::extractTsGuess() const {
   if (maximaList.empty()) {
     throw std::runtime_error("No transition state guess was found in Newton Trajectory scan.");
   }
-  // Extract TS guess from point with highest energy
-  double maxValue = -std::numeric_limits<double>::max();
-  int maxIndex = -1;
-  for (auto& i : maximaList) {
-    if (_values[i] > maxValue) {
-      maxIndex = i;
-      maxValue = _values[i];
-    }
+  // Extract TS guess according to given criterion
+  if (extractionCriterion == ntExtractFirst) {
+    return _trajectory[maximaList.back()]; // back because maximalist starts from back
   }
-  return _trajectory[maxIndex];
+  // get the highest value if wished or coordinate was never stopped
+  if (extractionCriterion == ntExtractHighest || _firstCoordinateReachedIndex == -1) {
+    double maxValue = -std::numeric_limits<double>::max();
+    int maxIndex = -1;
+    for (auto& i : maximaList) {
+      if (_values[i] > maxValue) {
+        maxIndex = i;
+        maxValue = _values[i];
+      }
+    }
+    return _trajectory[maxIndex];
+  }
+  int firstMaximumAfterCoordinateReached = -1;
+  // maximaList lists maxima from back
+  for (auto& maximum : maximaList) {
+    if (maximum < _firstCoordinateReachedIndex) {
+      return _trajectory[maximum];
+    }
+    firstMaximumAfterCoordinateReached = maximum;
+  }
+  assert(firstMaximumAfterCoordinateReached > -1);
+  // got no maximum before coordinate was ended, so we pick the first after the coordinate was reached
+  return _trajectory[firstMaximumAfterCoordinateReached];
 }
 
 void NtOptimizer2::updateCoordinates(PositionCollection& coordinates, const AtomCollection& atoms,
@@ -406,7 +547,6 @@ void NtOptimizer2::addSettingsDescriptors(UniversalSettings::DescriptorCollectio
 }
 
 void NtOptimizer2::setSettings(const Settings& settings) {
-  // optimizer.applySettings(settings);
   if (!settings.valid()) {
     settings.throwIncorrectSettings();
   }
@@ -423,6 +563,7 @@ void NtOptimizer2::setSettings(const Settings& settings) {
   this->numberOfMicroCycles = settings.getInt(NtOptimizer2::ntNumberOfMicroCycles);
   this->filterPasses = settings.getInt(NtOptimizer2::ntFilterPasses);
   this->fixedAtoms = settings.getIntList(NtOptimizer2::ntFixedAtomsKey);
+  this->extractionCriterion = settings.getString(NtOptimizer2::ntExtractionCriterion);
 
   // Check whether constraints and coordinate transformations are both switched on:
   if (!this->fixedAtoms.empty() && this->coordinateSystem != CoordinateSystem::Cartesian) {
@@ -490,5 +631,81 @@ const std::vector<std::vector<int>>& NtOptimizer2::getConstraintsMap() {
 const std::vector<int>& NtOptimizer2::getReactiveAtomsList() {
   return _reactiveAtomsList;
 }
+
+namespace NtUtils {
+std::vector<std::vector<int>> connectedNuclei(std::vector<int> indices, const BondOrderCollection& bondOrders) {
+  std::sort(indices.begin(), indices.end()); // makes avoiding double counting easier
+  std::vector<std::vector<int>> result;
+  for (const auto& i : indices) {
+    // check if i is already in one of the entries
+    if (std::any_of(result.begin(), result.end(), [&](std::vector<int> bondedIndices) {
+          return std::find(bondedIndices.begin(), bondedIndices.end(), i) != bondedIndices.end();
+        })) {
+      continue;
+    }
+    if (i == indices.back()) {
+      // we reached last entry and this has never been included in the others, so it must be its own thing
+      result.push_back({i});
+      continue;
+    }
+    std::vector<int> connected;
+    std::vector<int> nucleiToVisit = {i};
+    while (!nucleiToVisit.empty()) {
+      // take last value in list to crawl
+      int current = nucleiToVisit.back();
+      nucleiToVisit.pop_back();
+      auto bondPartners = bondOrders.getBondPartners(current, 0.5);
+      for (const auto& partner : bondPartners) {
+        // add newly found indices to total list and list to further extend search
+        if (std::find(connected.begin(), connected.end(), partner) == connected.end()) {
+          connected.push_back(partner);
+          nucleiToVisit.push_back(partner);
+        }
+      }
+    }
+    // now check for all others if they are within the list of bond partners i.e. same molecule
+    std::vector<int> connectedIndices = {i};
+    for (const auto& j : indices) {
+      if (j > i && std::find(connected.begin(), connected.end(), j) != connected.end()) {
+        connectedIndices.push_back(j);
+      }
+    }
+    std::sort(connectedIndices.begin(), connectedIndices.end());
+    result.push_back(connectedIndices);
+  }
+  return result;
+}
+
+Displacement centerToCenterVector(const PositionCollection& positions, const std::vector<int>& lhsList,
+                                  const std::vector<int>& rhsList) {
+  Position lhsCenter = Position::Zero();
+  Position rhsCenter = Position::Zero();
+  for (const auto l : lhsList) {
+    lhsCenter += positions.row(l);
+  }
+  lhsCenter.array() /= static_cast<double>(lhsList.size());
+  for (const auto r : rhsList) {
+    rhsCenter += positions.row(r);
+  }
+  rhsCenter.array() /= static_cast<double>(rhsList.size());
+  Displacement c2c = lhsCenter - rhsCenter;
+  return c2c;
+}
+
+double smallestCovalentRadius(const AtomCollection& atoms, const std::vector<int>& indices) {
+  if (indices.empty()) {
+    throw std::runtime_error("Missing reactive atom indices");
+  }
+  double result = std::numeric_limits<double>::max();
+  for (const auto& index : indices) {
+    double rad = ElementInfo::covalentRadius(atoms.getElement(index));
+    if (rad < result) {
+      result = rad;
+    }
+  }
+  return result;
+}
+
+} // namespace NtUtils
 } // namespace Utils
 } // namespace Scine

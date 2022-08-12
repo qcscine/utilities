@@ -166,7 +166,10 @@ if(SCINE_BUILD_PYTHON_BINDINGS)
     ${CMAKE_CURRENT_BINARY_DIR}/scine_utilities/pkginit.py
     ${CMAKE_CURRENT_BINARY_DIR}/scine_utilities/__init__.py
   )
-  file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/Python/README.rst DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+  file(
+    COPY ${PROJECT_SOURCE_DIR}/README.rst
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+  )
   add_custom_command(TARGET UtilsOSModule POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:UtilsOSModule> ${CMAKE_CURRENT_BINARY_DIR}/scine_utilities
     COMMENT "Copying UtilsOS module into python package directory"

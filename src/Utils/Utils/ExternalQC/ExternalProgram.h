@@ -51,10 +51,15 @@ class ExternalProgram {
    * @brief Generate filename by prepending the working directory.
    */
   std::string generateFullFilename(const std::string& filename) const;
+  /**
+   * @brief Setter to write error out to specific file.
+   */
+  void setErrorOutFile(const std::string& filename);
 
  private:
   int executeCommandImpl(const std::string& command, const std::string& inputFile, const std::string& outputFile) const;
   std::string workingDirectory_{};
+  std::string _errorOut;
 };
 
 } // namespace ExternalQC

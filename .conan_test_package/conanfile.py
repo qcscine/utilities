@@ -17,7 +17,7 @@ class TestPackageConan(ConanFile):
     exports_sources = "CMakeLists.txt", "test.cpp"
 
     def _configure(self):
-        cmake = CMake(self)
+        cmake = CMake(self, cmake_program='/usr/bin/cmake')
         cmake.configure()
         return cmake
 

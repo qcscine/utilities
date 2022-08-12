@@ -34,6 +34,10 @@ void ExternalProgram::createWorkingDirectory() {
   }
 }
 
+void ExternalProgram::setErrorOutFile(const std::string& filename) {
+  _errorOut = filename;
+}
+
 void ExternalProgram::executeCommand(const std::string& command) const {
   executeCommand(command, "", "");
 }
@@ -55,20 +59,30 @@ int ExternalProgram::executeCommandImpl(const std::string& command, const std::s
                                         const std::string& outputFile) const {
   bool hasInput = !inputFile.empty();
   bool hasOutput = !outputFile.empty();
+  bool hasError = !_errorOut.empty();
 
   auto workingDirectory = bp::start_dir(workingDirectory_);
   if (workingDirectory_.empty()) {
     workingDirectory = bp::start_dir(FilesystemHelpers::currentDirectory());
   }
 
+  if (hasInput && hasOutput && hasError) {
+    return bp::system(command, bp::std_out > outputFile, bp::std_err > _errorOut, bp::std_in < inputFile, workingDirectory);
+  }
   if (hasInput && hasOutput) {
     return bp::system(command, bp::std_out > outputFile, bp::std_in < inputFile, workingDirectory);
+  }
+  if (hasInput && hasError) {
+    return bp::system(command, bp::std_err > _errorOut, bp::std_in < inputFile, workingDirectory);
+  }
+  if (hasOutput && hasError) {
+    return bp::system(command, bp::std_out > outputFile, bp::std_err > _errorOut, workingDirectory);
   }
   if (hasInput) {
     return bp::system(command, bp::std_in < inputFile, workingDirectory);
   }
-  if (hasOutput) {
-    return bp::system(command, bp::std_out > outputFile);
+  if (hasError) {
+    return bp::system(command, bp::std_err > _errorOut, workingDirectory);
   }
   if (hasOutput) {
     return bp::system(command, bp::std_out > outputFile, workingDirectory);

@@ -33,6 +33,9 @@ class MolecularTrajectory {
 
   /// @brief Default constructor.
   MolecularTrajectory() = default;
+  explicit MolecularTrajectory(const ElementTypeCollection& elements);
+  explicit MolecularTrajectory(double minimumRmsdForAddition);
+  explicit MolecularTrajectory(const ElementTypeCollection& elements, double minimumRmsdForAddition);
   /**
    * @brief Set a single element type.
    * @param index The index of the atom to be altered
@@ -282,10 +285,13 @@ class MolecularTrajectory {
    * @return false If the addition is not allowed.
    */
   bool additionOfPositionCollectionIsAllowed(const PositionCollection& p) const;
+  bool additionOfPositionCollectionIsAllowedBasedOnRmsd(const PositionCollection& p) const;
   Container structureVector_;
   ElementTypeCollection elements_;
   EnergyContainer energies_;
   PbcContainer pbcs_;
+  double minMeanSquareDeviation_;
+  bool respectMinRmsd_ = false;
 };
 
 } /* namespace Utils */

@@ -14,44 +14,56 @@ namespace Utils {
 namespace SoluteSolventComplex {
 
 std::vector<std::vector<AtomCollection>> solvate(const AtomCollection& soluteComplex, int soluteSize,
-                                                 const AtomCollection& solvent, int numSolvents, int seed, int resolution,
-                                                 double solventOffset, double maxDistance, double stepSize,
-                                                 int numRotamers, bool strategicSolv, double coverageThreshold) {
-  return SoluteSolventComplex::solvate(soluteComplex, soluteSize, solvent, numSolvents, std::numeric_limits<int>::max(),
-                                       seed, resolution, solventOffset, maxDistance, stepSize, numRotamers,
-                                       strategicSolv, coverageThreshold);
+                                                 const AtomCollection& solvent, int numSolvents, int seed,
+                                                 SolventPlacementSettings placementSettings) {
+  auto resultTuple =
+      SoluteSolventComplex::solvate(soluteComplex, soluteSize, std::vector<AtomCollection>{solvent}, std::vector<int>{1},
+                                    numSolvents, std::numeric_limits<int>::max(), seed, placementSettings);
+
+  return std::get<0>(resultTuple);
+}
+
+std::tuple<std::vector<std::vector<AtomCollection>>, std::vector<std::vector<int>>>
+solvateMix(const AtomCollection& soluteComplex, int soluteSize, const std::vector<AtomCollection>& solvents,
+           const std::vector<int>& solventRatios, int numSolvents, int seed, SolventPlacementSettings placementSettings) {
+  return SoluteSolventComplex::solvate(soluteComplex, soluteSize, solvents, solventRatios, numSolvents,
+                                       std::numeric_limits<int>::max(), seed, placementSettings);
 }
 
 std::vector<std::vector<AtomCollection>> solvateShells(const AtomCollection& soluteComplex, int soluteSize,
-                                                       const AtomCollection& solvent, int numShells, int seed, int resolution,
-                                                       double solventOffset, double maxDistance, double stepSize,
-                                                       int numRotamers, bool strategicSolv, double coverageThreshold) {
-  return SoluteSolventComplex::solvate(soluteComplex, soluteSize, solvent, std::numeric_limits<int>::max(), numShells,
-                                       seed, resolution, solventOffset, maxDistance, stepSize, numRotamers,
-                                       strategicSolv, coverageThreshold);
+                                                       const AtomCollection& solvent, int numShells, int seed,
+                                                       SolventPlacementSettings placementSettings) {
+  auto resultTuple =
+      SoluteSolventComplex::solvate(soluteComplex, soluteSize, std::vector<AtomCollection>{solvent}, std::vector<int>{1},
+                                    std::numeric_limits<int>::max(), numShells, seed, placementSettings);
+
+  return std::get<0>(resultTuple);
 }
 
-std::vector<std::vector<AtomCollection>>
-solvate(const AtomCollection& soluteComplex, const int soluteSize, const AtomCollection& solvent, const int numSolvents,
-        const int numShells, const int seed, const int resolution, const double solventOffset, const double maxDistance,
-        const double stepSize, const int numRotamers, const bool strategicSolv, const double coverageThreshold) {
-  auto solventSites = MolecularSurface::getPrunedMolecularSurface(solvent, resolution);
+std::tuple<std::vector<std::vector<AtomCollection>>, std::vector<std::vector<int>>>
+solvateShellsMix(const AtomCollection& soluteComplex, int soluteSize, const std::vector<AtomCollection>& solvents,
+                 const std::vector<int>& solventRatios, int numShells, int seed, SolventPlacementSettings placementSettings) {
+  return SoluteSolventComplex::solvate(soluteComplex, soluteSize, solvents, solventRatios,
+                                       std::numeric_limits<int>::max(), numShells, seed, placementSettings);
+}
 
-  double dMin = solventOffset;
-  double dMax = maxDistance;
-
+std::tuple<std::vector<std::vector<AtomCollection>>, std::vector<std::vector<int>>>
+solvate(const AtomCollection& soluteComplex, int soluteSize, const std::vector<AtomCollection>& solvents,
+        const std::vector<int>& solventRatios, int numSolvents, int numShells, int seed,
+        SolventPlacementSettings placementSettings) {
+  double dMin = placementSettings.solventOffset;
+  double dMax = placementSettings.maxDistance;
   auto complex = soluteComplex;
   std::vector<AtomCollection> solventVector;
+  std::vector<int> solventIndexVector;
   std::vector<std::vector<AtomCollection>> shellVector;
+  std::vector<std::vector<int>> solventIndexShellVector;
   int numAddedSolvents = 0;
   int numAddedShells = 0;
   int soluteStart = 0;
   int soluteEnd = soluteSize;
   // random number generator with given seed
   std::mt19937 shuffleGen(seed);
-  // set up index generator with seed and solvent
-  SoluteSolventComplex::RandomIndexGenerator randSolventSite(solventSites.size(), seed);
-
   // bool to remember if previous addition was successful or not
   bool prevAddition = false;
   int reCalcCounter = 0;
@@ -59,63 +71,98 @@ solvate(const AtomCollection& soluteComplex, const int soluteSize, const AtomCol
   // trigger to force recalculation of the visible surface
   int reCalcTrigger = 1;
   // calculate first surface before adding anything
-  auto visibleComplexSites = MolecularSurface::getVisibleMolecularSurface(complex, soluteStart, soluteEnd, resolution);
-  // save original number of sites and initialize coverag
-  double sizeVisibleComplexSites = visibleComplexSites.size();
+  auto visibleComplexSites =
+      MolecularSurface::getVisibleMolecularSurface(complex, soluteStart, soluteEnd, placementSettings.resolution);
+  // save original number of sites and initialize coverage
+  auto sizeVisibleComplexSites = double(visibleComplexSites.size());
   bool resetSize = false;
   double coverage = 0.0;
+  // Create solvent index list and shuffle it; hard limit of 1e6 solvent molecules
+  if (numSolvents == std::numeric_limits<int>::max()) {
+    numSolvents = 1000000;
+  }
+  bool multipleSolvents = true;
+  // Declaration of solvent related variables
+  AtomCollection solvent;
+  std::vector<int> flatSolventIndexVector;
+  std::vector<MolecularSurface::SurfaceSite> solventSites;
+  SoluteSolventComplex::RandomIndexGenerator randSolventSite;
+  // Check, if only one solvent in solvents
+  // Set solvent and solvent sites, if only one solvent is given
+  if (solvents.size() == 1) {
+    solvent = solvents.at(0);
+    solventSites = MolecularSurface::getPrunedMolecularSurface(solvent, placementSettings.resolution);
+    // set index generator with seed and solvent
+    randSolventSite.setSize(solventSites.size());
+    randSolventSite.setSeed(seed);
+    multipleSolvents = false;
+  }
+  else {
+    flatSolventIndexVector = getSolventIndices(numSolvents, solventRatios, solvents.size());
+    std::shuffle(std::begin(flatSolventIndexVector), std::end(flatSolventIndexVector), shuffleGen);
+  }
   // loop till required number of solvent molecules has been added
   while (numAddedSolvents < numSolvents && numAddedShells < numShells) {
     bool addition = false;
     // check, if previous addition round was successful; if yes, recalculate surface
     if (prevAddition && (numAddedSolvents % reCalcTrigger == 0)) {
-      visibleComplexSites = MolecularSurface::getVisibleMolecularSurface(complex, soluteStart, soluteEnd, resolution);
+      visibleComplexSites =
+          MolecularSurface::getVisibleMolecularSurface(complex, soluteStart, soluteEnd, placementSettings.resolution);
       // recalculate number of visible complex sites to calculate coverage
       if (resetSize) {
-        sizeVisibleComplexSites = visibleComplexSites.size();
+        sizeVisibleComplexSites = double(visibleComplexSites.size());
         resetSize = false;
       }
       // calculate coverage of current solute
       coverage = 1.0 - visibleComplexSites.size() / sizeVisibleComplexSites;
-      if (strategicSolv) {
+      if (placementSettings.strategicSolv) {
         reCalcTrigger = SoluteSolventComplex::solvationStrategy(visibleComplexSites.size());
       }
       // shuffle visible solute sites
       std::shuffle(std::begin(visibleComplexSites), std::end(visibleComplexSites), shuffleGen);
       reCalcCounter += 1;
     }
+    // choose solvent here according to index
+    if (multipleSolvents) {
+      solvent = solvents.at(flatSolventIndexVector.at(numAddedSolvents));
+      solventSites = MolecularSurface::getPrunedMolecularSurface(solvent, placementSettings.resolution);
+      // set index generator with seed and solvent
+      randSolventSite.setSize(solventSites.size());
+      randSolventSite.setSeed(seed);
+    }
     // choose random solvent surface index
     int randSolventSiteIndex = randSolventSite.next();
     // loop over visible complex sites and try to add solvent molecule
     for (const auto& visibleComplexSite : visibleComplexSites) {
       addition = SoluteSolventComplex::add(complex, solvent, visibleComplexSite, solventSites.at(randSolventSiteIndex),
-                                           dMin, dMax, stepSize, numRotamers);
+                                           dMin, dMax, placementSettings.stepSize, placementSettings.numRotamers);
       // if addition was successful, break loop over complex sites and try to add next solvent molecule
       if (addition) {
-        numAddedSolvents += 1;
-        prevAddition = true;
         AtomCollection tmpSolvent;
-        int tmpIndex = 0;
         // extract lastly added solvent and push to solvent list
         for (int i = complex.size() - solvent.size(); i < complex.size(); i++) {
           tmpSolvent.push_back(complex.at(i));
-          tmpIndex += 1;
         }
         solventVector.push_back(tmpSolvent);
+        if (multipleSolvents) {
+          solventIndexVector.push_back(flatSolventIndexVector.at(numAddedSolvents));
+        }
+        numAddedSolvents += 1;
+        prevAddition = true;
         break;
       }
     }
     // if addition over all sites was not successful, try next round by increasing the dMin and dMax values
     if (!addition) {
       dMin = dMax;
-      dMax += maxDistance;
+      dMax += placementSettings.maxDistance;
       prevAddition = false;
       failedAdd += 1;
     }
     // if no more complex sites are visible, return solventVector
-    if (visibleComplexSites.empty() || coverage >= coverageThreshold) {
-      dMin = solventOffset;
-      dMax = maxDistance;
+    if (visibleComplexSites.empty() || (placementSettings.coverageThreshold - coverage) <= 1e-12) {
+      dMin = placementSettings.solventOffset;
+      dMax = placementSettings.maxDistance;
       soluteStart = soluteEnd;
       soluteEnd = complex.size();
       resetSize = true;
@@ -124,14 +171,18 @@ solvate(const AtomCollection& soluteComplex, const int soluteSize, const AtomCol
       coverage = 0.0;
       numAddedShells += 1;
       shellVector.push_back(solventVector);
+      solventIndexShellVector.push_back(solventIndexVector);
       solventVector.clear();
+      solventIndexVector.clear();
     }
   }
   // only add last solventVector, if it has not been added due to a full shell
   if (!visibleComplexSites.empty()) {
     shellVector.push_back(solventVector);
+    solventIndexShellVector.push_back(solventIndexVector);
   }
-  return shellVector;
+
+  return {shellVector, solventIndexShellVector};
 }
 
 AtomCollection mergeAtomCollectionVector(const std::vector<AtomCollection>& atomCollList) {
@@ -148,6 +199,14 @@ AtomCollection mergeSolventShellVector(const std::vector<std::vector<AtomCollect
     merged += SoluteSolventComplex::mergeAtomCollectionVector(atomCollVector);
   }
   return merged;
+}
+
+std::vector<int> mergeSolventShellIndices(const std::vector<std::vector<int>>& solventShellIndices) {
+  std::vector<int> flat;
+  for (const std::vector<int>& shell : solventShellIndices) {
+    flat.insert(flat.end(), shell.begin(), shell.end());
+  }
+  return flat;
 }
 
 std::vector<int> transferSolventShellVector(const std::vector<std::vector<AtomCollection>>& shellVector) {
@@ -255,6 +314,32 @@ int solvationStrategy(int numberSurfPoints) {
 
   // value for 501 - 9999
   return 50;
+}
+
+std::vector<int> getSolventIndices(int numSolvents, const std::vector<int>& ratios, unsigned long int differentSolvents) {
+  // Check if ratios and solvents are of the same size.
+  if (ratios.size() != differentSolvents) {
+    throw std::runtime_error("The same number of ratios and solvents has to be given.");
+  }
+  std::vector<int> solventIndices(numSolvents);
+  int indexedSolvents = 0;
+  while (indexedSolvents < numSolvents) {
+    // Index of solvent in solvents
+    int solventIndex = 0;
+    for (const int& ratio : ratios) {
+      // Break loop over ratios if number of indexed solvents exceeds number of solvents
+      if (indexedSolvents >= numSolvents) {
+        break;
+      }
+      int lastIndex = (indexedSolvents + ratio >= numSolvents) ? numSolvents : indexedSolvents + ratio;
+      std::fill(solventIndices.begin() + indexedSolvents, solventIndices.begin() + lastIndex, solventIndex);
+      // Increase index of solvent in solvents
+      solventIndex += 1;
+      // Add number of indexed solvents to count
+      indexedSolvents += lastIndex - indexedSolvents;
+    }
+  }
+  return solventIndices;
 }
 
 bool checkDistances(const AtomCollection& atoms1, const AtomCollection& atoms2) {

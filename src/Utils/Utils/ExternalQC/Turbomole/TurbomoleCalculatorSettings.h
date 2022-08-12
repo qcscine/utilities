@@ -36,6 +36,7 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
   void addTemperature(UniversalSettings::DescriptorCollection& settings);
   void addElectronicTemperature(UniversalSettings::DescriptorCollection& settings);
   void addScfDamping(UniversalSettings::DescriptorCollection& settings);
+  void addScfDampingValue(UniversalSettings::DescriptorCollection& settings);
   void addScfOrbitalShift(UniversalSettings::DescriptorCollection& settings);
   void addSolvent(UniversalSettings::DescriptorCollection& settings);
   void addSolvation(UniversalSettings::DescriptorCollection& settings);
@@ -57,6 +58,7 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
     addBaseWorkingDirectory(_fields);
     addTemperature(_fields);
     addScfDamping(_fields);
+    addScfDampingValue(_fields);
     addScfOrbitalShift(_fields);
     addElectronicTemperature(_fields);
     addSolvent(_fields);
@@ -140,13 +142,15 @@ inline void TurbomoleCalculatorSettings::addTemperature(UniversalSettings::Descr
 }
 
 inline void TurbomoleCalculatorSettings::addScfDamping(UniversalSettings::DescriptorCollection& settings) {
-  Utils::UniversalSettings::OptionListDescriptor scfDamping("Specify SCF damping (low/medium/high).");
-  scfDamping.addOption("default");
-  scfDamping.addOption("low");
-  scfDamping.addOption("medium");
-  scfDamping.addOption("high");
-  scfDamping.setDefaultOption("default");
+  Utils::UniversalSettings::BoolDescriptor scfDamping("Enable stronger SCF damping (true/false).");
+  scfDamping.setDefaultValue(false);
   settings.push_back(Utils::SettingsNames::scfDamping, std::move(scfDamping));
+}
+
+inline void TurbomoleCalculatorSettings::addScfDampingValue(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::DoubleDescriptor scfDampingValue("Specify exact SCF damping value to be used.");
+  scfDampingValue.setDefaultValue(0.5);
+  settings.push_back(SettingsNames::scfDampingValue, std::move(scfDampingValue));
 }
 
 inline void TurbomoleCalculatorSettings::addScfOrbitalShift(UniversalSettings::DescriptorCollection& settings) {

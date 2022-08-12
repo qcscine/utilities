@@ -16,9 +16,6 @@ install/*
 # python files
 *__pycache__*
 
-# generated documentation
-resource/Documentation/*
-
 # generated source files
 externalQC_output_location.h
 orca_output_location.h

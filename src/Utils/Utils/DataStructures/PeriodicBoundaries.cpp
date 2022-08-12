@@ -15,8 +15,8 @@ PeriodicBoundaries::PeriodicBoundaries(double cubeLength, const std::string& per
   : PeriodicBoundaries(Eigen::Matrix3d::Identity() * cubeLength, periodicity) {
 }
 
-PeriodicBoundaries::PeriodicBoundaries(const PeriodicBoundaries& rhs, const std::string& periodicity)
-  : PeriodicBoundaries(rhs.getCellMatrix(), periodicity) {
+PeriodicBoundaries::PeriodicBoundaries(const PeriodicBoundaries& rhs)
+  : PeriodicBoundaries(rhs.getCellMatrix(), rhs.getPeriodicityString()) {
 }
 
 PeriodicBoundaries::PeriodicBoundaries(Eigen::Matrix3d matrix, const std::string& periodicity)
@@ -299,6 +299,21 @@ bool PeriodicBoundaries::isWithinCell(const PositionCollection& positions) const
     }
   }
   return true;
+}
+
+void PeriodicBoundaries::canonicalize() {
+  auto canonicPbc = PeriodicBoundaries(getLengths(), getAngles(), true, true, getPeriodicityString());
+  setCellMatrix(canonicPbc.getCellMatrix());
+}
+
+Eigen::Matrix3d PeriodicBoundaries::getCanonicalizationRotationMatrix() const {
+  auto canonicPbc = PeriodicBoundaries(getLengths(), getAngles(), true, true, getPeriodicityString());
+  if (canonicPbc == *this) {
+    // we are already canonic, avoid numeric instability, just return I
+    return Eigen::Matrix3d::Identity();
+  }
+  Eigen::Matrix3d rotationMatrix = this->_invMatrix * canonicPbc.getCellMatrix();
+  return rotationMatrix;
 }
 
 PeriodicBoundaries& PeriodicBoundaries::operator=(const PeriodicBoundaries& rhs) {

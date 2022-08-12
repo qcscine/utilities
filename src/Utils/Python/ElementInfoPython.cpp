@@ -73,6 +73,8 @@ void init_element_info(pybind11::module& m) {
     )delim");
   element_info.def_static("vdw_radius", &ElementInfo::vdwRadius, pybind11::arg("element"),
                           "van der Waals radius in atomic units");
+  element_info.def_static("pauling_electronegativity", &ElementInfo::paulingElectronegativity, pybind11::arg("element"),
+                          "Pauling electronegativity");
   element_info.def_static("Z", &ElementInfo::Z, pybind11::arg("element"),
                           R"delim(
       Atomic number of an element

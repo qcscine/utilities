@@ -109,12 +109,15 @@ void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, c
   if (!methodInput.second.empty()) {
     // make sure that dispersion is uppercase only
     std::for_each(methodInput.second.begin(), methodInput.second.end(), [](char& c) { c = ::toupper(c); });
-    auto it = std::find(availableD3Params_.begin(), availableD3Params_.end(), methodInput.second);
-    if (it - availableD3Params_.begin() == 0) {
+    auto it = std::find(availableDispersionParams_.begin(), availableDispersionParams_.end(), methodInput.second);
+    if (it - availableDispersionParams_.begin() == 0) {
       out << "dsp\non\n\n";
     }
-    else if (it - availableD3Params_.begin() == 1) {
+    else if (it - availableDispersionParams_.begin() == 1) {
       out << "dsp\nbj\n\n";
+    }
+    else if (it - availableDispersionParams_.begin() == 2) {
+      out << "dsp\nd4\n\n";
     }
     else {
       throw std::runtime_error("Invalid dispersion correction!");
@@ -139,7 +142,7 @@ void TurbomoleInputFileCreator::checkAndUpdateControlFile(const Settings& settin
   bool functionalIsCorrect = false;
 
   double scfConvCriterion = settings.getDouble(Utils::SettingsNames::selfConsistenceCriterion);
-  auto scfDamping = settings.getString(Utils::SettingsNames::scfDamping);
+  bool scfDamping = settings.getBool(Utils::SettingsNames::scfDamping);
   auto scfOrbitalShift = settings.getDouble(SettingsNames::scfOrbitalShift);
   auto solvent = settings.getString(Utils::SettingsNames::solvent);
 
@@ -166,10 +169,9 @@ void TurbomoleInputFileCreator::checkAndUpdateControlFile(const Settings& settin
   helper.mapDftFunctionalToTurbomoleStringRepresentation(method);
 
   while (std::getline(in, line)) {
-    auto it = availableDampingParameter_.find(scfDamping);
-    if ((line.find("$scfdamp") != std::string::npos) && (it != availableDampingParameter_.end())) {
-      out << "$scfdamp   start=" << std::fixed << std::setprecision(3) << it->second[0] << "  step=" << std::fixed
-          << std::setprecision(2) << it->second[1] << "  min=" << std::fixed << std::setprecision(2) << it->second[2] << "\n";
+    if ((line.find("$scfdamp") != std::string::npos) && scfDamping) {
+      double dampingValue = settings.getDouble(SettingsNames::scfDampingValue);
+      out << "$scfdamp   start=" << std::fixed << std::setprecision(3) << dampingValue << "  step=0.05  min=0.10\n";
     }
     else if ((line.find("scforbitalshift") != std::string::npos)) {
       out << "$scforbitalshift closedshell=" << scfOrbitalShift << "\n";

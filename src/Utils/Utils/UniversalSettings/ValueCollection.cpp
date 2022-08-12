@@ -315,30 +315,44 @@ inline bool equalToDefault(const std::string& key, const GenericValue& value) {
 }
 
 bool operator==(const ValueCollection& lhs, const ValueCollection& rhs) {
-  if (lhs.empty() && rhs.empty()) {
-    return true;
+  return lhs.getDivergingKeys(rhs, true).empty();
+}
+
+bool operator!=(const ValueCollection& lhs, const ValueCollection& rhs) {
+  return !(lhs == rhs);
+}
+
+std::vector<std::string> ValueCollection::getDivergingKeys(const ValueCollection& otherSettings,
+                                                           bool onlyFirstDivergingKey) const {
+  std::vector<std::string> result;
+  if (this->empty() && otherSettings.empty()) {
+    return result;
   }
-  auto lhsKeys = lhs.getKeys();
-  auto rhsKeys = rhs.getKeys();
+  auto lhsKeys = this->getKeys();
+  auto rhsKeys = otherSettings.getKeys();
   for (const auto& key : lhsKeys) {
     // key not present or key present in both, but value is different
-    if (!rhs.valueExists(key) || lhs.getValue(key) != rhs.getValue(key)) {
-      return false;
+    if (!otherSettings.valueExists(key) || this->getValue(key) != otherSettings.getValue(key)) {
+      result.push_back(key);
+      if (onlyFirstDivergingKey) {
+        return result;
+      }
     }
   }
 
   // identical the other way around
   for (const auto& key : rhsKeys) {
-    if (!lhs.valueExists(key) || lhs.getValue(key) != rhs.getValue(key)) {
-      return false;
+    if (!this->valueExists(key) || this->getValue(key) != otherSettings.getValue(key)) {
+      result.push_back(key);
+      if (onlyFirstDivergingKey) {
+        return result;
+      }
     }
   }
-  // all checks survived -> settings are equal
-  return true;
-}
-
-bool operator!=(const ValueCollection& lhs, const ValueCollection& rhs) {
-  return !(lhs == rhs);
+  // erase duplicates
+  std::sort(result.begin(), result.end());
+  result.erase(std::unique(result.begin(), result.end()), result.end());
+  return result;
 }
 
 } /* namespace UniversalSettings */

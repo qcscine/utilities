@@ -37,6 +37,8 @@ class NtOptimizer2Settings;
  *
  */
 class NtOptimizer2 : public Optimizer {
+  using ReactionMapping = std::vector<std::pair<std::vector<int>, std::vector<int>>>;
+
  public:
   // Definition of Utils::Settings keys
   static constexpr const char* ntAssListKey = "nt_associations";
@@ -50,8 +52,12 @@ class NtOptimizer2 : public Optimizer {
   static constexpr const char* ntFixedNumberOfMicroCycles = "nt_fixed_number_of_micro_cycles";
   static constexpr const char* ntNumberOfMicroCycles = "nt_number_of_micro_cycles";
   static constexpr const char* ntFilterPasses = "nt_filter_passes";
+  static constexpr const char* ntExtractionCriterion = "nt_extraction_criterion";
   static constexpr const char* ntCoordinateSystemKey = "nt_coordinate_system";
   static constexpr const char* ntFixedAtomsKey = "nt_constrained_atoms";
+  static constexpr const char* ntExtractLastBeforeTarget = "last_maximum_before_first_target";
+  static constexpr const char* ntExtractHighest = "highest_maximum";
+  static constexpr const char* ntExtractFirst = "first_maximum";
   /**
    * @brief Construct a new NtOptimizer object.
    * @param calculator The calculator to be used for the underlying single point/gradient calculations.
@@ -129,6 +135,16 @@ class NtOptimizer2 : public Optimizer {
    * @brief Number of passes through a Savitzky-Golay filter before analyzing the reaction curve.
    */
   int filterPasses = 10;
+  // @brief possible options for extraction
+  const std::vector<std::string> possibleExtractionOptions = {
+      ntExtractLastBeforeTarget,
+      ntExtractHighest,
+      ntExtractFirst,
+  };
+  /**
+   * @brief Criterion to extract a TS guess from the trajectory
+   */
+  std::string extractionCriterion = possibleExtractionOptions.front();
   /**
    * @brief The special convergence settings for this optimizer.
    */
@@ -182,24 +198,23 @@ class NtOptimizer2 : public Optimizer {
    */
   void sanityCheck(const AtomCollection& atoms) const;
   /**
-   * @brief Calculates vector from geometric centers of lhs and rhs.
-   *
-   * @param positions The current positions.
-   * @return Displacement The vector from rhs to lhs
-   */
-  Displacement centerToCenterVector(const PositionCollection& positions) const;
-  /**
    * @brief The function evaluating all artificial forces for the given set of atoms.
    *
    * @param atoms The current atoms.
    * @param energy The current energy in hartree.
    * @param gradients The gradient to be updated (in a.u).
-   * @param bondOrders The bond orders used to determine contraints
+   * @param bondOrders The bond orders used to determine constraints
    * @param addForce Add external force.
    */
   void updateGradients(const AtomCollection& atoms, const double& energy, GradientCollection& gradients,
-                       const BondOrderCollection& bondOrders, bool addForce = false) const;
-
+                       const BondOrderCollection& bondOrders, int cycle, bool addForce = false);
+  /**
+   * @brief Avoids gradient manipulations of the reactive atoms
+   *
+   * @param positions The current positions.
+   * @param gradients The to be altered gradients.
+   */
+  void eliminateReactiveAtomsGradients(const PositionCollection& positions, GradientCollection& gradients) const;
   /**
    * @brief The function determining whether the optimization is converged.
    *
@@ -222,6 +237,14 @@ class NtOptimizer2 : public Optimizer {
    */
   void updateCoordinates(PositionCollection& coordinates, const AtomCollection& atoms, const GradientCollection& gradients) const;
   /**
+   * @brief Extracts the map for each associations and dissociations including eta bond considerations.
+   *
+   * @param bondOrders The bonds defining separate molecules.
+   *
+   * @return reactionMaps The reaction mapping of both associative and dissociative reaction coordinates
+   */
+  std::pair<ReactionMapping, ReactionMapping> inferReactions(const BondOrderCollection& bondOrders) const;
+  /**
    * @brief Set the reactive atoms list by combining the sorted association and dissociation list and
    * make the combination unique.
    */
@@ -241,8 +264,41 @@ class NtOptimizer2 : public Optimizer {
   // @brief A mapping of atom indices to the constraints they are involved in.
   std::vector<std::vector<int>> _constraintsMap;
   Core::Calculator& _calculator;
+  int _firstCoordinateReachedIndex = -1;
 };
 
+namespace NtUtils {
+/**
+ * @brief Gives list of list, with each sublist containing the values of indices that are part of the same molecules
+ * based on the given bond orders.
+ *
+ * @param indices The nuclei indices that shall be sorted into molecules.
+ * @param bondOrders The bonds defining separate molecules.
+ *
+ * @return molecules Each sublist representing a molecule.
+ */
+std::vector<std::vector<int>> connectedNuclei(std::vector<int> indices, const BondOrderCollection& bondOrders);
+/**
+ * @brief Calculates vector from geometric centers of lhsList and rhsList.
+ *
+ * @note opposite direction to identical method in NtOptimizer due to legacy reasons.
+ *
+ * @param positions The current positions.
+ * @return Displacement The vector from lhs to rhs
+ */
+Displacement centerToCenterVector(const PositionCollection& positions, const std::vector<int>& lhsList,
+                                  const std::vector<int>& rhsList);
+/**
+ * @brief Returns the smallest covalent radius from the given indices and atoms.
+ *
+ * @param atoms The atoms to pick from.
+ * @param indices The list of indices of possible atoms.
+ *
+ * @return covRad The smallest covalent radius in Bohr
+ */
+double smallestCovalentRadius(const AtomCollection& atoms, const std::vector<int>& indices);
+
+} // namespace NtUtils
 } // namespace Utils
 } // namespace Scine
 

@@ -59,6 +59,7 @@ class ElementDataSingleton {
      * @param mass   The mass (isotope average, precision: 3 digits).
      * @param covalentRadiusInPicometers The covalent radius in pm.
      * @param vdWRadiusInPicometers The van der Waals radius in pm.
+     * @param paulingElectronegativity The Pauling electronegativity.
      * @param valElectrons The number of electrons in the valence shell.
      * @param sElectrons The number of s-electrons in the valence shell.
      * @param pElectrons The number of p-electrons in the valence shell.
@@ -66,13 +67,14 @@ class ElementDataSingleton {
      * @param fElectrons The number of f-electrons in the valence shell.
      */
     ElementData(std::string symbol, int Z, double mass, double covalentRadiusInPicometers = -1,
-                double vdWRadiusInPicometers = -1, int valElectrons = -1, int sElectrons = -1, int pElectrons = -1,
-                int dElectrons = -1, int fElectrons = -1)
+                double vdWRadiusInPicometers = -1, double paulingElectronegativity = -1, int valElectrons = -1,
+                int sElectrons = -1, int pElectrons = -1, int dElectrons = -1, int fElectrons = -1)
       : d_symbol(std::move(symbol)),
         d_Z(Z),
         d_mass(mass),
         d_covalentRadius(covalentRadiusInPicometers / 100 * bohr_per_angstrom),
         d_vdWRadius(vdWRadiusInPicometers / 100 * bohr_per_angstrom),
+        d_paulingElectronegativity(paulingElectronegativity),
         d_valElectrons(valElectrons),
         d_sElectrons(sElectrons),
         d_pElectrons(pElectrons),
@@ -187,6 +189,21 @@ class ElementDataSingleton {
       throw DataNotAvailable();
     }
 
+    /**
+     * @brief Getter for the Pauling electronegativity.
+     *
+     * CRC Handbook of Physics and Chemistry 85th Edition,
+     * CRC Press/Taylor and Francis, Boca Raton, FL, Molecular Structure and Spectroscopy,
+     * Sec. 9, page 74.\n
+     * Original references:
+     * Pauling, L., The Nature of the Chemical Bond, Third Edition, Cornell University Press, Ithaca, NY, 1960.\n
+     * Allen, L. C., J. Am. Chem. Soc., 111, 9003, 1989.\n
+     * Allred, A. L., J. Inorg. Nucl. Chem., 17, 215, 1961.
+     *
+     * @return double Returns the Pauling electronegativity.
+     */
+    double paulingElectronegativity() const;
+
    private:
     std::string d_symbol{};
 
@@ -194,6 +211,7 @@ class ElementDataSingleton {
     double d_mass{-1};
     double d_covalentRadius{-1};
     double d_vdWRadius{-1};
+    double d_paulingElectronegativity{-1};
 
     int d_valElectrons{-1};
     int d_sElectrons{-1};

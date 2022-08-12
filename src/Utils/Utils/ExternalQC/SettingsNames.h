@@ -40,6 +40,7 @@ static constexpr const char* additionalOutputFile = "additional_output_file";
 static constexpr const char* gaussianFilenameBase = "gaussian_filename_base";
 // turbomole
 static constexpr const char* scfOrbitalShift = "scf_orbitalshift";
+static constexpr const char* scfDampingValue = "scf_damping_value";
 
 } // namespace SettingsNames
 } // namespace ExternalQC

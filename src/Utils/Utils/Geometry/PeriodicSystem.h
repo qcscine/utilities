@@ -32,6 +32,7 @@ class PeriodicSystem {
       std::tuple<AtomCollection, BondOrderCollection, std::unordered_set<unsigned>, std::unordered_map<unsigned, unsigned>>;
 
  public:
+  PeriodicSystem(const PeriodicSystem& other);
   /**
    * @brief Construct a new PeriodicSystem object.
    *
@@ -229,6 +230,8 @@ class PeriodicSystem {
   // The atoms for which the existing image atoms have been constructed for. Ensure reconstruction if public atom
   // member has been changed in the meantime of last image construction
   AtomCollection _lastImageConstructedAtoms;
+
+  void canonicalize();
 
   inline void clearImageAtoms() {
     _imageAtoms = nullptr;

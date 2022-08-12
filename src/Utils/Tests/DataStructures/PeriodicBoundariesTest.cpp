@@ -187,13 +187,14 @@ TEST_F(APeriodicBoundariesTest, ClassIsInitializedCorrectly) {
   ASSERT_TRUE(pbc1 == pbc2);
   ASSERT_DOUBLE_EQ(pbc1.getA().norm(), pbc2.getA().norm());
   ASSERT_DOUBLE_EQ(pbc1.getAlpha(), pbc2.getAlpha());
+  pbc1.setPeriodicity("xy");
   pbc4 = pbc1;
   ASSERT_TRUE(pbc1 == pbc4);
   ASSERT_DOUBLE_EQ(pbc1.getA().norm(), pbc4.getA().norm());
   ASSERT_DOUBLE_EQ(pbc1.getAlpha(), pbc4.getAlpha());
-  PeriodicBoundaries pbc8 = PeriodicBoundaries(Eigen::Matrix3d::Identity());
+  PeriodicBoundaries pbc8 = PeriodicBoundaries(Eigen::Matrix3d::Identity(), pbc1.getPeriodicityString());
   pbc1 = Eigen::Matrix3d::Identity();
-  ASSERT_THAT(pbc1, pbc8);
+  ASSERT_TRUE(pbc1 == pbc8);
 }
 
 TEST_F(APeriodicBoundariesTest, OrthoRhombicWorks) {
@@ -201,6 +202,40 @@ TEST_F(APeriodicBoundariesTest, OrthoRhombicWorks) {
   PeriodicBoundaries pbc2 = PeriodicBoundaries(lengths2, angles2, false);
   ASSERT_TRUE(pbc1.isOrthoRhombic());
   ASSERT_FALSE(pbc2.isOrthoRhombic());
+}
+
+TEST_F(APeriodicBoundariesTest, CanonicalizationWorks) {
+  Eigen::Matrix3d randomMatrix = Eigen::Matrix3d::Random(3, 3);
+  for (int i = 0; i < 3; ++i) {
+    randomMatrix(i, i) = std::fabs(randomMatrix(i, i));
+  }
+  auto pbc = PeriodicBoundaries(randomMatrix);
+  auto canonic = PeriodicBoundaries(pbc.getPeriodicBoundariesString());
+  auto rot = pbc.getCanonicalizationRotationMatrix();
+  Eigen::Matrix3d manualMatrix = pbc.getCellMatrix() * rot;
+  ASSERT_TRUE(std::fabs(canonic.getCellMatrix()(0, 2) < 1e-12));
+  ASSERT_TRUE(std::fabs(canonic.getCellMatrix()(1, 2) < 1e-12));
+  ASSERT_TRUE(std::fabs(manualMatrix(0, 2) < 1e-12));
+  ASSERT_TRUE(std::fabs(manualMatrix(1, 2) < 1e-12));
+  ASSERT_TRUE(canonic.getCellMatrix().isApprox(manualMatrix, 1e-6));
+  pbc.canonicalize();
+  ASSERT_TRUE(canonic.getCellMatrix().isApprox(pbc.getCellMatrix(), 1e-6));
+  ASSERT_TRUE(std::fabs(pbc.getCellMatrix()(0, 2) < 1e-12));
+  ASSERT_TRUE(std::fabs(pbc.getCellMatrix()(1, 2) < 1e-12));
+  ASSERT_TRUE(pbc.getCanonicalizationRotationMatrix().isApprox(Eigen::Matrix3d::Identity()));
+}
+
+TEST_F(APeriodicBoundariesTest, LengthsAndAngles) {
+  Eigen::Vector3d lengths = lengths2 * Constants::bohr_per_angstrom;
+  auto pbc = PeriodicBoundaries(lengths, angles2);
+  ASSERT_THAT(pbc.getLengths().size(), 3);
+  ASSERT_THAT(pbc.getAngles().size(), 3);
+  ASSERT_DOUBLE_EQ(pbc.getLengths()[0], lengths[0]);
+  ASSERT_DOUBLE_EQ(pbc.getLengths()[1], lengths[1]);
+  ASSERT_DOUBLE_EQ(pbc.getLengths()[2], lengths[2]);
+  ASSERT_DOUBLE_EQ(pbc.getAngles()[0], angles2[0]);
+  ASSERT_DOUBLE_EQ(pbc.getAngles()[1], angles2[1]);
+  ASSERT_DOUBLE_EQ(pbc.getAngles()[2], angles2[2]);
 }
 
 TEST_F(APeriodicBoundariesTest, InverseIsConsistent) {

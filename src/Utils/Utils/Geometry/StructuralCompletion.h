@@ -87,7 +87,7 @@ class StructuralCompletion {
   static void generate1TriangleCornerFrom2Others(const Eigen::Vector3d& v1, const Eigen::Vector3d& v2,
                                                  Eigen::Ref<Eigen::Vector3d> v3);
 
-  /// @brief The standard tetrahedral angel in rad.
+  /// @brief The standard tetrahedral angle in rad.
   static constexpr double tetrahedronAngle = 109.4712 * Constants::rad_per_degree;
 };
 

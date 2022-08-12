@@ -58,8 +58,16 @@ void init_periodic_boundaries(pybind11::module& m) {
   periodic_boundaries.def_property_readonly("beta", &PeriodicBoundaries::getBeta, "Unit cell angle beta between a and c");
   periodic_boundaries.def_property_readonly("gamma", &PeriodicBoundaries::getGamma, "Unit cell angle gamma between a and b");
 
+  periodic_boundaries.def_property_readonly("lengths", &PeriodicBoundaries::getLengths, "Lengths of the three unit vectors");
+  periodic_boundaries.def_property_readonly("angles", &PeriodicBoundaries::getAngles,
+                                            "Angles between the three unit vectors in degrees");
+
   periodic_boundaries.def_property("matrix", &PeriodicBoundaries::getCellMatrix, &PeriodicBoundaries::setCellMatrix,
                                    "The underlying matrix governing the periodic boundaries.");
+
+  periodic_boundaries.def_property("periodicity", &PeriodicBoundaries::getPeriodicity,
+                                   pybind11::overload_cast<const std::vector<bool>>(&PeriodicBoundaries::setPeriodicity),
+                                   "The periodicity of the cell.");
 
   periodic_boundaries.def(
       "is_ortho_rhombic", &PeriodicBoundaries::isOrthoRhombic, pybind11::arg("eps") = 1e-2,

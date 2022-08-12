@@ -94,6 +94,13 @@ class NtOptimizerSettings : public Settings {
     nt_filter_passes.setMinimum(0);
     this->_fields.push_back(NtOptimizer::ntFilterPasses, nt_filter_passes);
 
+    UniversalSettings::OptionListDescriptor nt_extraction("Sets the TS guess extraction criterion.");
+    for (const auto& criterion : nt.possibleExtractionOptions) {
+      nt_extraction.addOption(criterion);
+    }
+    nt_extraction.setDefaultOption(nt.possibleExtractionOptions.front());
+    this->_fields.push_back(NtOptimizer::ntExtractionCriterion, nt_extraction);
+
     UniversalSettings::OptionListDescriptor nt_coordinate_system("Set the coordinate system.");
     nt_coordinate_system.addOption("internal");
     nt_coordinate_system.addOption("cartesianWithoutRotTrans");

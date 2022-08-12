@@ -1,5 +1,5 @@
-SCINE - Open Source Utilities
-=============================
+SCINE - Utilities
+=================
 
 Introduction
 ------------
@@ -19,7 +19,7 @@ Installation and Usage
 ----------------------
 
 As a user of one of the SCINE modules (such as Sparrow), you do not need
-to set up Open Source Utilities yourself. Instead, this is done as part of the
+to set up SCINE Utilities yourself. Instead, this is done as part of the
 installation process of the respective SCINE module. Therefore, the following
 instructions are only necessary for developers of SCINE, or those interfacing
 this library directly.

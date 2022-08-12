@@ -209,6 +209,14 @@ ElementType ElementInfo::base(ElementType isotope) {
   }
 }
 
+double ElementInfo::paulingElectronegativity(ElementType e) {
+  if (A(e) != 0) {
+    e = base(e);
+  }
+
+  return Constants::ElementDataSingleton::lookup(e).paulingElectronegativity();
+}
+
 double ElementInfo::vdwRadius(ElementType e) {
   if (A(e) != 0) {
     e = base(e);

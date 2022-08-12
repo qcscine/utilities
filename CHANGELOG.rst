@@ -8,6 +8,30 @@ It is intended that only the first two groups (``New Features and Feature Update
 ``Important Technical Changes``) are important for the average user, while
 the last one is mainly aimed at developers and users that link deeply into the code.
 
+Release 6.0.0
+-------------
+
+New Features and Feature Updates
+................................
+- Newton Trajectory: Added new extraction options and improved eta bonds in NT2
+- Added more solvents for the Turbomole input creator
+- Added the Pauling electronegativity scale. This is available through the ElementInfo.
+- Added solvate function to place any mixture of solvents around solute.
+
+Important Technical Changes
+...........................
+- PeriodicSystem canonicalizes the given PeriodicBoundaries to ensure read/write stability
+- Calculators:
+  - For the Turbomole calculator, allow the SCF damping value to be specified exactly (instead of predefined
+    settings "default", "low", "medium", and "high")
+  - Add "PBEH-3C" and "B97-3C" as supported method families for the ORCA calculator
+- Settings for placing solvent molecules are summarized in ``SolventPlacementSettings``, all solvate functions
+  take only this structure as input. This change is not backwards compatible.
+
+Development Changes
+...................
+- Code deduplication
+
 Release 5.0.0
 -------------
 

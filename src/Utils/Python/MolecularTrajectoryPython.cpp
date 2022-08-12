@@ -15,7 +15,18 @@ using namespace Scine::Utils;
 void init_molecular_trajectory(pybind11::module& m) {
   pybind11::class_<MolecularTrajectory> molecular_trajectory(m, "MolecularTrajectory");
 
-  molecular_trajectory.def(pybind11::init<>());
+  // constructors
+  molecular_trajectory.def(pybind11::init<>(), "Initialize completely empty trajectory.");
+  molecular_trajectory.def(pybind11::init<const ElementTypeCollection&>(), pybind11::arg("elements"),
+                           "Initialize empty trajectory with given elements.");
+  molecular_trajectory.def(pybind11::init<double>(), pybind11::arg("minimum_rmsd_for_addition"),
+                           "Initialize empty trajectory with a minimum root mean square deviation for a "
+                           "PositionCollection to the previous one to be added.");
+  molecular_trajectory.def(
+      pybind11::init<const ElementTypeCollection&, double>(), pybind11::arg("elements"),
+      pybind11::arg("minimum_rmsd_for_addition"),
+      "Initialize empty trajectory with given elements and a minimum root mean square deviation for a "
+      "PositionCollection to the previous one to be added.");
 
   molecular_trajectory.def_property("elements", &MolecularTrajectory::getElementTypes,
                                     &MolecularTrajectory::setElementTypes, "Element types of the atoms");

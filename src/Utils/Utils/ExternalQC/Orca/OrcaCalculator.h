@@ -162,10 +162,11 @@ class OrcaCalculator final : public CloneInterface<OrcaCalculator, Core::Calcula
   // Keeps track of whether the binary has been checked for validity yet
   bool binaryHasBeenChecked_ = false;
   const std::vector<std::string> availableSolvationModels_ = std::vector<std::string>{"cpcm", "smd"};
-  const std::vector<std::string> availableMethodFamilies_ = std::vector<std::string>{"DFT", "HF", "CC", "HF-3C", "PBEH-3C"};
+  const std::vector<std::string> availableMethodFamilies_ =
+      std::vector<std::string>{"DFT", "HF", "CC", "HF-3C", "PBEH-3C", "B97-3C"};
   // incomplete list of methods with no analytical Hessian, add if you find a new one
   const std::vector<std::string> numFreqMethods_ =
-      std::vector<std::string>{"M06", "DLPNO-CCSD(T)", "DLPNO-CCSD", "HF-3C", "PBEH-3C"};
+      std::vector<std::string>{"M06", "DLPNO-CCSD(T)", "DLPNO-CCSD", "HF-3C", "PBEH-3C", "B97-3C"};
 };
 
 } // namespace ExternalQC

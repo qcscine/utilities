@@ -22,11 +22,26 @@ namespace SoluteSolventComplex {
 class RandomIndexGenerator {
  public:
   /**
+   * @brief Default empty constructor
+   */
+  RandomIndexGenerator() = default;
+  /**
    * @brief Initialising the RandomIndexGenerator, assigning size and seed to its generator and distribution
    * @param size Size of the wanted distribution, meaning the size of the related vector.
    * @param seed Seed for the generator.
    */
   RandomIndexGenerator(int size, int seed);
+
+  /**
+   * @brief Set seed for generator
+   * @param seed Seed for generator.
+   */
+  void setSeed(int seed);
+  /**
+   * @brief Set size of wanted distribution.
+   * @param size Size of the wanted distribution.
+   */
+  void setSize(int size);
   /**
    * @brief Generate next random index from initialised RandomIndexGenerator.
    * @return Integer between 0 and size - 1 with uniform distribution.

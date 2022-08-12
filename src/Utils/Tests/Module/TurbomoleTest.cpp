@@ -18,7 +18,6 @@
 #include <math.h>
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/filesystem.hpp>
-#include <iostream>
 #include <regex>
 
 using namespace testing;
@@ -584,7 +583,7 @@ TEST_F(ATurbomoleTest, ImprovedScfConvergenceSettingsAreAppliedCorrectly) {
   const char* envVariablePtr = std::getenv("TURBODIR");
   if (envVariablePtr) {
     calculator.settings().modifyDouble(Utils::ExternalQC::SettingsNames::scfOrbitalShift, 0.5);
-    calculator.settings().modifyString(Utils::SettingsNames::scfDamping, "high");
+    calculator.settings().modifyBool(Utils::SettingsNames::scfDamping, true);
     calculator.settings().modifyInt(Utils::SettingsNames::maxScfIterations, 250);
     calculator.settings().modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-4);
 
@@ -618,7 +617,7 @@ TEST_F(ATurbomoleTest, ImprovedScfConvergenceSettingsAreAppliedCorrectly) {
     input.close();
 
     std::regex scfIterRegex(R"((scfiterlimit)+ +([0-9]+))");
-    std::regex scfDamp(R"(scfdamp   start=8.500  step=0.10  min=0.50)");
+    std::regex scfDamp(R"(scfdamp   start=0.500  step=0.05  min=0.10)");
     std::regex scfOrbitalShift(R"((scforbitalshift closedshell=)++([-\.0-9]+))");
     std::regex convThreshold(R"((scfconv)+ +([0-9]+))");
 

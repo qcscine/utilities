@@ -7,6 +7,7 @@
 #include "Utils/Bonds/BondDetector.h"
 #include "Utils/Geometry/GeometryUtilities.h"
 #include "Utils/Geometry/PeriodicSystem.h"
+#include "Utils/Math/QuaternionFit.h"
 #include <Utils/IO/ChemicalFileFormats/XyzStreamHandler.h>
 #include <gmock/gmock.h>
 
@@ -52,7 +53,8 @@ class PeriodicSystemTest : public Test {
 TEST_F(PeriodicSystemTest, CanBeConstructed) {
   auto ps0 = PeriodicSystem(pbc);
   ASSERT_THAT(ps0.atoms.size(), 0);
-  ASSERT_THAT(ps0.pbc, pbc);
+  pbc.canonicalize();
+  ASSERT_TRUE(ps0.pbc == pbc);
   auto ps1 = PeriodicSystem(pbc, 1);
   ASSERT_THAT(ps1.atoms.size(), 1);
   std::unordered_set<unsigned> unimportant = {1};
@@ -60,6 +62,26 @@ TEST_F(PeriodicSystemTest, CanBeConstructed) {
   auto ps2 = PeriodicSystem(pbc, atoms, unimportant);
   ASSERT_THAT(ps2.atoms.size(), 3);
   ASSERT_THAT(ps2.atoms.getElements(), randomElements);
+}
+
+TEST_F(PeriodicSystemTest, CanonicalizationWorks) {
+  auto atoms = AtomCollection(randomElements, randomPositions);
+  auto ps = PeriodicSystem(pbc, atoms);
+  auto copyPbc = PeriodicBoundaries(pbc.getPeriodicBoundariesString());
+  if (std::fabs(pbc.getCellMatrix()(0, 2)) > 1e-6 || std::fabs(pbc.getCellMatrix()(1, 2)) > 1e-6) {
+    ASSERT_FALSE(pbc == copyPbc);
+  }
+  else {
+    ASSERT_TRUE(pbc == copyPbc);
+  }
+  auto rotation = pbc.getCanonicalizationRotationMatrix();
+  PositionCollection oldPositions = atoms.getPositions();
+  atoms.setPositions(atoms.getPositions() * rotation);
+  auto fit = QuaternionFit(oldPositions, atoms.getPositions());
+  ASSERT_LT(fit.getRMSD(), 1e-5);
+  auto copyPs = PeriodicSystem(copyPbc, atoms);
+  ASSERT_TRUE(ps.pbc.getCellMatrix().isApprox(copyPs.pbc.getCellMatrix(), 1e-5));
+  ASSERT_TRUE(ps.atoms.getPositions().isApprox(copyPs.atoms.getPositions(), 1e-5));
 }
 
 TEST_F(PeriodicSystemTest, GetsCorrectImageAtoms) {
@@ -79,7 +101,7 @@ TEST_F(PeriodicSystemTest, GetsCorrectImageAtoms) {
 
   auto ps = PeriodicSystem(pbc, h3);
   BondOrderCollection bo = BondDetector::detectBonds(h3, pbc, true);
-  ASSERT_THAT(bo, ps.constructBondOrders());
+  ASSERT_TRUE(bo == ps.constructBondOrders());
   ps.constructImageAtoms(bo);
   ps.constructImageAtoms();
   auto atoms = ps.getAtomCollectionWithImages();
@@ -508,9 +530,9 @@ TEST_F(PeriodicSystemTest, MultiplicationWorksSurface) {
   srand(42);
   int factor = std::rand() % 10 + 1;
   auto otherPs = ps * factor;
-  ASSERT_THAT(otherPs, otherPs);
+  ASSERT_TRUE(otherPs == otherPs);
   ASSERT_THAT(otherPs.atoms.size(), structure.size() * std::pow(factor, 3));
-  ASSERT_THAT(otherPs.pbc.getCellMatrix(), originalCell * factor);
+  ASSERT_TRUE(otherPs.pbc.getCellMatrix().isApprox(originalCell * factor));
   ASSERT_THAT(otherPs.solidStateAtomIndices.size(), solidStateIndices.size() * std::pow(factor, 3));
   std::vector<int> randoms;
   for (int i = 0; i < 3; ++i) {
@@ -545,9 +567,9 @@ TEST_F(PeriodicSystemTest, MultiplicationWorksMolecular) {
   int factor = std::rand() % 10 + 1;
   auto otherPs = ps * factor;
   ps *= factor;
-  ASSERT_THAT(ps, otherPs);
+  ASSERT_TRUE(ps == otherPs);
   ASSERT_THAT(ps.atoms.size(), structure.size() * std::pow(factor, 3));
-  ASSERT_THAT(ps.pbc.getCellMatrix(), Eigen::Matrix3d::Identity() * factor * basisLength);
+  ASSERT_TRUE(ps.pbc.getCellMatrix().isApprox(Eigen::Matrix3d::Identity() * factor * basisLength));
   ASSERT_TRUE(ps.solidStateAtomIndices.empty());
   auto rm = Eigen::Matrix3d::Random().cwiseAbs();
   Eigen::Matrix3d randomMatrix = rm;

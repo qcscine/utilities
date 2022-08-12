@@ -41,7 +41,7 @@ namespace Utils {
 class PeriodicBoundaries {
  public:
   explicit PeriodicBoundaries(double cubeLength = 1.0, const std::string& periodicity = "xyz");
-  PeriodicBoundaries(const PeriodicBoundaries& rhs, const std::string& periodicity = "xyz");
+  PeriodicBoundaries(const PeriodicBoundaries& rhs);
   explicit PeriodicBoundaries(Eigen::Matrix3d matrix, const std::string& periodicity = "xyz");
 
   explicit PeriodicBoundaries(const Eigen::Vector3d& lengths, const Eigen::Vector3d& angles, bool isBohr = true,
@@ -213,8 +213,24 @@ class PeriodicBoundaries {
    */
   bool isWithinCell(const PositionCollection& positions) const;
 
+  void canonicalize();
+
+  Eigen::Matrix3d getCanonicalizationRotationMatrix() const;
+
   inline bool isOrthoRhombic(double eps = 1e-2) const {
     return std::fabs(_alpha - 90.0) < eps && std::fabs(_beta - 90.0) < eps && std::fabs(_gamma - 90.0) < eps;
+  };
+
+  inline Eigen::Vector3d getLengths() const {
+    Eigen::Vector3d result;
+    result << _aNorm, _bNorm, _cNorm;
+    return result;
+  };
+
+  inline Eigen::Vector3d getAngles() const {
+    Eigen::Vector3d result;
+    result << _alpha, _beta, _gamma;
+    return result;
   };
 
   inline std::string getPeriodicBoundariesString(const std::string& delimiter = ",") const {

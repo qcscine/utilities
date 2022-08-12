@@ -34,6 +34,54 @@ TEST(Settings, InvalidValueExceptions) {
   ASSERT_THROW(settings.throwIncorrectSettings(), InvalidSettingsException);
 }
 
+TEST(Settings, DivergingKeysAndEquality) {
+  using namespace UniversalSettings;
+
+  DescriptorCollection descriptors;
+  IntDescriptor multiplicity("spin multiplicity");
+  IntDescriptor charge("charge");
+  StringDescriptor method("method");
+
+  descriptors.push_back("multiplicity", multiplicity);
+  descriptors.push_back("charge", charge);
+  descriptors.push_back("method", method);
+
+  ValueCollection values;
+  values.addInt("multiplicity", 1);
+  values.addInt("charge", 0);
+  values.addString("method", "bla");
+
+  ValueCollection otherValues;
+  otherValues.addInt("multiplicity", 3);
+  otherValues.addInt("charge", 0);
+  otherValues.addString("method", "blubb");
+
+  ValueCollection duplicateValues;
+  duplicateValues.addInt("multiplicity", 1);
+  duplicateValues.addInt("charge", 0);
+  duplicateValues.addString("method", "bla");
+
+  Settings settings{values, descriptors};
+  Settings otherSettings{otherValues, descriptors};
+  Settings duplicateSettings{duplicateValues, descriptors};
+
+  ASSERT_TRUE(settings.valid());
+  ASSERT_TRUE(otherSettings.valid());
+
+  ASSERT_FALSE(values == otherValues);
+  ASSERT_FALSE(duplicateValues == otherValues);
+  ASSERT_TRUE(values == duplicateValues);
+
+  auto otherDiverging = values.getDivergingKeys(otherValues);
+  ASSERT_TRUE(otherDiverging.size() == 2);
+  ASSERT_TRUE(values.getDivergingKeys(otherValues, true).size() == 1);
+  ASSERT_TRUE(std::find(otherDiverging.begin(), otherDiverging.end(), "multiplicity") != otherDiverging.end());
+  ASSERT_TRUE(std::find(otherDiverging.begin(), otherDiverging.end(), "method") != otherDiverging.end());
+  ASSERT_TRUE(std::find(otherDiverging.begin(), otherDiverging.end(), "charge") == otherDiverging.end());
+
+  ASSERT_TRUE(values.getDivergingKeys(duplicateValues).empty());
+}
+
 TEST(Settings, CoerceStringCases) {
   using namespace UniversalSettings;
 

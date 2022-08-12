@@ -121,6 +121,24 @@ class BondOrderCollection {
     rangeCheck(i, j);
     return bondOrderMatrix_.coeff(i, j);
   }
+  /**
+   * @brief Get bond partner of an index based on a minimum bond threshold
+   * @tparam Index
+   * @param i The index of whom we want the bond partner.
+   * @param threshold The threshold above which a bond exists.
+   * @return std::vector<Index> The list of bond partners.
+   */
+  template<typename Index>
+  std::vector<Index> getBondPartners(Index i, double threshold = 0.5) const {
+    rangeCheck(i, i);
+    std::vector<Index> result;
+    for (Index j = 0; j < getSystemSize(); ++j) {
+      if (bondOrderMatrix_.coeff(i, j) > threshold) {
+        result.push_back(j);
+      }
+    }
+    return result;
+  }
 
   /**
    * @brief Checks whether two bond order collections are approximately equal

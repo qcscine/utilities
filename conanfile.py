@@ -9,7 +9,7 @@ from dev.conan.base import ScineConan
 
 class ScineUtilsConan(ScineConan):
     name = "scine_utilities"
-    version = "5.0.0"
+    version = "6.0.0"
     url = "https://github.com/qcscine/utilities"
     description = """
 Functionality which is used in most SCINE modules. It is vital for the correct

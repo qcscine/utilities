@@ -10,6 +10,20 @@
 namespace Scine {
 namespace Utils {
 
+MolecularTrajectory::MolecularTrajectory(const ElementTypeCollection& elements) {
+  elements_ = elements;
+}
+
+MolecularTrajectory::MolecularTrajectory(double minimumRmsdForAddition)
+  : MolecularTrajectory(elements_, minimumRmsdForAddition) {
+}
+
+MolecularTrajectory::MolecularTrajectory(const ElementTypeCollection& elements, double minimumRmsdForAddition) {
+  elements_ = elements;
+  minMeanSquareDeviation_ = minimumRmsdForAddition * minimumRmsdForAddition;
+  respectMinRmsd_ = true;
+}
+
 void MolecularTrajectory::setElementType(int index, ElementType e) {
   elements_[index] = e;
 }
@@ -85,7 +99,9 @@ void MolecularTrajectory::push_back(PositionCollection p) {
   if (!pbcs_.empty()) {
     throw std::runtime_error("Pbc container is not empty. Clear pbcs first, before a structure only is added.");
   }
-  structureVector_.push_back(std::move(p));
+  if (additionOfPositionCollectionIsAllowedBasedOnRmsd(p)) {
+    structureVector_.push_back(std::move(p));
+  }
 }
 
 void MolecularTrajectory::push_back(PositionCollection p, double e) {
@@ -94,8 +110,10 @@ void MolecularTrajectory::push_back(PositionCollection p, double e) {
     throw std::runtime_error(
         "The number of energies does not match the number of structures in this molecular trajectory.");
   }
-  structureVector_.push_back(std::move(p));
-  energies_.push_back(e);
+  if (additionOfPositionCollectionIsAllowedBasedOnRmsd(p)) {
+    structureVector_.push_back(std::move(p));
+    energies_.push_back(e);
+  }
 }
 
 void MolecularTrajectory::push_back(PositionCollection p, PeriodicBoundaries pbc) {
@@ -104,8 +122,10 @@ void MolecularTrajectory::push_back(PositionCollection p, PeriodicBoundaries pbc
     throw std::runtime_error(
         "The number of pbcs does not match the number of structures in this molecular trajectory.");
   }
-  structureVector_.push_back(std::move(p));
-  pbcs_.push_back(pbc.getCellMatrix());
+  if (additionOfPositionCollectionIsAllowedBasedOnRmsd(p)) {
+    structureVector_.push_back(std::move(p));
+    pbcs_.push_back(pbc.getCellMatrix());
+  }
 }
 
 void MolecularTrajectory::push_back(PositionCollection p, double e, PeriodicBoundaries pbc) {
@@ -119,9 +139,11 @@ void MolecularTrajectory::push_back(PositionCollection p, double e, PeriodicBoun
     throw std::runtime_error(
         "The number of pbcs does not match the number of structures in this molecular trajectory.");
   }
-  structureVector_.push_back(std::move(p));
-  energies_.push_back(e);
-  pbcs_.push_back(pbc.getCellMatrix());
+  if (additionOfPositionCollectionIsAllowedBasedOnRmsd(p)) {
+    structureVector_.push_back(std::move(p));
+    energies_.push_back(e);
+    pbcs_.push_back(pbc.getCellMatrix());
+  }
 }
 
 bool MolecularTrajectory::empty() const {
@@ -235,6 +257,15 @@ bool MolecularTrajectory::additionOfPositionCollectionIsAllowed(const PositionCo
   bool validGivenThatElementCollectionIsNotSet = (molecularSize() == 0 && validWithRespectToOtherPositionCollections);
 
   return validGivenThatElementCollectionIsAlreadySet || validGivenThatElementCollectionIsNotSet;
+}
+
+bool MolecularTrajectory::additionOfPositionCollectionIsAllowedBasedOnRmsd(const PositionCollection& p) const {
+  if (!respectMinRmsd_ || structureVector_.empty()) {
+    return true;
+  }
+  PositionCollection lastPos = structureVector_.back();
+  double meanSquareDeviation = (lastPos - p).rowwise().squaredNorm().sum() / lastPos.rows();
+  return meanSquareDeviation > minMeanSquareDeviation_;
 }
 
 } /* namespace Utils */

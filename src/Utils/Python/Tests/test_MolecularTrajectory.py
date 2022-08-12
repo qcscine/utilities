@@ -27,8 +27,7 @@ def test_access():
     elements = [scine.ElementType.H, scine.ElementType.F]
     pos_a = numpy.array([[0.0, 1.0, 2.0], [0.5, 1.5, 2.5]])
     pos_b = numpy.array([[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]])
-    traj = scine.MolecularTrajectory()
-    traj.elements = elements
+    traj = scine.MolecularTrajectory(elements)
     assert traj.elements[0] == scine.ElementType.H
     assert traj.elements[1] == scine.ElementType.F
     traj.push_back(pos_a)
@@ -55,4 +54,36 @@ def test_access():
     with pytest.raises(IndexError) as excinfo:
         _ = traj[-10]
     assert "out of range" in str(excinfo.value)
+
+
+def test_min_addition():
+    elements = [scine.ElementType.H, scine.ElementType.F]
+    pos_a = numpy.array([[0.0, 1.0, 2.0], [0.5, 1.5, 2.5]])
+    pos_b = numpy.array([[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]])
+    pos_c = numpy.array([[10.0, 2.0, 3.0], [1.5, 2.5, 3.5]])
+    traj = scine.MolecularTrajectory(elements, 1.5)
+    assert traj.elements[0] == scine.ElementType.H
+    assert traj.elements[1] == scine.ElementType.F
+    traj.push_back(pos_a)
+    traj.push_back(pos_b)
+    traj.push_back(pos_b)
+    traj.push_back(pos_b)
+    traj.push_back(pos_a)
+    traj.push_back(pos_c)
+    assert traj.size() == 4
+    stricter_traj = scine.MolecularTrajectory(5.0)
+    stricter_traj.elements = elements
+    assert len(stricter_traj.elements) == 2
+    stricter_traj.push_back(pos_a)
+    stricter_traj.push_back(pos_b)
+    stricter_traj.push_back(pos_b)
+    stricter_traj.push_back(pos_b)
+    stricter_traj.push_back(pos_a)
+    assert stricter_traj.size() == 1
+    stricter_traj.push_back(pos_c)
+    assert stricter_traj.size() == 2
+    stricter_traj.push_back(pos_a)
+    assert stricter_traj.size() == 3
+    stricter_traj.push_back(pos_a)
+    assert stricter_traj.size() == 3
 

@@ -184,6 +184,14 @@ void NtOptimizer::sanityCheck(const AtomCollection& atoms) const {
       }
     }
   }
+  if (std::find(possibleExtractionOptions.begin(), possibleExtractionOptions.end(), extractionCriterion) ==
+      possibleExtractionOptions.end()) {
+    std::string options = "\nValid options are:\n";
+    for (const auto& criterion : possibleExtractionOptions) {
+      options += "'" + criterion + "'\n";
+    }
+    throw std::logic_error("Extract criterion " + extractionCriterion + " is not a valid option." + options);
+  }
 }
 
 void NtOptimizer::updateGradients(const AtomCollection& atoms, const double& /* energy */,
@@ -337,7 +345,11 @@ PositionCollection NtOptimizer::extractTsGuess() const {
   if (maximaList.empty()) {
     throw std::runtime_error("No transition state guess was found in Newton Trajectory scan.");
   }
-  // Extract TS guess from point with highest energy
+  // Extract TS guess according to given criterion
+  if (extractionCriterion == ntExtractFirst) {
+    return _trajectory[maximaList.back()]; // back because maximalist starts from back
+  }
+  // Extract TS guess from point with the highest energy
   double maxValue = -std::numeric_limits<double>::max();
   int maxIndex = -1;
   for (auto& i : maximaList) {

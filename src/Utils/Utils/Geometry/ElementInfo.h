@@ -105,6 +105,22 @@ class ElementInfo {
   static double vdwRadius(ElementType e);
 
   /**
+   * @brief Getter for the Pauling electronegativity.
+   * @param e The ElementType.
+   *
+   * CRC Handbook of Physics and Chemistry 85th Edition,
+   * CRC Press/Taylor and Francis, Boca Raton, FL, Molecular Structure and Spectroscopy,
+   * Sec. 9, page 74.\n
+   * Original references:
+   * Pauling, L., The Nature of the Chemical Bond, Third Edition, Cornell University Press, Ithaca, NY, 1960.\n
+   * Allen, L. C., J. Am. Chem. Soc., 111, 9003, 1989.\n
+   * Allred, A. L., J. Inorg. Nucl. Chem., 17, 215, 1961.
+   *
+   * @return double Returns the Pauling electronegativity.
+   */
+  static double paulingElectronegativity(ElementType e);
+
+  /**
    * @brief Getter for the atomic number
    * @param e The ElementType.
    * @return int Returns the atomic number

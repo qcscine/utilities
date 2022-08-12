@@ -122,6 +122,8 @@ class ValueCollection {
     return std::end(values_);
   }
 
+  std::vector<std::string> getDivergingKeys(const ValueCollection& otherSettings, bool onlyFirstDivergingKey = false) const;
+
  private:
   const GenericValue& getGenericValue(const std::string& name) const;
   Container::iterator findName(const std::string& name);

@@ -76,8 +76,13 @@ void MolecularTrajectoryIO::writeBinary(std::ostream& out, const MolecularTrajec
 void MolecularTrajectoryIO::writeXYZ(std::ostream& out, const MolecularTrajectory& m) {
   out.imbue(std::locale("C"));
   const auto& elements = m.getElementTypes();
+  bool hasEnergies = !m.getEnergies().empty();
   for (int i = 0; i < m.size(); ++i) {
-    out << m.molecularSize() << endl << endl;
+    out << m.molecularSize() << endl;
+    if (hasEnergies) {
+      out << m.getEnergies()[i];
+    }
+    out << endl;
     for (int j = 0; j < m.molecularSize(); ++j) {
       writeXYZLine(out, elements[j], m[i].row(j));
     }
@@ -161,6 +166,7 @@ MolecularTrajectory MolecularTrajectoryIO::readXYZ(std::istream& in) {
   bool firstDone = false;
   ElementTypeCollection elements;
   MolecularTrajectory m;
+  std::vector<double> energies;
   while (!in.eof()) {
     int nAtoms;
     in >> nAtoms;
@@ -170,7 +176,18 @@ MolecularTrajectory MolecularTrajectoryIO::readXYZ(std::istream& in) {
 
     std::string unnecessaryLine;
     getline(in, unnecessaryLine);
-    getline(in, unnecessaryLine);
+    std::string commentLine;
+    getline(in, commentLine);
+    bool gotEnergy = !commentLine.empty() && commentLine.find_first_not_of("-.0123456789") == string::npos;
+    if (gotEnergy) {
+      // in case we got funky comment, that really isn't a double
+      try {
+        energies.push_back(std::stod(commentLine));
+      }
+      catch (...) {
+        ;
+      }
+    }
     std::string element;
     PositionCollection s(nAtoms, 3);
     for (int i = 0; i < nAtoms; ++i) {
@@ -195,6 +212,9 @@ MolecularTrajectory MolecularTrajectoryIO::readXYZ(std::istream& in) {
     m.push_back(s * Constants::bohr_per_angstrom);
   }
   m.setElementTypes(elements);
+  if (energies.size() == static_cast<unsigned>(m.size())) {
+    m.setEnergies(energies);
+  }
 
   return m;
 }

@@ -12,6 +12,10 @@
 namespace Scine {
 namespace Utils {
 
+PeriodicSystem::PeriodicSystem(const PeriodicSystem& other)
+  : PeriodicSystem(other.pbc, other.atoms, other.solidStateAtomIndices) {
+}
+
 PeriodicSystem::PeriodicSystem(const PeriodicBoundaries& pbc, int N, std::unordered_set<unsigned> solidStateAtomIndices)
   : PeriodicSystem(pbc, AtomCollection(N), std::move(solidStateAtomIndices)) {
 }
@@ -27,6 +31,16 @@ PeriodicSystem::PeriodicSystem(const PeriodicBoundaries& pbc, AtomCollection ato
   if (!std::all_of(this->solidStateAtomIndices.begin(), this->solidStateAtomIndices.end(),
                    [&](unsigned i) { return static_cast<int>(i) < this->atoms.size(); })) {
     throw std::logic_error("At least one of the given solid state indices is not valid for the given AtomCollection.");
+  }
+  canonicalize();
+}
+
+void PeriodicSystem::canonicalize() {
+  centerAndTranslateAtomsIntoCell();
+  Eigen::Matrix3d rotation = pbc.getCanonicalizationRotationMatrix();
+  if (rotation != Eigen::Matrix3d::Identity()) {
+    this->pbc.canonicalize();
+    this->atoms.setPositions(this->atoms.getPositions() * rotation);
   }
   centerAndTranslateAtomsIntoCell();
 }
@@ -214,14 +228,21 @@ bool PeriodicSystem::operator!=(const PeriodicSystem& other) const {
 }
 
 PeriodicSystem PeriodicSystem::operator*(const Eigen::Vector3i& scalingFactors) const {
-  PeriodicSystem super = PeriodicSystem(this->pbc, this->atoms, this->solidStateAtomIndices);
-  return super *= scalingFactors;
+  PeriodicSystem super = PeriodicSystem(*this);
+  super *= scalingFactors;
+  return super;
 }
 
 PeriodicSystem& PeriodicSystem::operator*=(const Eigen::Vector3i& scalingFactors) {
   if ((scalingFactors.array() < 1).any()) {
     throw std::runtime_error(
         "At least one scaling factor of the periodic system is less than 1, which is not possible.");
+  }
+  for (int i = 0; i < 3; ++i) {
+    if (scalingFactors[i] > 1 && !pbc.getPeriodicity()[i]) {
+      throw std::runtime_error(
+          "Scaling factor of the periodic system is larger than 1 for a dimension which is not periodic.");
+    }
   }
   // do operations within cell -> save original state to translate back afterwards
   const PositionCollection originalPositions = atoms.getPositions();
@@ -269,13 +290,23 @@ PeriodicSystem& PeriodicSystem::operator*=(const Eigen::Vector3i& scalingFactors
 }
 
 PeriodicSystem PeriodicSystem::operator*(int scalingFactor) const {
-  Eigen::Vector3i scaling = Eigen::Vector3i::Constant(scalingFactor);
-  return *this * scaling;
+  PeriodicSystem super = (*this);
+  super *= scalingFactor;
+  return super;
 }
 
 PeriodicSystem& PeriodicSystem::operator*=(int scalingFactor) {
+  if (scalingFactor < 1) {
+    throw std::runtime_error("Specified scaling factor of " + std::to_string(scalingFactor) + ", but it must be at least 1");
+  }
   Eigen::Vector3i scaling = Eigen::Vector3i::Constant(scalingFactor);
-  return *this *= scaling;
+  for (int i = 0; i < 3; ++i) {
+    if (!pbc.getPeriodicity()[i]) {
+      scaling[i] = 1;
+    }
+  }
+  *this *= scaling;
+  return *this;
 }
 
 } /* namespace Utils */

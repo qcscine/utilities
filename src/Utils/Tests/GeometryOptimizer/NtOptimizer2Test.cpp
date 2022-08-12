@@ -12,11 +12,13 @@
 #include "Utils/CalculatorBasics/PropertyList.h"
 #include "Utils/CalculatorBasics/Results.h"
 #include "Utils/CalculatorBasics/TestCalculator.h"
+#include "Utils/IO/MolecularTrajectoryIO.h"
 #include "Utils/Math/QuaternionFit.h"
 #include "Utils/Settings.h"
 #include "Utils/Technical/CloneInterface.h"
 /* External */
 #include <gmock/gmock.h>
+#include <boost/dll/runtime_symbol_info.hpp>
 
 using namespace testing;
 namespace Scine {
@@ -120,10 +122,7 @@ TEST(NtOptimizer2Tests, DefaultEmptyLists) {
   ASSERT_THROW(nt.optimize(atoms, logger), std::logic_error);
 }
 
-TEST(NtOptimizer2Tests, SN2) {
-  Core::Log logger = Core::Log::silent();
-  TestCalculator testCalc;
-  NtOptimizer2 nt(testCalc);
+inline void runSN2Test(NtOptimizer2& nt, Core::Log& logger) {
   nt.coordinateSystem = CoordinateSystem::Cartesian;
   nt.associationList = {0, 1};
   nt.dissociationList = {1, 5};
@@ -170,6 +169,29 @@ TEST(NtOptimizer2Tests, SN2) {
   EXPECT_NEAR(referenceBonds.row(3).value(), (positions.row(1) - positions.row(5)).norm(), 1e-3); // C-Br
 }
 
+TEST(NtOptimizer2Tests, SN2) {
+  Core::Log logger = Core::Log::silent();
+  TestCalculator testCalc;
+  NtOptimizer2 nt(testCalc);
+  runSN2Test(nt, logger);
+}
+
+TEST(NtOptimizer2Tests, SN2FirstMaximum) {
+  Core::Log logger = Core::Log::silent();
+  TestCalculator testCalc;
+  NtOptimizer2 nt(testCalc);
+  nt.extractionCriterion = NtOptimizer2::ntExtractFirst;
+  runSN2Test(nt, logger);
+}
+
+TEST(NtOptimizer2Tests, SN2HighestMaximum) {
+  Core::Log logger = Core::Log::silent();
+  TestCalculator testCalc;
+  NtOptimizer2 nt(testCalc);
+  nt.extractionCriterion = NtOptimizer2::ntExtractHighest;
+  runSN2Test(nt, logger);
+}
+
 TEST(NtOptimizer2Tests, SingleStepFailure) {
   Core::Log logger = Core::Log::silent();
   NtOpt2MockCalculator mockCalculator;
@@ -183,8 +205,74 @@ TEST(NtOptimizer2Tests, SingleStepFailure) {
   // Enforce a scan that stops after the initial evaluation.
   positions(0, 1) = 0.1;
   AtomCollection atoms(elements, positions);
-  // Expect failure du to missing TS (trajectory has only one point)
+  // Expect failure due to missing TS (trajectory has only one point)
   ASSERT_THROW(nt.optimize(atoms, logger), std::runtime_error);
+}
+
+TEST(NtOptimizer2Tests, ConnectedNucleiWorks) {
+  Core::Log logger = Core::Log::silent();
+  NtOpt2MockCalculator mockCalculator;
+  mockCalculator.setLog(logger);
+  auto pathToResources = boost::dll::program_location().parent_path();
+  pathToResources /= "Resources";
+  const auto trajectoryFile = (pathToResources / "dissociation.trj.xyz").string();
+  auto trajectory = Utils::MolecularTrajectoryIO::read(MolecularTrajectoryIO::format::xyz, trajectoryFile);
+  // testing connected state
+  auto atomsFirst = Utils::AtomCollection(trajectory.getElementTypes(), trajectory.front());
+  mockCalculator.setStructure(atomsFirst);
+  auto result = mockCalculator.calculate();
+  ASSERT_TRUE(result.has<Utils::Property::BondOrderMatrix>());
+  const auto boFirst = result.get<Utils::Property::BondOrderMatrix>();
+  std::vector<int> indices = {0, 2, 4};
+  auto molecules = NtUtils::connectedNuclei(indices, boFirst);
+  ASSERT_THAT(molecules.size(), 1);
+  ASSERT_THAT(molecules[0], indices);
+  // testing unconnected state
+  auto atomsLast = Utils::AtomCollection(trajectory.getElementTypes(), trajectory.back());
+  mockCalculator.setStructure(atomsLast);
+  result = mockCalculator.calculate();
+  ASSERT_TRUE(result.has<Utils::Property::BondOrderMatrix>());
+  const auto boLast = result.get<Utils::Property::BondOrderMatrix>();
+  indices = {1, 9};
+  molecules = NtUtils::connectedNuclei(indices, boLast);
+  ASSERT_THAT(molecules.size(), 2);
+  ASSERT_TRUE((molecules[0] == std::vector<int>{indices[0]} && molecules[1] == std::vector<int>{indices[1]}) ||
+              (molecules[1] == std::vector<int>{indices[0]} && molecules[0] == std::vector<int>{indices[1]}));
+}
+
+TEST(NtOptimizer2Tests, Center2CenterWorks) {
+  PositionCollection pos = PositionCollection::Zero(4, 3);
+  // clang-format off
+  pos <<  -1.0,  0.0,  0.0,
+           1.0,  2.0, 10.0,
+           1.0, -2.0, 10.0,
+           4.2,  3.1, -0.9;
+  // clang-format on
+  Displacement expected;
+  expected << -2.0, 0.0, -10.0;
+  std::vector<int> lhs = {0};
+  std::vector<int> rhs = {1, 2};
+  auto c2c = NtUtils::centerToCenterVector(pos, lhs, rhs);
+  ASSERT_TRUE(expected.isApprox(c2c));
+}
+
+TEST(NtOptimizer2Tests, SmallestCovRadiusWorks) {
+  auto elements = ElementTypeCollection{ElementType::Cl, ElementType::C, ElementType::H,
+                                        ElementType::H,  ElementType::H, ElementType::Br};
+  PositionCollection startPositions = PositionCollection::Zero(6, 3);
+  // clang-format off
+  startPositions <<  3.7376961460e+00,  2.1020866350e-04,  4.5337439168e-02,
+                    -3.8767703481e+00, -2.4803422157e-05, -1.2049608882e-01,
+                    -2.3620148614e+00,  1.3238308540e+00,  1.0376490681e-01,
+                    -2.3809041075e+00, -8.2773666259e-01,  9.6331578315e-01,
+                    -2.3309449521e+00, -4.9652606314e-01, -1.3293307598e+00,
+                    -7.4798903722e+00,  2.6536371103e-04, -1.9897114399e-01;
+  // clang-format on
+  AtomCollection atoms(elements, startPositions);
+  std::vector<int> i = {0, 1, 5};
+  std::vector<int> j = {1, 2, 3};
+  ASSERT_DOUBLE_EQ(NtUtils::smallestCovalentRadius(atoms, i), ElementInfo::covalentRadius(ElementType::C));
+  ASSERT_DOUBLE_EQ(NtUtils::smallestCovalentRadius(atoms, j), ElementInfo::covalentRadius(ElementType::H));
 }
 
 } /* namespace Tests */

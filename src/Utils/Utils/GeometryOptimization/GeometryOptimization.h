@@ -44,12 +44,15 @@ template<class OptimizerType>
 bool settingsMakeSense(const OptimizerType& optimizer) {
   const auto settings = optimizer.getCalculatorSettings();
   if (!settings || !settings->valueExists(SettingsNames::selfConsistenceCriterion)) {
-    throw std::runtime_error("Necessary '" + std::string(SettingsNames::selfConsistenceCriterion) +
-                             "' not implemented in the applied calculator.");
+    std::cout << "Warning: Setting '" + std::string(SettingsNames::selfConsistenceCriterion) + "' not implemented in the applied calculator."
+              << std::endl;
+    return true;
   }
-  const double energyThreshold = settings->getDouble(SettingsNames::selfConsistenceCriterion);
-  const GradientBasedCheck check = optimizer.getConvergenceCheck();
-  return energyThresholdIsLowEnough(energyThreshold, check);
+  else {
+    const double energyThreshold = settings->getDouble(SettingsNames::selfConsistenceCriterion);
+    const GradientBasedCheck check = optimizer.getConvergenceCheck();
+    return energyThresholdIsLowEnough(energyThreshold, check);
+  }
 }
 
 // @brief The Convergence of the NtOptimizer is independent of the energy convergence threshold
