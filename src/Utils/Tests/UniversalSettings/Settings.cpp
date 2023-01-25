@@ -82,6 +82,51 @@ TEST(Settings, DivergingKeysAndEquality) {
   ASSERT_TRUE(values.getDivergingKeys(duplicateValues).empty());
 }
 
+TEST(Settings, Merging) {
+  using namespace UniversalSettings;
+
+  DescriptorCollection descriptors;
+  IntDescriptor multiplicity("spin multiplicity");
+  IntDescriptor charge("charge");
+  StringDescriptor method("method");
+
+  descriptors.push_back("multiplicity", multiplicity);
+  descriptors.push_back("charge", charge);
+  descriptors.push_back("method", method);
+
+  ValueCollection values;
+  values.addInt("multiplicity", 1);
+  values.addInt("charge", 0);
+  values.addString("method", "bla");
+
+  ValueCollection otherValues;
+  otherValues.addInt("multiplicity", 3);
+  otherValues.addInt("charge", 0);
+  otherValues.addString("method", "blubb");
+
+  Settings settings{values, descriptors};
+  Settings otherSettings{otherValues, descriptors};
+
+  ASSERT_TRUE(settings.valid());
+  ASSERT_TRUE(otherSettings.valid());
+
+  settings.merge(otherSettings);
+  ASSERT_TRUE(settings.valueExists("multiplicity"));
+  ASSERT_TRUE(settings.getInt("multiplicity") == otherSettings.getInt("multiplicity"));
+
+  otherValues.addString("additional_setting", "something");
+  Settings moreSettings{otherValues, descriptors};
+
+  ASSERT_THROW(settings.merge(moreSettings), std::logic_error);
+  settings.merge(moreSettings, true);
+  ASSERT_TRUE(settings.getInt("multiplicity") == otherSettings.getInt("multiplicity"));
+  ASSERT_FALSE(settings.valueExists("additional_setting"));
+
+  settings.mergeAll(moreSettings);
+  ASSERT_TRUE(settings.valueExists("additional_setting"));
+  ASSERT_TRUE(settings.getString("additional_setting") == moreSettings.getString("additional_setting"));
+}
+
 TEST(Settings, CoerceStringCases) {
   using namespace UniversalSettings;
 

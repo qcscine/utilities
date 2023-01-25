@@ -174,6 +174,7 @@ const std::unordered_map<ElementType, ElementDataSingleton::ElementData>& Elemen
     {ElementType::Ds, ElementData("Ds", 110,    281, 128,  -1, -1.0, -1, 2, 0,  8, 14)},
     {ElementType::Rg, ElementData("Rg", 111,    280, 121,  -1, -1.0, -1, 2, 0,  9, 14)},
     {ElementType::Cn, ElementData("Cn", 112,    285, 122,  -1, -1.0, -1, 2, 0, 10, 14)},
+    {ElementType::E, ElementData("e", 0,    1, 0,  0, 0, 0, 0, 0, 0)}
   };
   // clang-format on
   return map;

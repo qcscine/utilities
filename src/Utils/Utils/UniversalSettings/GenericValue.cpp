@@ -14,13 +14,7 @@
 #include <boost/fusion/adapted/std_tuple.hpp>
 #include <boost/fusion/algorithm/iteration.hpp>
 #include <boost/fusion/container/generation/make_map.hpp>
-#include <boost/fusion/include/at_key.hpp>
-#include <boost/fusion/include/iteration.hpp>
-#include <boost/fusion/include/make_map.hpp>
-#include <boost/fusion/include/std_tuple.hpp>
 #include <boost/fusion/sequence/intrinsic/at_key.hpp>
-#include <functional>
-#include <iostream>
 
 namespace Scine {
 namespace Utils {
@@ -122,7 +116,20 @@ bool GenericValue::isIntList() const {
 }
 
 bool GenericValue::isDoubleList() const {
-  return pimpl_->value.type() == typeid(DoubleList);
+  if (pimpl_->value.type() == typeid(DoubleList)) {
+    return true;
+  }
+  // an empty list may still be a double list,
+  // but boost assigns the type id of an int list
+  return isEmptyIntList();
+}
+
+bool GenericValue::isEmptyIntList() const {
+  if (pimpl_->value.type() == typeid(IntList)) {
+    auto val = toIntList();
+    return val.empty();
+  }
+  return false;
 }
 
 bool GenericValue::isDouble() const {
@@ -135,7 +142,12 @@ bool GenericValue::isString() const {
 }
 
 bool GenericValue::isStringList() const {
-  return pimpl_->value.type() == typeid(StringList);
+  if (pimpl_->value.type() == typeid(StringList)) {
+    return true;
+  }
+  // an empty list may still be a string list,
+  // but boost assigns the type id of an int list
+  return isEmptyIntList();
 }
 
 bool GenericValue::isCollection() const {
@@ -175,6 +187,9 @@ GenericValue::DoubleList GenericValue::toDoubleList() const {
   if (!isDoubleList()) {
     throw InvalidValueConversionException{};
   }
+  if (isEmptyIntList()) {
+    return DoubleList{};
+  }
   return boost::any_cast<DoubleList>(pimpl_->value);
 }
 
@@ -186,15 +201,79 @@ double GenericValue::toDouble() const {
 }
 
 std::string GenericValue::toString() const {
-  if (!isString()) {
-    throw InvalidValueConversionException{};
+  if (isString()) {
+    return boost::any_cast<std::string>(pimpl_->value);
   }
-  return boost::any_cast<std::string>(pimpl_->value);
+  if (isBool()) {
+    auto v = boost::any_cast<bool>(pimpl_->value);
+    return (v) ? "true" : "false";
+  }
+  if (isDouble()) {
+    auto v = boost::any_cast<double>(pimpl_->value);
+    return std::to_string(v);
+  }
+  if (isInt()) {
+    auto v = boost::any_cast<int>(pimpl_->value);
+    return std::to_string(v);
+  }
+  if (isIntList()) {
+    auto v = boost::any_cast<IntList>(pimpl_->value);
+    std::string ret = "[";
+    for (const auto& i : v) {
+      ret += std::to_string(i) + ", ";
+    }
+    ret = ret.substr(0, ret.size() - 2) + "]";
+    return ret;
+  }
+  if (isDoubleList()) {
+    auto v = boost::any_cast<DoubleList>(pimpl_->value);
+    std::string ret = "[";
+    for (const auto& i : v) {
+      ret += std::to_string(i) + ", ";
+    }
+    ret = ret.substr(0, ret.size() - 2) + "]";
+    return ret;
+  }
+  if (isStringList()) {
+    auto v = boost::any_cast<StringList>(pimpl_->value);
+    std::string ret = "[";
+    for (const auto& i : v) {
+      ret += i + ", ";
+    }
+    ret = ret.substr(0, ret.size() - 2) + "]";
+    return ret;
+  }
+  if (isCollection()) {
+    auto v = boost::any_cast<ValueCollection>(pimpl_->value);
+    std::string ret = "{\n";
+    for (const auto& [key, value] : v) {
+      ret += "  " + key + ": " + value.toString() + ",\n";
+    }
+    ret = ret.substr(0, ret.size() - 2) + "\n}";
+    return ret;
+  }
+  if (isCollectionList()) {
+    std::string ret = "[";
+    auto v = boost::any_cast<CollectionList>(pimpl_->value);
+    for (const auto& coll : v) {
+      std::string r = "{\n";
+      for (const auto& [key, value] : coll) {
+        r += "  " + key + ": " + value.toString() + ",\n";
+      }
+      r = r.substr(0, r.size() - 2) + "\n}";
+      ret += r;
+    }
+    return ret;
+  }
+  throw InvalidValueConversionException{};
 }
 
 GenericValue::StringList GenericValue::toStringList() const {
   if (!isStringList()) {
     throw InvalidValueConversionException{};
+  }
+  if (isEmptyIntList()) {
+    return StringList{};
   }
   return boost::any_cast<StringList>(pimpl_->value);
 }
@@ -287,8 +366,8 @@ GenericValue::GenericValue(const char* str) : GenericValue(std::string{str}) {
 
 // GenericValue assignment operator from members
 template<typename T>
-std::enable_if_t<Detail::TypeInTuple<std::decay_t<T>, GenericValue::Types>::value, GenericValue&> GenericValue::
-operator=(T&& t) {
+std::enable_if_t<Detail::TypeInTuple<std::decay_t<T>, GenericValue::Types>::value, GenericValue&>
+GenericValue::operator=(T&& t) {
   auto factory = boost::fusion::at_key<std::decay_t<T>>(makeMap(GenericValueMeta::factories()));
   *this = factory(std::forward<T>(t));
   return *this;
@@ -312,8 +391,8 @@ GenericValue& GenericValue::operator=(const char* str) {
 
 // Equality checker with member types
 template<typename T>
-std::enable_if_t<Detail::TypeInTuple<std::decay_t<T>, GenericValue::Types>::value, bool> GenericValue::
-operator==(const T& other) const {
+std::enable_if_t<Detail::TypeInTuple<std::decay_t<T>, GenericValue::Types>::value, bool>
+GenericValue::operator==(const T& other) const {
   auto checker = boost::fusion::at_key<std::decay_t<T>>(makeMap(GenericValueMeta::type_checkers()));
   auto converter = boost::fusion::at_key<std::decay_t<T>>(makeMap(GenericValueMeta::getters()));
   return checker(*this) && converter(*this) == other;

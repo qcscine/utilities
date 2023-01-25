@@ -47,6 +47,11 @@ class TurbomoleInputFileCreator {
   void checkAndUpdateControlFile(const Settings& settings);
   // execution of "cosmoprep"
   void addSolvation(const Settings& settings);
+  // interpret user defined solvation settings
+  void interpretAsUserDefinedImplicitSolvation(std::string solvent, double& epsilon, double& probeRadius);
+  // correction for the define input if elements are present with multiple EHT parameter sets.
+  std::string getMultipleEHTParameterCorrection(const AtomCollection& atoms);
+
   std::string& calculationDirectory_;
   std::string& turbomoleExecutableBase_;
   std::string defineExecutableBase_ = "define";

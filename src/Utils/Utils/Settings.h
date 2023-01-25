@@ -25,7 +25,7 @@ namespace Utils {
  * maintain their specific settings independently.
  *
  * Implementation Notes:
- *  - A derived class of the Settings class has to define a construcor
+ *  - A derived class of the Settings class has to define a constructor
  *    that populates the protected _fields member with a set of possible
  *    options and their default/descriptions.
  */
@@ -79,12 +79,29 @@ class Settings : public UniversalSettings::ValueCollection {
    *                         If false, the function will throw an error if such a case is encountered.
    */
   void merge(const Utils::UniversalSettings::ValueCollection& collection, bool allowSuperfluous = false) {
-    for (const auto& keyValuePair : collection) {
-      if (valueExists(keyValuePair.first)) {
-        modifyValue(keyValuePair.first, keyValuePair.second);
+    for (const auto& [key, value] : collection) {
+      if (valueExists(key)) {
+        modifyValue(key, value);
       }
       else if (!allowSuperfluous) {
-        throw std::logic_error("Error: the key: '" + keyValuePair.first + "' was not recognized.");
+        throw std::logic_error("Error: the key: '" + key + "' was not recognized.");
+      }
+    }
+  }
+  //!@name Modification
+  //!@{
+  /**
+   * @brief Merges two collections, if key of given collection does not exist, it is added.
+   *
+   * @param collection Values to merge
+   */
+  void mergeAll(const Utils::UniversalSettings::ValueCollection& collection) {
+    for (const auto& [key, value] : collection) {
+      if (valueExists(key)) {
+        modifyValue(key, value);
+      }
+      else {
+        addGenericValue(key, value);
       }
     }
   }

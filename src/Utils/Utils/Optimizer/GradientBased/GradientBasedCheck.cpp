@@ -7,6 +7,7 @@
 
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Settings.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include <Eigen/Core>
 
 namespace Scine {
@@ -53,51 +54,51 @@ void GradientBasedCheck::addSettingsDescriptors(UniversalSettings::DescriptorCol
       "Convergence threshold for step vector's maximum absolute element.");
   step_max_coeff.setMinimum(0.0);
   step_max_coeff.setDefaultValue(stepMaxCoeff);
-  collection.push_back(GradientBasedCheck::gconvStepMaxCoeffKey, step_max_coeff);
+  collection.push_back(SettingsNames::Optimizations::Convergence::stepMaxCoeff, step_max_coeff);
 
   UniversalSettings::DoubleDescriptor step_RMS("Convergence threshold for step vector's RMS.");
   step_RMS.setMinimum(0.0);
   step_RMS.setDefaultValue(stepRMS);
-  collection.push_back(GradientBasedCheck::gconvStepRMSKey, step_RMS);
+  collection.push_back(SettingsNames::Optimizations::Convergence::stepRMS, step_RMS);
 
   UniversalSettings::DoubleDescriptor grad_max_coeff(
       "Convergence threshold for gradient vector's maximum absolute element.");
   grad_max_coeff.setMinimum(0.0);
   grad_max_coeff.setDefaultValue(gradMaxCoeff);
-  collection.push_back(GradientBasedCheck::gconvGradMaxCoeffKey, grad_max_coeff);
+  collection.push_back(SettingsNames::Optimizations::Convergence::gradMaxCoeff, grad_max_coeff);
 
   UniversalSettings::DoubleDescriptor grad_RMS("Convergence threshold for gradient vector's RMS.");
   grad_RMS.setMinimum(0.0);
   grad_RMS.setDefaultValue(gradRMS);
-  collection.push_back(GradientBasedCheck::gconvGradRMSKey, grad_RMS);
+  collection.push_back(SettingsNames::Optimizations::Convergence::gradRMS, grad_RMS);
 
   UniversalSettings::DoubleDescriptor delta_value(
       "Convergence threshold for the absolute difference in the value between the current and the last step.");
   delta_value.setMinimum(0.0);
   delta_value.setDefaultValue(deltaValue);
-  collection.push_back(GradientBasedCheck::gconvDeltaValueKey, delta_value);
+  collection.push_back(SettingsNames::Optimizations::Convergence::deltaValue, delta_value);
 
   UniversalSettings::IntDescriptor max_iter("The maximum number of iterations.");
   max_iter.setMinimum(0.0);
   max_iter.setDefaultValue(maxIter);
-  collection.push_back(GradientBasedCheck::gconvMaxIterKey, max_iter);
+  collection.push_back(SettingsNames::Optimizations::Convergence::maxIter, max_iter);
 
-  UniversalSettings::IntDescriptor requirements(
-      "The number of thresholds besides the value one that need to converge for overall convergence.");
+  UniversalSettings::IntDescriptor requirements("The number of thresholds besides the value one that need to "
+                                                "Convergence::erge for overall Convergence::ergence.");
   requirements.setDefaultValue(requirement);
   requirements.setMaximum(4);
   requirements.setMinimum(0);
-  collection.push_back(GradientBasedCheck::gconvRequirementKey, requirements);
+  collection.push_back(SettingsNames::Optimizations::Convergence::requirement, requirements);
 }
 
 void GradientBasedCheck::applySettings(const Settings& settings) {
-  stepMaxCoeff = settings.getDouble(GradientBasedCheck::gconvStepMaxCoeffKey);
-  stepRMS = settings.getDouble(GradientBasedCheck::gconvStepRMSKey);
-  gradMaxCoeff = settings.getDouble(GradientBasedCheck::gconvGradMaxCoeffKey);
-  gradRMS = settings.getDouble(GradientBasedCheck::gconvGradRMSKey);
-  deltaValue = settings.getDouble(GradientBasedCheck::gconvDeltaValueKey);
-  maxIter = settings.getInt(GradientBasedCheck::gconvMaxIterKey);
-  requirement = settings.getInt(GradientBasedCheck::gconvRequirementKey);
+  stepMaxCoeff = settings.getDouble(SettingsNames::Optimizations::Convergence::stepMaxCoeff);
+  stepRMS = settings.getDouble(SettingsNames::Optimizations::Convergence::stepRMS);
+  gradMaxCoeff = settings.getDouble(SettingsNames::Optimizations::Convergence::gradMaxCoeff);
+  gradRMS = settings.getDouble(SettingsNames::Optimizations::Convergence::gradRMS);
+  deltaValue = settings.getDouble(SettingsNames::Optimizations::Convergence::deltaValue);
+  maxIter = settings.getInt(SettingsNames::Optimizations::Convergence::maxIter);
+  requirement = settings.getInt(SettingsNames::Optimizations::Convergence::requirement);
 }
 
 } // namespace Utils

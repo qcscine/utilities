@@ -39,18 +39,21 @@ class SolidStateBondDetector {
    * @brief Detect all bonds in an AtomCollection.
    * @param atoms The collection of atoms.
    * @param solidStateIndices The indices of atoms that are part of the solid phase.
+   * @param vanDerWaalsBond Whether van der Waals radii instead of covalent radii should be used.
    * @return BondOrderCollection The bonds.
    */
-  static BondOrderCollection detectBonds(const AtomCollection& atoms, const std::unordered_set<unsigned>& solidStateIndices);
+  static BondOrderCollection detectBonds(const AtomCollection& atoms, const std::unordered_set<unsigned>& solidStateIndices,
+                                         bool vanDerWaalsBond = false);
   /**
    * @brief Detect all bonds based on elements and positions.
    * @param elements The collection of elements.
    * @param positions  The collection of positions.
    * @param solidStateIndices The indices of atoms that are part of the solid phase.
+   * @param vanDerWaalsBond Whether van der Waals radii instead of covalent radii should be used.
    * @return BondOrderCollection The bonds.
    */
   static BondOrderCollection detectBonds(const ElementTypeCollection& elements, const PositionCollection& positions,
-                                         const std::unordered_set<unsigned>& solidStateIndices);
+                                         const std::unordered_set<unsigned>& solidStateIndices, bool vanDerWaalsBond = false);
   /**
    * @brief Detect all bonds in a PeriodicSystem.
    * @param periodicSystem The Periodic System, which also holds the solidStateIndices
@@ -58,7 +61,8 @@ class SolidStateBondDetector {
    * via negative bond orders. Note that this is very much specific to the given positions.
    * @return BondOrderCollection The bonds.
    */
-  static BondOrderCollection detectBonds(const PeriodicSystem& periodicSystem, bool bondsAcrossBoundariesNegative = false);
+  static BondOrderCollection detectBonds(const PeriodicSystem& periodicSystem,
+                                         bool bondsAcrossBoundariesNegative = false, bool vanDerWaalsBond = false);
   /**
    * @brief Detect all bonds in an AtomCollection with periodic boundary conditions.
    * @param elements The collection of elements.
@@ -71,7 +75,7 @@ class SolidStateBondDetector {
    */
   static BondOrderCollection detectBonds(const AtomCollection& atoms, const PeriodicBoundaries& pbc,
                                          const std::unordered_set<unsigned>& solidStateIndices,
-                                         bool bondsAcrossBoundariesNegative = false);
+                                         bool bondsAcrossBoundariesNegative = false, bool vanDerWaalsBond = false);
   /**
    * @brief Detect all bonds based on elements and positions with periodic boundary conditions.
    * @param elements The collection of elements.
@@ -84,7 +88,7 @@ class SolidStateBondDetector {
    */
   static BondOrderCollection detectBonds(const ElementTypeCollection& elements, const PositionCollection& positions,
                                          const PeriodicBoundaries& pbc, const std::unordered_set<unsigned>& solidStateIndices,
-                                         bool bondsAcrossBoundariesNegative = false);
+                                         bool bondsAcrossBoundariesNegative = false, bool vanDerWaalsBond = false);
 };
 
 } /* namespace Utils */

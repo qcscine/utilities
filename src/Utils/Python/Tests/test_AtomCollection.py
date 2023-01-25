@@ -14,6 +14,21 @@ def test_size_constructor():
     assert a.size() == 4
 
 
+def test_comparison():
+    a = scine.AtomCollection(4)
+    b = scine.AtomCollection(5)
+    c = scine.AtomCollection(5)
+    assert a < b
+    assert a <= b
+    assert not a >= b
+    assert not b < c
+    assert not b > c
+    assert b <= c
+    assert b >= c
+    s = sorted([b, a, c])
+    assert s
+
+
 def test_element_access():
     a = scine.AtomCollection(2)
     a.elements = [scine.ElementType.H, scine.ElementType.F]

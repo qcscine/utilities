@@ -180,7 +180,7 @@ TEST(NtOptimizer2Tests, SN2FirstMaximum) {
   Core::Log logger = Core::Log::silent();
   TestCalculator testCalc;
   NtOptimizer2 nt(testCalc);
-  nt.extractionCriterion = NtOptimizer2::ntExtractFirst;
+  nt.extractionCriterion = SettingsNames::Optimizations::Nt2::extractFirst;
   runSN2Test(nt, logger);
 }
 
@@ -188,7 +188,7 @@ TEST(NtOptimizer2Tests, SN2HighestMaximum) {
   Core::Log logger = Core::Log::silent();
   TestCalculator testCalc;
   NtOptimizer2 nt(testCalc);
-  nt.extractionCriterion = NtOptimizer2::ntExtractHighest;
+  nt.extractionCriterion = SettingsNames::Optimizations::Nt2::extractHighest;
   runSN2Test(nt, logger);
 }
 

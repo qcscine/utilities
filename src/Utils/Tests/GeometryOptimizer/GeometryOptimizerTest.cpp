@@ -379,7 +379,7 @@ TEST(GeometryOptimizerTests, Bfgs2) {
   for (unsigned int i = 0; i < reference.array().size(); i++) {
     EXPECT_NEAR(reference.data()[i], positions.data()[i], 1.0e-8);
   }
-  ASSERT_EQ(nIter, 135);
+  ASSERT_EQ(nIter, 108);
   // Increase minimum number of iterations
   geo.optimizer.minIter = 2;
   auto nIter2 = geo.optimize(atoms, logger);

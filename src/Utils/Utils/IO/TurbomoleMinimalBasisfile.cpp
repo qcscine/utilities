@@ -16,6 +16,7 @@
 #include <boost/spirit/include/phoenix.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
 #include <boost/spirit/include/qi.hpp>
+#include <fstream>
 #include <iostream>
 
 namespace Scine {

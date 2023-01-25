@@ -9,7 +9,6 @@
 #include "DescriptorCollection.h"
 #include "GenericDescriptor.h"
 #include "Utils/Scf/LcaoUtils/SpinMode.h"
-#include <Core/Exceptions.h>
 
 void Scine::Utils::UniversalSettings::SettingPopulator::addLogOption(
     Scine::Utils::UniversalSettings::SettingPopulator::SettingsCollection& settings) {
@@ -23,6 +22,7 @@ void Scine::Utils::UniversalSettings::SettingPopulator::populateLcaoSettings(Set
   addSpinMultiplicity(settings);
   addSpinMode(settings);
   addTemperatureOption(settings);
+  addPressureOption(settings);
   addElectronicTemperatureOption(settings);
   addSymmetryNumberOption(settings);
 }
@@ -114,6 +114,16 @@ void Scine::Utils::UniversalSettings::SettingPopulator::addTemperatureOption(
   temperature.setDefaultValue(298.15);
 
   settings.push_back(SettingsNames::temperature, std::move(temperature));
+}
+
+void Scine::Utils::UniversalSettings::SettingPopulator::addPressureOption(
+    Scine::Utils::UniversalSettings::SettingPopulator::SettingsCollection& settings) {
+  Utils::UniversalSettings::DoubleDescriptor pressure("Pressure to use for thermochemical calculation in Pa.");
+  pressure.setMinimum(1e-6);
+  pressure.setMaximum(1e+9);
+  pressure.setDefaultValue(101325.0);
+
+  settings.push_back(SettingsNames::pressure, std::move(pressure));
 }
 
 void Scine::Utils::UniversalSettings::SettingPopulator::addElectronicTemperatureOption(

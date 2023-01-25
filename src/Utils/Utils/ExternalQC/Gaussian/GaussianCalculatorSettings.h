@@ -38,6 +38,7 @@ class GaussianCalculatorSettings : public Scine::Utils::Settings {
   void addSolvation(UniversalSettings::DescriptorCollection& settings);
   void addElectronicTemperature(UniversalSettings::DescriptorCollection& settings);
   void addScfGuess(UniversalSettings::DescriptorCollection& settings);
+  void addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings);
 
   /**
    * @brief Constructor that populates the GaussianCalculatorSettings.
@@ -57,6 +58,7 @@ class GaussianCalculatorSettings : public Scine::Utils::Settings {
     addSolvation(_fields);
     addElectronicTemperature(_fields);
     addScfGuess(_fields);
+    addScfCriterionEnforce(_fields);
     resetToDefaults();
   };
 };
@@ -170,6 +172,14 @@ inline void GaussianCalculatorSettings::addScfGuess(UniversalSettings::Descripto
   scfGuess.addOption("(only, read)"); // Reads in old orbitals and calculates properties from these
   scfGuess.setDefaultOption("read");
   settings.push_back(SettingsNames::scfGuess, std::move(scfGuess));
+}
+
+inline void GaussianCalculatorSettings::addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::BoolDescriptor scfEnforce(
+      "Whether the set self_consistence_criterion should not be made stricter, "
+      "even if derivative quantities are calculated.");
+  scfEnforce.setDefaultValue(false);
+  settings.push_back(SettingsNames::enforceScfCriterion, std::move(scfEnforce));
 }
 
 } // namespace ExternalQC

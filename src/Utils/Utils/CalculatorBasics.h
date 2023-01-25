@@ -12,6 +12,7 @@
 #include "Utils/CalculatorBasics/PropertyList.h"
 #include "Utils/CalculatorBasics/Results.h"
 #include "Utils/CalculatorBasics/ResultsAutoCompleter.h"
+#include "Utils/CalculatorBasics/SharedMemory.h"
 #include "Utils/CalculatorBasics/StatesHandler.h"
 #include "Utils/CalculatorBasics/TestCalculator.h"
 #include "Utils/Typenames.h"

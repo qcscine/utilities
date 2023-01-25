@@ -75,8 +75,8 @@ TEST_F(ACp2kTest, SettingsAreSetCorrectly) {
   calculator.settings().modifyDouble(ExternalQC::SettingsNames::relMultiGridCutoff, 40.0);
   calculator.settings().modifyInt(ExternalQC::SettingsNames::nGrids, 4);
   calculator.settings().modifyBool(ExternalQC::SettingsNames::deleteTemporaryFiles, false);
-  calculator.settings().modifyString(SettingsNames::scfDamping, "direct_p_mixing");
-  calculator.settings().modifyDouble(SettingsNames::electronicTemperature, 300.0);
+  calculator.settings().modifyString(Utils::SettingsNames::scfDamping, "direct_p_mixing");
+  calculator.settings().modifyDouble(Utils::SettingsNames::electronicTemperature, 300.0);
   calculator.settings().modifyInt(ExternalQC::SettingsNames::additionalMos, 20);
   calculator.settings().modifyString(ExternalQC::SettingsNames::orbitalTransformation, "cg");
   calculator.settings().modifyInt(ExternalQC::SettingsNames::outerScf, 20);
@@ -84,6 +84,7 @@ TEST_F(ACp2kTest, SettingsAreSetCorrectly) {
   calculator.settings().modifyBool(ExternalQC::SettingsNames::allowUnconvergedScf, true);
   calculator.settings().modifyBool(ExternalQC::SettingsNames::dipoleCorrection, true);
   calculator.settings().modifyString(ExternalQC::SettingsNames::additionalOutputFile, "additional_output");
+  calculator.settings().modifyBool(ExternalQC::SettingsNames::enforceScfCriterion, true);
 
   ASSERT_TRUE(calculator.settings().valid());
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::externalProgramNProcs), Eq(2));
@@ -102,7 +103,7 @@ TEST_F(ACp2kTest, SettingsAreSetCorrectly) {
   ASSERT_THAT(calculator.settings().getDouble(ExternalQC::SettingsNames::relMultiGridCutoff), Eq(40.0));
   ASSERT_THAT(calculator.settings().getInt(ExternalQC::SettingsNames::nGrids), Eq(4));
   ASSERT_THAT(calculator.settings().getBool(ExternalQC::SettingsNames::deleteTemporaryFiles), Eq(false));
-  ASSERT_THAT(calculator.settings().getString(SettingsNames::scfDamping), Eq("direct_p_mixing"));
+  ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::scfDamping), Eq("direct_p_mixing"));
   ASSERT_THAT(calculator.settings().getDouble(Utils::SettingsNames::electronicTemperature), Eq(300.0));
   ASSERT_THAT(calculator.settings().getInt(ExternalQC::SettingsNames::additionalMos), Eq(20));
   ASSERT_THAT(calculator.settings().getString(ExternalQC::SettingsNames::orbitalTransformation), Eq("cg"));
@@ -112,6 +113,7 @@ TEST_F(ACp2kTest, SettingsAreSetCorrectly) {
   ASSERT_THAT(calculator.settings().getBool(ExternalQC::SettingsNames::dipoleCorrection), Eq(true));
   ASSERT_THAT(calculator.settings().getString(ExternalQC::SettingsNames::additionalOutputFile),
               Eq("additional_output"));
+  ASSERT_THAT(calculator.settings().getBool(ExternalQC::SettingsNames::enforceScfCriterion), Eq(true));
 }
 
 TEST_F(ACp2kTest, ErrorsAreFound) {
@@ -682,8 +684,8 @@ TEST_F(ACp2kTest, AutomatedCutoffSelectionWithLiveCalculatorIsWorking) {
   const char* envVariablePtr = std::getenv("CP2K_BINARY_PATH");
   if (envVariablePtr) {
     siSetUp();
-    calculator.settings().modifyString(SettingsNames::method, "PADE");
-    calculator.settings().modifyString(SettingsNames::basisSet, "SZV-MOLOPT-GTH");
+    calculator.settings().modifyString(Utils::SettingsNames::method, "PADE");
+    calculator.settings().modifyString(Utils::SettingsNames::basisSet, "SZV-MOLOPT-GTH");
     calculator.settings().modifyInt(ExternalQC::SettingsNames::nGrids, 4);
     ExternalQC::Cp2kCutoffOptimizer optimizer(calculator);
     optimizer.determineOptimalGridCutoffs();

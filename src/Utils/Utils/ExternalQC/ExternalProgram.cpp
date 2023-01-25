@@ -34,6 +34,10 @@ void ExternalProgram::createWorkingDirectory() {
   }
 }
 
+std::string ExternalProgram::getErrorOutFile() const {
+  return _errorOut;
+}
+
 void ExternalProgram::setErrorOutFile(const std::string& filename) {
   _errorOut = filename;
 }

@@ -145,6 +145,7 @@ class GenericValue {
   struct Impl; // Use pimpl idiom to hide boost::any dependency.
   using ImplPtr = std::unique_ptr<Impl>;
   ImplPtr pimpl_;
+  bool isEmptyIntList() const;
 };
 
 bool operator==(const GenericValue& lhs, const GenericValue& rhs);

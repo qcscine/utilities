@@ -280,7 +280,6 @@ TEST(UnitCellGeometryOptimizerTests, MixedOptimizer) {
   positions(0, 0) = -M_PI;
   positions(2, 0) = M_PI;
   AtomCollection atoms(elements, positions);
-  auto pbc = PeriodicBoundaries(mockCalculator->settings().getString(SettingsNames::periodicBoundaries));
   auto nIter = geo.optimize(atoms, logger);
 
   // Check results

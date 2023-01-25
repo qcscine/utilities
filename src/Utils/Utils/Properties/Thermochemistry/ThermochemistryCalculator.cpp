@@ -12,7 +12,7 @@ namespace Scine {
 namespace Utils {
 
 namespace {
-constexpr const double R = 0.008314510 * Constants::hartree_per_kJPerMol; // hartree/K
+constexpr const double R = Constants::molarGasConstant * 1e-3 * Constants::hartree_per_kJPerMol; // hartree/K
 // h * c / k_B in SI units (unit: cm * K, CODATA14)
 constexpr const double wavenumberConversionCoefficient =
     Constants::planckConstant * Constants::speedOfLight / Constants::boltzmannConstant * 100;
@@ -58,7 +58,17 @@ ThermochemistryCalculator::ThermochemistryCalculator(ElementTypeCollection eleme
 }
 
 void ThermochemistryCalculator::setTemperature(double temperature) {
+  if (temperature < 0.0) {
+    throw std::runtime_error("A negative temperature was detected.");
+  }
   temperature_ = temperature;
+}
+
+void ThermochemistryCalculator::setPressure(double pressure) {
+  if (pressure < 1e-6) {
+    throw std::runtime_error("Only pressures of at least 1e-6 Pa are supported.");
+  }
+  pressure_ = pressure;
 }
 
 void ThermochemistryCalculator::setZPVEInclusion(ZPVEInclusion inclusion) {
@@ -72,7 +82,7 @@ ThermochemicalComponentsContainer ThermochemistryCalculator::calculate() {
   ThermochemicalComponentsContainer container;
   container.vibrationalComponent = calculateVibrationalPart(temperature_);
   container.rotationalComponent = calculateRotationalPart(temperature_);
-  container.translationalComponent = calculateTranslationalPart(temperature_);
+  container.translationalComponent = calculateTranslationalPart(temperature_, pressure_);
   container.electronicComponent = calculateElectronicPart(temperature_);
   container.overall = container.vibrationalComponent + container.rotationalComponent +
                       container.translationalComponent + container.electronicComponent;
@@ -95,13 +105,22 @@ ThermochemicalContainer ThermochemistryCalculator::calculateVibrationalPart(doub
   for (auto wn : wavenumbers) {
     if (wn > 0) {
       double characteristicTemperature = wavenumberConversionCoefficient * wn;
-      double temperatureRatio = characteristicTemperature / temperature;
-      double E_w = std::exp(-temperatureRatio);
-      double stateProbability = 1 / (std::exp(temperatureRatio) - 1);
       vibrationalTC.zeroPointVibrationalEnergy += characteristicTemperature;
-      vibrationalTC.enthalpy += characteristicTemperature * stateProbability;
-      vibrationalTC.entropy += temperatureRatio * stateProbability - std::log(1 - E_w);
-      vibrationalTC.heatCapacityP += E_w * (temperatureRatio / (E_w - 1)) * (temperatureRatio / (E_w - 1));
+      if (temperature > 1e-6) {
+        double temperatureRatio = characteristicTemperature / temperature;
+        double E_w = std::exp(-temperatureRatio);
+        double stateProbability = 1 / (std::exp(temperatureRatio) - 1);
+        vibrationalTC.enthalpy += characteristicTemperature * stateProbability;
+        vibrationalTC.entropy += temperatureRatio * stateProbability - std::log(1 - E_w);
+        vibrationalTC.heatCapacityP += E_w * (temperatureRatio / (E_w - 1)) * (temperatureRatio / (E_w - 1));
+      }
+      else {
+        // At T = 0, the heat capacity vanishes, the enthalpy contributions should be only the ZPE, and the entropy
+        // should vanish.
+        vibrationalTC.heatCapacityP = 0;
+        vibrationalTC.enthalpy = 0;
+        vibrationalTC.entropy = 0;
+      }
     }
   }
   vibrationalTC.zeroPointVibrationalEnergy *= 0.5 * R;
@@ -152,16 +171,23 @@ ThermochemicalContainer ThermochemistryCalculator::calculateRotationalPart(doubl
   return rotationalTC;
 }
 
-ThermochemicalContainer ThermochemistryCalculator::calculateTranslationalPart(double temperature) const {
+ThermochemicalContainer ThermochemistryCalculator::calculateTranslationalPart(double temperature, double pressure) const {
   ThermochemicalContainer translationalTC{};
   double molecularMass = 0.;
   for (auto mass : Geometry::Properties::getMasses(elements_)) {
     molecularMass += mass;
   }
-  // From MOPAC manual
   translationalTC.enthalpy = 2.5 * temperature * R;
-  translationalTC.entropy = (9.93608e-4 * (5 * std::log(temperature) + 3 * std::log(molecularMass)) - 2.31482e-3) *
-                            Constants::hartree_per_kCalPerMol;
+  const double pressureAtomicUnits = pressure * Constants::hartree_per_joule /
+                                     (Constants::bohr_per_meter * Constants::bohr_per_meter * Constants::bohr_per_meter);
+  const double massPerParticle = molecularMass * 1e-3 / Constants::avogadroNumber * 1.0 / Constants::electronRestMass;
+  const double log2Pi_3over2 = std::log(2.0 * M_PI) * 3.0 / 2.0;
+  const double logKb_5over2 = std::log(R) * 5.0 / 2.0;
+  const double logT_5over2 = std::log(temperature) * 5.0 / 2.0;
+  // q = V * (m k T /(2pi))^3/2 ; V = k T / p (atomic units: h/(2pi) = 1)
+  const double logQ =
+      logKb_5over2 + logT_5over2 - log2Pi_3over2 - std::log(pressureAtomicUnits) + 3.0 / 2.0 * std::log(massPerParticle);
+  translationalTC.entropy = R * (5.0 / 2.0 + logQ);
   translationalTC.heatCapacityP = 2.5 * R;
   translationalTC.heatCapacityV = translationalTC.heatCapacityP * 3. / 5.;
   translationalTC.gibbsFreeEnergy = translationalTC.enthalpy - temperature * translationalTC.entropy;

@@ -12,9 +12,9 @@ namespace Scine {
 namespace Utils {
 
 void FockSimple::onFockCalculated() {
-  if (!initialized) {
+  if (!initialized_) {
     initialize();
-    initialized = true;
+    initialized_ = true;
   }
   addMatrices(m->getDensityMatrix().restrictedMatrix());
   m->setFockMatrix(SpinAdaptedMatrix::createRestricted(extrapolate()));
@@ -22,18 +22,20 @@ void FockSimple::onFockCalculated() {
 
 void FockSimple::initialize() {
   nAOs_ = m->getNumberAtomicOrbitals();
-  fockMatrices = std::vector<Eigen::MatrixXd>(2, Eigen::MatrixXd::Zero(nAOs_, nAOs_));
+  fockMatrices_ = std::vector<Eigen::MatrixXd>(2, Eigen::MatrixXd::Zero(nAOs_, nAOs_));
   index_ = 0;
 }
 
 void FockSimple::addMatrices(const Eigen::MatrixXd& F) {
-  fockMatrices[index_] = F;
+  fockMatrices_[index_] = F;
   index_ = (index_ + 1) % 2;
 }
 
 const Eigen::MatrixXd& FockSimple::extrapolate() {
-  fockMatrices[(index_ + 1) % 2] = (1.0 - damping_) * fockMatrices[(index_ + 1) % 2] + damping_ * fockMatrices[index_];
-  return fockMatrices[(index_ + 1) % 2];
+  // Replace the Fock matrix of the current SCF cycle (which was added just before) by a linear combination of this
+  // Fock matrix and the Fock matrix calculated in the previous SCF iteration.
+  fockMatrices_[(index_ + 1) % 2] = (1.0 - damping_) * fockMatrices_[(index_ + 1) % 2] + damping_ * fockMatrices_[index_];
+  return fockMatrices_[(index_ + 1) % 2];
 }
 } // namespace Utils
 } // namespace Scine

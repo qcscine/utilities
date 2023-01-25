@@ -69,7 +69,8 @@ void GaussianCalculator::applySettings() {
       throw Core::InitializationException(
           "Gaussian calculations with an electronic temperature above 0.0 K are not supported.");
     }
-    if ((requiredProperties_.containsSubSet(Property::Gradients) || requiredProperties_.containsSubSet(Property::Hessian)) &&
+    if (!(settings_->getBool(SettingsNames::enforceScfCriterion)) &&
+        (requiredProperties_.containsSubSet(Property::Gradients) || requiredProperties_.containsSubSet(Property::Hessian)) &&
         settings_->getDouble(Utils::SettingsNames::selfConsistenceCriterion) > 1e-8) {
       settings_->modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-8);
       this->getLog().warning << "Warning: Energy accuracy was increased to 1e-8 to ensure valid gradients/hessian."
@@ -117,7 +118,7 @@ PropertyList GaussianCalculator::getRequiredProperties() const {
 
 Utils::PropertyList GaussianCalculator::possibleProperties() const {
   return Property::Energy | Property::Gradients | Property::AtomicCharges | Property::CoefficientMatrix |
-         Property::ElectronicOccupation;
+         Property::ElectronicOccupation | Property::SuccessfulCalculation;
 }
 
 const Results& GaussianCalculator::calculate(std::string description) {

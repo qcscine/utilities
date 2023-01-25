@@ -214,6 +214,7 @@ class PeriodicBoundaries {
   bool isWithinCell(const PositionCollection& positions) const;
 
   void canonicalize();
+  PeriodicBoundaries canonicalized() const;
 
   Eigen::Matrix3d getCanonicalizationRotationMatrix() const;
 
@@ -252,16 +253,16 @@ class PeriodicBoundaries {
     return _invMatrix;
   };
 
-  inline std::vector<bool> getPeriodicity() const {
+  inline std::array<bool, 3> getPeriodicity() const {
     return _periodicity;
   }
 
-  inline void setPeriodicity(std::vector<bool> periodicity) {
+  inline void setPeriodicity(std::array<bool, 3> periodicity) {
     _periodicity = std::move(periodicity);
   }
 
   inline std::string getPeriodicityString() const {
-    std::string out;
+    std::string out = "";
     if (_periodicity[0]) {
       out += "x";
     }
@@ -332,6 +333,8 @@ class PeriodicBoundaries {
     return result;
   };
 
+  bool isApprox(const PeriodicBoundaries& rhs, double eps = 1e-6) const;
+
   PeriodicBoundaries& operator=(const PeriodicBoundaries& rhs);
   PeriodicBoundaries& operator=(const Eigen::Matrix3d& rhs);
   /**
@@ -346,6 +349,18 @@ class PeriodicBoundaries {
    * @return The bigger periodic boundaries
    */
   PeriodicBoundaries& operator*=(const Eigen::Vector3d& scalingFactors);
+  /**
+   * @brief Operator overload, increase periodic boundaries
+   * @param scalingFactors The scaling factors for a, b, and c vectors
+   * @return The bigger periodic boundaries
+   */
+  PeriodicBoundaries operator*(const std::vector<double>& scalingFactors) const;
+  /**
+   * @brief Operator overload, increase periodic boundaries in place
+   * @param scalingFactors The scaling factors for a, b, and c vectors
+   * @return The bigger periodic boundaries
+   */
+  PeriodicBoundaries& operator*=(const std::vector<double>& scalingFactors);
   /**
    * @brief Operator overload, increase periodic boundaries
    * @param scalingFactor The scaling factor for all 3 dimensions
@@ -386,7 +401,7 @@ class PeriodicBoundaries {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW // See http://eigen.tuxfamily.org/dox-devel/group__TopicStructHavingEigenMembers.html
       private : Eigen::Matrix3d _matrix;
   Eigen::Matrix3d _invMatrix;
-  std::vector<bool> _periodicity = {true, true, true};
+  std::array<bool, 3> _periodicity = {true, true, true};
   const double _eps = 1e-6;
   /* lengths */
   double _aNorm;

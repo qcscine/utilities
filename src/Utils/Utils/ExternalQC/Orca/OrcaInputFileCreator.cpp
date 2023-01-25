@@ -10,7 +10,9 @@
 #include <Utils/Geometry/AtomCollection.h>
 #include <Utils/IO/MolecularTrajectoryIO.h>
 #include <Utils/Scf/LcaoUtils/SpinMode.h>
+#include <boost/algorithm/string.hpp>
 #include <fstream>
+#include <iomanip>
 
 namespace Scine {
 namespace Utils {
@@ -36,10 +38,14 @@ void OrcaInputFileCreator::createInputFile(std::ostream& out, const AtomCollecti
 
 void OrcaInputFileCreator::printCalculationType(std::ostream& out, const Settings& settings,
                                                 const PropertyList& requiredProperties) {
+  const std::string basisSet = settings.getString(Utils::SettingsNames::basisSet);
   auto methodInput = Scine::Utils::CalculationRoutines::splitIntoMethodAndDispersion(
       settings.getString(Scine::Utils::SettingsNames::method));
-  out << "! " << methodInput.first << " " << methodInput.second << " "
-      << settings.getString(Utils::SettingsNames::basisSet) << std::endl;
+  out << "! " << methodInput.first << " " << methodInput.second << " " << basisSet << std::endl;
+
+  if (boost::to_upper_copy<std::string>(methodInput.first).find("DLPNO") != std::string::npos) {
+    out << "! " << basisSet << "/C" << std::endl;
+  }
 
   auto spinMode = SpinModeInterpreter::getSpinModeFromString(settings.getString(Utils::SettingsNames::spinMode));
   if (spinMode == SpinMode::Unrestricted) {
@@ -106,7 +112,48 @@ void OrcaInputFileCreator::printCalculationType(std::ostream& out, const Setting
   }
   // Scf convergence and Scf max iterations
   out << "%SCF\nTolE " << settings.getDouble(Utils::SettingsNames::selfConsistenceCriterion) << std::endl
-      << "MaxIter " << settings.getInt(Scine::Utils::SettingsNames::maxScfIterations) << "\nend" << std::endl;
+      << "MaxIter " << settings.getInt(Scine::Utils::SettingsNames::maxScfIterations) << std::endl;
+  if (settings.getBool(Utils::ExternalQC::SettingsNames::performBrokenSymmetryCalculation)) {
+    // First check if the
+    int numUnpairedElec = settings.getInt(Utils::SettingsNames::spinMultiplicity) - 1;
+    int numUnpairedElecBeforeFlip = settings.getInt(Utils::ExternalQC::SettingsNames::initialSpinMultiplicity) - 1;
+    bool numUnpairedElecBeforeFlipIsEven = numUnpairedElecBeforeFlip % 2 == 0;
+    bool numUnpairedElecAfterFlipIsEven = numUnpairedElec % 2 == 0;
+
+    // Check if combination of spin multiplicies is logic
+    if ((numUnpairedElecBeforeFlipIsEven && !numUnpairedElecAfterFlipIsEven) ||
+        (!numUnpairedElecBeforeFlipIsEven && numUnpairedElecAfterFlipIsEven)) {
+      throw std::logic_error(
+          "The final spin multiplicity cannot be generated from the initial spin multiplicity via spin flip!");
+    }
+
+    if (settings.getInt(Utils::ExternalQC::SettingsNames::initialSpinMultiplicity) == -1) {
+      std::string errorString =
+          "Please set both the initial (setting name: " +
+          std::string(Scine::Utils::ExternalQC::SettingsNames::initialSpinMultiplicity) +
+          ") and the final spin multiplicity (setting name: " + std::string(Scine::Utils::SettingsNames::spinMultiplicity) +
+          ") if you want to perform a broken-symmetry calculation.";
+      throw std::runtime_error(errorString);
+    }
+    if (settings.getIntList(Utils::ExternalQC::SettingsNames::spinFlipSites).empty()) {
+      throw std::runtime_error("Please set the atom indices of all sites at which spin density should be flipped after "
+                               "converging to the high-spin solution!");
+    }
+    out << "Flipspin ";
+    auto spinFlipSites = settings.getIntList(Utils::ExternalQC::SettingsNames::spinFlipSites);
+    for (int i = 0; i < spinFlipSites.size(); i++) {
+      int site = spinFlipSites.at(i);
+      if (i != spinFlipSites.size() - 1)
+        out << site << ", ";
+      else
+        out << site;
+    }
+    out << std::endl;
+    double ms = (settings.getInt(Scine::Utils::SettingsNames::spinMultiplicity) - 1.0) / 2.0;
+    out << "FinalMs " << std::fixed << std::setprecision(1) << ms;
+  }
+
+  out << "\nend" << std::endl;
   // Write name of point charges file if it was set
   auto pointChargesFile = settings.getString(SettingsNames::pointChargesFile);
   if (!pointChargesFile.empty()) {
@@ -119,8 +166,14 @@ void OrcaInputFileCreator::printTitle(std::ostream& out) {
 }
 
 void OrcaInputFileCreator::printStructure(std::ostream& out, const AtomCollection& atoms, const Settings& settings) {
-  out << "*xyz " << settings.getInt(Scine::Utils::SettingsNames::molecularCharge) << " "
-      << settings.getInt(Scine::Utils::SettingsNames::spinMultiplicity) << std::endl;
+  out << "*xyz " << settings.getInt(Scine::Utils::SettingsNames::molecularCharge) << " ";
+  // If broken-symmetry calculation is enabled, the initial spin multiplicity must be written to that line
+  if (settings.getBool(Utils::ExternalQC::SettingsNames::performBrokenSymmetryCalculation)) {
+    out << settings.getInt(Scine::Utils::ExternalQC::SettingsNames::initialSpinMultiplicity) << std::endl;
+  }
+  else {
+    out << settings.getInt(Scine::Utils::SettingsNames::spinMultiplicity) << std::endl;
+  }
   for (const auto& a : atoms) {
     MolecularTrajectoryIO::writeXYZLine(out, a.getElementType(), a.getPosition());
   }

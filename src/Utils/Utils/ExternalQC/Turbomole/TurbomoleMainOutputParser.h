@@ -39,6 +39,12 @@ class TurbomoleMainOutputParser {
    */
   double getEnergy() const;
   /**
+   * @brief Parse the energy of the excited state specified from the Turbomole output.
+   * @param state The index of the excited state queried (the first excited state has index 1).
+   * @return The energy of the excited state as a double.
+   */
+  double getExcitedStateEnergy(int state) const;
+  /**
    * @brief Parse the Mayer bond orders from the Turbomole output.
    * @return The Utils::BondOrderCollection.
    */
@@ -53,6 +59,11 @@ class TurbomoleMainOutputParser {
    * @return The number of atoms.
    */
   int getNumberAtoms() const;
+  /**
+   * @brief Parse the number of environment point charges from the Turbomole input with a nonzero charge.
+   * @return The number of point charges.
+   */
+  int getNumberOfNonZeroPointCharges() const;
   /**
    * @brief Parse the gradients from the Turbomole output.
    * @return GradientCollection

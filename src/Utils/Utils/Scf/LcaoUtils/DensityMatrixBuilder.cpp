@@ -40,7 +40,7 @@ DensityMatrix DensityMatrixBuilder::generateRestrictedForNumberElectrons(int nEl
 }
 
 Eigen::MatrixXd DensityMatrixBuilder::calculateDensityMatrix(const Eigen::MatrixXd& coefficientMatrix, int nOccupiedLevels) {
-  auto nAOs = coefficientMatrix.cols();
+  auto nAOs = coefficientMatrix.rows();
   assert(nAOs >= nOccupiedLevels && "More electrons than atomic orbitals.");
 
   Eigen::MatrixXd P = calculateBlockOrbitalDensity(coefficientMatrix.block(0, 0, nAOs, nOccupiedLevels));

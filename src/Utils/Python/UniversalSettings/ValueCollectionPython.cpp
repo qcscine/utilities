@@ -222,6 +222,17 @@ void init_value_collection(pybind11::module& m) {
 
   value_collection.def(pybind11::self == pybind11::self);
   value_collection.def(pybind11::self != pybind11::self);
+  // pickle support
+  value_collection.def(pybind11::pickle(
+      [](const ValueCollection& coll) { // __getstate__
+        /* Return a dict that fully encodes the state of the object */
+        return toDict(coll);
+      },
+      [](pybind11::dict dict) { // __setstate__
+        ValueCollection coll;
+        update(coll, dict, true);
+        return coll;
+      }));
 
   // And now for the parametrized option value methods
   parametrizedOptionValue.def(pybind11::init<std::string, ValueCollection>());

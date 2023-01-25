@@ -23,7 +23,7 @@ class PdbStreamHandlerTest : public Test {
   PdbStreamHandler handler;
 };
 
-std::string tyrosine = "HETATM    1  N   UNK     1       1.171  -2.180   0.228  1.00  0.00           N \n"
+std::string tyrosine = "HETATM    1  N   UNK     1       1.171  -2.180   0.228  1.00  0.00           N\n"
                        "HETATM    2  C   UNK     2       1.491  -0.984  -0.582  1.00  0.00           C\n"
                        "HETATM    3  C   UNK     3       2.946  -0.962  -1.046  1.00  0.00           C\n"
                        "HETATM    4  O   UNK     4       3.915  -1.497  -0.536  1.00  0.00           O\n"
@@ -99,6 +99,77 @@ std::string structureWithOverlay = "ATOM      1  CB ATYR A  14     -13.771   2.9
                                    "TER\n"
                                    "END";
 
+std::string structureWithModels = "MODEL        1\n"
+                                  "ATOM      1  N   ILE A   1      -7.158   5.359   0.606  1.00  0.00           N\n"
+                                  "ATOM      2  CA  ILE A   1      -5.843   5.515  -0.080  1.00  0.00           C\n"
+                                  "ATOM      3  C   ILE A   1      -4.773   4.681   0.627  1.00  0.00           C\n"
+                                  "ATOM      4  O   ILE A   1      -4.775   4.541   1.834  1.00  0.00           O\n"
+                                  "ATOM      5  CB  ILE A   1      -5.512   7.005   0.020  1.00  0.00           C\n"
+                                  "ATOM      6  CG1 ILE A   1      -4.205   7.285  -0.725  1.00  0.00           C\n"
+                                  "ATOM      7  CG2 ILE A   1      -5.350   7.396   1.490  1.00  0.00           C\n"
+                                  "ATOM      8  CD1 ILE A   1      -3.902   8.784  -0.683  1.00  0.00           C\n"
+                                  "ATOM     22  N   CYS A   2      -3.859   4.125  -0.119  1.00  0.00           N\n"
+                                  "ATOM     23  CA  CYS A   2      -2.785   3.297   0.503  1.00  0.00           C\n"
+                                  "ATOM     24  C   CYS A   2      -1.717   2.955  -0.538  1.00  0.00           C\n"
+                                  "ATOM     25  O   CYS A   2      -1.962   2.227  -1.480  1.00  0.00           O\n"
+                                  "ATOM     26  CB  CYS A   2      -3.469   2.018   1.013  1.00  0.00           C\n"
+                                  "ATOM     27  SG  CYS A   2      -4.843   1.547  -0.078  1.00  0.00           S\n"
+                                  "ATOM     32  N   VAL A   3      -0.533   3.477  -0.374  1.00  0.00           N\n"
+                                  "ATOM     33  CA  VAL A   3       0.556   3.186  -1.353  1.00  0.00           C\n"
+                                  "ATOM     34  C   VAL A   3       1.888   3.026  -0.633  1.00  0.00           C\n"
+                                  "ATOM     35  O   VAL A   3       2.940   2.958  -1.238  1.00  0.00           O\n"
+                                  "ATOM     36  CB  VAL A   3       0.589   4.401  -2.271  1.00  0.00           C\n"
+                                  "ATOM     37  CG1 VAL A   3       1.897   4.417  -3.067  1.00  0.00           C\n"
+                                  "ATOM     38  CG2 VAL A   3      -0.597   4.339  -3.236  1.00  0.00           C\n"
+                                  "ENDMDL                                                                        \n"
+                                  "MODEL        2                                                                \n"
+                                  "ATOM      1  N   ILE A   1      -6.479   5.364  -0.431  1.00  0.00           N\n"
+                                  "ATOM      2  CA  ILE A   1      -5.250   6.198  -0.291  1.00  0.00           C\n"
+                                  "ATOM      3  C   ILE A   1      -4.192   5.440   0.512  1.00  0.00           C\n"
+                                  "ATOM      4  O   ILE A   1      -3.960   5.716   1.672  1.00  0.00           O\n"
+                                  "ATOM      5  CB  ILE A   1      -5.705   7.452   0.455  1.00  0.00           C\n"
+                                  "ATOM      6  CG1 ILE A   1      -6.924   8.049  -0.253  1.00  0.00           C\n"
+                                  "ATOM      7  CG2 ILE A   1      -4.571   8.480   0.468  1.00  0.00           C\n"
+                                  "ATOM      8  CD1 ILE A   1      -7.583   9.095   0.648  1.00  0.00           C\n"
+                                  "ATOM     22  N   CYS A   2      -3.551   4.484  -0.101  1.00  0.00           N\n"
+                                  "ATOM     23  CA  CYS A   2      -2.505   3.701   0.620  1.00  0.00           C\n"
+                                  "ATOM     24  C   CYS A   2      -1.476   3.162  -0.373  1.00  0.00           C\n"
+                                  "ATOM     25  O   CYS A   2      -1.754   2.278  -1.159  1.00  0.00           O\n"
+                                  "ATOM     26  CB  CYS A   2      -3.223   2.535   1.326  1.00  0.00           C\n"
+                                  "ATOM     27  SG  CYS A   2      -4.785   2.120   0.496  1.00  0.00           S\n"
+                                  "ATOM     32  N   VAL A   3      -0.287   3.690  -0.335  1.00  0.00           N\n"
+                                  "ATOM     33  CA  VAL A   3       0.777   3.216  -1.265  1.00  0.00           C\n"
+                                  "ATOM     34  C   VAL A   3       2.063   2.965  -0.493  1.00  0.00           C\n"
+                                  "ATOM     35  O   VAL A   3       3.115   2.740  -1.058  1.00  0.00           O\n"
+                                  "ATOM     36  CB  VAL A   3       0.962   4.353  -2.261  1.00  0.00           C\n"
+                                  "ATOM     37  CG1 VAL A   3       2.221   4.104  -3.094  1.00  0.00           C\n"
+                                  "ATOM     38  CG2 VAL A   3      -0.258   4.425  -3.181  1.00  0.00           C\n"
+                                  "ENDMDL                                                                        \n"
+                                  "MODEL        3                                                                \n"
+                                  "ATOM      1  N   ILE A   1      -5.132   5.503  -2.479  1.00  0.00           N\n"
+                                  "ATOM      2  CA  ILE A   1      -4.984   6.235  -1.190  1.00  0.00           C\n"
+                                  "ATOM      3  C   ILE A   1      -3.959   5.516  -0.305  1.00  0.00           C\n"
+                                  "ATOM      4  O   ILE A   1      -3.180   6.139   0.388  1.00  0.00           O\n"
+                                  "ATOM      5  CB  ILE A   1      -6.395   6.234  -0.572  1.00  0.00           C\n"
+                                  "ATOM      6  CG1 ILE A   1      -7.027   7.611  -0.783  1.00  0.00           C\n"
+                                  "ATOM      7  CG2 ILE A   1      -6.341   5.931   0.933  1.00  0.00           C\n"
+                                  "ATOM      8  CD1 ILE A   1      -8.544   7.507  -0.626  1.00  0.00           C\n"
+                                  "ATOM     22  N   CYS A   2      -3.948   4.215  -0.330  1.00  0.00           N\n"
+                                  "ATOM     23  CA  CYS A   2      -2.962   3.469   0.505  1.00  0.00           C\n"
+                                  "ATOM     24  C   CYS A   2      -1.846   2.907  -0.377  1.00  0.00           C\n"
+                                  "ATOM     25  O   CYS A   2      -2.069   2.067  -1.226  1.00  0.00           O\n"
+                                  "ATOM     26  CB  CYS A   2      -3.755   2.343   1.168  1.00  0.00           C\n"
+                                  "ATOM     27  SG  CYS A   2      -4.514   1.301  -0.099  1.00  0.00           S\n"
+                                  "ATOM     32  N   VAL A   3      -0.645   3.376  -0.183  1.00  0.00           N\n"
+                                  "ATOM     33  CA  VAL A   3       0.500   2.890  -1.006  1.00  0.00           C\n"
+                                  "ATOM     34  C   VAL A   3       1.607   2.356  -0.104  1.00  0.00           C\n"
+                                  "ATOM     35  O   VAL A   3       2.708   2.086  -0.542  1.00  0.00           O\n"
+                                  "ATOM     36  CB  VAL A   3       0.939   4.139  -1.777  1.00  0.00           C\n"
+                                  "ATOM     37  CG1 VAL A   3       2.448   4.401  -1.626  1.00  0.00           C\n"
+                                  "ATOM     38  CG2 VAL A   3       0.594   3.963  -3.257  1.00  0.00           C\n"
+                                  "ENDMDL                                                                        \n"
+                                  "END";
+
 TEST_F(PdbStreamHandlerTest, Selfconsistent) {
   for (const auto& PDBInput : {tyrosine, structureWithOverlay}) {
     std::stringstream in(PDBInput), out;
@@ -120,22 +191,29 @@ TEST_F(PdbStreamHandlerTest, Selfconsistent) {
   }
 }
 
-TEST_F(PdbStreamHandlerTest, HydrogensAreSkipped) {
+TEST_F(PdbStreamHandlerTest, HydrogensAndSolventAreSkipped) {
   std::stringstream in(tyrosine), out;
 
   // Change the setting
   handler.setReadH(false);
+  handler.parseOnlySolvent(false);
   auto structureWithoutHydrogens = handler.read(in);
-  ASSERT_THAT(structureWithoutHydrogens[0].size(), Eq(16));
-}
 
-TEST_F(PdbStreamHandlerTest, SolventIsSkipped) {
-  std::stringstream in(tyrosine), out;
+  ASSERT_THAT(structureWithoutHydrogens[0].size(), Eq(14));
+
+  // change the setting
+  handler.setReadH(true);
+  in.clear();
+  in.seekg(0);
+  auto structureWithHydrogens = handler.read(in);
+  ASSERT_THAT(structureWithHydrogens[0].size(), Eq(25));
 
   // Change the setting
-  handler.setReadHOH(false);
-  auto structureWithoutSolvent = handler.read(in);
-  ASSERT_THAT(structureWithoutSolvent[0].size(), Eq(25));
+  handler.parseOnlySolvent(true);
+  in.clear();
+  in.seekg(0);
+  auto solvent = handler.read(in);
+  ASSERT_THAT(solvent[0].size(), Eq(6));
 }
 
 TEST_F(PdbStreamHandlerTest, CommentIsSetCorrectly) {
@@ -154,6 +232,15 @@ TEST_F(PdbStreamHandlerTest, TwoSubstructuresAreReturnedCorrectly) {
 
   auto structure = handler.read(in);
   ASSERT_THAT(structure[0].size(), Eq(structure[1].size()));
+}
+
+TEST_F(PdbStreamHandlerTest, ThreeModelsAreReturnedCorrectly) {
+  std::stringstream in(structureWithModels), out;
+
+  auto structure = handler.read(in);
+  ASSERT_THAT(structure.size(), Eq(3));
+  ASSERT_THAT(structure[0].size(), Eq(structure[1].size()));
+  ASSERT_THAT(structure[1].size(), Eq(structure[2].size()));
 }
 
 } // namespace Tests

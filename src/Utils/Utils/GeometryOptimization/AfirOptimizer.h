@@ -158,14 +158,14 @@ class AfirOptimizer : public AfirOptimizerBase {
     check.applySettings(settings);
     check.applyAfirSettings(settings);
     optimizer.applySettings(settings);
-    this->rhsList = settings.getIntList(AfirOptimizerBase::afirRHSListKey);
-    this->lhsList = settings.getIntList(AfirOptimizerBase::afirLHSListKey);
-    this->weak = settings.getBool(AfirOptimizerBase::afirWeakForcesKey);
-    this->attractive = settings.getBool(AfirOptimizerBase::afirAttractiveKey);
-    this->energyAllowance = settings.getDouble(AfirOptimizerBase::afirEnergyAllowanceKey);
-    this->phaseIn = settings.getInt(AfirOptimizerBase::afirPhaseInKey);
+    this->rhsList = settings.getIntList(SettingsNames::Optimizations::Afir::rHSList);
+    this->lhsList = settings.getIntList(SettingsNames::Optimizations::Afir::lHSList);
+    this->weak = settings.getBool(SettingsNames::Optimizations::Afir::weakForces);
+    this->attractive = settings.getBool(SettingsNames::Optimizations::Afir::attractive);
+    this->energyAllowance = settings.getDouble(SettingsNames::Optimizations::Afir::energyAllowance);
+    this->phaseIn = settings.getInt(SettingsNames::Optimizations::Afir::phaseIn);
     this->coordinateSystem = CoordinateSystemInterpreter::getCoordinateSystemFromString(
-        settings.getString(AfirOptimizerBase::afirCoordinateSystemKey));
+        settings.getString(SettingsNames::Optimizations::Afir::coordinateSystem));
   };
   /**
    * @brief Get the public settings as a Utils::Settings object.

@@ -14,46 +14,56 @@ namespace Scine {
 namespace Utils {
 
 BondOrderCollection SolidStateBondDetector::detectBonds(const AtomCollection& atoms,
-                                                        const std::unordered_set<unsigned>& solidStateIndices) {
-  return detectBonds(atoms.getElements(), atoms.getPositions(), solidStateIndices);
+                                                        const std::unordered_set<unsigned>& solidStateIndices,
+                                                        bool vanDerWaalsBond) {
+  return detectBonds(atoms.getElements(), atoms.getPositions(), solidStateIndices, vanDerWaalsBond);
 }
 
-BondOrderCollection SolidStateBondDetector::detectBonds(const PeriodicSystem& periodicSystem, bool bondsAcrossBoundariesNegative) {
+BondOrderCollection SolidStateBondDetector::detectBonds(const PeriodicSystem& periodicSystem,
+                                                        bool bondsAcrossBoundariesNegative, bool vanDerWaalsBond) {
   return detectBonds(periodicSystem.atoms, periodicSystem.pbc, periodicSystem.solidStateAtomIndices,
-                     bondsAcrossBoundariesNegative);
+                     bondsAcrossBoundariesNegative, vanDerWaalsBond);
 }
 
 BondOrderCollection SolidStateBondDetector::detectBonds(const AtomCollection& atoms, const PeriodicBoundaries& pbc,
                                                         const std::unordered_set<unsigned>& solidStateIndices,
-                                                        bool bondsAcrossBoundariesNegative) {
-  return detectBonds(atoms.getElements(), atoms.getPositions(), pbc, solidStateIndices, bondsAcrossBoundariesNegative);
+                                                        bool bondsAcrossBoundariesNegative, bool vanDerWaalsBond) {
+  return detectBonds(atoms.getElements(), atoms.getPositions(), pbc, solidStateIndices, bondsAcrossBoundariesNegative,
+                     vanDerWaalsBond);
 }
 
-BondOrderCollection SolidStateBondDetector::detectBonds(const ElementTypeCollection& elements,
-                                                        const PositionCollection& positions,
-                                                        const std::unordered_set<unsigned>& solidStateIndices) {
+BondOrderCollection
+SolidStateBondDetector::detectBonds(const ElementTypeCollection& elements, const PositionCollection& positions,
+                                    const std::unordered_set<unsigned>& solidStateIndices, bool vanDerWaalsBond) {
   assert(static_cast<Eigen::Index>(elements.size()) == positions.rows());
   const long N = positions.rows();
 
   BondOrderCollection nnBonds = Geometry::Distances::nearestNeighborsBondOrders(positions);
   BondOrderCollection radiiBonds = BondDetector::detectBonds(elements, positions);
-  BondOrderCollection final = BondOrderCollection(static_cast<int>(N));
+  std::unique_ptr<BondOrderCollection> vdwBonds;
+  if (vanDerWaalsBond) {
+    vdwBonds = std::make_unique<BondOrderCollection>(BondDetector::detectBonds(elements, positions, vanDerWaalsBond));
+  }
+  BondOrderCollection result = BondOrderCollection(static_cast<int>(N));
 
   for (int i = 0; i < N; ++i) {
     for (int j = 0; j < i; ++j) {
       // 2 non solid state atoms -> simply decide via radii
       if (solidStateIndices.find(i) == solidStateIndices.end() && solidStateIndices.find(j) == solidStateIndices.end()) {
-        final.setOrder(i, j, radiiBonds.getOrder(i, j));
+        result.setOrder(i, j, radiiBonds.getOrder(i, j));
       }
-      // 2 solid state atoms -> simply decide via NN
+      // 2 solid state atoms -> simply decide via NN or VdW if activated
       else if (solidStateIndices.find(i) != solidStateIndices.end() && solidStateIndices.find(j) != solidStateIndices.end()) {
-        final.setOrder(i, j, nnBonds.getOrder(i, j));
+        if (vanDerWaalsBond)
+          result.setOrder(i, j, vdwBonds->getOrder(i, j));
+        else
+          result.setOrder(i, j, nnBonds.getOrder(i, j));
       }
       // mixture, use radii but reevaluate NN of solid state atom
       else {
-        final.setOrder(i, j, radiiBonds.getOrder(i, j));
+        result.setOrder(i, j, radiiBonds.getOrder(i, j));
         // if bond via NN, construct a position without the non-solid counterpart to reevaluate NN of solid state atom
-        if (nnBonds.getOrder(i, j) > 0.0) {
+        if (!vanDerWaalsBond && nnBonds.getOrder(i, j) > 0.0) {
           // either i or j is solid state
           bool jIsSolid = solidStateIndices.find(j) != solidStateIndices.end();
           int solid = (jIsSolid) ? j : i;
@@ -74,7 +84,7 @@ BondOrderCollection SolidStateBondDetector::detectBonds(const ElementTypeCollect
             int realIndex = (neighborIndex < nonSolid) ? neighborIndex : neighborIndex + 1;
             if (solidStateIndices.find(static_cast<unsigned>(realIndex)) != solidStateIndices.end()) {
               assert(solid != realIndex);
-              final.setOrder(solid, realIndex, 1.0);
+              result.setOrder(solid, realIndex, 1.0);
             }
           }
         }
@@ -82,42 +92,47 @@ BondOrderCollection SolidStateBondDetector::detectBonds(const ElementTypeCollect
     }
   }
 
-  return final;
+  return result;
 }
 
 BondOrderCollection SolidStateBondDetector::detectBonds(const ElementTypeCollection& elements,
                                                         const PositionCollection& positions, const PeriodicBoundaries& pbc,
                                                         const std::unordered_set<unsigned>& solidStateIndices,
-                                                        bool bondsAcrossBoundariesNegative) {
+                                                        bool bondsAcrossBoundariesNegative, bool vanDerWaalsBond) {
   assert(static_cast<Eigen::Index>(elements.size()) == positions.rows());
   const long N = positions.rows();
 
   BondOrderCollection nnBonds = Geometry::Distances::nearestNeighborsBondOrders(positions, pbc);
   BondOrderCollection radiiBonds = BondDetector::detectBonds(elements, positions, pbc, bondsAcrossBoundariesNegative);
-  BondOrderCollection final = BondOrderCollection(static_cast<int>(N));
+  std::unique_ptr<BondOrderCollection> vdwBonds;
+  if (vanDerWaalsBond) {
+    vdwBonds = std::make_unique<BondOrderCollection>(
+        BondDetector::detectBonds(elements, positions, pbc, bondsAcrossBoundariesNegative, vanDerWaalsBond));
+  }
+  BondOrderCollection result = BondOrderCollection(static_cast<int>(N));
 
   for (int i = 0; i < N; ++i) {
     for (int j = 0; j < i; ++j) {
       // 2 non solid state atoms -> simply decide via radii
       if (solidStateIndices.find(i) == solidStateIndices.end() && solidStateIndices.find(j) == solidStateIndices.end()) {
-        final.setOrder(i, j, radiiBonds.getOrder(i, j));
+        result.setOrder(i, j, radiiBonds.getOrder(i, j));
       }
-      // 2 solid state atoms -> simply decide via NN, but we have to adjust possible negative bond order
+      // 2 solid state atoms -> simply decide via NN or VdW, but we have to adjust possible negative bond order
       else if (solidStateIndices.find(i) != solidStateIndices.end() && solidStateIndices.find(j) != solidStateIndices.end()) {
-        if (nnBonds.getOrder(i, j) > 0.0) {
-          double order =
-              (bondsAcrossBoundariesNegative && pbc.minimumDistanceViaImage(positions.row(i), positions.row(j))) ? -1.0 : 1.0;
-          final.setOrder(i, j, order);
+        double order = (vanDerWaalsBond) ? vdwBonds->getOrder(i, j) : nnBonds.getOrder(i, j);
+        // determine sign
+        if (order > 0.0) {
+          int sign =
+              (bondsAcrossBoundariesNegative && pbc.minimumDistanceViaImage(positions.row(i), positions.row(j))) ? -1 : 1;
+          order *= sign;
         }
-        else {
-          final.setOrder(i, j, 0.0);
-        }
+        result.setOrder(i, j, order);
       }
       // mixture, use radii but reevaluate NN of solid state atom
       else {
-        final.setOrder(i, j, radiiBonds.getOrder(i, j));
+        result.setOrder(i, j, radiiBonds.getOrder(i, j));
         // if bond via NN, construct a position without the non-solid counterpart to reevaluate NN of solid state atom
-        if (nnBonds.getOrder(i, j) > 0.0) {
+        if (!vanDerWaalsBond && nnBonds.getOrder(i, j) > 0.0) {
           // either i or j is solid state
           bool jIsSolid = solidStateIndices.find(j) != solidStateIndices.end();
           int solid = (jIsSolid) ? j : i;
@@ -142,7 +157,7 @@ BondOrderCollection SolidStateBondDetector::detectBonds(const ElementTypeCollect
                               pbc.minimumDistanceViaImage(positions.row(solid), positions.row(realIndex)))
                                  ? -1.0
                                  : 1.0;
-              final.setOrder(solid, realIndex, order);
+              result.setOrder(solid, realIndex, order);
             }
           }
         }
@@ -150,7 +165,7 @@ BondOrderCollection SolidStateBondDetector::detectBonds(const ElementTypeCollect
     }
   }
 
-  return final;
+  return result;
 }
 
 } /* namespace Utils */

@@ -92,17 +92,17 @@ inline void MolecularDynamicsSettings::addGenerationSettings(Utils::UniversalSet
       "explicitly. If zero, all initial velocities are set to zero.");
   generationTemperature.setMinimum(0);
   generationTemperature.setDefaultValue(300);
-  settings.push_back(SettingsNames::generationTemperature, std::move(generationTemperature));
+  settings.push_back(Utils::SettingsNames::generationTemperature, std::move(generationTemperature));
 
   Utils::UniversalSettings::IntDescriptor generationSeed("The seed to draw the initial velocity distribution.");
   generationSeed.setDefaultValue(42);
-  settings.push_back(SettingsNames::generationSeed, std::move(generationSeed));
+  settings.push_back(Utils::SettingsNames::generationSeed, std::move(generationSeed));
 }
 
 inline void MolecularDynamicsSettings::addTimeStep(Utils::UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::DoubleDescriptor timeStep("The MD integration time step in femtoseconds.");
   timeStep.setDefaultValue(1.0);
-  settings.push_back(SettingsNames::timeStepInFemtoseconds, std::move(timeStep));
+  settings.push_back(Utils::SettingsNames::timeStepInFemtoseconds, std::move(timeStep));
 }
 
 inline void MolecularDynamicsSettings::addIntegrationAlgorithm(Utils::UniversalSettings::DescriptorCollection& settings) {
@@ -113,7 +113,7 @@ inline void MolecularDynamicsSettings::addIntegrationAlgorithm(Utils::UniversalS
   integrationAlgorithm.addOption(OptionNames::velocityVerletOption);
   integrationAlgorithm.addOption(OptionNames::stochasticDynamicsOption);
   integrationAlgorithm.setDefaultOption(OptionNames::leapFrogOption);
-  settings.push_back(SettingsNames::integrationAlgorithm, std::move(integrationAlgorithm));
+  settings.push_back(Utils::SettingsNames::integrationAlgorithm, std::move(integrationAlgorithm));
 }
 
 inline void MolecularDynamicsSettings::addTemperatureSettings(Utils::UniversalSettings::DescriptorCollection& settings) {
@@ -122,31 +122,31 @@ inline void MolecularDynamicsSettings::addTemperatureSettings(Utils::UniversalSe
   thermostatAlgorithm.addOption(OptionNames::berendsenThermostatOption);
   thermostatAlgorithm.addOption(OptionNames::noThermostatOption);
   thermostatAlgorithm.setDefaultOption(OptionNames::noThermostatOption);
-  settings.push_back(SettingsNames::thermostatAlgorithm, std::move(thermostatAlgorithm));
+  settings.push_back(Utils::SettingsNames::thermostatAlgorithm, std::move(thermostatAlgorithm));
 
   Utils::UniversalSettings::DoubleDescriptor targetTemperature(
       "Target temperature in K for an MD simulation. If zero, the generation temperature is used."
       "This is only an active setting with stochastic dynamics or a thermostat.");
   targetTemperature.setMinimum(0);
   targetTemperature.setDefaultValue(0);
-  settings.push_back(SettingsNames::targetTemperature, std::move(targetTemperature));
+  settings.push_back(Utils::SettingsNames::targetTemperature, std::move(targetTemperature));
 
   Utils::UniversalSettings::DoubleDescriptor temperatureCouplingTime(
       "The thermostat time parameter in fs. If set to zero the default parameter of the chosen thermostat is used.");
   temperatureCouplingTime.setMinimum(0.0);
   temperatureCouplingTime.setDefaultValue(0.0);
-  settings.push_back(SettingsNames::temperatureCouplingTime, std::move(temperatureCouplingTime));
+  settings.push_back(Utils::SettingsNames::temperatureCouplingTime, std::move(temperatureCouplingTime));
 
   Utils::UniversalSettings::IntDescriptor stochasticDynamicsSeed("The seed used for stochastic dynamics.");
   stochasticDynamicsSeed.setDefaultValue(42);
-  settings.push_back(SettingsNames::stochasticDynamicsSeed, std::move(stochasticDynamicsSeed));
+  settings.push_back(Utils::SettingsNames::stochasticDynamicsSeed, std::move(stochasticDynamicsSeed));
 }
 
 inline void MolecularDynamicsSettings::addNumberMDSteps(Utils::UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::IntDescriptor numberSteps("Number of steps in the MD simulation.");
   numberSteps.setMinimum(0);
   numberSteps.setDefaultValue(10);
-  settings.push_back(SettingsNames::numberOfMDSteps, std::move(numberSteps));
+  settings.push_back(Utils::SettingsNames::numberOfMDSteps, std::move(numberSteps));
 }
 
 inline void MolecularDynamicsSettings::addRecordFrequency(Utils::UniversalSettings::DescriptorCollection& settings) {
@@ -154,7 +154,7 @@ inline void MolecularDynamicsSettings::addRecordFrequency(Utils::UniversalSettin
       "The frequency with which structures are written to the molecular trajectory during an MD simulation.");
   freq.setMinimum(1);
   freq.setDefaultValue(1);
-  settings.push_back(SettingsNames::recordFrequency, std::move(freq));
+  settings.push_back(Utils::SettingsNames::recordFrequency, std::move(freq));
 }
 
 inline void MolecularDynamicsSettings::addMomentumRemovalFrequencies(UniversalSettings::DescriptorCollection& settings) {
@@ -162,38 +162,38 @@ inline void MolecularDynamicsSettings::addMomentumRemovalFrequencies(UniversalSe
       "The frequency with which the linear momentum of the center of mass is removed. If zero, no action is taken.");
   linearFreq.setMinimum(0);
   linearFreq.setDefaultValue(1);
-  settings.push_back(SettingsNames::linearMomentumRemovalFrequency, std::move(linearFreq));
+  settings.push_back(Utils::SettingsNames::linearMomentumRemovalFrequency, std::move(linearFreq));
   UniversalSettings::IntDescriptor angularFreq(
       "The frequency with which the angular momentum of the center of mass is removed. If zero, no action is taken.");
   angularFreq.setMinimum(0);
   angularFreq.setDefaultValue(1);
-  settings.push_back(SettingsNames::angularMomentumRemovalFrequency, std::move(angularFreq));
+  settings.push_back(Utils::SettingsNames::angularMomentumRemovalFrequency, std::move(angularFreq));
 }
 
 inline void MolecularDynamicsSettings::addSaveVelocitiesOption(Utils::UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::BoolDescriptor saveVelocities(
       "Decides whether the velocities are saved during the MD simulation.");
   saveVelocities.setDefaultValue(false);
-  settings.push_back(SettingsNames::saveVelocities, std::move(saveVelocities));
+  settings.push_back(Utils::SettingsNames::saveVelocities, std::move(saveVelocities));
 }
 
 inline void MolecularDynamicsSettings::addSaveTemperaturesOption(Utils::UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::BoolDescriptor saveTemperatures(
       "Decides whether the temperatures are saved during the MD simulation.");
   saveTemperatures.setDefaultValue(false);
-  settings.push_back(SettingsNames::saveTemperatures, std::move(saveTemperatures));
+  settings.push_back(Utils::SettingsNames::saveTemperatures, std::move(saveTemperatures));
 }
 
 inline void MolecularDynamicsSettings::addCalculatorProperties(Utils::UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::BoolDescriptor requireCharges(
       "Whether the calculator shall calculate charges during the MD simulation.");
   requireCharges.setDefaultValue(false);
-  settings.push_back(SettingsNames::requireCharges, std::move(requireCharges));
+  settings.push_back(Utils::SettingsNames::requireCharges, std::move(requireCharges));
 
   Utils::UniversalSettings::BoolDescriptor requireBondOrders(
       "Whether the calculator shall calculate bond orders during the MD simulation.");
   requireBondOrders.setDefaultValue(false);
-  settings.push_back(SettingsNames::requireBondOrders, std::move(requireBondOrders));
+  settings.push_back(Utils::SettingsNames::requireBondOrders, std::move(requireBondOrders));
 }
 
 } // namespace Utils

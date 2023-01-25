@@ -25,14 +25,6 @@ namespace Utils {
  */
 class GradientBasedCheck : public ConvergenceCheck {
  public:
-  static constexpr const char* gconvStepMaxCoeffKey = "convergence_step_max_coefficient";
-  static constexpr const char* gconvStepRMSKey = "convergence_step_rms";
-  static constexpr const char* gconvGradMaxCoeffKey = "convergence_gradient_max_coefficient";
-  static constexpr const char* gconvGradRMSKey = "convergence_gradient_rms";
-  static constexpr const char* gconvDeltaValueKey = "convergence_delta_value";
-  static constexpr const char* gconvMaxIterKey = "convergence_max_iterations";
-  static constexpr const char* gconvRequirementKey = "convergence_requirement";
-
   /// @brief Default constructor.
   GradientBasedCheck() = default;
   /// @brief Default destructor.

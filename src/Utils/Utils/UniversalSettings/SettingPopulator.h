@@ -62,6 +62,7 @@ class SettingPopulator {
   static void addSpinMultiplicity(SettingsCollection& settings);
   static void addSpinMode(SettingsCollection& settings);
   static void addTemperatureOption(SettingsCollection& settings);
+  static void addPressureOption(SettingsCollection& settings);
   static void addElectronicTemperatureOption(SettingsCollection& settings);
   static void addSymmetryNumberOption(SettingsCollection& settings);
 

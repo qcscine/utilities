@@ -10,6 +10,7 @@
 #include "Utils/Geometry/AtomCollection.h"
 #include "Utils/Geometry/ElementInfo.h"
 #include "boost/optional.hpp"
+#include <boost/algorithm/string.hpp>
 #include <iomanip>
 #include <string>
 
@@ -50,7 +51,7 @@ std::vector<XyzStreamHandler::FormatSupportPair> XyzStreamHandler::formats() con
 }
 
 bool XyzStreamHandler::formatSupported(const std::string& format, SupportType /* operation */
-                                       ) const {
+) const {
   return format == "xyz";
 }
 
@@ -172,6 +173,115 @@ void XyzStreamHandler::write(std::ostream& os, const AtomCollection& atoms, cons
       << "\n";
     // clang-format on
   }
+}
+
+std::pair<AtomCollection, std::vector<bool>> XyzStreamHandler::readNuclearElectronic(std::istream& is) {
+  /* Make sure that the conversions are done in the C locale (otherwise, may
+   * recognize commas as decimal separator).
+   */
+  is.imbue(std::locale("C"));
+
+  ElementTypeCollection elements;
+  PositionCollection positions;
+  std::vector<bool> isQuantum;
+
+  /* Extract the number of atoms. This number is principally enforced and
+   * any deviation leads to a thrown exception
+   * If the first line (without the ignored linebreak and spaces) is not a single integer
+   * a FormatMismatch is thrown.
+   * If the number of atoms in the positions after the read-in is different to the integer
+   * a AtomNumberMismatch is thrown
+   */
+  int nAtoms = 0;
+  while (true) {
+    std::string temp_str;
+    std::getline(is, temp_str, is.widen('\n'));
+    std::stringstream parser(temp_str);
+    if (parser >> nAtoms && (parser >> std::ws).eof() && nAtoms >= 0) {
+      break; // success
+    }
+    throw FormattedStreamHandler::FormatMismatchException();
+  }
+
+  // If this operation did not fail, we can preallocate the expected number of positions
+  elements.reserve(nAtoms);
+  positions.resize(nAtoms, Eigen::NoChange_t());
+
+  // Skip the comment line
+  is.ignore(std::numeric_limits<std::streamsize>::max(), is.widen('\n'));
+
+  // Read atom lines
+  std::string elementString;
+  ElementType element;
+  std::string lineString;
+
+  auto count = 0;
+  while (getline(is, lineString)) {
+    std::vector<std::string> lineSplitted;
+    // -- Main data parsing --
+    // Trim leading and final spaces in the string.
+    lineString.erase(lineString.begin(),
+                     std::find_if(lineString.begin(), lineString.end(), [&](int ch) { return std::isspace(ch) == 0; }));
+    lineString.erase(std::find_if(lineString.rbegin(), lineString.rend(), [&](int ch) { return std::isspace(ch) == 0; }).base(),
+                     lineString.end());
+    // Split the string
+    boost::split(lineSplitted, lineString, boost::is_any_of(" "), boost::token_compress_on);
+
+    if (!(lineSplitted.size() == 4 || lineSplitted.size() == 5)) {
+      throw FormattedStreamHandler::FormatMismatchException();
+    }
+
+    elementString = lineSplitted[0];
+
+    try {
+      // Make first letter uppercase
+      std::transform(std::begin(elementString), std::begin(elementString) + 1, std::begin(elementString), ::toupper);
+      // Make other letters lowercase
+      std::transform(std::begin(elementString) + 1, std::end(elementString), std::begin(elementString) + 1, ::tolower);
+      element = ElementInfo::elementTypeForSymbol(elementString);
+    }
+    catch (...) {
+      throw FormattedStreamHandler::FormatMismatchException();
+    }
+    elements.push_back(element);
+
+    if (count < nAtoms) {
+      // Read directly into the matrix
+      positions(count, 0) = std::stod(lineSplitted[1]);
+      positions(count, 1) = std::stod(lineSplitted[2]);
+      positions(count, 2) = std::stod(lineSplitted[3]);
+
+      if (lineSplitted.size() == 5) {
+        std::string quantum = lineSplitted[4];
+        if (quantum == "q" || quantum == "Q") {
+          isQuantum.push_back(true);
+        }
+        else {
+          throw FormattedStreamHandler::FormatMismatchException();
+        }
+      }
+      else {
+        isQuantum.push_back(false);
+      }
+    }
+    else {
+      // more atoms in file than specified at the top
+      throw FormattedStreamHandler::AtomNumberMismatchException();
+    }
+    ++count;
+  }
+
+  if (elements.size() < static_cast<unsigned>(nAtoms)) {
+    // fewer atoms in file than specified at the top
+    throw FormattedStreamHandler::AtomNumberMismatchException();
+  }
+
+  /* Since all positions were read in as angstrom, but are internally
+   * represented in bohr length units, we have to convert all of them:
+   */
+  positions *= Constants::bohr_per_angstrom;
+
+  return {{elements, positions}, isQuantum};
 }
 
 } // namespace Utils

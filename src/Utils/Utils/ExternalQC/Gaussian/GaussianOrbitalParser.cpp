@@ -26,7 +26,7 @@ GaussianOrbitalParser::GaussianOrbitalParser(const std::string& chkFileBase, con
 
 void GaussianOrbitalParser::openFile(const std::string& file) {
   fchkFile_.open(file);
-  if (fchkFile_.fail() | fchkFile_.bad())
+  if (fchkFile_.fail() || fchkFile_.bad())
     throw std::runtime_error("Could not open" + file);
 }
 

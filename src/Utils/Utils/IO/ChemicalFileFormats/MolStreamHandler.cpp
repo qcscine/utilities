@@ -51,7 +51,7 @@ std::vector<MolStreamHandler::FormatSupportPair> MolStreamHandler::formats() con
 }
 
 bool MolStreamHandler::formatSupported(const std::string& format, SupportType /* operation */
-                                       ) const {
+) const {
   return format == "mol";
 }
 

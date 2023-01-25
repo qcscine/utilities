@@ -10,6 +10,7 @@
 
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include <Core/Log.h>
 #include <Eigen/Core>
 
@@ -23,15 +24,6 @@ namespace Utils {
  */
 class Lbfgs : public Optimizer {
  public:
-  static constexpr const char* lbfgsMaxm = "lbfgs_maxm";
-  static constexpr const char* lbfgsLinesearch = "lbfgs_linesearch";
-  static constexpr const char* lbfgsC1 = "lbfgs_c1";
-  static constexpr const char* lbfgsC2 = "lbfgs_c2";
-  static constexpr const char* lbfgsStepLength = "lbfgs_step_length";
-  static constexpr const char* lbfgsUseTrustRadius = "lbfgs_use_trust_radius";
-  static constexpr const char* lbfgsTrustRadius = "lbfgs_trust_radius";
-  static constexpr const char* lbfgsMaxBacktracking = "lbfgs_max_backtracking";
-
   /// @brief Default constructor.
   Lbfgs() = default;
   /**
@@ -222,32 +214,31 @@ class Lbfgs : public Optimizer {
     UniversalSettings::IntDescriptor lbfgs_maxm("The maximum number of old steps stored.");
     lbfgs_maxm.setMinimum(0);
     lbfgs_maxm.setDefaultValue(maxm);
-    collection.push_back(Lbfgs::lbfgsMaxm, lbfgs_maxm);
-    UniversalSettings::BoolDescriptor lbfgs_linesearch("Switch to turn on and off the use of a linesearch.");
-    lbfgs_linesearch.setDefaultValue(linesearch);
-    collection.push_back(Lbfgs::lbfgsLinesearch, lbfgs_linesearch);
-    UniversalSettings::DoubleDescriptor lbfgs_c1("1st parameter for the Wolfe conditions.");
-    lbfgs_c1.setDefaultValue(c1);
-    collection.push_back(Lbfgs::lbfgsC1, lbfgs_c1);
-    UniversalSettings::DoubleDescriptor lbfgs_c2("2nd parameter for the Wolfe conditions.");
-    lbfgs_c2.setDefaultValue(c2);
-    collection.push_back(Lbfgs::lbfgsC2, lbfgs_c2);
-    UniversalSettings::DoubleDescriptor lbfgs_stepLength("The initial step length used in the L-BFGS.");
-    lbfgs_stepLength.setMinimum(0.0);
-    lbfgs_stepLength.setDefaultValue(stepLength);
-    collection.push_back(Lbfgs::lbfgsStepLength, lbfgs_stepLength);
-    UniversalSettings::BoolDescriptor lbfgs_useTrustRadius("Enable the use of a trust radius for all steps.");
-    lbfgs_useTrustRadius.setDefaultValue(useTrustRadius);
-    collection.push_back(Lbfgs::lbfgsUseTrustRadius, lbfgs_useTrustRadius);
-    UniversalSettings::DoubleDescriptor lbfgs_trustRadius("The maximum size (RMS) of a taken step.");
-    lbfgs_trustRadius.setMinimum(0.0);
-    lbfgs_trustRadius.setDefaultValue(trustRadius);
-    collection.push_back(Lbfgs::lbfgsTrustRadius, lbfgs_trustRadius);
-    UniversalSettings::IntDescriptor lbfgs_maxBacktracking(
-        "The maximum number of consecutive backtracking steps allowed.");
-    lbfgs_maxBacktracking.setMinimum(0);
-    lbfgs_maxBacktracking.setDefaultValue(maxBacktracking);
-    collection.push_back(Lbfgs::lbfgsMaxBacktracking, lbfgs_maxBacktracking);
+    collection.push_back(SettingsNames::Optimizations::Lbfgs::maxm, lbfgs_maxm);
+    UniversalSettings::BoolDescriptor _linesearch("Switch to turn on and off the use of a linesearch.");
+    _linesearch.setDefaultValue(linesearch);
+    collection.push_back(SettingsNames::Optimizations::Lbfgs::linesearch, _linesearch);
+    UniversalSettings::DoubleDescriptor _c1("1st parameter for the Wolfe conditions.");
+    _c1.setDefaultValue(c1);
+    collection.push_back(SettingsNames::Optimizations::Lbfgs::c1, _c1);
+    UniversalSettings::DoubleDescriptor _c2("2nd parameter for the Wolfe conditions.");
+    _c2.setDefaultValue(c2);
+    collection.push_back(SettingsNames::Optimizations::Lbfgs::c2, _c2);
+    UniversalSettings::DoubleDescriptor _stepLength("The initial step length used in the L-BFGS.");
+    _stepLength.setMinimum(0.0);
+    _stepLength.setDefaultValue(stepLength);
+    collection.push_back(SettingsNames::Optimizations::Lbfgs::stepLength, _stepLength);
+    UniversalSettings::BoolDescriptor _useTrustRadius("Enable the use of a trust radius for all steps.");
+    _useTrustRadius.setDefaultValue(useTrustRadius);
+    collection.push_back(SettingsNames::Optimizations::Lbfgs::useTrustRadius, _useTrustRadius);
+    UniversalSettings::DoubleDescriptor _trustRadius("The maximum size (RMS) of a taken step.");
+    _trustRadius.setMinimum(0.0);
+    _trustRadius.setDefaultValue(trustRadius);
+    collection.push_back(SettingsNames::Optimizations::Lbfgs::trustRadius, _trustRadius);
+    UniversalSettings::IntDescriptor _maxBacktracking("The maximum number of consecutive backtracking steps allowed.");
+    _maxBacktracking.setMinimum(0);
+    _maxBacktracking.setDefaultValue(maxBacktracking);
+    collection.push_back(SettingsNames::Optimizations::Lbfgs::maxBacktracking, _maxBacktracking);
   };
 
   /**
@@ -255,14 +246,14 @@ class Lbfgs : public Optimizer {
    * @param settings The settings to update the option of the L-BFGS with.
    */
   void applySettings(const Settings& settings) final {
-    maxm = (unsigned int)(settings.getInt(Lbfgs::lbfgsMaxm));
-    linesearch = settings.getBool(Lbfgs::lbfgsLinesearch);
-    c1 = settings.getDouble(Lbfgs::lbfgsC1);
-    c2 = settings.getDouble(Lbfgs::lbfgsC2);
-    stepLength = settings.getDouble(Lbfgs::lbfgsStepLength);
-    useTrustRadius = settings.getBool(Lbfgs::lbfgsUseTrustRadius);
-    trustRadius = settings.getDouble(Lbfgs::lbfgsTrustRadius);
-    maxBacktracking = settings.getInt(Lbfgs::lbfgsMaxBacktracking);
+    maxm = (unsigned int)(settings.getInt(SettingsNames::Optimizations::Lbfgs::maxm));
+    linesearch = settings.getBool(SettingsNames::Optimizations::Lbfgs::linesearch);
+    c1 = settings.getDouble(SettingsNames::Optimizations::Lbfgs::c1);
+    c2 = settings.getDouble(SettingsNames::Optimizations::Lbfgs::c2);
+    stepLength = settings.getDouble(SettingsNames::Optimizations::Lbfgs::stepLength);
+    useTrustRadius = settings.getBool(SettingsNames::Optimizations::Lbfgs::useTrustRadius);
+    trustRadius = settings.getDouble(SettingsNames::Optimizations::Lbfgs::trustRadius);
+    maxBacktracking = settings.getInt(SettingsNames::Optimizations::Lbfgs::maxBacktracking);
     if (!useTrustRadius && std::fabs(trustRadius - 0.1) > 1e-6) {
       throw std::logic_error("A trust radius was specified, but the trust radius was not activated. "
                              "Please also set the setting 'lbfgs_use_trust_radius': true, if you specify a radius.");

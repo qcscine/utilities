@@ -51,15 +51,16 @@ TEST_F(AGaussianProcessRegressionTest, FeaturesAndTargetsHaveCorrectDimension) {
 
 TEST_F(AGaussianProcessRegressionTest, SettingsCanBeModified) {
   GaussianProcessRegression gpr;
-  gpr.settings().modifyInt(Utils::MachineLearning::SettingsNames::maxIterations, 10);
-  gpr.settings().modifyInt(Utils::MachineLearning::SettingsNames::maxLinesearch, 100);
-  gpr.settings().modifyDouble(Utils::MachineLearning::SettingsNames::convergenceTolerance, 1e-2);
-  gpr.settings().modifyDouble(Utils::MachineLearning::SettingsNames::ftol, 1e-3);
+  gpr.settings().modifyInt(Utils::SettingsNames::Optimizations::MachineLearning::maxIterations, 10);
+  gpr.settings().modifyInt(Utils::SettingsNames::Optimizations::MachineLearning::maxLinesearch, 100);
+  gpr.settings().modifyDouble(Utils::SettingsNames::Optimizations::MachineLearning::convergenceTolerance, 1e-2);
+  gpr.settings().modifyDouble(Utils::SettingsNames::Optimizations::MachineLearning::ftol, 1e-3);
 
-  ASSERT_THAT(gpr.settings().getInt(Utils::MachineLearning::SettingsNames::maxIterations), Eq(10));
-  ASSERT_THAT(gpr.settings().getInt(Utils::MachineLearning::SettingsNames::maxLinesearch), Eq(100));
-  ASSERT_THAT(gpr.settings().getDouble(Utils::MachineLearning::SettingsNames::convergenceTolerance), DoubleNear(1e-2, 1e-2));
-  ASSERT_THAT(gpr.settings().getDouble(Utils::MachineLearning::SettingsNames::ftol), DoubleNear(1e-3, 1e-3));
+  ASSERT_THAT(gpr.settings().getInt(Utils::SettingsNames::Optimizations::MachineLearning::maxIterations), Eq(10));
+  ASSERT_THAT(gpr.settings().getInt(Utils::SettingsNames::Optimizations::MachineLearning::maxLinesearch), Eq(100));
+  ASSERT_THAT(gpr.settings().getDouble(Utils::SettingsNames::Optimizations::MachineLearning::convergenceTolerance),
+              DoubleNear(1e-2, 1e-2));
+  ASSERT_THAT(gpr.settings().getDouble(Utils::SettingsNames::Optimizations::MachineLearning::ftol), DoubleNear(1e-3, 1e-3));
 }
 
 TEST_F(AGaussianProcessRegressionTest, SinusIsLearnedCorrectly) {

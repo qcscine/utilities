@@ -94,12 +94,12 @@ void GaussianProcessRegression::fit() {
   // Optimize the hyperparameter of a gaussian kernel
   // external LBFGS-B optimizer
   LBFGSpp::LBFGSBParam<double> pm;
-  pm.max_iterations = settings_->getInt(SettingsNames::maxIterations);
-  pm.max_linesearch = settings_->getInt(SettingsNames::maxLinesearch);
+  pm.max_iterations = settings_->getInt(SettingsNames::Optimizations::MachineLearning::maxIterations);
+  pm.max_linesearch = settings_->getInt(SettingsNames::Optimizations::MachineLearning::maxLinesearch);
   pm.min_step = 1e-20;
   pm.max_step = 1e+20;
-  pm.epsilon = settings_->getDouble(SettingsNames::convergenceTolerance);
-  pm.ftol = settings_->getDouble(SettingsNames::ftol);
+  pm.epsilon = settings_->getDouble(SettingsNames::Optimizations::MachineLearning::convergenceTolerance);
+  pm.ftol = settings_->getDouble(SettingsNames::Optimizations::MachineLearning::ftol);
 
   LBFGSpp::LBFGSBSolver<double> solver(pm);
 
@@ -186,7 +186,7 @@ void GaussianProcessRegression::fit() {
   };
 
   double value = 0.0;
-  int nCycles = solver.minimize(logLikelihoodFunction, hyperparameters_.parameters, value, lb, ub);
+  solver.minimize(logLikelihoodFunction, hyperparameters_.parameters, value, lb, ub);
 }
 
 Eigen::VectorXd GaussianProcessRegression::getOptimizedHyperparameters() {

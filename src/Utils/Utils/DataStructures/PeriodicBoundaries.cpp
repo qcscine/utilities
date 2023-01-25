@@ -6,6 +6,7 @@
  */
 
 #include "PeriodicBoundaries.h"
+#include "Utils/Technical/SpgInterface.h"
 #include <utility>
 
 namespace Scine {
@@ -32,6 +33,7 @@ PeriodicBoundaries::PeriodicBoundaries(const Eigen::Vector3d& lengths, const Eig
 
 PeriodicBoundaries::PeriodicBoundaries(std::string periodicBoundariesString, const std::string& delimiter, bool isBohr,
                                        bool isDegrees) {
+  std::string input = periodicBoundariesString;
   // split string into vector
   size_t pos = 0;
   std::vector<std::string> entries;
@@ -47,7 +49,7 @@ PeriodicBoundaries::PeriodicBoundaries(std::string periodicBoundariesString, con
       periodicity = entries.back();
     }
     else {
-      throw std::logic_error("The given string does not contain 3 cell lengths and 3 cell angles.");
+      throw std::logic_error("The given string '" + input + "' does not contain 3 cell lengths and 3 cell angles.");
     }
   }
   // construct Eigen vectors
@@ -100,7 +102,6 @@ void PeriodicBoundaries::constructMembersFromLengthsAndAngles(const Eigen::Vecto
   _matrix.row(0) = a;
   _matrix.row(1) = b;
   _matrix.row(2) = c;
-  reduceNoise(_matrix);
   setMembers();
   setPeriodicity(periodicity);
 }
@@ -124,14 +125,34 @@ void PeriodicBoundaries::reduceNoise(Eigen::Matrix3d& mat) const {
 }
 
 void PeriodicBoundaries::setMembers() {
-  if (_matrix(0, 0) < 0 || _matrix(1, 1) < 0 || _matrix(2, 2) < 0) {
-    throw std::runtime_error("Periodic boundaries received unphysical information where a unit vector extends "
-                             "into the opposite direction to where it should extend.");
+  reduceNoise(_matrix);
+  auto invalid = [&](const Eigen::Matrix3d& matrix) {
+    return (matrix(0, 0) < 0 || matrix(1, 1) < 0 || matrix(2, 2) < 0);
+  };
+  if (invalid(_matrix)) {
+    // given matrix is invalid, see if we find an symmetry identical rotation that gives us a valid matrix
+    bool found = false;
+    auto alternatives = SpgInterface::findAlternativePbcs(_matrix, _eps);
+    for (auto& alternative : alternatives) {
+      reduceNoise(alternative);
+      if (!invalid(alternative)) {
+        found = true;
+        _matrix = alternative;
+        break;
+      }
+    }
+    if (!found) {
+      std::stringstream error;
+      error << "Periodic boundaries received unphysical information where a unit vector extends "
+               "into the opposite direction to where it should extend\n"
+            << _matrix;
+      throw std::runtime_error(error.str());
+    }
   }
   /* vectors */
-  Eigen::Vector3d a = _matrix.row(0);
-  Eigen::Vector3d b = _matrix.row(1);
-  Eigen::Vector3d c = _matrix.row(2);
+  const Eigen::Vector3d a = _matrix.row(0);
+  const Eigen::Vector3d b = _matrix.row(1);
+  const Eigen::Vector3d c = _matrix.row(2);
   /* lengths */
   _aNorm = a.norm();
   _bNorm = b.norm();
@@ -306,9 +327,15 @@ void PeriodicBoundaries::canonicalize() {
   setCellMatrix(canonicPbc.getCellMatrix());
 }
 
+PeriodicBoundaries PeriodicBoundaries::canonicalized() const {
+  auto canonicPbc = *this;
+  canonicPbc.canonicalize();
+  return canonicPbc;
+}
+
 Eigen::Matrix3d PeriodicBoundaries::getCanonicalizationRotationMatrix() const {
   auto canonicPbc = PeriodicBoundaries(getLengths(), getAngles(), true, true, getPeriodicityString());
-  if (canonicPbc == *this) {
+  if (canonicPbc.getCellMatrix().isApprox(getCellMatrix())) {
     // we are already canonic, avoid numeric instability, just return I
     return Eigen::Matrix3d::Identity();
   }
@@ -327,8 +354,18 @@ PeriodicBoundaries& PeriodicBoundaries::operator=(const Eigen::Matrix3d& rhs) {
   return *this;
 }
 
+bool PeriodicBoundaries::isApprox(const PeriodicBoundaries& rhs, double eps) const {
+  if (getPeriodicity() != rhs.getPeriodicity()) {
+    return false;
+  }
+  if (getCellMatrix().isApprox(rhs.getCellMatrix(), eps)) {
+    return true;
+  }
+  return this->canonicalized().getCellMatrix().isApprox(rhs.canonicalized().getCellMatrix(), eps);
+}
+
 bool operator==(const PeriodicBoundaries& lhs, const PeriodicBoundaries& rhs) {
-  return lhs.getCellMatrix().isApprox(rhs.getCellMatrix()) && lhs.getPeriodicity() == rhs.getPeriodicity();
+  return lhs.isApprox(rhs, 1e-12);
 }
 
 bool operator!=(const PeriodicBoundaries& lhs, const PeriodicBoundaries& rhs) {
@@ -338,6 +375,20 @@ bool operator!=(const PeriodicBoundaries& lhs, const PeriodicBoundaries& rhs) {
 PeriodicBoundaries PeriodicBoundaries::operator*(const Eigen::Vector3d& scalingFactors) const {
   PeriodicBoundaries super = *this;
   return super *= scalingFactors;
+}
+
+PeriodicBoundaries PeriodicBoundaries::operator*(const std::vector<double>& scalingFactors) const {
+  PeriodicBoundaries super = *this;
+  return super *= scalingFactors;
+}
+
+PeriodicBoundaries& PeriodicBoundaries::operator*=(const std::vector<double>& scalingFactors) {
+  if (scalingFactors.size() != 3) {
+    throw std::runtime_error("Scaling factor of PeriodicBoundaries must be either a number or a vector of length 3");
+  }
+  const Eigen::Vector3d vec = Eigen::Map<const Eigen::Vector3d>(scalingFactors.data(), 3);
+  this->operator*=(vec);
+  return *this;
 }
 
 PeriodicBoundaries& PeriodicBoundaries::operator*=(const Eigen::Vector3d& scalingFactors) {

@@ -4,12 +4,15 @@ Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.
 See LICENSE.txt for details.
 """
 
+import os
 import sys
 from dev.conan.base import ScineConan
+from conans import tools
+
 
 class ScineUtilsConan(ScineConan):
     name = "scine_utilities"
-    version = "6.0.0"
+    version = "7.0.0"
     url = "https://github.com/qcscine/utilities"
     description = """
 Functionality which is used in most SCINE modules. It is vital for the correct

@@ -161,6 +161,8 @@ class Optimizer {
     }
     /* return false as soon as the difference of values is not alternating signs */
     bool previousPositive = ((_valueMemory[0] - _valueMemory[1]) > 0.0);
+    if (std::abs(_valueMemory[0] - _valueMemory[1]) < 1e-12)
+      return false;
     for (unsigned i = 2; i < maxValueMemory; ++i) {
       const bool thisPositive = ((_valueMemory[i - 1] - _valueMemory[i]) > 0.0);
       if (previousPositive == thisPositive) {

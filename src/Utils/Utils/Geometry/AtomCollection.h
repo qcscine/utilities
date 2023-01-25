@@ -37,6 +37,10 @@ class AtomCollection {
     bool operator!=(AtomCollectionIterator other) const;
     value_type operator*() const;
 
+    inline int get() const {
+      return num_;
+    };
+
    private:
     AtomCollection const* ac_;
     int num_;
@@ -174,6 +178,11 @@ class AtomCollection {
 
   //! Negates @see operator ==
   bool operator!=(const AtomCollection& other) const;
+  /**
+   * same logic as @see operator ==
+   * allows to set the required accuracy for the fuzzy comparisons
+   */
+  bool isApprox(const AtomCollection& other, double eps = 1e-6) const;
   /**
    * @brief Operator overload, combine two atom collections.
    * @param other The other atom collection, appended to the first one.

@@ -129,7 +129,7 @@ class TurbomoleCalculator final : public CloneInterface<TurbomoleCalculator, Cor
 
  private:
   /*
-   * @brief Checks whether the given Orca binary is valid.
+   * @brief Checks whether the given Turbomole binary is valid.
    */
   bool binaryIsValid();
   /*
@@ -141,7 +141,7 @@ class TurbomoleCalculator final : public CloneInterface<TurbomoleCalculator, Cor
    */
   void applySettings();
   /*
-   * @brief Sets all the paths required for a Turbomole calulaction to run.
+   * @brief Sets all the paths required for a Turbomole calculation to run.
    */
   void initializeProgram();
   /*
@@ -182,7 +182,7 @@ class TurbomoleCalculator final : public CloneInterface<TurbomoleCalculator, Cor
   // Keeps track of whether the binary has been checked for validity yet
   bool binaryHasBeenChecked_ = true;
   const std::vector<std::string> availableSolvationModels_ = std::vector<std::string>{"cosmo"};
-  const std::vector<std::string> availableMethodFamilies_ = std::vector<std::string>{"DFT"};
+  const std::vector<std::string> availableMethodFamilies_ = std::vector<std::string>{"DFT", "HF", "TDDFT"};
 };
 
 } // namespace ExternalQC

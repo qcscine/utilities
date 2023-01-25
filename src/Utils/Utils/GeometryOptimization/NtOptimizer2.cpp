@@ -478,11 +478,11 @@ PositionCollection NtOptimizer2::extractTsGuess() const {
     throw std::runtime_error("No transition state guess was found in Newton Trajectory scan.");
   }
   // Extract TS guess according to given criterion
-  if (extractionCriterion == ntExtractFirst) {
+  if (extractionCriterion == SettingsNames::Optimizations::Nt2::extractFirst) {
     return _trajectory[maximaList.back()]; // back because maximalist starts from back
   }
   // get the highest value if wished or coordinate was never stopped
-  if (extractionCriterion == ntExtractHighest || _firstCoordinateReachedIndex == -1) {
+  if (extractionCriterion == SettingsNames::Optimizations::Nt2::extractHighest || _firstCoordinateReachedIndex == -1) {
     double maxValue = -std::numeric_limits<double>::max();
     int maxIndex = -1;
     for (auto& i : maximaList) {
@@ -537,7 +537,8 @@ void NtOptimizer2::updateCoordinates(PositionCollection& coordinates, const Atom
     coordinates -= optimizer.factor * gradients;
   }
   else {
-    throw std::runtime_error("Unknown coordinate system, please check your '" + std::string(ntCoordinateSystemKey) + "' input.");
+    throw std::runtime_error("Unknown coordinate system, please check your '" +
+                             std::string(SettingsNames::Optimizations::Nt2::coordinateSystem) + "' input.");
   }
 }
 
@@ -550,20 +551,20 @@ void NtOptimizer2::setSettings(const Settings& settings) {
   if (!settings.valid()) {
     settings.throwIncorrectSettings();
   }
-  this->optimizer.factor = settings.getDouble(NtOptimizer2::ntSdFactorKey);
-  this->check.maxIter = settings.getInt(NtOptimizer2::ntMaxIterKey);
-  this->check.attractiveDistanceStop = settings.getDouble(NtOptimizer2::ntAttractiveStopKey);
-  this->associationList = settings.getIntList(NtOptimizer2::ntAssListKey);
-  this->dissociationList = settings.getIntList(NtOptimizer2::ntDissListKey);
-  this->totalForceNorm = settings.getDouble(NtOptimizer2::ntTotalForceNormKey);
-  this->coordinateSystem =
-      CoordinateSystemInterpreter::getCoordinateSystemFromString(settings.getString(NtOptimizer2::ntCoordinateSystemKey));
-  this->useMicroCycles = settings.getBool(NtOptimizer2::ntUseMicroCycles);
-  this->fixedNumberOfMicroCycles = settings.getBool(NtOptimizer2::ntFixedNumberOfMicroCycles);
-  this->numberOfMicroCycles = settings.getInt(NtOptimizer2::ntNumberOfMicroCycles);
-  this->filterPasses = settings.getInt(NtOptimizer2::ntFilterPasses);
-  this->fixedAtoms = settings.getIntList(NtOptimizer2::ntFixedAtomsKey);
-  this->extractionCriterion = settings.getString(NtOptimizer2::ntExtractionCriterion);
+  this->optimizer.factor = settings.getDouble(SettingsNames::Optimizations::Nt2::sdFactor);
+  this->check.maxIter = settings.getInt(SettingsNames::Optimizations::Nt2::maxIter);
+  this->check.attractiveDistanceStop = settings.getDouble(SettingsNames::Optimizations::Nt2::attractiveStop);
+  this->associationList = settings.getIntList(SettingsNames::Optimizations::Nt2::assList);
+  this->dissociationList = settings.getIntList(SettingsNames::Optimizations::Nt2::dissList);
+  this->totalForceNorm = settings.getDouble(SettingsNames::Optimizations::Nt2::totalForceNorm);
+  this->coordinateSystem = CoordinateSystemInterpreter::getCoordinateSystemFromString(
+      settings.getString(SettingsNames::Optimizations::Nt2::coordinateSystem));
+  this->useMicroCycles = settings.getBool(SettingsNames::Optimizations::Nt2::useMicroCycles);
+  this->fixedNumberOfMicroCycles = settings.getBool(SettingsNames::Optimizations::Nt2::fixedNumberOfMicroCycles);
+  this->numberOfMicroCycles = settings.getInt(SettingsNames::Optimizations::Nt2::numberOfMicroCycles);
+  this->filterPasses = settings.getInt(SettingsNames::Optimizations::Nt2::filterPasses);
+  this->fixedAtoms = settings.getIntList(SettingsNames::Optimizations::Nt2::fixedAtoms);
+  this->extractionCriterion = settings.getString(SettingsNames::Optimizations::Nt2::extractionCriterion);
 
   // Check whether constraints and coordinate transformations are both switched on:
   if (!this->fixedAtoms.empty() && this->coordinateSystem != CoordinateSystem::Cartesian) {

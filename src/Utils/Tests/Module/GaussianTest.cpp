@@ -46,6 +46,7 @@ TEST_F(AGaussianTest, SettingsAreSetCorrectly) {
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, "test_1");
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::gaussianFilenameBase, "test_2");
   calculator.settings().modifyInt(Utils::SettingsNames::externalProgramMemory, 4096);
+  calculator.settings().modifyBool(ExternalQC::SettingsNames::enforceScfCriterion, true);
 
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::molecularCharge), Eq(1));
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::spinMultiplicity), Eq(2));
@@ -55,6 +56,7 @@ TEST_F(AGaussianTest, SettingsAreSetCorrectly) {
   ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory), Eq("test_1"));
   ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::gaussianFilenameBase), Eq("test_2"));
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::externalProgramMemory), Eq(4096));
+  ASSERT_THAT(calculator.settings().getBool(ExternalQC::SettingsNames::enforceScfCriterion), Eq(true));
 }
 
 TEST_F(AGaussianTest, OutputIsParsedCorrectly) {

@@ -60,6 +60,27 @@ void DensityMatrix::setUnrestricted(bool b) {
   }
 }
 
+auto DensityMatrix::addDensity(const DensityMatrix& rhs, double alpha) -> void {
+  assert(unrestricted() == rhs.unrestricted());
+  matrix_.restrictedMatrix() += alpha * rhs.matrix_.restrictedMatrix();
+  if (unrestricted_) {
+    matrix_.alphaMatrix() += alpha * rhs.matrix_.alphaMatrix();
+    matrix_.betaMatrix() += alpha * rhs.matrix_.betaMatrix();
+  }
+}
+
+auto DensityMatrix::addMatrixAlpha(const DensityMatrix::Matrix& rhs, double alpha) -> void {
+  matrix_.alphaMatrix() += alpha * rhs;
+}
+
+auto DensityMatrix::addMatrixBeta(const DensityMatrix::Matrix& rhs, double alpha) -> void {
+  matrix_.betaMatrix() += alpha * rhs;
+}
+
+auto DensityMatrix::addMatrixRestricted(const DensityMatrix::Matrix& rhs, double alpha) -> void {
+  matrix_.restrictedMatrix() += alpha * rhs;
+}
+
 DensityMatrix& DensityMatrix::operator+=(const DensityMatrix& rhs) {
   assert(unrestricted() == rhs.unrestricted());
   matrix_.restrictedMatrix() += rhs.matrix_.restrictedMatrix();

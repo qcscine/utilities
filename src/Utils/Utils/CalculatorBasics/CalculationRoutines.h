@@ -105,7 +105,7 @@ inline std::unique_ptr<Core::Calculator> spinPropensity(Core::Calculator& calcul
       continue;
     }
     auto clone = bestClone->clone();
-    clone->settings().modifyInt(SettingsNames::spinMultiplicity, i);
+    clone->settings().modifyInt(Utils::SettingsNames::spinMultiplicity, i);
     Results result;
     try {
       result = calculateWithCatch(*clone, log, "");
@@ -121,7 +121,7 @@ inline std::unique_ptr<Core::Calculator> spinPropensity(Core::Calculator& calcul
   }
   if (bestCloneEnergy < refEnergy) {
     log.warning << "PropensityWarning: Detected spin multiplicity propensity; changing multiplicity to "
-                << std::to_string(bestClone->settings().getInt(SettingsNames::spinMultiplicity)) << Core::Log::nl;
+                << std::to_string(bestClone->settings().getInt(Utils::SettingsNames::spinMultiplicity)) << Core::Log::nl;
     return bestClone;
   }
   // no propensity

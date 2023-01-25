@@ -63,8 +63,8 @@ std::vector<ElementType> ElementInfo::allImplementedElements() {
   unsigned nEle = stringToElementType().size();
   std::vector<ElementType> result;
   // start at 1, because 0th is none element
-  // leave out last 2, because of two explicit H isotope ElementTypes
-  for (unsigned i = 1; i < nEle - 2; ++i) {
+  // leave out last 3, because of 2 explicit H isotope ElementTypes + electron
+  for (unsigned i = 1; i < nEle - 3; ++i) {
     result.push_back(element(i));
   }
   return result;
@@ -204,6 +204,8 @@ ElementType ElementInfo::base(ElementType isotope) {
       return ElementType::Rg;
     case 112:
       return ElementType::Cn;
+    case 113:
+      return ElementType::E;
     default:
       return static_cast<ElementType>(detail::isotope(z, 0));
   }
@@ -303,7 +305,7 @@ const std::unordered_map<std::string, ElementType>& ElementInfo::stringToElement
       {"cf", ElementType::Cf},     {"es", ElementType::Es}, {"fm", ElementType::Fm}, {"md", ElementType::Md},
       {"no", ElementType::No},     {"lr", ElementType::Lr}, {"rf", ElementType::Rf}, {"db", ElementType::Db},
       {"sg", ElementType::Sg},     {"bh", ElementType::Bh}, {"hs", ElementType::Hs}, {"mt", ElementType::Mt},
-      {"ds", ElementType::Ds},     {"rg", ElementType::Rg}, {"cn", ElementType::Cn}};
+      {"ds", ElementType::Ds},     {"rg", ElementType::Rg}, {"cn", ElementType::Cn}, {"e", ElementType::E}};
   return map;
 }
 

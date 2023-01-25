@@ -266,6 +266,35 @@ TEST_F(XyzStreamHandlerTest, CommentIsCorrect) {
   ASSERT_THAT(line, Eq("comment"));
 }
 
+TEST_F(XyzStreamHandlerTest, CanReadNuclearElectronic) {
+  std::stringstream ss("2\n\n"
+                       "H      0.0  0.0  -2.0 q\n"
+                       "V      3.0  0.4   0.0 Q\n");
+
+  auto structure = XyzStreamHandler::readNuclearElectronic(ss);
+
+  auto expectedElements = ElementTypeCollection{ElementType::H, ElementType::V};
+  PositionCollection expectedPositions(2, 3);
+  expectedPositions << 0, 0, -2 * Constants::bohr_per_angstrom, 3 * Constants::bohr_per_angstrom,
+      0.4 * Constants::bohr_per_angstrom, 0;
+  ASSERT_THAT(structure.first.size(), Eq(2));
+  ASSERT_THAT(structure.first.getElements(), Eq(expectedElements));
+  ASSERT_THAT(structure.first.getPositions(), Eq(expectedPositions));
+}
+
+TEST_F(XyzStreamHandlerTest, AsignQCorrectlyNuclearElectronic) {
+  std::stringstream ss("3\n\n"
+                       "H      0.0  0.0  -2.0 q\n"
+                       "O      0.0  0.0   3.0 \n"
+                       "V      3.0  0.4   0.0 Q\n");
+
+  auto structure = XyzStreamHandler::readNuclearElectronic(ss);
+
+  ASSERT_EQ(structure.second[0], true);
+  ASSERT_EQ(structure.second[1], false);
+  ASSERT_EQ(structure.second[2], true);
+}
+
 } /* namespace Tests */
 } /* namespace Utils */
 } /* namespace Scine */

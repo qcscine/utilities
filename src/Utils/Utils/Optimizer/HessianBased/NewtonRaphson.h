@@ -10,6 +10,7 @@
 
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include <Core/Log.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -22,8 +23,6 @@ namespace Utils {
  */
 class NewtonRaphson : public Optimizer {
  public:
-  static constexpr const char* nrTrustRadius = "nr_trust_radius";
-  static constexpr const char* nrSvdThreshold = "nr_svd_threshold";
   /// @brief Default constructor.
   NewtonRaphson() = default;
   /**
@@ -101,19 +100,19 @@ class NewtonRaphson : public Optimizer {
     UniversalSettings::DoubleDescriptor nr_svd_threshold("The SVD threshold for the decomopsition of the Hessian.");
     nr_svd_threshold.setMinimum(0.0);
     nr_svd_threshold.setDefaultValue(svdThreshold);
-    collection.push_back(NewtonRaphson::nrSvdThreshold, nr_svd_threshold);
+    collection.push_back(SettingsNames::Optimizations::NewtonRaphson::svdThreshold, nr_svd_threshold);
     UniversalSettings::DoubleDescriptor nr_trust_radius("The maximum RMS of a taken step.");
     nr_trust_radius.setMinimum(0.0);
     nr_trust_radius.setDefaultValue(trustRadius);
-    collection.push_back(NewtonRaphson::nrTrustRadius, nr_trust_radius);
+    collection.push_back(SettingsNames::Optimizations::NewtonRaphson::trustRadius, nr_trust_radius);
   };
   /**
    * @brief Updates the Newton-Raphson's options with those values given in the Settings.
    * @param settings The settings to update the option of the steepest descent with.
    */
   void applySettings(const Settings& settings) final {
-    svdThreshold = settings.getDouble(NewtonRaphson::nrSvdThreshold);
-    trustRadius = settings.getDouble(NewtonRaphson::nrTrustRadius);
+    svdThreshold = settings.getDouble(SettingsNames::Optimizations::NewtonRaphson::svdThreshold);
+    trustRadius = settings.getDouble(SettingsNames::Optimizations::NewtonRaphson::trustRadius);
   };
   /// @brief The SVD threshold for the decomopsition of the Hessian.
   double svdThreshold = 1.0e-12;

@@ -19,6 +19,8 @@ Basic types
 
 .. autoclass:: scine_utilities.AtomCollection
 
+.. autoclass:: scine_utilities.PeriodicSystem
+
 Helper functions
 ----------------
 

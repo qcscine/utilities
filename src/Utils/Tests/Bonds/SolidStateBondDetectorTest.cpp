@@ -207,6 +207,10 @@ TEST_F(SolidStateBondDetectorTest, H2Wrong) {
   BondOrderCollection bo = Utils::SolidStateBondDetector::detectBonds(h2, emptySet);
   ASSERT_EQ(bo.getSystemSize(), 2);
   ASSERT_TRUE(bo.empty());
+  // VdW will not change anything here, because it only affects solid state atoms
+  bo = Utils::SolidStateBondDetector::detectBonds(h2, {}, true);
+  ASSERT_EQ(bo.getSystemSize(), 2);
+  ASSERT_TRUE(bo.empty());
   // all solid state atoms will always have a bond
   std::unordered_set<unsigned> all = {0, 1};
   bo = Utils::SolidStateBondDetector::detectBonds(h2, all);
@@ -215,6 +219,15 @@ TEST_F(SolidStateBondDetectorTest, H2Wrong) {
   // molecular will overrule solid state
   std::unordered_set<unsigned> one = {0};
   bo = Utils::SolidStateBondDetector::detectBonds(h2, one);
+  ASSERT_EQ(bo.getSystemSize(), 2);
+  ASSERT_TRUE(bo.empty());
+  // vdw makes no difference for mixed case
+  bo = Utils::SolidStateBondDetector::detectBonds(h2, one, true);
+  ASSERT_EQ(bo.getSystemSize(), 2);
+  ASSERT_TRUE(bo.empty());
+  // vdw does make a difference, because it does overrule, if no vdw bond
+  positions(1, 0) = 10.8;
+  bo = Utils::SolidStateBondDetector::detectBonds(elements, positions, all, true);
   ASSERT_EQ(bo.getSystemSize(), 2);
   ASSERT_TRUE(bo.empty());
 }

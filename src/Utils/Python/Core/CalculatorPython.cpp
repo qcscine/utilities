@@ -5,6 +5,7 @@
  *            See LICENSE.txt for details.
  */
 #include <Core/Interfaces/Calculator.h>
+#include <Core/Interfaces/EmbeddingCalculator.h>
 #include <Core/ModuleManager.h>
 #include <Utils/CalculatorBasics/PropertyList.h>
 #include <Utils/CalculatorBasics/Results.h>
@@ -57,26 +58,75 @@ std::shared_ptr<Scine::Core::Calculator> getCalculator(std::string method_family
 
   inputPreparation(method_family, program);
 
-  // Generate Calculator
+  auto split = [&](const std::string& s, char delimiter) -> std::vector<std::string> {
+    std::vector<std::string> elements;
+    std::stringstream ss;
+    ss.str(s);
+    std::string item;
+
+    while (std::getline(ss, item, delimiter)) {
+      elements.push_back(item);
+    }
+    return elements;
+  };
+
+  // Generate calculator
+  const char sep = '/';
+  auto listOfMethods = split(method_family, sep);
+  auto listOfPrograms = split(program, sep);
+
+  auto dispatcher = [&listOfMethods, &listOfPrograms, &manager]() -> std::vector<std::shared_ptr<Scine::Core::Calculator>> {
+    if (listOfMethods.size() != listOfPrograms.size()) {
+      throw std::runtime_error("Unequal number of method families and programs given. Please provide a corresponding "
+                               "program for each method family in the embedding calculation.");
+    }
+    if (listOfMethods.size() >= 2 && listOfPrograms.size() >= 2) {
+      std::vector<std::shared_ptr<Scine::Core::Calculator>> underlyingCalculators;
+      for (long unsigned int i = 0; i < listOfPrograms.size(); i++) {
+        underlyingCalculators.emplace_back(manager.get<Scine::Core::Calculator>(
+            Scine::Core::Calculator::supports(listOfMethods.at(i)), listOfPrograms.at(i)));
+      }
+      return underlyingCalculators;
+    }
+    else {
+      throw std::runtime_error(
+          "Please provide at least two method families (and the corresponding programs) for an embedding calculation.");
+    }
+  };
+
   std::shared_ptr<Scine::Core::Calculator> calc;
-  try {
-    calc = manager.get<Scine::Core::Calculator>(Scine::Core::Calculator::supports(method_family), program);
-  }
-  catch (...) {
-    if (program.empty() || program == "Any") {
-      std::cout << "No SCINE module providing '" << method_family << "' is currently loaded.\n";
+  if (listOfMethods.size() < 2 && listOfPrograms.size() < 2) {
+    std::shared_ptr<Scine::Core::Calculator> calc;
+    try {
+      calc = manager.get<Scine::Core::Calculator>(Scine::Core::Calculator::supports(method_family), program);
+    }
+    catch (...) {
+      if (program.empty() || program == "Any") {
+        std::cout << "No SCINE module providing '" << method_family << "' is currently loaded.\n";
+        std::cout << "Please add the module to the SCINE_MODULE_PATH\n";
+        std::cout << "or load the corresponding Python module in order for it to be accessible.\n";
+        throw std::runtime_error("Failed to load method/program.");
+      }
+
+      std::cout << "No SCINE module named '" << program << "' providing '" << method_family << "' is currently loaded.\n";
       std::cout << "Please add the module to the SCINE_MODULE_PATH\n";
       std::cout << "or load the corresponding Python module in order for it to be accessible.\n";
       throw std::runtime_error("Failed to load method/program.");
     }
-
-    std::cout << "No SCINE module named '" << program << "' providing '" << method_family << "' is currently loaded.\n";
-    std::cout << "Please add the module to the SCINE_MODULE_PATH\n";
-    std::cout << "or load the corresponding Python module in order for it to be accessible.\n";
-    throw std::runtime_error("Failed to load method/program.");
+    // Return Calculator
+    return calc;
   }
-  // Return Calculator
-  return calc;
+  else {
+    calc = manager.get<Scine::Core::Calculator>(Scine::Core::Calculator::supports("QMMM"), "Swoose");
+    auto castedCalc = std::dynamic_pointer_cast<Scine::Core::EmbeddingCalculator>(calc);
+    if (!castedCalc) {
+      throw std::runtime_error("Please specify an embedding calculator.");
+    }
+    auto listOfCalculators = dispatcher();
+    castedCalc->setUnderlyingCalculators(listOfCalculators);
+    auto settings = castedCalc->settings().getDescriptorCollection();
+    return castedCalc;
+  }
 }
 
 std::shared_ptr<Scine::Core::Calculator> loadSystem(const std::string& path, std::string method_family,

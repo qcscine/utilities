@@ -52,6 +52,10 @@ class ExternalProgram {
    */
   std::string generateFullFilename(const std::string& filename) const;
   /**
+   * @brief Getter of file for standard error output.
+   */
+  std::string getErrorOutFile() const;
+  /**
    * @brief Setter to write error out to specific file.
    */
   void setErrorOutFile(const std::string& filename);

@@ -17,9 +17,13 @@ static constexpr const char* baseWorkingDirectory = "base_working_directory";
 static constexpr const char* deleteTemporaryFiles = "delete_tmp_files";
 static constexpr const char* steerOrbitals = "steer_orbitals";
 static constexpr const char* pointChargesFile = "point_charges_file";
+static constexpr const char* enforceScfCriterion = "enforce_scf_criterion";
 // orca
 static constexpr const char* orcaFilenameBase = "orca_filename_base";
 static constexpr const char* specialOption = "special_option";
+static constexpr const char* performBrokenSymmetryCalculation = "perform_broken_symmetry_calculation";
+static constexpr const char* initialSpinMultiplicity = "initial_spin_multiplicity";
+static constexpr const char* spinFlipSites = "spin_flip_sites";
 // cp2k
 static constexpr const char* cp2kFilenameBase = "cp2k_filename_base";
 static constexpr const char* moleculePeriodicBoundaries = "28.35, 28.35, 28.35, 90.0, 90.0, 90.0, XYZ";
@@ -31,7 +35,6 @@ static constexpr const char* poissonSolver = "poisson_solver";
 static constexpr const char* additionalMos = "additional_mos";
 static constexpr const char* allowUnconvergedScf = "allow_unconverged_scf";
 static constexpr const char* planeWaveCutoff = "plane_wave_cutoff";
-static constexpr const char* vdwFunctional = "vdw_functional";
 static constexpr const char* nGrids = "n_grids";
 static constexpr const char* scfGuess = "scf_guess";
 static constexpr const char* dipoleCorrection = "dipole_correction";
@@ -41,6 +44,8 @@ static constexpr const char* gaussianFilenameBase = "gaussian_filename_base";
 // turbomole
 static constexpr const char* scfOrbitalShift = "scf_orbitalshift";
 static constexpr const char* scfDampingValue = "scf_damping_value";
+static constexpr const char* enableRi = "enable_ri";
+static constexpr const char* numExcitedStates = "num_excited_states";
 
 } // namespace SettingsNames
 } // namespace ExternalQC

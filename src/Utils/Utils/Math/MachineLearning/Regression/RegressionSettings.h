@@ -8,22 +8,11 @@
 #define UTILSOS_MLREGRESSIONSETTINGS_H
 
 #include <Utils/Settings.h>
-#include <Utils/UniversalSettings/SettingsNames.h>
+#include <Utils/UniversalSettings/OptimizationSettingsNames.h>
 
 namespace Scine {
 namespace Utils {
 namespace MachineLearning {
-
-namespace SettingsNames {
-
-static constexpr const char* restartOptimization = "restart_optimization";
-static constexpr const char* numRestarts = "num_restarts";
-static constexpr const char* maxIterations = "max_iterations";
-static constexpr const char* maxLinesearch = "max_linesearch";
-static constexpr const char* convergenceTolerance = "convergence_tolerance";
-static constexpr const char* ftol = "linesearch_tolerance";
-
-} // namespace SettingsNames
 
 /**
  * @brief Settings class for the iterative diagonalizers.
@@ -52,14 +41,14 @@ inline void RegressionSettings::setRestartOptimization(UniversalSettings::Descri
   Utils::UniversalSettings::BoolDescriptor restartOptimization(
       "Whether to restart the hyperparameter optimization from different starting points.");
   restartOptimization.setDefaultValue(true);
-  settings.push_back(SettingsNames::restartOptimization, std::move(restartOptimization));
+  settings.push_back(SettingsNames::Optimizations::MachineLearning::restartOptimization, std::move(restartOptimization));
 }
 
 inline void RegressionSettings::setNumRestarts(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::IntDescriptor numRestarts("The number of restarts for hyperparameter optimization.");
   numRestarts.setMinimum(1);
   numRestarts.setDefaultValue(10);
-  settings.push_back(SettingsNames::numRestarts, std::move(numRestarts));
+  settings.push_back(SettingsNames::Optimizations::MachineLearning::numRestarts, std::move(numRestarts));
 }
 
 inline void RegressionSettings::setMaxIterations(UniversalSettings::DescriptorCollection& settings) {
@@ -68,26 +57,26 @@ inline void RegressionSettings::setMaxIterations(UniversalSettings::DescriptorCo
       "until convergence or error.");
   maxIterations.setMinimum(1);
   maxIterations.setDefaultValue(1000);
-  settings.push_back(SettingsNames::maxIterations, std::move(maxIterations));
+  settings.push_back(SettingsNames::Optimizations::MachineLearning::maxIterations, std::move(maxIterations));
 }
 
 inline void RegressionSettings::setMaxLinesearch(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::IntDescriptor maxLinesearch("The maximum number of trials for the line search.");
   maxLinesearch.setMinimum(1);
   maxLinesearch.setDefaultValue(20000);
-  settings.push_back(SettingsNames::maxLinesearch, std::move(maxLinesearch));
+  settings.push_back(SettingsNames::Optimizations::MachineLearning::maxLinesearch, std::move(maxLinesearch));
 }
 
 inline void RegressionSettings::setConvergenceTolerance(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::DoubleDescriptor convergenceTolerance("The absolute tolerance for convergence test.");
   convergenceTolerance.setDefaultValue(1e-6);
-  settings.push_back(SettingsNames::convergenceTolerance, std::move(convergenceTolerance));
+  settings.push_back(SettingsNames::Optimizations::MachineLearning::convergenceTolerance, std::move(convergenceTolerance));
 }
 
 inline void RegressionSettings::setLinesearchTolerance(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::DoubleDescriptor ftol("A parameter to control the accuracy of the line search routine.");
   ftol.setDefaultValue(0.001);
-  settings.push_back(SettingsNames::ftol, std::move(ftol));
+  settings.push_back(SettingsNames::Optimizations::MachineLearning::ftol, std::move(ftol));
 }
 
 } // namespace MachineLearning

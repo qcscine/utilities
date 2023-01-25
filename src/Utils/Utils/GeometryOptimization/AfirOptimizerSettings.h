@@ -10,6 +10,7 @@
 
 #include "Utils/GeometryOptimization/AfirOptimizerBase.h"
 #include "Utils/Settings.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 
 namespace Scine {
 namespace Utils {
@@ -45,31 +46,31 @@ class AfirOptimizerSettings : public Settings {
     UniversalSettings::IntListDescriptor afir_rhs_list(
         "The list of atoms indices of atoms to be artificially forced onto or away from those in the LHS list.");
     afir_rhs_list.setDefaultValue(afirBase.rhsList);
-    this->_fields.push_back(AfirOptimizerBase::afirRHSListKey, afir_rhs_list);
+    this->_fields.push_back(SettingsNames::Optimizations::Afir::rHSList, afir_rhs_list);
 
     UniversalSettings::IntListDescriptor afir_lhs_list(
         "The list of atoms indices of atoms to be artificially forced onto or away from those in the RHS list.");
     afir_lhs_list.setDefaultValue(afirBase.lhsList);
-    this->_fields.push_back(AfirOptimizerBase::afirLHSListKey, afir_lhs_list);
+    this->_fields.push_back(SettingsNames::Optimizations::Afir::lHSList, afir_lhs_list);
 
     UniversalSettings::BoolDescriptor afir_weak_forces(
         "Switch for an additional weak attractive force applied to all atom pairs.");
     afir_weak_forces.setDefaultValue(afirBase.weak);
-    this->_fields.push_back(AfirOptimizerBase::afirWeakForcesKey, afir_weak_forces);
+    this->_fields.push_back(SettingsNames::Optimizations::Afir::weakForces, afir_weak_forces);
 
     UniversalSettings::BoolDescriptor afir_attractive("Switch for the artificial force to be attractive or repulsive.");
     afir_attractive.setDefaultValue(afirBase.attractive);
-    this->_fields.push_back(AfirOptimizerBase::afirAttractiveKey, afir_attractive);
+    this->_fields.push_back(SettingsNames::Optimizations::Afir::attractive, afir_attractive);
 
     UniversalSettings::DoubleDescriptor afir_energy_allowance(
         "The maximum amount of energy to be added by the artifical force, in kJ/mol.");
     afir_energy_allowance.setDefaultValue(afirBase.energyAllowance);
-    this->_fields.push_back(AfirOptimizerBase::afirEnergyAllowanceKey, afir_energy_allowance);
+    this->_fields.push_back(SettingsNames::Optimizations::Afir::energyAllowance, afir_energy_allowance);
 
     UniversalSettings::IntDescriptor afir_phase_in(
         "The number of steps over which the full attractive force is slowly applied");
     afir_phase_in.setDefaultValue(afirBase.phaseIn);
-    this->_fields.push_back(AfirOptimizerBase::afirPhaseInKey, afir_phase_in);
+    this->_fields.push_back(SettingsNames::Optimizations::Afir::phaseIn, afir_phase_in);
 
     UniversalSettings::OptionListDescriptor afir_coordinate_system("Set the coordinate system.");
     afir_coordinate_system.addOption("internal");
@@ -77,7 +78,7 @@ class AfirOptimizerSettings : public Settings {
     afir_coordinate_system.addOption("cartesian");
     afir_coordinate_system.setDefaultOption(
         CoordinateSystemInterpreter::getStringFromCoordinateSystem(afirBase.coordinateSystem));
-    this->_fields.push_back(AfirOptimizerBase::afirCoordinateSystemKey, afir_coordinate_system);
+    this->_fields.push_back(SettingsNames::Optimizations::Afir::coordinateSystem, afir_coordinate_system);
 
     this->resetToDefaults();
   }

@@ -29,6 +29,7 @@ void init_property_list(pybind11::module& m) {
   property.value("TwoElectronMatrix", Property::TwoElectronMatrix);
   property.value("OverlapMatrix", Property::OverlapMatrix);
   property.value("CoefficientMatrix", Property::CoefficientMatrix);
+  property.value("OrbitalEnergies", Property::OrbitalEnergies);
   property.value("BondOrderMatrix", Property::BondOrderMatrix);
   property.value("Thermochemistry", Property::Thermochemistry);
   property.value("ExcitedStates", Property::ExcitedStates);

@@ -53,6 +53,7 @@ TEST_F(AOrcaTest, SettingsAreSetCorrectly) {
   calculator.settings().modifyString(Utils::SettingsNames::solvent, "water");
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::hessianCalculationType, "numerical");
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::specialOption, "NOSOSCF");
+  calculator.settings().modifyBool(ExternalQC::SettingsNames::enforceScfCriterion, true);
 
   ASSERT_TRUE(calculator.settings().valid());
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::externalProgramNProcs), Eq(2));
@@ -74,6 +75,7 @@ TEST_F(AOrcaTest, SettingsAreSetCorrectly) {
   ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::hessianCalculationType),
               Eq("numerical"));
   ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::specialOption), Eq("NOSOSCF"));
+  ASSERT_THAT(calculator.settings().getBool(ExternalQC::SettingsNames::enforceScfCriterion), Eq(true));
 }
 
 TEST_F(AOrcaTest, OrbitalEnergiesAreParsedCorrectly) {
@@ -119,10 +121,20 @@ TEST_F(AOrcaTest, ErrorsAreFound) {
   try {
     parser.checkForErrors();
   }
+  catch (const ExternalQC::ScfNotConvergedError&) {
+    errorFound = true;
+  }
+  ASSERT_TRUE(errorFound);
+
+  errorFound = false;
+  ExternalQC::OrcaMainOutputParser parser2((pathToResource / "orca_test_calc_error_no_scf_message.out").string());
+  try {
+    parser2.checkForErrors();
+  }
   catch (const ExternalQC::OutputFileParsingError&) {
     errorFound = true;
   }
-  ASSERT_THAT(errorFound, true);
+  ASSERT_TRUE(errorFound);
 }
 
 TEST_F(AOrcaTest, HirshfeldChargesAreParsedCorrectly) {
@@ -676,6 +688,73 @@ TEST_F(AOrcaTest, ScfConvergenceIncreasedForPropertyCalculation) {
   calculator.setRequiredProperties(Property::Energy | Property::Gradients);
   auto thirdCalculator = calculator.clone();
   ASSERT_THAT(thirdCalculator->settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(1e-8));
+}
+
+TEST_F(AOrcaTest, BrokenSymmetryCalculationIsSetUpCorrectly) {
+  // set low scf convergence criterion
+  calculator.settings().modifyBool(Utils::ExternalQC::SettingsNames::performBrokenSymmetryCalculation, true);
+  calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
+
+  std::stringstream stream("2\n\n"
+                           "O     0.00000000   0.0000000    0.6093992\n"
+                           "O     0.00000000   0.0000000   -0.6093992\n");
+
+  auto structure = Utils::XyzStreamHandler::read(stream);
+
+  calculator.setStructure(structure);
+  // should throw an error first, because no initial spin multiplicity is set
+  std::string exceptionString = "";
+  try {
+    calculator.calculate("");
+  }
+  catch (Core::UnsuccessfulCalculationException& e) {
+    exceptionString = e.what();
+  }
+  ASSERT_STREQ(exceptionString.c_str(),
+               "Please set both the initial (setting name: initial_spin_multiplicity) and the final spin multiplicity "
+               "(setting name: spin_multiplicity) if you want to perform a broken-symmetry calculation.");
+
+  calculator.settings().modifyInt(Utils::ExternalQC::SettingsNames::initialSpinMultiplicity, 3);
+  calculator.settings().modifyInt(Utils::SettingsNames::spinMultiplicity, 2);
+  // A doublet cannot be generated from a triplet via spin flip
+  ASSERT_THROW(calculator.calculate(""), std::logic_error);
+  calculator.settings().modifyInt(Utils::SettingsNames::spinMultiplicity, 1);
+  // should throw an error because no spin flip sites are set
+  try {
+    calculator.calculate("");
+  }
+  catch (Core::UnsuccessfulCalculationException& e) {
+    exceptionString = e.what();
+  }
+  ASSERT_STREQ(exceptionString.c_str(), "Please set the atom indices of all sites at which spin density should be "
+                                        "flipped after converging to the high-spin solution!");
+
+  calculator.settings().modifyIntList(Utils::ExternalQC::SettingsNames::spinFlipSites, {0, 1});
+  try {
+    calculator.calculate("");
+  }
+  catch (Core::UnsuccessfulCalculationException& e) {
+    exceptionString = e.what();
+  }
+
+  std::string inputFile =
+      NativeFilenames::combinePathSegments(calculator.getCalculationDirectory(), calculator.getFileNameBase() + ".inp");
+  ASSERT_TRUE(boost::filesystem::exists(inputFile));
+  std::ifstream input;
+  input.open(inputFile);
+  auto content = std::string(std::istreambuf_iterator<char>{input}, {});
+  input.close();
+
+  std::string regexString = "Flipspin 0, 1";
+  std::regex regex(regexString);
+  std::smatch matches;
+  bool a = std::regex_search(content, matches, regex);
+  ASSERT_TRUE(a);
+
+  regexString = "FinalMs 0.0";
+  std::regex regex2(regexString);
+  bool b = std::regex_search(content, matches, regex2);
+  ASSERT_TRUE(b);
 }
 
 } // namespace Tests

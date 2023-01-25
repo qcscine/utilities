@@ -34,6 +34,7 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
   void addNumProcs(UniversalSettings::DescriptorCollection& settings);
   void addBaseWorkingDirectory(UniversalSettings::DescriptorCollection& settings);
   void addTemperature(UniversalSettings::DescriptorCollection& settings);
+  void addPressure(UniversalSettings::DescriptorCollection& settings);
   void addElectronicTemperature(UniversalSettings::DescriptorCollection& settings);
   void addScfDamping(UniversalSettings::DescriptorCollection& settings);
   void addScfDampingValue(UniversalSettings::DescriptorCollection& settings);
@@ -42,6 +43,9 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
   void addSolvation(UniversalSettings::DescriptorCollection& settings);
   void addSteerOrbitals(UniversalSettings::DescriptorCollection& settings);
   void addPointChargesFile(UniversalSettings::DescriptorCollection& settings);
+  void addEnableRi(UniversalSettings::DescriptorCollection& settings);
+  void addNumExcitedStates(UniversalSettings::DescriptorCollection& settings);
+  void addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings);
 
   /**
    * @brief Constructor that populates the TurbomoleCalculatorSettings.
@@ -57,6 +61,7 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
     addNumProcs(_fields);
     addBaseWorkingDirectory(_fields);
     addTemperature(_fields);
+    addPressure(_fields);
     addScfDamping(_fields);
     addScfDampingValue(_fields);
     addScfOrbitalShift(_fields);
@@ -65,6 +70,9 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
     addSolvation(_fields);
     addSteerOrbitals(_fields);
     addPointChargesFile(_fields);
+    addEnableRi(_fields);
+    addNumExcitedStates(_fields);
+    addScfCriterionEnforce(_fields);
     resetToDefaults();
   };
 };
@@ -141,6 +149,12 @@ inline void TurbomoleCalculatorSettings::addTemperature(UniversalSettings::Descr
   settings.push_back(Utils::SettingsNames::temperature, std::move(temperature));
 }
 
+inline void TurbomoleCalculatorSettings::addPressure(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::DoubleDescriptor pressure("Sets the pressure for the thermochemical calculation in Pa.");
+  pressure.setDefaultValue(101325.0);
+  settings.push_back(Utils::SettingsNames::pressure, std::move(pressure));
+}
+
 inline void TurbomoleCalculatorSettings::addScfDamping(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::BoolDescriptor scfDamping("Enable stronger SCF damping (true/false).");
   scfDamping.setDefaultValue(false);
@@ -195,6 +209,29 @@ inline void TurbomoleCalculatorSettings::addPointChargesFile(UniversalSettings::
       "charges file is <x> <y> <z> <q>.");
   pointChargesFile.setDefaultValue("");
   settings.push_back(SettingsNames::pointChargesFile, std::move(pointChargesFile));
+}
+
+inline void TurbomoleCalculatorSettings::addEnableRi(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::BoolDescriptor enableRi("Enables the Resolution of the Identity Approximation.");
+  enableRi.setDefaultValue(true);
+  settings.push_back(SettingsNames::enableRi, std::move(enableRi));
+}
+
+inline void TurbomoleCalculatorSettings::addNumExcitedStates(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::IntDescriptor numExcitedStates(
+      "The total number of electronically excited states to be calculated. Note that properties such as energy "
+      "and nuclear gradients are only calculated for the highest excited state.");
+  numExcitedStates.setDefaultValue(0);
+  numExcitedStates.setMinimum(0);
+  settings.push_back(SettingsNames::numExcitedStates, std::move(numExcitedStates));
+}
+
+inline void TurbomoleCalculatorSettings::addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::BoolDescriptor scfEnforce(
+      "Whether the set self_consistence_criterion should not be made stricter, "
+      "even if derivative quantities are calculated.");
+  scfEnforce.setDefaultValue(false);
+  settings.push_back(SettingsNames::enforceScfCriterion, std::move(scfEnforce));
 }
 
 } // namespace ExternalQC

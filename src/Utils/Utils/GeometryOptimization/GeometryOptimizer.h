@@ -20,6 +20,7 @@
 #include "Utils/Optimizer/HessianBased/Bofill.h"
 #include "Utils/Optimizer/HessianBased/EigenvectorFollowing.h"
 #include "Utils/Optimizer/HessianBased/NewtonRaphson.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include "Utils/UniversalSettings/SettingsNames.h"
 #include <Core/Interfaces/Calculator.h>
 #include <Eigen/Core>
@@ -41,8 +42,6 @@ namespace Utils {
  */
 class GeometryOptimizerBase {
  public:
-  static constexpr const char* geooptFixedAtomsKey = "geoopt_constrained_atoms";
-  static constexpr const char* geooptCoordinateSystemKey = "geoopt_coordinate_system";
   /// @brief Default constructor.
   GeometryOptimizerBase() = default;
   /// @brief Virtual default destructor.
@@ -142,12 +141,13 @@ class GeometryOptimizerSettings : public Settings {
     geoopt_coordinate_system.addOption("cartesianWithoutRotTrans");
     geoopt_coordinate_system.addOption("cartesian");
     geoopt_coordinate_system.setDefaultOption(CoordinateSystemInterpreter::getStringFromCoordinateSystem(base.coordinateSystem));
-    this->_fields.push_back(GeometryOptimizerBase::geooptCoordinateSystemKey, std::move(geoopt_coordinate_system));
+    this->_fields.push_back(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem,
+                            std::move(geoopt_coordinate_system));
 
     UniversalSettings::IntListDescriptor geooptFixedAtoms(
         "List of atoms with Cartesian constraints applied to them during the optimization.");
     geooptFixedAtoms.setDefaultValue(base.fixedAtoms);
-    this->_fields.push_back(GeometryOptimizerBase::geooptFixedAtomsKey, std::move(geooptFixedAtoms));
+    this->_fields.push_back(SettingsNames::Optimizations::GeometryOptimizer::fixedAtoms, std::move(geooptFixedAtoms));
 
     this->resetToDefaults();
   }
@@ -193,7 +193,13 @@ class GeometryOptimizer : public GeometryOptimizerBase {
     // Configure members
     _atoms = atoms;
     _log = std::make_shared<Core::Log>(log);
-    _calculator.setStructure(atoms);
+    auto calcStructure = _calculator.getStructure();
+    if (calcStructure && calcStructure->getElements() == atoms.getElements()) {
+      _calculator.modifyPositions(atoms.getPositions());
+    }
+    else {
+      _calculator.setStructure(atoms);
+    }
     _calculator.setRequiredProperties(_requiredProperties);
     // Transformation into internal coordinates
     if (this->coordinateSystem == CoordinateSystem::Internal) {
@@ -263,10 +269,10 @@ class GeometryOptimizer : public GeometryOptimizerBase {
     check.applySettings(settings);
     optimizer.applySettings(settings);
     this->coordinateSystem = CoordinateSystemInterpreter::getCoordinateSystemFromString(
-        settings.getString(GeometryOptimizerBase::geooptCoordinateSystemKey));
+        settings.getString(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem));
 
     // For Cartesian constraints:
-    this->fixedAtoms = settings.getIntList(GeometryOptimizerBase::geooptFixedAtomsKey);
+    this->fixedAtoms = settings.getIntList(SettingsNames::Optimizations::GeometryOptimizer::fixedAtoms);
 
     // Check whether constraints and coordinate transformations are both switched on:
     if (!this->fixedAtoms.empty() && this->coordinateSystem != CoordinateSystem::Cartesian) {

@@ -511,7 +511,10 @@ enum class ElementType : unsigned {
   Mt276 = Mt,
   Ds281 = Ds,
   Rg280 = Rg,
-  Cn285 = Cn
+  Cn285 = Cn,
+
+ // For pre-BO code only:
+  E
 };
 // clang-format on
 

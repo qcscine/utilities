@@ -10,6 +10,7 @@
 
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include <Core/Log.h>
 #include <Eigen/Core>
 
@@ -24,8 +25,6 @@ namespace Utils {
  */
 class EigenvectorFollowing : public Optimizer {
  public:
-  static constexpr const char* evTrustRadius = "ev_trust_radius";
-  static constexpr const char* evMode = "ev_follow_mode";
   /// @brief Default constructor.
   EigenvectorFollowing() = default;
   /**
@@ -99,19 +98,19 @@ class EigenvectorFollowing : public Optimizer {
     UniversalSettings::DoubleDescriptor ev_trust_radius("The maximum RMS of a taken step.");
     ev_trust_radius.setMinimum(0.0);
     ev_trust_radius.setDefaultValue(trustRadius);
-    collection.push_back(EigenvectorFollowing::evTrustRadius, ev_trust_radius);
+    collection.push_back(SettingsNames::Optimizations::EigenvectorFollowing::trustRadius, ev_trust_radius);
     UniversalSettings::IntDescriptor ev_follow_mode("The number of the mode that should be followed starting with 0.");
     ev_follow_mode.setMinimum(0);
     ev_follow_mode.setDefaultValue(modeToFollow);
-    collection.push_back(EigenvectorFollowing::evMode, ev_follow_mode);
+    collection.push_back(SettingsNames::Optimizations::EigenvectorFollowing::mode, ev_follow_mode);
   };
   /**
    * @brief Updates the optimizers's options with those values given in the Settings.
    * @param settings The settings to update the option of the steepest descent with.
    */
   void applySettings(const Settings& settings) final {
-    trustRadius = settings.getDouble(EigenvectorFollowing::evTrustRadius);
-    modeToFollow = settings.getInt(EigenvectorFollowing::evMode);
+    trustRadius = settings.getDouble(SettingsNames::Optimizations::EigenvectorFollowing::trustRadius);
+    modeToFollow = settings.getInt(SettingsNames::Optimizations::EigenvectorFollowing::mode);
   };
   /// @brief The maximum RMS of a taken step.
   double trustRadius = 1.0e-1;

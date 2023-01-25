@@ -147,13 +147,13 @@ TEST_F(AQmmmGeometryOptimizerTest, QmmmGeometryOptimizerConvergenceWorksCorrectl
 
   // BFGS settings
   Settings settingsBfgs = qmmmGeometryOptimizer.fullOptimizer->getSettings();
-  settingsBfgs.modifyBool(Bfgs::bfgsUseTrustRadius, false);
+  settingsBfgs.modifyBool(SettingsNames::Optimizations::Bfgs::useTrustRadius, false);
   qmmmGeometryOptimizer.fullOptimizer->setSettings(settingsBfgs);
   qmmmGeometryOptimizer.mmOptimizer->setSettings(settingsBfgs);
   // Optimizer settings
   const int maxFullOptMicroiter = 30;
   Settings settings = qmmmGeometryOptimizer.getSettings();
-  settings.modifyString(GeometryOptimizerBase::geooptCoordinateSystemKey, "cartesian");
+  settings.modifyString(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem, "cartesian");
   settings.modifyInt(QmmmGeometryOptimizer<Bfgs>::qmmmOptMaxEnvMicroiterationsKey, 100);
   settings.modifyInt(QmmmGeometryOptimizer<Bfgs>::qmmmOptMaxFullMicroiterationsKey, maxFullOptMicroiter);
   // Make sure the number of max. macroiterations is not limiting the convergence:
@@ -208,7 +208,7 @@ TEST_F(AQmmmGeometryOptimizerTest, QmmmGeometryOptimizerConvergenceWorksCorrectl
 
   // Final test: the optimizer should also complete the optimization when using an internal coordinate system
   settings = qmmmGeometryOptimizer.getSettings();
-  settings.modifyString(GeometryOptimizerBase::geooptCoordinateSystemKey, "internal");
+  settings.modifyString(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem, "internal");
   qmmmGeometryOptimizer.setSettings(settings);
   qmmmGeometryOptimizer.optimize(structure, log);
 }

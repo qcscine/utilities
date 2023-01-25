@@ -25,11 +25,6 @@ namespace Utils {
  */
 class SteepestDescent : public Optimizer {
  public:
-  static constexpr const char* sdFactorKey = "sd_factor";
-  static constexpr const char* sdUseTrustRadius = "sd_use_trust_radius";
-  static constexpr const char* sdTrustRadius = "sd_trust_radius";
-  static constexpr const char* sdDynamicMultiplier = "sd_dynamic_multiplier";
-
   /// @brief Default constructor.
   SteepestDescent() = default;
   /**
@@ -124,36 +119,36 @@ class SteepestDescent : public Optimizer {
   void addSettingsDescriptors(UniversalSettings::DescriptorCollection& collection) const final {
     UniversalSettings::DoubleDescriptor sd_factor("The steepest descent scaling factor.");
     sd_factor.setDefaultValue(factor);
-    collection.push_back(SteepestDescent::sdFactorKey, sd_factor);
+    collection.push_back(SettingsNames::Optimizations::SteepestDescent::factor, sd_factor);
     UniversalSettings::BoolDescriptor sd_useTrustRadius("Enable the use of a trust radius for all steps.");
     sd_useTrustRadius.setDefaultValue(useTrustRadius);
-    collection.push_back(SteepestDescent::sdUseTrustRadius, sd_useTrustRadius);
+    collection.push_back(SettingsNames::Optimizations::SteepestDescent::useTrustRadius, sd_useTrustRadius);
     UniversalSettings::DoubleDescriptor sd_trustRadius("The maximum size (RMS) of a taken step.");
     sd_trustRadius.setMinimum(0.0);
     sd_trustRadius.setDefaultValue(trustRadius);
-    collection.push_back(SteepestDescent::sdTrustRadius, sd_trustRadius);
+    collection.push_back(SettingsNames::Optimizations::SteepestDescent::trustRadius, sd_trustRadius);
     UniversalSettings::DoubleDescriptor sd_dynamicMultiplier(
         "The multiplier to increase the scaling factor after each iteration.");
     sd_dynamicMultiplier.setMinimum(1.0);
     sd_dynamicMultiplier.setDefaultValue(dynamicMultiplier);
-    collection.push_back(SteepestDescent::sdDynamicMultiplier, sd_dynamicMultiplier);
+    collection.push_back(SettingsNames::Optimizations::SteepestDescent::dynamicMultiplier, sd_dynamicMultiplier);
   };
   /**
    * @brief Updates the steepest descent's options with those values given in the Settings.
    * @param settings The settings to update the option of the steepest descent with.
    */
   void applySettings(const Settings& settings) final {
-    factor = settings.getDouble(SteepestDescent::sdFactorKey);
+    factor = settings.getDouble(SettingsNames::Optimizations::SteepestDescent::factor);
     _initFactor = factor;
 
-    useTrustRadius = settings.getBool(SteepestDescent::sdUseTrustRadius);
-    trustRadius = settings.getDouble(SteepestDescent::sdTrustRadius);
+    useTrustRadius = settings.getBool(SettingsNames::Optimizations::SteepestDescent::useTrustRadius);
+    trustRadius = settings.getDouble(SettingsNames::Optimizations::SteepestDescent::trustRadius);
     if (!useTrustRadius && std::fabs(trustRadius - 0.1) > 1e-6) {
       throw std::logic_error("A trust radius was specified, but the trust radius was not activated. "
                              "Please also set the setting 'sd_use_trust_radius': true, if you specify a radius.");
     }
 
-    dynamicMultiplier = settings.getDouble(SteepestDescent::sdDynamicMultiplier);
+    dynamicMultiplier = settings.getDouble(SettingsNames::Optimizations::SteepestDescent::dynamicMultiplier);
     if (!useTrustRadius && std::fabs(dynamicMultiplier - 1.0) > 1e-6) {
       throw std::logic_error("A dynamic multiplier was specified, but the trust radius was not activated. "
                              "Please also set the setting 'sd_use_trust_radius': true, if you specify a multiplier.");

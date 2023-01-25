@@ -12,6 +12,7 @@
 #include <Utils/Geometry/ElementInfo.h>
 #include <Utils/IO/NativeFilenames.h>
 #include <Utils/Scf/LcaoUtils/SpinMode.h>
+#include <Utils/Strings.h>
 #include <math.h>
 #include <boost/process.hpp>
 #include <fstream>
@@ -48,6 +49,18 @@ void TurbomoleInputFileCreator::writeCoordFile(const AtomCollection& atoms) {
   coordStream.close();
 }
 
+std::string TurbomoleInputFileCreator::getMultipleEHTParameterCorrection(const AtomCollection& atoms) {
+  const std::vector<ElementType> elementsWithMultipleEHTParameters = {ElementType::Cu, ElementType::Pd, ElementType::Gd};
+  const auto& elements = atoms.getElements();
+  std::string returnString = "";
+  for (const auto& element : elementsWithMultipleEHTParameters) {
+    if (std::find(elements.begin(), elements.end(), element) != elements.end()) {
+      returnString += "\n";
+    }
+  }
+  return returnString;
+}
+
 void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, const AtomCollection& atoms) {
   // Check this before because define yields very strange output in case that charge and multiplicity don't match.
   CalculationRoutines::checkValidityOfChargeAndMultiplicity(settings.getInt(Utils::SettingsNames::molecularCharge),
@@ -66,7 +79,7 @@ void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, c
   auto basisSet = settings.getString(Utils::SettingsNames::basisSet);
   TurbomoleHelper helper(calculationDirectory_, turbomoleExecutableBase_);
   helper.mapBasisSetToTurbomoleStringRepresentation(basisSet);
-  out << "\nb all " << basisSet << "\n\n\n*\neht\n\n";
+  out << "\nb all " << basisSet << "\n\n\n*\neht\n\n" << this->getMultipleEHTParameterCorrection(atoms);
 
   out << settings.getInt(Scine::Utils::SettingsNames::molecularCharge) << "\n";
 
@@ -98,13 +111,18 @@ void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, c
     throw std::logic_error("Specified unknown spin mode " + SpinModeInterpreter::getStringFromSpinMode(spinMode) +
                            " in settings."); // this should have been handled by settings
   }
-
-  out << "ri\non\n\n";
+  bool enableRi = settings.getBool(SettingsNames::enableRi);
+  if (enableRi) {
+    out << "ri\non\n\n";
+  }
   // Method
   auto methodInput = Scine::Utils::CalculationRoutines::splitIntoMethodAndDispersion(
       settings.getString(Scine::Utils::SettingsNames::method));
-  helper.mapDftFunctionalToTurbomoleStringRepresentation(methodInput.first);
-  out << "dft\non\nfunc " << methodInput.first << "\n\n";
+  if (!caseInsensitiveEqual(methodInput.first, "hf")) {
+    // assume DFT if not HF
+    helper.mapDftFunctionalToTurbomoleStringRepresentation(methodInput.first);
+    out << "dft\non\nfunc " << methodInput.first << "\n\n";
+  }
   // Dispersion Correction
   if (!methodInput.second.empty()) {
     // make sure that dispersion is uppercase only
@@ -125,8 +143,20 @@ void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, c
   }
   auto maxScfIterations = settings.getInt(Utils::SettingsNames::maxScfIterations);
 
-  out << "scf\niter\n" << std::to_string(maxScfIterations) << "\n";
+  out << "scf\niter\n" << std::to_string(maxScfIterations) << "\n\n";
+
+  int numExcitedStates = settings.getInt(SettingsNames::numExcitedStates);
+  if (numExcitedStates != 0) {
+    if (spinMode == SpinMode::Restricted) {
+      throw std::runtime_error(
+          "Excited states calculations are currently only supported for spin-unrestricted formalism.");
+    }
+
+    out << "ex\nurpa\n*\na " << numExcitedStates << "\n*\n*\n\n";
+  }
+
   out << "\n*";
+
   out.close();
 }
 
@@ -166,7 +196,9 @@ void TurbomoleInputFileCreator::checkAndUpdateControlFile(const Settings& settin
   auto basisSet = settings.getString(Utils::SettingsNames::basisSet);
   TurbomoleHelper helper(calculationDirectory_, turbomoleExecutableBase_);
   helper.mapBasisSetToTurbomoleStringRepresentation(basisSet);
-  helper.mapDftFunctionalToTurbomoleStringRepresentation(method);
+  if (method != "hf") {
+    helper.mapDftFunctionalToTurbomoleStringRepresentation(method);
+  }
 
   while (std::getline(in, line)) {
     if ((line.find("$scfdamp") != std::string::npos) && scfDamping) {
@@ -181,16 +213,39 @@ void TurbomoleInputFileCreator::checkAndUpdateControlFile(const Settings& settin
     else if (line.find("$end") != std::string::npos) {
       out << "$pop loewdin wiberg\n";
       auto pointChargesFile = settings.getString(SettingsNames::pointChargesFile);
+      std::ofstream pcFile;
       if (!pointChargesFile.empty()) {
+        // open the empty point charges file
+        pcFile.open(files_.pointChargesFile);
         // open
         out << "$point_charges\n";
         std::ifstream pc;
         pc.open(pointChargesFile);
         std::string line;
         while (std::getline(pc, line)) {
-          out << line << "\n";
+          std::vector<std::string> lineSplitted;
+          line.erase(line.begin(), std::find_if(line.begin(), line.end(), [&](int ch) { return std::isspace(ch) == 0; }));
+          line.erase(std::find_if(line.rbegin(), line.rend(), [&](int ch) { return std::isspace(ch) == 0; }).base(),
+                     line.end());
+          // Split the string
+          boost::split(lineSplitted, line, boost::is_any_of(" "), boost::token_compress_on);
+          if (!(lineSplitted.size() == 4)) {
+            throw std::runtime_error("Point charges file " + pointChargesFile + "has incorrect format! ");
+          }
+          try {
+            double x = std::stod(lineSplitted[0]);
+            double y = std::stod(lineSplitted[1]);
+            double z = std::stod(lineSplitted[2]);
+            double charge = std::stod(lineSplitted[3]);
+            out << " " << x << " " << y << " " << z << " " << charge << "\n";
+            pcFile << " " << x << " " << y << " " << z << " " << charge << "\n";
+          }
+          catch (...) {
+            throw std::runtime_error("Provided point charges have incorrect format! Supported format: <x> <y> <z> <q>");
+          }
         }
         pc.close();
+        pcFile.close();
         out << "$point_charge_gradients file=pc_gradient\n";
       }
       out << "$end";
@@ -225,7 +280,7 @@ void TurbomoleInputFileCreator::checkAndUpdateControlFile(const Settings& settin
   if (!basisSetIsCorrect) {
     throw std::runtime_error("Your specified basis set " + basisSet + " is invalid. Check the spelling");
   }
-  if (!functionalIsCorrect) {
+  if (!(functionalIsCorrect || method == "hf")) {
     throw std::runtime_error("Your specified DFT functional " + method + " is invalid. Check the spelling");
   }
 }
@@ -238,18 +293,26 @@ void TurbomoleInputFileCreator::addSolvation(const Settings& settings) {
   std::ofstream out;
   out.open(files_.solvationInputFile);
 
+  double epsilon = std::numeric_limits<double>::infinity();
+  double probeRadius = std::numeric_limits<double>::infinity();
   std::unordered_map<std::string, std::pair<double, double>>::iterator it = availableSolventModels_.find(solvent);
   if (it != availableSolventModels_.end()) {
-    out << it->second.first << "\n\n\n\n\n\n\n"
-        << it->second.second << "\n\n\n\n"
-        << "r all b"
-        << "\n"
-        << "*"
-        << "\n\n\n";
+    epsilon = it->second.first;
+    probeRadius = it->second.second;
   }
-  else {
+  if (solvent.find("user_defined") != std::string::npos) {
+    interpretAsUserDefinedImplicitSolvation(solvent, epsilon, probeRadius);
+  }
+  if (epsilon == std::numeric_limits<double>::infinity() || probeRadius == std::numeric_limits<double>::infinity()) {
     throw std::runtime_error("The solvent '" + solvent + "' is currently not supported.");
   }
+
+  out << epsilon << "\n\n\n\n\n\n\n"
+      << probeRadius << "\n\n\n\n"
+      << "r all b"
+      << "\n"
+      << "*"
+      << "\n\n\n";
   out.close();
 
   // run cosmoprep
@@ -259,6 +322,42 @@ void TurbomoleInputFileCreator::addSolvation(const Settings& settings) {
   std::string executable = NativeFilenames::combinePathSegments(turbomoleExecutableBase_, "cosmoprep");
   TurbomoleHelper helper(calculationDirectory_, turbomoleExecutableBase_);
   helper.execute("cosmoprep", files_.solvationInputFile);
+}
+
+void TurbomoleInputFileCreator::interpretAsUserDefinedImplicitSolvation(std::string solvent, double& epsilon,
+                                                                        double& probeRadius) {
+  const std::string userDefined = "user_defined";
+  auto startPosition = solvent.find("user_defined");
+  // This should now look like (78.39 1.93)
+  std::string epsilonAndProbeRadius = solvent.erase(startPosition, userDefined.length());
+  // Remove brackets
+  const bool firstIsABracket = epsilonAndProbeRadius[0] == '(';
+  const bool lastIsABracket = epsilonAndProbeRadius[epsilonAndProbeRadius.length() - 1] == ')';
+  if (!firstIsABracket || !lastIsABracket) {
+    throw std::logic_error(
+        "The solvent '" + solvent + "' is labeled as user defined but has a wrong format.\n" +
+        "The format must be user_defined(<epsilon>, <probe_radius>). The brackets are misplaced or missing.");
+  }
+  epsilonAndProbeRadius.erase(0, 1);
+  epsilonAndProbeRadius.erase(epsilonAndProbeRadius.length() - 1, 1);
+  std::stringstream sstream(epsilonAndProbeRadius);
+  try {
+    std::string epsilonString, probeRadiusString;
+    std::getline(sstream, epsilonString, ',');
+    std::getline(sstream, probeRadiusString, ',');
+    epsilon = std::stod(epsilonString);
+    probeRadius = std::stod(probeRadiusString);
+  }
+  catch (...) {
+    throw std::logic_error("The solvent '" + solvent + "' is labeled as user defined but has a wrong format.\n" +
+                           "The format must be user_defined(<epsilon>, <probe_radius>). Unable to convert the given\n" +
+                           "dielectric constant or probe radius to a floating point number.");
+  }
+  if (sstream.rdbuf()->in_avail()) {
+    throw std::logic_error("The solvent '" + solvent + "' is labeled as user defined but has a wrong format.\n" +
+                           "The format must be user_defined(<epsilon>, <probe_radius>). The number of arguments in\n" +
+                           "the brackets is larger than two.");
+  }
 }
 
 } // namespace ExternalQC

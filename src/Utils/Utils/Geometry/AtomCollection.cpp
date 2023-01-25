@@ -53,11 +53,15 @@ void AtomCollection::push_back(const Atom& atom) {
 }
 
 bool AtomCollection::operator==(const AtomCollection& other) const {
-  return (elements_ == other.elements_ && positions_.isApprox(other.positions_));
+  return isApprox(other, 1e-12);
 }
 
 bool AtomCollection::operator!=(const AtomCollection& other) const {
   return !(*this == other);
+}
+
+bool AtomCollection::isApprox(const AtomCollection& other, double eps) const {
+  return (elements_ == other.elements_ && positions_.isApprox(other.positions_, eps));
 }
 
 const ElementTypeCollection& AtomCollection::getElements() const {

@@ -37,6 +37,9 @@ class XyzStreamHandler : public FormattedStreamHandler {
   //!@name Static members
   //!@{
   static AtomCollection read(std::istream& is);
+
+  static std::pair<AtomCollection, std::vector<bool>> readNuclearElectronic(std::istream& is);
+
   static void write(std::ostream& os, const AtomCollection& atoms, const std::string& comment = "");
   //!@}
 

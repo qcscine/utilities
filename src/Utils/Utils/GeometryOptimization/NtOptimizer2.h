@@ -16,6 +16,7 @@
 #include "Utils/Geometry/GeometryUtilities.h"
 #include "Utils/Geometry/InternalCoordinates.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include <Core/Interfaces/Calculator.h>
 #include <Eigen/Core>
 
@@ -40,24 +41,6 @@ class NtOptimizer2 : public Optimizer {
   using ReactionMapping = std::vector<std::pair<std::vector<int>, std::vector<int>>>;
 
  public:
-  // Definition of Utils::Settings keys
-  static constexpr const char* ntAssListKey = "nt_associations";
-  static constexpr const char* ntDissListKey = "nt_dissociations";
-  static constexpr const char* ntTotalForceNormKey = "nt_total_force_norm";
-  static constexpr const char* ntMaxIterKey = "convergence_max_iterations";
-  static constexpr const char* ntRepulsiveStopKey = "convergence_repulsive_stop";
-  static constexpr const char* ntAttractiveStopKey = "convergence_attractive_stop";
-  static constexpr const char* ntSdFactorKey = "sd_factor";
-  static constexpr const char* ntUseMicroCycles = "nt_use_micro_cycles";
-  static constexpr const char* ntFixedNumberOfMicroCycles = "nt_fixed_number_of_micro_cycles";
-  static constexpr const char* ntNumberOfMicroCycles = "nt_number_of_micro_cycles";
-  static constexpr const char* ntFilterPasses = "nt_filter_passes";
-  static constexpr const char* ntExtractionCriterion = "nt_extraction_criterion";
-  static constexpr const char* ntCoordinateSystemKey = "nt_coordinate_system";
-  static constexpr const char* ntFixedAtomsKey = "nt_constrained_atoms";
-  static constexpr const char* ntExtractLastBeforeTarget = "last_maximum_before_first_target";
-  static constexpr const char* ntExtractHighest = "highest_maximum";
-  static constexpr const char* ntExtractFirst = "first_maximum";
   /**
    * @brief Construct a new NtOptimizer object.
    * @param calculator The calculator to be used for the underlying single point/gradient calculations.
@@ -137,9 +120,9 @@ class NtOptimizer2 : public Optimizer {
   int filterPasses = 10;
   // @brief possible options for extraction
   const std::vector<std::string> possibleExtractionOptions = {
-      ntExtractLastBeforeTarget,
-      ntExtractHighest,
-      ntExtractFirst,
+      std::string(SettingsNames::Optimizations::Nt2::extractLastBeforeTarget),
+      std::string(SettingsNames::Optimizations::Nt2::extractHighest),
+      std::string(SettingsNames::Optimizations::Nt2::extractFirst),
   };
   /**
    * @brief Criterion to extract a TS guess from the trajectory

@@ -78,6 +78,69 @@ TEST_F(GenericValueTest, ReturnsCorrectType) {
   ASSERT_FALSE(gv.isString());
   ASSERT_FALSE(gv.isCollection());
   ASSERT_TRUE(gv.isOptionWithSettings());
+
+  std::vector<double> doubleValueList{0.1};
+  gv = GenericValue::fromDoubleList(doubleValueList);
+  ASSERT_FALSE(gv.isBool());
+  ASSERT_FALSE(gv.isInt());
+  ASSERT_FALSE(gv.isDouble());
+  ASSERT_TRUE(gv.isDoubleList());
+  ASSERT_FALSE(gv.isString());
+  ASSERT_FALSE(gv.isCollection());
+  ASSERT_FALSE(gv.isOptionWithSettings());
+
+  std::vector<double> emptyDoubleValue{};
+  gv = GenericValue::fromDoubleList(emptyDoubleValue);
+  ASSERT_FALSE(gv.isBool());
+  ASSERT_FALSE(gv.isInt());
+  ASSERT_FALSE(gv.isDouble());
+  ASSERT_TRUE(gv.isDoubleList());
+  ASSERT_FALSE(gv.isString());
+  ASSERT_FALSE(gv.isCollection());
+  ASSERT_FALSE(gv.isOptionWithSettings());
+
+  std::vector<int> intValueList{1};
+  gv = GenericValue::fromIntList(intValueList);
+  ASSERT_FALSE(gv.isBool());
+  ASSERT_FALSE(gv.isInt());
+  ASSERT_FALSE(gv.isDouble());
+  ASSERT_FALSE(gv.isDoubleList());
+  ASSERT_TRUE(gv.isIntList());
+  ASSERT_FALSE(gv.isString());
+  ASSERT_FALSE(gv.isCollection());
+  ASSERT_FALSE(gv.isOptionWithSettings());
+
+  std::vector<int> emptyIntValue{};
+  gv = GenericValue::fromIntList(emptyIntValue);
+  ASSERT_FALSE(gv.isBool());
+  ASSERT_FALSE(gv.isInt());
+  ASSERT_FALSE(gv.isDouble());
+  ASSERT_TRUE(gv.isIntList());
+  ASSERT_FALSE(gv.isString());
+  ASSERT_FALSE(gv.isCollection());
+  ASSERT_FALSE(gv.isOptionWithSettings());
+
+  std::vector<std::string> stringValueList{"something"};
+  gv = GenericValue::fromStringList(stringValueList);
+  ASSERT_FALSE(gv.isBool());
+  ASSERT_FALSE(gv.isInt());
+  ASSERT_FALSE(gv.isDouble());
+  ASSERT_FALSE(gv.isDoubleList());
+  ASSERT_FALSE(gv.isIntList());
+  ASSERT_TRUE(gv.isStringList());
+  ASSERT_FALSE(gv.isString());
+  ASSERT_FALSE(gv.isCollection());
+  ASSERT_FALSE(gv.isOptionWithSettings());
+
+  std::vector<std::string> emptyStringValue{};
+  gv = GenericValue::fromStringList(emptyStringValue);
+  ASSERT_FALSE(gv.isBool());
+  ASSERT_FALSE(gv.isInt());
+  ASSERT_FALSE(gv.isDouble());
+  ASSERT_TRUE(gv.isStringList());
+  ASSERT_FALSE(gv.isString());
+  ASSERT_FALSE(gv.isCollection());
+  ASSERT_FALSE(gv.isOptionWithSettings());
 }
 
 TEST_F(GenericValueTest, IsComparable) {

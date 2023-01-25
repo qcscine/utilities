@@ -173,14 +173,14 @@ void NtOptimizer::sanityCheck(const AtomCollection& atoms) const {
       }
       else {
         // should be handled by settings
-        throw std::logic_error("Unknown input " + movableSide + " for " + NtOptimizer::ntMovableSide);
+        throw std::logic_error("Unknown input " + movableSide + " for " + SettingsNames::Optimizations::Nt::movableSide);
       }
       if (std::find(movableReactionIndicesList.begin(), movableReactionIndicesList.end(), a) !=
           movableReactionIndicesList.end()) {
         throw std::logic_error("The atom index " + std::to_string(a) +
                                " was specified to be constrained although "
                                "it is within a movable reaction side. You can change '" +
-                               NtOptimizer::ntMovableSide + "' if you want to constrain atoms.");
+                               SettingsNames::Optimizations::Nt::movableSide + "' if you want to constrain atoms.");
       }
     }
   }
@@ -346,7 +346,7 @@ PositionCollection NtOptimizer::extractTsGuess() const {
     throw std::runtime_error("No transition state guess was found in Newton Trajectory scan.");
   }
   // Extract TS guess according to given criterion
-  if (extractionCriterion == ntExtractFirst) {
+  if (extractionCriterion == SettingsNames::Optimizations::Nt::extractFirst) {
     return _trajectory[maximaList.back()]; // back because maximalist starts from back
   }
   // Extract TS guess from point with the highest energy
@@ -393,7 +393,8 @@ void NtOptimizer::updateCoordinates(PositionCollection& coordinates, const AtomC
     coordinates -= optimizer.factor * gradients;
   }
   else {
-    throw std::runtime_error("Unknown coordinate system, please check your '" + std::string(ntCoordinateSystemKey) + "' input.");
+    throw std::runtime_error("Unknown coordinate system, please check your '" +
+                             std::string(SettingsNames::Optimizations::Nt::coordinateSystem) + "' input.");
   }
 }
 
@@ -407,22 +408,22 @@ void NtOptimizer::setSettings(const Settings& settings) {
   if (!settings.valid()) {
     settings.throwIncorrectSettings();
   }
-  this->optimizer.factor = settings.getDouble(NtOptimizer::ntSdFactorKey);
-  this->check.maxIter = settings.getInt(NtOptimizer::ntMaxIterKey);
-  this->check.repulsiveStop = settings.getDouble(NtOptimizer::ntRepulsiveStopKey);
-  this->check.attractiveStop = settings.getDouble(NtOptimizer::ntAttractiveStopKey);
-  this->rhsList = settings.getIntList(NtOptimizer::ntRHSListKey);
-  this->lhsList = settings.getIntList(NtOptimizer::ntLHSListKey);
-  this->attractive = settings.getBool(NtOptimizer::ntAttractiveKey);
-  this->totalForceNorm = settings.getDouble(NtOptimizer::ntTotalForceNormKey);
-  this->coordinateSystem =
-      CoordinateSystemInterpreter::getCoordinateSystemFromString(settings.getString(NtOptimizer::ntCoordinateSystemKey));
-  this->useMicroCycles = settings.getBool(NtOptimizer::ntUseMicroCycles);
-  this->fixedNumberOfMicroCycles = settings.getBool(NtOptimizer::ntFixedNumberOfMicroCycles);
-  this->numberOfMicroCycles = settings.getInt(NtOptimizer::ntNumberOfMicroCycles);
-  this->filterPasses = settings.getInt(NtOptimizer::ntFilterPasses);
-  this->fixedAtoms = settings.getIntList(NtOptimizer::ntFixedAtomsKey);
-  this->movableSide = settings.getString(NtOptimizer::ntMovableSide);
+  this->optimizer.factor = settings.getDouble(SettingsNames::Optimizations::Nt::sdFactor);
+  this->check.maxIter = settings.getInt(SettingsNames::Optimizations::Nt::maxIter);
+  this->check.repulsiveStop = settings.getDouble(SettingsNames::Optimizations::Nt::repulsiveStop);
+  this->check.attractiveStop = settings.getDouble(SettingsNames::Optimizations::Nt::attractiveStop);
+  this->rhsList = settings.getIntList(SettingsNames::Optimizations::Nt::rHSList);
+  this->lhsList = settings.getIntList(SettingsNames::Optimizations::Nt::lHSList);
+  this->attractive = settings.getBool(SettingsNames::Optimizations::Nt::attractive);
+  this->totalForceNorm = settings.getDouble(SettingsNames::Optimizations::Nt::totalForceNorm);
+  this->coordinateSystem = CoordinateSystemInterpreter::getCoordinateSystemFromString(
+      settings.getString(SettingsNames::Optimizations::Nt::coordinateSystem));
+  this->useMicroCycles = settings.getBool(SettingsNames::Optimizations::Nt::useMicroCycles);
+  this->fixedNumberOfMicroCycles = settings.getBool(SettingsNames::Optimizations::Nt::fixedNumberOfMicroCycles);
+  this->numberOfMicroCycles = settings.getInt(SettingsNames::Optimizations::Nt::numberOfMicroCycles);
+  this->filterPasses = settings.getInt(SettingsNames::Optimizations::Nt::filterPasses);
+  this->fixedAtoms = settings.getIntList(SettingsNames::Optimizations::Nt::fixedAtoms);
+  this->movableSide = settings.getString(SettingsNames::Optimizations::Nt::movableSide);
 
   // Check whether constraints and coordinate transformations are both switched on:
   if (!this->fixedAtoms.empty() && this->coordinateSystem != CoordinateSystem::Cartesian) {

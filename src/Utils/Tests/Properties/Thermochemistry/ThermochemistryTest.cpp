@@ -237,5 +237,43 @@ TEST_F(AThermochemistryTest, CanCalculateOverallComponent) {
   ASSERT_THAT(container.overall.heatCapacityP * Constants::kCalPerMol_per_hartree, DoubleNear(8.6138 / 1000, 3e-5));
   ASSERT_THAT(container.overall.entropy * Constants::kCalPerMol_per_hartree, DoubleNear(52.2772 / 1000, 3e-5));
 }
+
+TEST_F(AThermochemistryTest, IncludesStandardStateShift) {
+  /*
+   * Idea of the test: Calculate the full Gibb's free energy correction at 1 mol/L (P = 1e+3 RT) instead of 1 atm.
+   * This corresponds to the (infamous) shift of 7.9218 kJ/mol caused by the pressure dependence of the translational
+   * free energy component.
+   */
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(
+      formaldehydeNormalModes, formaldehydePMI, formaldehydeElements, formaldehydeMultiplicity, arbitraryEnergy);
+  arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::alreadyIncluded);
+  const double temperature = 298.0;
+  arbitraryTCCalculator->setTemperature(temperature);
+  arbitraryTCCalculator->setPressure(1e+3 * Constants::molarGasConstant * temperature);
+  const double standardStateShift = 7.921881767500004 * Constants::hartree_per_kJPerMol;
+  // C2v symmetry
+  arbitraryTCCalculator->setMolecularSymmetryNumber(2);
+  auto container = arbitraryTCCalculator->calculate();
+  ASSERT_THAT(container.overall.gibbsFreeEnergy, DoubleNear(0.979005 + standardStateShift, 3e-5));
+}
+
+TEST_F(AThermochemistryTest, CatchesZeroTemperature) {
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(
+      formaldehydeNormalModes, formaldehydePMI, formaldehydeElements, formaldehydeMultiplicity, arbitraryEnergy);
+  arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::notIncluded);
+  arbitraryTCCalculator->setTemperature(0);
+  arbitraryTCCalculator->setPressure(100000);
+  // C2v symmetry
+  arbitraryTCCalculator->setMolecularSymmetryNumber(2);
+  auto container = arbitraryTCCalculator->calculate();
+  // Check for NaN.
+  ASSERT_THAT(container.vibrationalComponent.enthalpy, container.vibrationalComponent.zeroPointVibrationalEnergy);
+  ASSERT_THAT(container.vibrationalComponent.entropy, 0);
+  ASSERT_THAT(container.rotationalComponent.enthalpy, 0);
+  ASSERT_THAT(container.rotationalComponent.entropy, -std::numeric_limits<double>::infinity());
+  ASSERT_THAT(container.translationalComponent.enthalpy, 0);
+  ASSERT_THAT(container.translationalComponent.entropy, -std::numeric_limits<double>::infinity());
+}
+
 } // namespace Utils
 } // namespace Scine

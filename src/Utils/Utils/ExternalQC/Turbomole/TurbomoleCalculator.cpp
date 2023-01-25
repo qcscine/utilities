@@ -103,11 +103,25 @@ void TurbomoleCalculator::applySettings() {
       throw Core::InitializationException(
           "Turbomole calculations with an electronic temperature above 0.0 K are not supported.");
     }
+    if (requiredProperties_.containsSubSet(Property::ExcitedStates)) {
+      if (settings_->getInt(SettingsNames::numExcitedStates) == 0) {
+        throw std::logic_error("Excited states requested but number of excited states to calculate is zero.");
+      }
+      if (requiredProperties_.containsSubSet(Property::BondOrderMatrix) ||
+          requiredProperties_.containsSubSet(Property::AtomicCharges) || requiredProperties_.containsSubSet(Property::Hessian) ||
+          requiredProperties_.containsSubSet(Property::Thermochemistry) ||
+          requiredProperties_.containsSubSet(Property::PointChargesGradients)) {
+        throw std::runtime_error(
+            "Currently, Hessians, point charges gradients, thermochemical properties, atomic charges, and bond orders "
+            "cannot be calculated for excited states with the Turbomole calculator.");
+      }
+    }
     baseWorkingDirectory_ = settings_->getString(SettingsNames::baseWorkingDirectory);
     // throws error for wrong input and updates 'any' entries */
     // information if solvation is performed is deduced from settings from InputFileCreator and therefore discarded here
     Solvation::ImplicitSolvation::solvationNeededAndPossible(availableSolvationModels_, *settings_);
-    if ((requiredProperties_.containsSubSet(Property::Gradients) || requiredProperties_.containsSubSet(Property::Hessian)) &&
+    if (!(settings_->getBool(SettingsNames::enforceScfCriterion)) &&
+        (requiredProperties_.containsSubSet(Property::Gradients) || requiredProperties_.containsSubSet(Property::Hessian)) &&
         settings_->getDouble(Utils::SettingsNames::selfConsistenceCriterion) > 1e-8) {
       settings_->modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-8);
       this->getLog().warning << "Warning: Energy accuracy was increased to 1e-8 to ensure valid gradients/hessian "
@@ -150,7 +164,8 @@ PropertyList TurbomoleCalculator::getRequiredProperties() const {
 
 PropertyList TurbomoleCalculator::possibleProperties() const {
   return Property::Energy | Property::Gradients | Property::Hessian | Property::BondOrderMatrix |
-         Property::PointChargesGradients | Property::Thermochemistry | Property::AtomicCharges;
+         Property::PointChargesGradients | Property::Thermochemistry | Property::AtomicCharges |
+         Property::ExcitedStates | Property::SuccessfulCalculation;
 }
 
 const Results& TurbomoleCalculator::calculate(std::string description) {
@@ -193,7 +208,13 @@ const Results& TurbomoleCalculator::calculateImpl(std::string description) {
     throw std::runtime_error("No or incorrect information about the binary path for Turbomole was given.");
   }
 
-  helper.execute("ridft", true);
+  std::string executableName = "ridft";
+  if (!settings_->getBool(SettingsNames::enableRi)) {
+    executableName = "dscf";
+    files_.outputFile = files_.dscfFile;
+  }
+
+  helper.execute(executableName, true);
 
   TurbomoleMainOutputParser parser(files_);
   parser.checkForErrors();
@@ -204,18 +225,32 @@ const Results& TurbomoleCalculator::calculateImpl(std::string description) {
     auto nElec = settings_->getInt(Utils::SettingsNames::spinMultiplicity) - 1;
     // check if calculation really is unrestricted
     if ((spinMode == SpinMode::Unrestricted) || (nElec % 2 != 0)) {
-      FilesystemHelpers::copyFile(files_.ridftFile, files_.ridftBakFile);
+      FilesystemHelpers::copyFile(files_.outputFile, files_.outputBakFile);
       TurbomoleOrbitalSteerer steerer(calculationDirectory_);
       steerer.steerOrbitals();
-      helper.execute("ridft", true);
+      helper.execute(executableName, true);
     }
     else
       throw std::runtime_error("Orbital steering can only be performed for unrestricted calculations. ");
   }
 
+  if (requiredProperties_.containsSubSet(Property::ExcitedStates)) {
+    helper.execute("escf", true);
+  }
+
   if (requiredProperties_.containsSubSet(Property::Gradients) ||
       requiredProperties_.containsSubSet(Property::PointChargesGradients)) {
-    helper.execute("rdgrad", true);
+    if (requiredProperties_.containsSubSet(Property::ExcitedStates)) {
+      helper.execute("egrad", true);
+    }
+    else {
+      if (settings_->getBool(SettingsNames::enableRi)) {
+        helper.execute("rdgrad", true);
+      }
+      else {
+        helper.execute("grad", true);
+      }
+    }
   }
   if (requiredProperties_.containsSubSet(Property::Hessian) || requiredProperties_.containsSubSet(Property::Thermochemistry)) {
     helper.execute("aoforce", true);
@@ -226,7 +261,13 @@ const Results& TurbomoleCalculator::calculateImpl(std::string description) {
 
   results_.set<Property::Description>(std::move(description));
   if (requiredProperties_.containsSubSet(Property::Energy)) {
-    results_.set<Property::Energy>(parser.getEnergy());
+    if (requiredProperties_.containsSubSet(Property::ExcitedStates)) {
+      int highestExcitedState = settings_->getInt(SettingsNames::numExcitedStates);
+      results_.set<Property::Energy>(parser.getExcitedStateEnergy(highestExcitedState));
+    }
+    else {
+      results_.set<Property::Energy>(parser.getEnergy());
+    }
   }
 
   if (requiredProperties_.containsSubSet(Property::Gradients)) {
@@ -250,6 +291,7 @@ const Results& TurbomoleCalculator::calculateImpl(std::string description) {
                                                 results_.get<Property::Energy>());
     thermoCalc.setMolecularSymmetryNumber(parser.getSymmetryNumber());
     thermoCalc.setTemperature(settings_->getDouble(Utils::SettingsNames::temperature));
+    thermoCalc.setPressure(settings_->getDouble(Utils::SettingsNames::pressure));
     auto thermochemistry = thermoCalc.calculate();
     results_.set<Property::Thermochemistry>(thermochemistry);
   }

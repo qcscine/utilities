@@ -55,7 +55,7 @@ std::vector<PdbStreamHandler::FormatSupportPair> PdbStreamHandler::formats() con
 }
 
 bool PdbStreamHandler::formatSupported(const std::string& format, SupportType /* operation */
-                                       ) const {
+) const {
   return format == "pdb";
 }
 
@@ -71,26 +71,19 @@ void PdbStreamHandler::extractContent(std::istream& is, PdbFileData& data) {
 
   std::istringstream in(data.content);
   std::string line;
+  int numModels = 0;
+  bool structureHasModels = false;
   while (std::getline(in, line)) {
     // Extract header
-    if (!(line.rfind("ATOM", 0) == 0) && !(line.rfind("HETATM", 0) == 0)) {
+    if (!isAtomLine(line) && !isModelLine(line) && !(line.rfind("ENDMDL", 0) == 0)) {
       std::istringstream headerLine(line);
       data.header.append(std::string(std::istreambuf_iterator<char>{headerLine}, {}));
       data.header.append("\n");
     }
-    // Extract atom block
-    else if ((line.rfind("ATOM", 0) == 0) || (line.rfind("HETATM", 0) == 0)) {
-      // Find overlaying substructures
-      std::string identifier = line.substr(16, 1);
-      identifier.erase(std::remove(identifier.begin(), identifier.end(), ' '), identifier.end());
-      if (!identifier.empty() && std::find(data.overlayIdentifiers.begin(), data.overlayIdentifiers.end(), identifier) ==
-                                     data.overlayIdentifiers.end()) {
-        data.overlayIdentifiers.push_back(identifier);
-      }
-      data.nAtoms++;
-      std::istringstream atomLine(line);
-      data.atomBlock.append(std::string(std::istreambuf_iterator<char>{atomLine}, {}));
-      data.atomBlock.append("\n");
+
+    else if (isModelLine(line)) {
+      structureHasModels = true;
+      numModels++;
     }
     // Extract connectivity block
     else if (line.rfind("CONECT", 0) == 0) {
@@ -98,6 +91,23 @@ void PdbStreamHandler::extractContent(std::istream& is, PdbFileData& data) {
       data.connectivityBlock.append(std::string(std::istreambuf_iterator<char>{connectivityLine}, {}));
       data.connectivityBlock.append("\n");
     }
+  }
+  if (numModels > 1) {
+    data.numModels = numModels;
+  }
+
+  in.clear();
+  in.seekg(0);
+
+  // iterate over the file again to extract the atom blocks
+  if (structureHasModels) {
+    data.atomBlocks.resize(data.numModels);
+    extractModels(in, line, data);
+  }
+  else {
+    data.atomBlocks.resize(1);
+    data.nAtoms = 0;
+    extractStructure(in, line, data);
   }
 }
 
@@ -111,73 +121,82 @@ std::vector<AtomCollection> PdbStreamHandler::read(std::istream& is) const {
     data.overlayIdentifiers.emplace_back("A");
   }
 
-  structures.reserve(data.overlayIdentifiers.size());
-
   auto removeAllSpacesFromString = [](std::string a) -> std::string {
     a.erase(std::remove(a.begin(), a.end(), ' '), a.end());
     return a;
   };
 
   std::string line;
-  for (const auto& s : data.overlayIdentifiers) {
-    std::istringstream in(data.atomBlock);
-    AtomCollection structure;
-    for (int i = 0; i < data.nAtoms; ++i) {
-      std::getline(in, line);
-      std::istringstream iss(line);
+  for (const auto& atomBlock : data.atomBlocks) {
+    for (const auto& s : data.overlayIdentifiers) {
+      std::istringstream in(atomBlock);
+      AtomCollection structure;
+      for (int i = 0; i < data.nAtoms; ++i) {
+        std::getline(in, line);
+        std::istringstream iss(line);
 
-      if (iss.str().empty()) {
-        continue;
-      }
+        if (iss.str().empty()) {
+          continue;
+        }
 
-      // Get the elements
-      std::string elementStr = removeAllSpacesFromString(iss.str().substr(76, 3));
-      // get the residue names
-      std::string residueNameStr = removeAllSpacesFromString(iss.str().substr(17, 3));
-      std::string overlayIdentifier = removeAllSpacesFromString(iss.str().substr(16, 1));
+        // Get the elements
+        std::string elementStr = removeAllSpacesFromString(iss.str().substr(76, 3));
+        // get the residue names
+        std::string residueNameStr = removeAllSpacesFromString(iss.str().substr(17, 3));
+        std::string overlayIdentifier = removeAllSpacesFromString(iss.str().substr(16, 1));
 
-      if (residueNameStr == "HOH" && !includeHOH_) {
-        continue;
-      }
+        if (elementStr == "H" && !includeH_) {
+          continue;
+        }
 
-      if (elementStr == "H" && !includeH_) {
-        continue;
-      }
+        if (elementStr == "HOH" && !parseOnlySolvent_) {
+          continue;
+        }
 
-      elementStr.erase(remove_if(elementStr.begin(), elementStr.end(), [](char c) { return !isalpha(c); }), elementStr.end());
-      // Make sure capitalization matches our variant
-      std::transform(std::begin(elementStr), std::begin(elementStr) + 1, std::begin(elementStr), ::toupper);
-      // Make other letters lowercase
-      std::transform(std::begin(elementStr) + 1, std::end(elementStr), std::begin(elementStr) + 1, ::tolower);
-      ElementType f;
+        elementStr.erase(remove_if(elementStr.begin(), elementStr.end(), [](char c) { return !isalpha(c); }),
+                         elementStr.end());
+        // Make sure capitalization matches our variant
+        std::transform(std::begin(elementStr), std::begin(elementStr) + 1, std::begin(elementStr), ::toupper);
+        // Make other letters lowercase
+        std::transform(std::begin(elementStr) + 1, std::end(elementStr), std::begin(elementStr) + 1, ::tolower);
+        ElementType f;
 
-      try {
-        f = ElementInfo::elementTypeForSymbol(elementStr);
-      }
-      catch (...) {
-        throw FormattedStreamHandler::FormatMismatchException();
-      }
+        try {
+          f = ElementInfo::elementTypeForSymbol(elementStr);
+        }
+        catch (...) {
+          throw FormattedStreamHandler::FormatMismatchException();
+        }
 
-      // Get the positions
-      double x, y, z;
-      try {
-        x = std::stod(iss.str().substr(31, 8));
-        y = std::stod(iss.str().substr(39, 8));
-        z = std::stod(iss.str().substr(47, 8));
-      }
-      catch (...) {
-        throw FormattedStreamHandler::FormatMismatchException();
-      }
+        // Get the positions
+        double x, y, z;
+        try {
+          x = std::stod(iss.str().substr(31, 8));
+          y = std::stod(iss.str().substr(39, 8));
+          z = std::stod(iss.str().substr(47, 8));
+        }
+        catch (...) {
+          throw FormattedStreamHandler::FormatMismatchException();
+        }
 
-      if (overlayIdentifier == s || overlayIdentifier.empty()) {
         Position position(x, y, z);
         position *= Constants::bohr_per_angstrom;
         Atom atom(f, position);
-        structure.push_back(atom);
+
+        if (residueNameStr == "HOH" && parseOnlySolvent_) {
+          structure.push_back(atom);
+        }
+
+        else if ((!parseOnlySolvent_ && residueNameStr != "HOH") && (overlayIdentifier == s || overlayIdentifier.empty())) {
+          structure.push_back(atom);
+        }
       }
+      if (structure.size() == 0) {
+        throw std::runtime_error("Error parsing the structure!");
+      }
+      structures.push_back(structure);
     }
-    structures.push_back(structure);
-  } // iterate over substructures
+  }
   return structures;
 }
 
@@ -199,12 +218,65 @@ void PdbStreamHandler::setReadH(bool includeH) {
   includeH_ = includeH;
 }
 
-void PdbStreamHandler::setReadHOH(bool includeHOH) {
-  includeHOH_ = includeHOH;
+void PdbStreamHandler::parseOnlySolvent(bool parseOnlySolvent) {
+  parseOnlySolvent_ = parseOnlySolvent;
 }
 
 void PdbStreamHandler::setSubstructureID(int substructureID) {
   substructureID_ = substructureID;
+}
+
+void PdbStreamHandler::extractOverlayIdentifiers(std::string line, PdbFileData& data) {
+  std::string identifier = line.substr(16, 1);
+  identifier.erase(std::remove(identifier.begin(), identifier.end(), ' '), identifier.end());
+  if (!identifier.empty() && std::find(data.overlayIdentifiers.begin(), data.overlayIdentifiers.end(), identifier) ==
+                                 data.overlayIdentifiers.end()) {
+    data.overlayIdentifiers.push_back(identifier);
+  }
+}
+
+bool PdbStreamHandler::isAtomLine(std::string line) {
+  return (line.rfind("ATOM", 0) == 0) || (line.rfind("HETATM", 0) == 0);
+}
+
+bool PdbStreamHandler::isModelLine(std::string line) {
+  return line.rfind("MODEL", 0) == 0;
+}
+
+void PdbStreamHandler::extractModels(std::istringstream& in, std::string& line, PdbFileData& data) {
+  int modelNumber = 0;
+  while (std::getline(in, line)) {
+    if (isModelLine(line)) {
+      data.nAtoms = 0;
+      std::string atomBlock;
+      while (!(line.rfind("ENDMDL", 0) == 0) && std::getline(in, line)) {
+        // Extract atom block
+        if (isAtomLine(line)) {
+          data.nAtoms++;
+          // Find overlaying substructures
+          extractOverlayIdentifiers(line, data);
+          std::istringstream atomLine(line);
+          atomBlock.append(std::string(std::istreambuf_iterator<char>{atomLine}, {}));
+          atomBlock.append("\n");
+        }
+      }
+      data.atomBlocks.at(modelNumber) = atomBlock;
+      modelNumber++;
+    }
+  }
+}
+
+void PdbStreamHandler::extractStructure(std::istringstream& in, std::string& line, PdbFileData& data) {
+  while (std::getline(in, line)) {
+    if (isAtomLine(line)) {
+      // Find overlaying substructures
+      extractOverlayIdentifiers(line, data);
+      data.nAtoms++;
+      std::istringstream atomLine(line);
+      data.atomBlocks[0].append(std::string(std::istreambuf_iterator<char>{atomLine}, {}));
+      data.atomBlocks[0].append("\n");
+    }
+  }
 }
 
 } // namespace Utils

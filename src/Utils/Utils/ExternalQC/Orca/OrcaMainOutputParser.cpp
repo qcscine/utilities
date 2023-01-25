@@ -33,9 +33,14 @@ void OrcaMainOutputParser::extractContent(const std::string& filename) {
 }
 
 void OrcaMainOutputParser::checkForErrors() const {
-  std::regex r1(R"(E\s?R\s?R\s?O\s?R\s?)");
-  std::smatch m1;
-  if (std::regex_search(content_, m1, r1)) {
+  std::regex rScf(R"(SCF NOT CONVERGED)");
+  std::smatch mScf;
+  if (std::regex_search(content_, mScf, rScf)) {
+    throw ScfNotConvergedError("ORCA could not converge the SCF.");
+  }
+  std::regex rGeneral(R"(E\s?R\s?R\s?O\s?R\s?)");
+  std::smatch mGeneral;
+  if (std::regex_search(content_, mGeneral, rGeneral)) {
     throw OutputFileParsingError("ORCA encountered an error during the calculation.");
   }
 }

@@ -11,6 +11,7 @@
 #include <boost/asio.hpp>
 #include <boost/process.hpp>
 #include <boost/process/async.hpp>
+#include <fstream>
 #include <regex>
 
 namespace Scine {

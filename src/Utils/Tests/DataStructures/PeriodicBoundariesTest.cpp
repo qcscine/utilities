@@ -179,7 +179,7 @@ TEST_F(APeriodicBoundariesTest, ClassIsInitializedCorrectly) {
   PeriodicBoundaries pbc7 = PeriodicBoundaries(input, ";", false);
   EXPECT_TRUE(pbc7 != pbc6);
   ASSERT_THAT(pbc7.getPeriodicityString(), "xz");
-  std::vector<bool> expected = {true, false, true};
+  std::array<bool, 3> expected = {true, false, true};
   ASSERT_THAT(pbc7.getPeriodicity(), expected);
 
   // reassignments

@@ -20,13 +20,15 @@ struct PdbFileData {
   // The header of the PDB file including diverse information.
   std::string header;
   // The atom block of the PDB file
-  std::string atomBlock;
+  std::vector<std::string> atomBlocks;
   // The bond order block of the PDB file
   std::string connectivityBlock;
   // A vector of overlaying substructure identifiers
   std::vector<std::string> overlayIdentifiers;
   // The number of Atoms in the file
   int nAtoms = 0;
+  // The number of models (snapshots) resolved in the structure
+  int numModels = 1;
 };
 
 class AtomCollection;
@@ -83,14 +85,20 @@ class PdbStreamHandler : public FormattedStreamHandler {
   // Function to set whether hydrogen atoms should be parse
   void setReadH(bool includeH);
   // Function to set whether solvent molecules should be parsed
-  void setReadHOH(bool includeHOH);
+  void parseOnlySolvent(bool parseOnlySolvent);
   void setSubstructureID(int substructureID);
 
  private:
   static void extractContent(std::istream& is, PdbFileData& data);
+  static void extractOverlayIdentifiers(std::string line, PdbFileData& data);
+  static bool isAtomLine(std::string line);
+  static bool isModelLine(std::string line);
+  static void extractModels(std::istringstream& in, std::string& line, PdbFileData& data);
+  static void extractStructure(std::istringstream& in, std::string& line, PdbFileData& data);
   bool includeH_ = true;
-  bool includeHOH_ = true;
+  bool parseOnlySolvent_ = false;
   unsigned int substructureID_ = 0;
+  std::vector<std::string> listOfSupportedSolventMolecules = {"HOH"};
 };
 
 } // namespace Utils

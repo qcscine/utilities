@@ -15,3 +15,6 @@ def test_ElementInfo():
     assert scine.ElementInfo.mass(scine.ElementType.Ru) == 101.07
 
     assert scine.ElementInfo.Z(scine.ElementType.F) == 9
+
+    assert scine.ElementInfo.all_implemented_elements()
+    assert [str(e) for e in scine.ElementInfo.all_implemented_elements()]

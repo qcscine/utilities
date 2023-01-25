@@ -38,12 +38,17 @@ class OrcaCalculatorSettings : public Scine::Utils::Settings {
   void addDeleteTemporaryFilesOption(UniversalSettings::DescriptorCollection& settings);
   void addPointChargesFile(UniversalSettings::DescriptorCollection& settings);
   void addTemperature(UniversalSettings::DescriptorCollection& settings);
+  void addPressure(UniversalSettings::DescriptorCollection& settings);
   void addSolvent(UniversalSettings::DescriptorCollection& settings);
   void addSolvation(UniversalSettings::DescriptorCollection& settings);
   void addElectronicTemperature(UniversalSettings::DescriptorCollection& settings);
   void addScfDamping(UniversalSettings::DescriptorCollection& settings);
   void addHessianCalculationType(UniversalSettings::DescriptorCollection& settings);
   void addSpecialOption(UniversalSettings::DescriptorCollection& settings);
+  void addBrokenSymmetryOption(UniversalSettings::DescriptorCollection& settings);
+  void addSpinFlipSites(UniversalSettings::DescriptorCollection& settings);
+  void addInitialMultiplicity(UniversalSettings::DescriptorCollection& settings);
+  void addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings);
 
   /**
    * @brief Constructor that populates the OrcaCalculatorSettings.
@@ -63,12 +68,17 @@ class OrcaCalculatorSettings : public Scine::Utils::Settings {
     addDeleteTemporaryFilesOption(_fields);
     addPointChargesFile(_fields);
     addTemperature(_fields);
+    addPressure(_fields);
     addSolvent(_fields);
     addSolvation(_fields);
     addScfDamping(_fields);
     addHessianCalculationType(_fields);
     addElectronicTemperature(_fields);
     addSpecialOption(_fields);
+    addBrokenSymmetryOption(_fields);
+    addSpinFlipSites(_fields);
+    addInitialMultiplicity(_fields);
+    addScfCriterionEnforce(_fields);
     resetToDefaults();
   };
 };
@@ -170,6 +180,12 @@ inline void OrcaCalculatorSettings::addTemperature(UniversalSettings::Descriptor
   settings.push_back(Utils::SettingsNames::temperature, std::move(temperature));
 }
 
+inline void OrcaCalculatorSettings::addPressure(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::DoubleDescriptor pressure("Sets the pressure for the thermochemical calculation in Pa.");
+  pressure.setDefaultValue(101325.0);
+  settings.push_back(Utils::SettingsNames::pressure, std::move(pressure));
+}
+
 inline void OrcaCalculatorSettings::addSolvent(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::StringDescriptor solventOption(
       "Sets the implicit solvent using the CPCM model to be applied in the ORCA calculation.");
@@ -211,6 +227,35 @@ inline void OrcaCalculatorSettings::addSpecialOption(UniversalSettings::Descript
       "Allows to add a custom string to the ORCA input line; recommended for experts only.");
   specialOption.setDefaultValue("");
   settings.push_back(ExternalQC::SettingsNames::specialOption, std::move(specialOption));
+}
+
+inline void OrcaCalculatorSettings::addBrokenSymmetryOption(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::BoolDescriptor performBrokenSymmetryCalculation(
+      "Whether a broken-symmetry DFT calculation should be performed.");
+  performBrokenSymmetryCalculation.setDefaultValue(false);
+  settings.push_back(ExternalQC::SettingsNames::performBrokenSymmetryCalculation, std::move(performBrokenSymmetryCalculation));
+}
+
+inline void OrcaCalculatorSettings::addSpinFlipSites(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::IntListDescriptor spinFlipSites(
+      "The atom indices of all sites at which the spin density should be flipped.");
+  spinFlipSites.setDefaultValue({});
+  settings.push_back(ExternalQC::SettingsNames::spinFlipSites, std::move(spinFlipSites));
+}
+
+inline void OrcaCalculatorSettings::addInitialMultiplicity(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::IntDescriptor initialSpinMultiplicity(
+      "The spin multiplicity for the high-spin state before spin density is flipped at one or more local sites.");
+  initialSpinMultiplicity.setDefaultValue(-1);
+  settings.push_back(ExternalQC::SettingsNames::initialSpinMultiplicity, std::move(initialSpinMultiplicity));
+}
+
+inline void OrcaCalculatorSettings::addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::BoolDescriptor scfEnforce(
+      "Whether the set self_consistence_criterion should not be made stricter, "
+      "even if derivative quantities are calculated.");
+  scfEnforce.setDefaultValue(false);
+  settings.push_back(SettingsNames::enforceScfCriterion, std::move(scfEnforce));
 }
 
 } // namespace ExternalQC

@@ -31,6 +31,8 @@ class ADensityMatrixBuilderTest : public Test {
   void testReturnsZeroForUHF();
   void testProducesCorrectNumberOfElectronsForRHF();
   void testProducesCorrectNumberOfElectronsForUHF();
+  void testProducesCorrectNumberOfAOsForRHF();
+  void testProducesCorrectNumberOfAOsForUHF();
   void testOrbitalsCanBeSpecifiedForRHF();
   void testOrbitalsCanBeSpecifiedForUHF();
   void testSwapsCanBeSpecifiedForRHF();
@@ -79,6 +81,30 @@ void ADensityMatrixBuilderTest::testProducesCorrectNumberOfElectronsForUHF() {
 
   ASSERT_THAT(dUHF.numberElectronsInAlphaMatrix(), Eq(nAlpha));
   ASSERT_THAT(dUHF.numberElectronsInBetaMatrix(), Eq(nBeta));
+}
+
+void ADensityMatrixBuilderTest::testProducesCorrectNumberOfAOsForRHF() {
+  DensityMatrixBuilder matrixBuilderRHF(randomRHFMatrix);
+  int AOs = randomRHFMatrix.restrictedMatrix().rows();
+
+  auto dRHF = matrixBuilderRHF.generateRestrictedForNumberElectrons(6);
+
+  ASSERT_THAT(dRHF.restrictedMatrix().rows(), Eq(AOs));
+  ASSERT_THAT(dRHF.restrictedMatrix().cols(), Eq(AOs));
+}
+
+void ADensityMatrixBuilderTest::testProducesCorrectNumberOfAOsForUHF() {
+  DensityMatrixBuilder matrixBuilderUHF(randomUHFMatrix);
+  int AOs = randomUHFMatrix.restrictedMatrix().rows();
+
+  auto dUHF = matrixBuilderUHF.generateUnrestrictedForNumberAlphaAndBetaElectrons(6, 6);
+
+  ASSERT_THAT(dUHF.restrictedMatrix().rows(), Eq(AOs));
+  ASSERT_THAT(dUHF.restrictedMatrix().cols(), Eq(AOs));
+  ASSERT_THAT(dUHF.alphaMatrix().rows(), Eq(AOs));
+  ASSERT_THAT(dUHF.alphaMatrix().cols(), Eq(AOs));
+  ASSERT_THAT(dUHF.betaMatrix().rows(), Eq(AOs));
+  ASSERT_THAT(dUHF.betaMatrix().cols(), Eq(AOs));
 }
 
 void ADensityMatrixBuilderTest::testProducesCorrectNumberOfElectronsForRHF() {

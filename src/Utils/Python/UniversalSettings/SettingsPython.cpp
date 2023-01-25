@@ -83,6 +83,9 @@ void init_settings(pybind11::module& m) {
 
   settings.def("valid", &Settings::valid, "Checks if the settings are acceptable w.r.t. the defined boundaries");
 
+  settings.def("throw_incorrect_settings", &Settings::throwIncorrectSettings,
+               "Throws an exception with the incorrect setting; settings must be invalid");
+
   settings.def("reset", &Settings::resetToDefaults, "Resets the settings to the defaults");
 
   settings.def(
@@ -105,7 +108,7 @@ void init_settings(pybind11::module& m) {
                                          [&](const auto& keyValuePair) { return keyValuePair.first == key; });
 
       if (findIter == std::end(descriptors)) {
-        throw std::runtime_error("There is no matching key in these Settings!");
+        throw std::runtime_error("There is no matching key '" + key + "' in these Settings!");
       }
 
       settings.addGenericValue(key, GenericValueMeta::convert(v));

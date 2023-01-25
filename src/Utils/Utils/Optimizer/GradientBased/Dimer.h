@@ -11,6 +11,7 @@
 #include "Utils/Optimizer/GradientBased/Gdiis.h"
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include <Core/Log.h>
 #include <Utils/Geometry/AtomCollection.h>
 #include <Eigen/Core>
@@ -65,29 +66,6 @@ namespace Utils {
  */
 class Dimer : public Optimizer {
  public:
-  static constexpr const char* dimerSkipFirstRotation = "dimer_skip_first_rotation";
-  static constexpr const char* dimerDecreaseRotationGradientThreshold = "dimer_decrease_rotation_gradient_threshold";
-  static constexpr const char* dimerGradientInterpolation = "dimer_gradient_interpolation";
-  static constexpr const char* dimerRotationCG = "dimer_rotation_conjugate_gradient";
-  static constexpr const char* dimerRotationLBFGS = "dimer_rotation_lbfgs";
-  static constexpr const char* dimerOnlyOneRotation = "dimer_only_one_rotation";
-  static constexpr const char* dimerTranslation = "dimer_translation";
-  static constexpr const char* dimerMultiScale = "dimer_multi_scale";
-  static constexpr const char* dimerRadius = "dimer_radius";
-  static constexpr const char* dimerPhiTolerance = "dimer_phi_tolerance";
-  static constexpr const char* dimerRotationGradientThresholdFirstCycle = "dimer_rotation_gradient_first";
-  static constexpr const char* dimerRotationGradientThresholdOtherCycles = "dimer_rotation_gradient_other";
-  static constexpr const char* dimerLoweredRotationGradientThreshold = "dimer_lowered_rotation_gradient";
-  static constexpr const char* dimerGradRMSDthreshold = "dimer_grad_rmsd_threshold";
-  static constexpr const char* dimerTrustRadius = "dimer_trust_radius";
-  static constexpr const char* dimerDefaultTranslationStep = "dimer_default_translation_step";
-  static constexpr const char* dimerMaxRotationsFirstCycle = "dimer_max_rotations_first_cycle";
-  static constexpr const char* dimerMaxRotationsOtherCycles = "dimer_max_rotations_other_cycle";
-  static constexpr const char* dimerIntervalOfRotations = "dimer_interval_of_rotations";
-  static constexpr const char* dimerCycleOfRotationGradientDecrease = "dimer_cycle_of_rotation_gradient_decrease";
-  static constexpr const char* dimerLbfgsMemory = "dimer_lbfgs_memory";
-  static constexpr const char* dimerBfgsStart = "dimer_bfgs_start";
-  static constexpr const char* dimerMinimizationCycle = "dimer_minimization_cycle";
   /// @brief Default constructor.
   Dimer() = default;
   /**
@@ -229,133 +207,141 @@ class Dimer : public Optimizer {
     UniversalSettings::BoolDescriptor skip_first_rotation(
         "If the provided guessVector shall be used without rotation in first step.");
     skip_first_rotation.setDefaultValue(skipFirstRotation);
-    collection.push_back(Dimer::dimerSkipFirstRotation, skip_first_rotation);
+    collection.push_back(SettingsNames::Optimizations::Dimer::skipFirstRotation, skip_first_rotation);
     UniversalSettings::BoolDescriptor decrease_rotation_gradient_threshold(
         "If threshold for convergence in rotation shall be lowered after certain number of rotationcycles.");
     decrease_rotation_gradient_threshold.setDefaultValue(decreaseRotationGradientThreshold);
-    collection.push_back(Dimer::dimerDecreaseRotationGradientThreshold, decrease_rotation_gradient_threshold);
+    collection.push_back(SettingsNames::Optimizations::Dimer::decreaseRotationGradientThreshold,
+                         decrease_rotation_gradient_threshold);
     UniversalSettings::BoolDescriptor gradient_interpolation(
         "If gradient of R1 shall be estimated by interpolation from last rotation data.");
     gradient_interpolation.setDefaultValue(gradientInterpolation);
-    collection.push_back(Dimer::dimerGradientInterpolation, gradient_interpolation);
+    collection.push_back(SettingsNames::Optimizations::Dimer::gradientInterpolation, gradient_interpolation);
     UniversalSettings::BoolDescriptor rotation_conjugate_gradient("If conjugate gradient shall be used for rotation.");
     rotation_conjugate_gradient.setDefaultValue(rotationCG);
-    collection.push_back(Dimer::dimerRotationCG, rotation_conjugate_gradient);
+    collection.push_back(SettingsNames::Optimizations::Dimer::rotationCG, rotation_conjugate_gradient);
     UniversalSettings::BoolDescriptor rotation_lbfgs("If L-BFGS shall be used for rotation.");
     rotation_lbfgs.setDefaultValue(rotationLBFGS);
-    collection.push_back(Dimer::dimerRotationLBFGS, rotation_lbfgs);
+    collection.push_back(SettingsNames::Optimizations::Dimer::rotationLBFGS, rotation_lbfgs);
     UniversalSettings::BoolDescriptor only_one_rotation("If rotation shall only be performed in first step.");
     only_one_rotation.setDefaultValue(onlyOneRotation);
-    collection.push_back(Dimer::dimerOnlyOneRotation, only_one_rotation);
-    UniversalSettings::OptionListDescriptor translation(
-        "Which algorithm shall be used for the translation of the dimer.");
+    collection.push_back(SettingsNames::Optimizations::Dimer::onlyOneRotation, only_one_rotation);
+    UniversalSettings::OptionListDescriptor translation("Which algorithm shall be used for the translation of the .");
     translation.addOption("bfgs");
     translation.addOption("linesearch");
     translation.addOption("amsgrad");
     translation.setDefaultOption("bfgs");
-    collection.push_back(Dimer::dimerTranslation, translation);
+    collection.push_back(SettingsNames::Optimizations::Dimer::translation, translation);
     UniversalSettings::BoolDescriptor multi_scale(
         "If the projection step size factor shall be applied to previous step size.");
     multi_scale.setDefaultValue(multiScale);
-    collection.push_back(Dimer::dimerMultiScale, multi_scale);
-    UniversalSettings::DoubleDescriptor dimer_radius("Distance between the two images of the dimer.");
-    dimer_radius.setMinimum(0.0);
-    dimer_radius.setDefaultValue(radius);
-    collection.push_back(Dimer::dimerRadius, dimer_radius);
+    collection.push_back(SettingsNames::Optimizations::Dimer::multiScale, multi_scale);
+    UniversalSettings::DoubleDescriptor _radius("Distance between the two images of the .");
+    _radius.setMinimum(0.0);
+    _radius.setDefaultValue(radius);
+    collection.push_back(SettingsNames::Optimizations::Dimer::radius, _radius);
     UniversalSettings::DoubleDescriptor phi_tolerance("The convergence criterion for the rotation angle.");
     phi_tolerance.setMinimum(0.0);
     phi_tolerance.setDefaultValue(phiTolerance);
-    collection.push_back(Dimer::dimerPhiTolerance, phi_tolerance);
+    collection.push_back(SettingsNames::Optimizations::Dimer::phiTolerance, phi_tolerance);
     UniversalSettings::DoubleDescriptor rotation_gradient_threshold_first_cycle(
         "The convergence criterion for the gradient of the rotation in the first rotation cycle.");
     rotation_gradient_threshold_first_cycle.setMinimum(0.0);
     rotation_gradient_threshold_first_cycle.setDefaultValue(rotationGradientThresholdFirstCycle);
-    collection.push_back(Dimer::dimerRotationGradientThresholdFirstCycle, rotation_gradient_threshold_first_cycle);
+    collection.push_back(SettingsNames::Optimizations::Dimer::rotationGradientThresholdFirstCycle,
+                         rotation_gradient_threshold_first_cycle);
     UniversalSettings::DoubleDescriptor rotation_gradient_threshold_other_cycles(
         "The convergence criterion for the gradient of the rotation in all but the first rotation cycle.");
     rotation_gradient_threshold_other_cycles.setMinimum(0.0);
     rotation_gradient_threshold_other_cycles.setDefaultValue(rotationGradientThresholdOtherCycles);
-    collection.push_back(Dimer::dimerRotationGradientThresholdOtherCycles, rotation_gradient_threshold_other_cycles);
+    collection.push_back(SettingsNames::Optimizations::Dimer::rotationGradientThresholdOtherCycles,
+                         rotation_gradient_threshold_other_cycles);
     UniversalSettings::DoubleDescriptor lowered_rotation_gradient_threshold(
         "The convergence criterion for the gradient of the rotation if the criterion is lowered after some cycles.");
     lowered_rotation_gradient_threshold.setMinimum(0.0);
     lowered_rotation_gradient_threshold.setDefaultValue(loweredRotationGradientThreshold);
-    collection.push_back(Dimer::dimerLoweredRotationGradientThreshold, lowered_rotation_gradient_threshold);
+    collection.push_back(SettingsNames::Optimizations::Dimer::loweredRotationGradientThreshold,
+                         lowered_rotation_gradient_threshold);
     UniversalSettings::DoubleDescriptor grad_rmsd_threshold(
         "RMSD threshold of the gradient for starting the stepsize scaling.");
     grad_rmsd_threshold.setMinimum(0.0);
     grad_rmsd_threshold.setDefaultValue(gradRMSDthreshold);
-    collection.push_back(Dimer::dimerGradRMSDthreshold, grad_rmsd_threshold);
-    UniversalSettings::DoubleDescriptor dimer_trust_radius("The maximum RMS of a taken step.");
-    dimer_trust_radius.setMinimum(0.0);
-    dimer_trust_radius.setDefaultValue(trustRadius);
-    collection.push_back(Dimer::dimerTrustRadius, dimer_trust_radius);
-    UniversalSettings::DoubleDescriptor dimer_default_translation_step(
+    collection.push_back(SettingsNames::Optimizations::Dimer::gradRMSDthreshold, grad_rmsd_threshold);
+    UniversalSettings::DoubleDescriptor _trust_radius("The maximum RMS of a taken step.");
+    _trust_radius.setMinimum(0.0);
+    _trust_radius.setDefaultValue(trustRadius);
+    collection.push_back(SettingsNames::Optimizations::Dimer::trustRadius, _trust_radius);
+    UniversalSettings::DoubleDescriptor _default_translation_step(
         "The factor to multiple the stepsize vector in a steepest descent step.");
-    dimer_default_translation_step.setMinimum(0.0);
-    dimer_default_translation_step.setDefaultValue(defaultTranslationStep);
-    collection.push_back(Dimer::dimerDefaultTranslationStep, dimer_default_translation_step);
+    _default_translation_step.setMinimum(0.0);
+    _default_translation_step.setDefaultValue(defaultTranslationStep);
+    collection.push_back(SettingsNames::Optimizations::Dimer::defaultTranslationStep, _default_translation_step);
     UniversalSettings::IntDescriptor max_rotations_first_cycle(
         "The maximum number of rotations in the first rotation cycle.");
     max_rotations_first_cycle.setMinimum(0);
     max_rotations_first_cycle.setDefaultValue(maxRotationsFirstCycle);
-    collection.push_back(Dimer::dimerMaxRotationsFirstCycle, max_rotations_first_cycle);
+    collection.push_back(SettingsNames::Optimizations::Dimer::maxRotationsFirstCycle, max_rotations_first_cycle);
     UniversalSettings::IntDescriptor max_rotations_other_cycle(
         "The maximum number of rotations in all but the first rotation cycle.");
     max_rotations_other_cycle.setMinimum(0);
     max_rotations_other_cycle.setDefaultValue(maxRotationsOtherCycles);
-    collection.push_back(Dimer::dimerMaxRotationsOtherCycles, max_rotations_other_cycle);
+    collection.push_back(SettingsNames::Optimizations::Dimer::maxRotationsOtherCycles, max_rotations_other_cycle);
     UniversalSettings::IntDescriptor interval_of_rotations(
         "The interval of performed rotation cycles in the total optimization steps.");
     interval_of_rotations.setMinimum(1);
     interval_of_rotations.setDefaultValue(intervalOfRotations);
-    collection.push_back(Dimer::dimerIntervalOfRotations, interval_of_rotations);
+    collection.push_back(SettingsNames::Optimizations::Dimer::intervalOfRotations, interval_of_rotations);
     UniversalSettings::IntDescriptor cycle_of_rotation_gradient_decrease(
         "The number of rotation cycles after which the threshold for the gradient of rotation is decreased.");
     cycle_of_rotation_gradient_decrease.setMinimum(0);
     cycle_of_rotation_gradient_decrease.setDefaultValue(cycleOfRotationGradientDecrease);
-    collection.push_back(Dimer::dimerCycleOfRotationGradientDecrease, cycle_of_rotation_gradient_decrease);
+    collection.push_back(SettingsNames::Optimizations::Dimer::cycleOfRotationGradientDecrease,
+                         cycle_of_rotation_gradient_decrease);
     UniversalSettings::IntDescriptor lbfgs_memory("The number of saved gradients during rotation in L-BFGS.");
     lbfgs_memory.setMinimum(1);
     lbfgs_memory.setDefaultValue(lbfgsMemory);
-    collection.push_back(Dimer::dimerLbfgsMemory, lbfgs_memory);
+    collection.push_back(SettingsNames::Optimizations::Dimer::lbfgsMemory, lbfgs_memory);
     UniversalSettings::IntDescriptor bfgs_start("The cycle in which BFGS is used in translation.");
     bfgs_start.setMinimum(1);
     bfgs_start.setDefaultValue(bfgsStart);
-    collection.push_back(Dimer::dimerBfgsStart, bfgs_start);
+    collection.push_back(SettingsNames::Optimizations::Dimer::bfgsStart, bfgs_start);
     UniversalSettings::IntDescriptor minimization_cycle("The cycle in which all other modes are always minimized");
     minimization_cycle.setMinimum(1);
     minimization_cycle.setDefaultValue(minimizationCycle);
-    collection.push_back(Dimer::dimerMinimizationCycle, minimization_cycle);
+    collection.push_back(SettingsNames::Optimizations::Dimer::minimizationCycle, minimization_cycle);
   }
   /**
    * @brief Updates the Dimer's options with those values given in the Settings.
    * @param settings The settings to update the option of the steepest descent with.
    */
   void applySettings(const Settings& settings) final {
-    skipFirstRotation = settings.getBool(Dimer::dimerSkipFirstRotation);
-    decreaseRotationGradientThreshold = settings.getBool(Dimer::dimerDecreaseRotationGradientThreshold);
-    gradientInterpolation = settings.getBool(Dimer::dimerGradientInterpolation);
-    rotationCG = settings.getBool(Dimer::dimerRotationCG);
-    rotationLBFGS = settings.getBool(Dimer::dimerRotationLBFGS);
-    onlyOneRotation = settings.getBool(Dimer::dimerOnlyOneRotation);
-    translationMethod = settings.getString(Dimer::dimerTranslation);
-    multiScale = settings.getBool(Dimer::dimerMultiScale);
-    radius = settings.getDouble(Dimer::dimerRadius);
-    phiTolerance = settings.getDouble(Dimer::dimerPhiTolerance);
-    rotationGradientThresholdFirstCycle = settings.getDouble(Dimer::dimerRotationGradientThresholdFirstCycle);
-    rotationGradientThresholdOtherCycles = settings.getDouble(Dimer::dimerRotationGradientThresholdOtherCycles);
-    loweredRotationGradientThreshold = settings.getDouble(Dimer::dimerLoweredRotationGradientThreshold);
-    gradRMSDthreshold = settings.getDouble(Dimer::dimerGradRMSDthreshold);
-    trustRadius = settings.getDouble(Dimer::dimerTrustRadius);
-    defaultTranslationStep = settings.getDouble(Dimer::dimerDefaultTranslationStep);
-    maxRotationsFirstCycle = settings.getInt(Dimer::dimerMaxRotationsFirstCycle);
-    maxRotationsOtherCycles = settings.getInt(Dimer::dimerMaxRotationsOtherCycles);
-    intervalOfRotations = settings.getInt(Dimer::dimerIntervalOfRotations);
-    cycleOfRotationGradientDecrease = settings.getInt(Dimer::dimerCycleOfRotationGradientDecrease);
-    lbfgsMemory = settings.getInt(Dimer::dimerLbfgsMemory);
-    bfgsStart = settings.getInt(Dimer::dimerBfgsStart);
-    minimizationCycle = settings.getInt(Dimer::dimerMinimizationCycle);
+    skipFirstRotation = settings.getBool(SettingsNames::Optimizations::Dimer::skipFirstRotation);
+    decreaseRotationGradientThreshold =
+        settings.getBool(SettingsNames::Optimizations::Dimer::decreaseRotationGradientThreshold);
+    gradientInterpolation = settings.getBool(SettingsNames::Optimizations::Dimer::gradientInterpolation);
+    rotationCG = settings.getBool(SettingsNames::Optimizations::Dimer::rotationCG);
+    rotationLBFGS = settings.getBool(SettingsNames::Optimizations::Dimer::rotationLBFGS);
+    onlyOneRotation = settings.getBool(SettingsNames::Optimizations::Dimer::onlyOneRotation);
+    translationMethod = settings.getString(SettingsNames::Optimizations::Dimer::translation);
+    multiScale = settings.getBool(SettingsNames::Optimizations::Dimer::multiScale);
+    radius = settings.getDouble(SettingsNames::Optimizations::Dimer::radius);
+    phiTolerance = settings.getDouble(SettingsNames::Optimizations::Dimer::phiTolerance);
+    rotationGradientThresholdFirstCycle =
+        settings.getDouble(SettingsNames::Optimizations::Dimer::rotationGradientThresholdFirstCycle);
+    rotationGradientThresholdOtherCycles =
+        settings.getDouble(SettingsNames::Optimizations::Dimer::rotationGradientThresholdOtherCycles);
+    loweredRotationGradientThreshold =
+        settings.getDouble(SettingsNames::Optimizations::Dimer::loweredRotationGradientThreshold);
+    gradRMSDthreshold = settings.getDouble(SettingsNames::Optimizations::Dimer::gradRMSDthreshold);
+    trustRadius = settings.getDouble(SettingsNames::Optimizations::Dimer::trustRadius);
+    defaultTranslationStep = settings.getDouble(SettingsNames::Optimizations::Dimer::defaultTranslationStep);
+    maxRotationsFirstCycle = settings.getInt(SettingsNames::Optimizations::Dimer::maxRotationsFirstCycle);
+    maxRotationsOtherCycles = settings.getInt(SettingsNames::Optimizations::Dimer::maxRotationsOtherCycles);
+    intervalOfRotations = settings.getInt(SettingsNames::Optimizations::Dimer::intervalOfRotations);
+    cycleOfRotationGradientDecrease = settings.getInt(SettingsNames::Optimizations::Dimer::cycleOfRotationGradientDecrease);
+    lbfgsMemory = settings.getInt(SettingsNames::Optimizations::Dimer::lbfgsMemory);
+    bfgsStart = settings.getInt(SettingsNames::Optimizations::Dimer::bfgsStart);
+    minimizationCycle = settings.getInt(SettingsNames::Optimizations::Dimer::minimizationCycle);
   }
 
   /**

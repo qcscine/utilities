@@ -84,6 +84,62 @@ TEST_F(PeriodicSystemTest, CanonicalizationWorks) {
   ASSERT_TRUE(ps.atoms.getPositions().isApprox(copyPs.atoms.getPositions(), 1e-5));
 }
 
+TEST_F(PeriodicSystemTest, PrimitiveCellWorks) {
+  auto elements = ElementTypeCollection{};
+  const int n = 8;
+  for (int i = 0; i < n; ++i) {
+    elements.push_back(ElementType::H);
+  }
+  elements.push_back(ElementType::He);
+  PositionCollection positions = Eigen::MatrixX3d::Zero(9, 3);
+  // clang-format off
+  positions << 0.0, 0.0, 0.0, //
+               1.0, 0.0, 0.0, //            h - h - h
+               0.5, 0.5, 0.0, //          h | H   H |
+               0.0, 1.0, 0.0, //            H   H   h
+               1.0, 1.0, 0.0, //          h | H   H |
+               1.5, 0.5, 0.0, //            H - H - h
+               0.5, 1.5, 0.0, //          h   h   h
+               1.5, 1.5, 0.0, //
+               0.0, 0.0, 1.0; //  adsorbed atom above bottom left
+  // clang-format on
+  std::unordered_set<unsigned> indices = {0, 1, 2, 3, 4, 5, 6, 7};
+  Eigen::Matrix3d cellMatrix = Eigen::Matrix3d::Identity() * 2.0;
+  cellMatrix(2, 2) = 20.0;
+  pbc.setCellMatrix(cellMatrix);
+  auto ps = PeriodicSystem(pbc, elements, positions, indices);
+  double epsilon = 1e-6;
+  auto primitiveSmall = ps.getPrimitiveCellSystem(epsilon);
+  ASSERT_TRUE(primitiveSmall.atoms.size() == ps.atoms.size());
+  ASSERT_TRUE(primitiveSmall.pbc.isApprox(pbc, epsilon));
+
+  auto solidPrimSmall = ps.getPrimitiveCellSystem(epsilon, true);
+  ASSERT_TRUE(solidPrimSmall.atoms.size() == 1);
+  Eigen::Matrix3d expectedPbc;
+  expectedPbc << std::sqrt(0.5), 0.0, 0.0, 0.0, std::sqrt(0.5), 0.0, 0.0, 0.0, cellMatrix(2, 2);
+  ASSERT_TRUE(solidPrimSmall.pbc.getCellMatrix().isApprox(expectedPbc, epsilon));
+  ASSERT_TRUE(solidPrimSmall.solidStateAtomIndices.size() == 1);
+
+  // extend system and see if we still get the same
+  Eigen::Vector3i extension;
+  extension << 3, 3, 1;
+  auto superPs = ps * extension;
+  ASSERT_TRUE(superPs.atoms.size() == ps.atoms.size() * extension[0] * extension[1] * extension[2]);
+  ASSERT_TRUE(superPs.solidStateAtomIndices.size() == indices.size() * extension[0] * extension[1] * extension[2]);
+  auto primitive = superPs.getPrimitiveCellSystem(epsilon);
+  ASSERT_TRUE(primitive.atoms.size() == ps.atoms.size());
+  ASSERT_TRUE(primitive.pbc.isApprox(pbc, epsilon));
+  ASSERT_TRUE(primitive.solidStateAtomIndices.size() == indices.size());
+
+  auto solidPrim = superPs.getPrimitiveCellSystem(epsilon, true);
+  ASSERT_TRUE(solidPrim.atoms.size() == 1);
+  ASSERT_TRUE(solidPrim.pbc.getCellMatrix().isApprox(expectedPbc, epsilon));
+  ASSERT_TRUE(solidPrim.solidStateAtomIndices.size() == 1);
+
+  ASSERT_TRUE(primitiveSmall.isApprox(primitive, epsilon));
+  ASSERT_TRUE(solidPrimSmall.isApprox(solidPrim, epsilon));
+}
+
 TEST_F(PeriodicSystemTest, GetsCorrectImageAtoms) {
   /*
    *    | H H H |
@@ -315,7 +371,7 @@ TEST_F(PeriodicSystemTest, WorksForSurface) {
     ASSERT_THAT(nNeighbors, 4);
   }
   PeriodicSystem ps = PeriodicSystem(pbc, elements, positions, solid);
-  auto bo = ps.constructBondOrders();
+  auto bo = ps.constructBondOrders(true, false);
   bo.setToAbsoluteValues();
   for (int i = 0; i < n; ++i) {
     int counter = 0;
@@ -326,7 +382,7 @@ TEST_F(PeriodicSystemTest, WorksForSurface) {
     }
     ASSERT_THAT(counter, 4);
   }
-  auto imageAtoms = ps.getImageAtoms();
+  auto imageAtoms = ps.getImageAtoms(false);
   ASSERT_THAT(imageAtoms.size(), 10);
   // PeriodicSystem shifts center of mass to center of cell -> shift atoms back
   auto hSystem2d = AtomCollection(elements, positions);
@@ -384,7 +440,7 @@ TEST_F(PeriodicSystemTest, WorksForSurfaceShifted) {
     ASSERT_THAT(nNeighbors, 4);
   }
   PeriodicSystem ps = PeriodicSystem(pbc, elements, positions, solid);
-  auto bo = ps.constructBondOrders();
+  auto bo = ps.constructBondOrders(true, false);
   bo.setToAbsoluteValues();
   for (int i = 0; i < n; ++i) {
     int counter = 0;
@@ -395,7 +451,7 @@ TEST_F(PeriodicSystemTest, WorksForSurfaceShifted) {
     }
     ASSERT_THAT(counter, 4);
   }
-  auto imageAtoms = ps.getImageAtoms();
+  auto imageAtoms = ps.getImageAtoms(false);
   ASSERT_THAT(imageAtoms.size(), 10);
   // PeriodicSystem shifts center of mass to center of cell -> shift atoms back
   shiftBack(hSystem2d, imageAtoms);

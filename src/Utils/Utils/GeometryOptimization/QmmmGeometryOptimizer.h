@@ -9,6 +9,7 @@
 #define UTILS_QMMMGEOMETRYOPTIMIZER_H
 
 #include "GeometryOptimizer.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include <Core/Log.h>
 
 namespace Scine {
@@ -57,7 +58,8 @@ class QmmmGeometryOptimizerSettings : public Settings {
     geooptCoordinateSystem.addOption("cartesian");
     geooptCoordinateSystem.setDefaultOption(
         CoordinateSystemInterpreter::getStringFromCoordinateSystem(qmmmOptimizer.coordinateSystem));
-    this->_fields.push_back(GeometryOptimizerBase::geooptCoordinateSystemKey, std::move(geooptCoordinateSystem));
+    this->_fields.push_back(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem,
+                            std::move(geooptCoordinateSystem));
 
     UniversalSettings::IntDescriptor qmmmOptMaxMacroiterations("The maximum number of macrocycles allowed.");
     qmmmOptMaxMacroiterations.setDefaultValue(qmmmOptimizer.maxMacrocycles);
@@ -157,17 +159,17 @@ class QmmmGeometryOptimizer {
   int optimize(AtomCollection& atoms, Core::Log& log) {
     // Set settings for full optimizer
     Settings s1 = fullOptimizer->getSettings();
-    s1.modifyString(GeometryOptimizerBase::geooptCoordinateSystemKey,
+    s1.modifyString(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem,
                     CoordinateSystemInterpreter::getStringFromCoordinateSystem(this->coordinateSystem));
-    s1.modifyInt(GradientBasedCheck::gconvMaxIterKey, this->maxFullOptMicrocycles);
+    s1.modifyInt(SettingsNames::Optimizations::Convergence::maxIter, this->maxFullOptMicrocycles);
     fullOptimizer->setSettings(s1);
 
     // Set settings for MM optimizer
     Settings s2 = mmOptimizer->getSettings();
     // Coordinate system must be Cartesian because of constraints
-    s2.modifyString(GeometryOptimizerBase::geooptCoordinateSystemKey,
+    s2.modifyString(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem,
                     CoordinateSystemInterpreter::getStringFromCoordinateSystem(CoordinateSystem::Cartesian));
-    s2.modifyInt(GradientBasedCheck::gconvMaxIterKey, this->maxEnvOptMicrocycles);
+    s2.modifyInt(SettingsNames::Optimizations::Convergence::maxIter, this->maxEnvOptMicrocycles);
     mmOptimizer->setSettings(s2);
 
     // Add atoms close to boundary to constrained atoms for optimization of the environment
@@ -216,7 +218,7 @@ class QmmmGeometryOptimizer {
     fullOptimizer->optimizer.applySettings(settings);
     mmOptimizer->check.applySettings(settings);
     this->coordinateSystem = CoordinateSystemInterpreter::getCoordinateSystemFromString(
-        settings.getString(GeometryOptimizerBase::geooptCoordinateSystemKey));
+        settings.getString(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem));
     this->maxMacrocycles = settings.getInt(qmmmOptMaxMacroiterationsKey);
     this->maxFullOptMicrocycles = settings.getInt(qmmmOptMaxFullMicroiterationsKey);
     this->maxEnvOptMicrocycles = settings.getInt(qmmmOptMaxEnvMicroiterationsKey);
@@ -327,7 +329,7 @@ class QmmmGeometryOptimizer {
       }
     }
 
-    mmOptSettings.modifyIntList(GeometryOptimizerBase::geooptFixedAtomsKey, constrainedAtoms);
+    mmOptSettings.modifyIntList(SettingsNames::Optimizations::GeometryOptimizer::fixedAtoms, constrainedAtoms);
     mmOptimizer->setSettings(mmOptSettings);
   };
 };

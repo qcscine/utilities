@@ -76,7 +76,8 @@ void OrcaCalculator::applySettings() {
     // throws error for wrong input and updates 'any' entries */
     // information if solvation is performed is deduced from settings from InputFileCreator and therefore discarded here
     Solvation::ImplicitSolvation::solvationNeededAndPossible(availableSolvationModels_, *settings_);
-    if ((requiredProperties_.containsSubSet(Property::Gradients) || requiredProperties_.containsSubSet(Property::Hessian)) &&
+    if (!(settings_->getBool(SettingsNames::enforceScfCriterion)) &&
+        (requiredProperties_.containsSubSet(Property::Gradients) || requiredProperties_.containsSubSet(Property::Hessian)) &&
         settings_->getDouble(Utils::SettingsNames::selfConsistenceCriterion) > 1e-8) {
       settings_->modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-8);
       this->getLog().warning << "Warning: Energy accuracy was increased to 1e-8 to ensure valid gradients/hessian as "
@@ -125,7 +126,8 @@ PropertyList OrcaCalculator::getRequiredProperties() const {
 
 Utils::PropertyList OrcaCalculator::possibleProperties() const {
   return Property::Energy | Property::Gradients | Property::Hessian | Property::BondOrderMatrix |
-         Property::Thermochemistry | Property::AtomicCharges | Property::PointChargesGradients | Property::OrbitalEnergies;
+         Property::Thermochemistry | Property::AtomicCharges | Property::PointChargesGradients |
+         Property::OrbitalEnergies | Property::SuccessfulCalculation;
 }
 
 const Results& OrcaCalculator::calculate(std::string description) {

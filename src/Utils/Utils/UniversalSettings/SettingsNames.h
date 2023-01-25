@@ -24,6 +24,7 @@ static constexpr const char* loggerVerbosity = "log";
 static constexpr const char* symmetryNumber = "symmetry_number";
 static constexpr const char* methodParameters = "method_parameters";
 static constexpr const char* NDDODipoleApproximation = "nddo_dipole";
+static constexpr const char* mmCharges = "mm_charges";
 
 // Model
 static constexpr const char* method = "method";
@@ -33,6 +34,7 @@ static constexpr const char* program = "program";
 static constexpr const char* version = "version";
 static constexpr const char* basisSet = "basis_set";
 static constexpr const char* temperature = "temperature";
+static constexpr const char* pressure = "pressure";
 static constexpr const char* electronicTemperature = "electronic_temperature";
 static constexpr const char* solvation = "solvation";
 static constexpr const char* solvent = "solvent";

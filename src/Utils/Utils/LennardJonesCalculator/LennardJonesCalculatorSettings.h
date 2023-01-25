@@ -42,7 +42,7 @@ class LennardJonesCalculatorSettings : public Scine::Utils::Settings {
 inline void LennardJonesCalculatorSettings::populateSettings(UniversalSettings::DescriptorCollection& settings) {
   UniversalSettings::DoubleDescriptor convergence_threshold("Energy convergence limit.");
   convergence_threshold.setDefaultValue(1e-12);
-  settings.push_back(SettingsNames::selfConsistenceCriterion, convergence_threshold);
+  settings.push_back(Scine::Utils::SettingsNames::selfConsistenceCriterion, convergence_threshold);
 
   Utils::UniversalSettings::DoubleDescriptor lennardJonesSigma(
       "The sigma parameter for the Lennard-Jones potential in bohr.");

@@ -66,7 +66,7 @@ void init_periodic_boundaries(pybind11::module& m) {
                                    "The underlying matrix governing the periodic boundaries.");
 
   periodic_boundaries.def_property("periodicity", &PeriodicBoundaries::getPeriodicity,
-                                   pybind11::overload_cast<const std::vector<bool>>(&PeriodicBoundaries::setPeriodicity),
+                                   pybind11::overload_cast<const std::array<bool, 3>>(&PeriodicBoundaries::setPeriodicity),
                                    "The periodicity of the cell.");
 
   periodic_boundaries.def(
@@ -127,10 +127,20 @@ void init_periodic_boundaries(pybind11::module& m) {
                           "Translate given PositionCollection into the unit cell. Optionally you can give an "
                           "additional shift vector in Relative Coordinates.");
 
+  periodic_boundaries.def("is_within_cell",
+                          pybind11::overload_cast<const Position&>(&PeriodicBoundaries::isWithinCell, pybind11::const_),
+                          pybind11::arg("position"), "Whether given position lies within the periodic boundaries");
+
+  periodic_boundaries.def("is_within_cell",
+                          pybind11::overload_cast<const PositionCollection&>(&PeriodicBoundaries::isWithinCell, pybind11::const_),
+                          pybind11::arg("position"), "Whether all given positions lie within the periodic boundaries");
+
   periodic_boundaries.def("__str__", &PeriodicBoundaries::getPeriodicBoundariesString, pybind11::arg("delimiter") = ",",
                           "String of all cell lengths and angles.");
 
   // operators
+  periodic_boundaries.def("is_approx", &PeriodicBoundaries::isApprox, pybind11::arg("other_pbc"),
+                          pybind11::arg("epsilon") = 1e-6, "Allows to set the accuracy of the fuzzy comparison.");
   periodic_boundaries.def(pybind11::self == pybind11::self);
   periodic_boundaries.def(pybind11::self != pybind11::self);
   periodic_boundaries.def(
@@ -141,4 +151,9 @@ void init_periodic_boundaries(pybind11::module& m) {
       "__mul__", [&](const PeriodicBoundaries& pbc, const Eigen::Vector3d& x) { return pbc * x; }, pybind11::is_operator());
   periodic_boundaries.def(
       "__imul__", [&](PeriodicBoundaries& pbc, const Eigen::Vector3d& x) { return pbc *= x; }, pybind11::is_operator());
+  periodic_boundaries.def(
+      "__mul__", [&](const PeriodicBoundaries& pbc, const std::vector<double>& x) { return pbc * x; },
+      pybind11::is_operator());
+  periodic_boundaries.def(
+      "__imul__", [&](PeriodicBoundaries& pbc, const std::vector<double>& x) { return pbc *= x; }, pybind11::is_operator());
 }

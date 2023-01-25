@@ -11,6 +11,7 @@
 #include "Utils/Optimizer/GradientBased/Gdiis.h"
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include <Core/Log.h>
 #include <Eigen/Core>
 
@@ -42,12 +43,6 @@ namespace Utils {
  */
 class Bfgs : public Optimizer {
  public:
-  static constexpr const char* bfgsMinIter = "bfgs_min_iterations";
-  static constexpr const char* bfgsUseTrustRadius = "bfgs_use_trust_radius";
-  static constexpr const char* bfgsTrustRadius = "bfgs_trust_radius";
-  static constexpr const char* bfgsUseGdiis = "bfgs_use_gdiis";
-  static constexpr const char* bfgsGdiisMaxStore = "bfgs_gdiis_max_store";
-
   /// @brief Default constructor.
   Bfgs() = default;
   /**
@@ -132,7 +127,6 @@ class Bfgs : public Optimizer {
       /* Check stop criteria only after requested initial updates have been performed */
       stop = (check.checkMaxIterations(_cycle) || check.checkConvergence(parameters, value, constrainGradient(gradients))) &&
              minIterPerformed;
-
       if (stop) {
         break;
       }
@@ -210,16 +204,40 @@ class Bfgs : public Optimizer {
           /* Reset parameters back to before gdiis */
           parameters.noalias() = parametersOld;
           /* Reset inverse Hessian matrix and the GDIIS */
-          invH.noalias() = Eigen::MatrixXd::Identity(nParams, nParams) * dxTdg / dg.dot(dg);
+          this->resetInverseHessian(dg, dxTdg);
           if (useGdiis) {
             diis.flush();
           }
         }
       }
       constrainedAdd(parameters, stepVector);
+      if (this->isOscillating(value)) {
+        this->oscillationCorrection(stepVector, parameters);
+        this->resetInverseHessian(dg, dxTdg);
+        this->_valueMemory.clear();
+        if (useGdiis) {
+          diis.flush();
+        }
+      }
     }
     return _cycle;
   }
+  /**
+   * @brief Reset the inverse hessian.
+   * @param dg    Gradient change between iterations.
+   * @param dxTdg Scalar product of parameter and gradient change.
+   */
+  void resetInverseHessian(const Eigen::VectorXd& dg, const double& dxTdg) {
+    const double dgTdg = dg.transpose() * dg;
+    const unsigned int nParams = dg.rows();
+    if (dgTdg > 1e-9) {
+      invH.noalias() = Eigen::MatrixXd::Identity(nParams, nParams) * dxTdg / dgTdg;
+    }
+    else {
+      invH.noalias() = Eigen::MatrixXd::Identity(nParams, nParams) * 0.5;
+    }
+  }
+
   /**
    * @brief Adds all relevant options to the given UniversalSettings::DescriptorCollection
    *        thus expanding it to include the BFGS's options.
@@ -230,22 +248,22 @@ class Bfgs : public Optimizer {
         "The minimal number of cycles to be performed before the stop criteria is checked.");
     bfgs_minIter.setDefaultValue(minIter);
     bfgs_minIter.setMinimum(1.0);
-    collection.push_back(Bfgs::bfgsMinIter, bfgs_minIter);
+    collection.push_back(SettingsNames::Optimizations::Bfgs::minIter, bfgs_minIter);
     UniversalSettings::BoolDescriptor bfgs_useTrustRadius("Enable the use of a trust radius for all steps.");
     bfgs_useTrustRadius.setDefaultValue(useTrustRadius);
-    collection.push_back(Bfgs::bfgsUseTrustRadius, bfgs_useTrustRadius);
+    collection.push_back(SettingsNames::Optimizations::Bfgs::useTrustRadius, bfgs_useTrustRadius);
     UniversalSettings::DoubleDescriptor bfgs_trustRadius("The maximum size (RMS) of a taken step.");
     bfgs_trustRadius.setMinimum(0.0);
     bfgs_trustRadius.setDefaultValue(trustRadius);
-    collection.push_back(Bfgs::bfgsTrustRadius, bfgs_trustRadius);
+    collection.push_back(SettingsNames::Optimizations::Bfgs::trustRadius, bfgs_trustRadius);
     UniversalSettings::BoolDescriptor bfgs_useGdiis(
         "Switch to enable the use of a GDIIS possibly accelerating convergence");
     bfgs_useGdiis.setDefaultValue(useGdiis);
-    collection.push_back(Bfgs::bfgsUseGdiis, bfgs_useGdiis);
+    collection.push_back(SettingsNames::Optimizations::Bfgs::useGdiis, bfgs_useGdiis);
     UniversalSettings::IntDescriptor bfgs_gdiisMaxStore("The maximum number of old steps used in the GDIIS.");
     bfgs_gdiisMaxStore.setMinimum(0);
     bfgs_gdiisMaxStore.setDefaultValue(gdiisMaxStore);
-    collection.push_back(Bfgs::bfgsGdiisMaxStore, bfgs_gdiisMaxStore);
+    collection.push_back(SettingsNames::Optimizations::Bfgs::gdiisMaxStore, bfgs_gdiisMaxStore);
   };
 
   /**
@@ -253,11 +271,11 @@ class Bfgs : public Optimizer {
    * @param settings The settings to update the option of the BFGS with.
    */
   void applySettings(const Settings& settings) final {
-    minIter = settings.getInt(Bfgs::bfgsMinIter);
-    useTrustRadius = settings.getBool(Bfgs::bfgsUseTrustRadius);
-    trustRadius = settings.getDouble(Bfgs::bfgsTrustRadius);
-    useGdiis = settings.getBool(Bfgs::bfgsUseGdiis);
-    gdiisMaxStore = settings.getInt(Bfgs::bfgsGdiisMaxStore);
+    minIter = settings.getInt(SettingsNames::Optimizations::Bfgs::minIter);
+    useTrustRadius = settings.getBool(SettingsNames::Optimizations::Bfgs::useTrustRadius);
+    trustRadius = settings.getDouble(SettingsNames::Optimizations::Bfgs::trustRadius);
+    useGdiis = settings.getBool(SettingsNames::Optimizations::Bfgs::useGdiis);
+    gdiisMaxStore = settings.getInt(SettingsNames::Optimizations::Bfgs::gdiisMaxStore);
     if (!useTrustRadius && std::fabs(trustRadius - 0.3) > 1e-6) {
       throw std::logic_error("A trust radius was specified, but the trust radius was not activated. "
                              "Please also set the setting 'bfgs_use_trust_radius': true, if you specify a radius.");

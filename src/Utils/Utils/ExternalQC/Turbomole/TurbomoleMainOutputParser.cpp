@@ -11,7 +11,9 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <boost/process.hpp>
 #include <fstream>
+#include <iostream>
 #include <iterator>
 #include <regex>
 
@@ -20,7 +22,7 @@ namespace Utils {
 namespace ExternalQC {
 
 TurbomoleMainOutputParser::TurbomoleMainOutputParser(TurbomoleFiles& files) : files_(files) {
-  extractContent(files.ridftFile);
+  extractContent(files.outputFile);
 }
 
 void TurbomoleMainOutputParser::extractContent(const std::string& filename) {
@@ -46,6 +48,33 @@ int TurbomoleMainOutputParser::getNumberAtoms() const {
   }
   atoms.close();
   return nAtoms;
+}
+
+int TurbomoleMainOutputParser::getNumberOfNonZeroPointCharges() const {
+  std::ifstream pc;
+  pc.open(files_.pointChargesFile);
+  std::string line;
+
+  int numPointCharges = 0;
+  while (std::getline(pc, line)) {
+    double x, y, z, charge;
+    std::vector<std::string> lineSplitted;
+    boost::split(lineSplitted, line, boost::is_any_of(" "), boost::token_compress_on);
+    try {
+      x = std::stod(lineSplitted[0]);
+      y = std::stod(lineSplitted[1]);
+      z = std::stod(lineSplitted[2]);
+      charge = std::stod(lineSplitted[3]);
+      if (charge != 0.0) {
+        numPointCharges++;
+      }
+    }
+    catch (std::exception& e) {
+      throw std::runtime_error("Point charges file " + files_.pointChargesFile + " has incorrect format!");
+    }
+  }
+  pc.close();
+  return numPointCharges;
 }
 
 GradientCollection TurbomoleMainOutputParser::getGradients() const {
@@ -83,16 +112,18 @@ GradientCollection TurbomoleMainOutputParser::getGradients() const {
 }
 
 GradientCollection TurbomoleMainOutputParser::getPointChargesGradients() const {
-  int nAtoms = getNumberAtoms();
+  int nPointCharges = getNumberOfNonZeroPointCharges();
+  if (nPointCharges == 0) {
+    throw std::runtime_error("Error parsing the point charges!");
+  }
   GradientCollection gc;
-  gc.resize(nAtoms, 3);
+  gc.resize(nPointCharges, 3);
 
   std::ifstream in(files_.pointChargeGradientFile);
-
   // skip first line
   std::string line;
   std::getline(in, line);
-  for (int i = 0; i < nAtoms; i++) {
+  for (int i = 0; i < nPointCharges; i++) {
     std::array<std::string, 3> s;
     in >> s[0] >> s[1] >> s[2];
     for (std::string& j : s) {
@@ -107,7 +138,9 @@ GradientCollection TurbomoleMainOutputParser::getPointChargesGradients() const {
       gc(i, 2) = std::stod(s[2]);
     }
     catch (...) {
-      throw OutputFileParsingError("Gradient file " + files_.pointChargeGradientFile + " could not be parsed.");
+      throw OutputFileParsingError("Gradient file " + files_.pointChargeGradientFile + " for n point charges " +
+                                   std::to_string(nPointCharges) + " could not be parsed due to line " + s[0] + s[1] +
+                                   s[2] + " at line " + std::to_string(i));
     }
   }
 
@@ -129,6 +162,27 @@ double TurbomoleMainOutputParser::getEnergy() const {
     throw OutputFileParsingError("Energy could not be read from Turbomole output.");
 
   return std::stod(m[1]);
+}
+
+double TurbomoleMainOutputParser::getExcitedStateEnergy(int state) const {
+  std::ifstream in;
+  in.open(files_.escfFile);
+  std::string content = std::string(std::istreambuf_iterator<char>{in}, {});
+  in.close();
+
+  std::regex regex(std::string("\\s+") + std::to_string(state) + " a excitation\\s+Total energy:\\s+(-?)\\d+\\.\\d+");
+  std::smatch m;
+  bool found = std::regex_search(content, m, regex);
+  if (!found) {
+    throw OutputFileParsingError("Excited state energy could not be read from Turbomole output.");
+  }
+
+  std::string line = m[0].str();
+  std::string delimiter = ":";
+  int index = line.find(delimiter) + delimiter.size();
+  std::string substring = line.substr(index, line.size());
+
+  return std::stod(substring);
 }
 
 Utils::BondOrderCollection TurbomoleMainOutputParser::getBondOrders() const {

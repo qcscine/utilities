@@ -19,7 +19,8 @@ namespace BSplines {
  * */
 class ControlPolygonGenerator : public Generator {
  public:
-  explicit ControlPolygonGenerator(const Eigen::MatrixXd& dataPoints, unsigned degree = 3, bool uniformKnotVector = false);
+  explicit ControlPolygonGenerator(const Eigen::Ref<const Eigen::MatrixXd>& dataPoints, unsigned degree = 3,
+                                   bool uniformKnotVector = false);
 
  private:
   Eigen::VectorXd generateKnotVector() override;

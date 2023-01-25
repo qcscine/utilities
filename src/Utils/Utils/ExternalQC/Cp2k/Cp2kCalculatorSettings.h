@@ -40,6 +40,7 @@ class Cp2kCalculatorSettings : public Scine::Utils::Settings {
   void addBaseWorkingDirectory(UniversalSettings::DescriptorCollection& settings);
   void addDeleteTemporaryFilesOption(UniversalSettings::DescriptorCollection& settings);
   void addTemperature(UniversalSettings::DescriptorCollection& settings);
+  void addPressure(UniversalSettings::DescriptorCollection& settings);
   void addScfMixing(UniversalSettings::DescriptorCollection& settings);
   void addElectronicTemperature(UniversalSettings::DescriptorCollection& settings);
   void addAdditionalMos(UniversalSettings::DescriptorCollection& settings);
@@ -50,6 +51,7 @@ class Cp2kCalculatorSettings : public Scine::Utils::Settings {
   void addScfGuess(UniversalSettings::DescriptorCollection& settings);
   void addDipoleCorrection(UniversalSettings::DescriptorCollection& settings);
   void addAdditionalOutput(UniversalSettings::DescriptorCollection& settings);
+  void addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings);
 
   /**
    * @brief Constructor that populates the Cp2kCalculatorSettings.
@@ -71,6 +73,7 @@ class Cp2kCalculatorSettings : public Scine::Utils::Settings {
     addBaseWorkingDirectory(_fields);
     addDeleteTemporaryFilesOption(_fields);
     addTemperature(_fields);
+    addPressure(_fields);
     addScfMixing(_fields);
     addElectronicTemperature(_fields);
     addAdditionalMos(_fields);
@@ -81,6 +84,7 @@ class Cp2kCalculatorSettings : public Scine::Utils::Settings {
     addScfGuess(_fields);
     addDipoleCorrection(_fields);
     addAdditionalOutput(_fields);
+    addScfCriterionEnforce(_fields);
     resetToDefaults();
   };
 };
@@ -200,6 +204,12 @@ inline void Cp2kCalculatorSettings::addTemperature(UniversalSettings::Descriptor
   settings.push_back(Utils::SettingsNames::temperature, std::move(temperature));
 }
 
+inline void Cp2kCalculatorSettings::addPressure(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::DoubleDescriptor pressure("Sets the pressure for the thermochemical calculation in Pa.");
+  pressure.setDefaultValue(101325.0);
+  settings.push_back(Utils::SettingsNames::pressure, std::move(pressure));
+}
+
 inline void Cp2kCalculatorSettings::addScfMixing(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::OptionListDescriptor scfDamping("Specify SCF mixing method.");
   scfDamping.addOption("broyden_mixing");
@@ -290,6 +300,14 @@ inline void Cp2kCalculatorSettings::addAdditionalOutput(UniversalSettings::Descr
   Utils::UniversalSettings::StringDescriptor additionalOutput("Filename of additional output file.");
   additionalOutput.setDefaultValue("additional_output");
   settings.push_back(SettingsNames::additionalOutputFile, std::move(additionalOutput));
+}
+
+inline void Cp2kCalculatorSettings::addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::BoolDescriptor scfEnforce(
+      "Whether the set self_consistence_criterion should not be made stricter, "
+      "even if derivative quantities are calculated.");
+  scfEnforce.setDefaultValue(false);
+  settings.push_back(SettingsNames::enforceScfCriterion, std::move(scfEnforce));
 }
 
 } // namespace ExternalQC

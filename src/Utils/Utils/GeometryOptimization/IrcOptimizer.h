@@ -16,6 +16,7 @@
 #include "Utils/GeometryOptimization/GeometryOptimizer.h"
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/GradientBased/SteepestDescent.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include <Core/Interfaces/Calculator.h>
 #include <Eigen/Core>
 
@@ -30,9 +31,6 @@ namespace Utils {
  */
 class IrcOptimizerBase {
  public:
-  static constexpr const char* ircInitialStepSizeKey = "irc_initial_step_size";
-  static constexpr const char* ircCoordinateSystemKey = "irc_coordinate_system";
-
   /// @brief Default constructor.
   IrcOptimizerBase() = default;
   /// @brief Virtual default destructor.
@@ -136,14 +134,14 @@ class IRCOptimizerSettings : public Settings {
 
     UniversalSettings::DoubleDescriptor irc_initial_step_size("The size of the initial step along the chosen mode.");
     irc_initial_step_size.setDefaultValue(ircBase.initialStepSize);
-    this->_fields.push_back(IrcOptimizerBase::ircInitialStepSizeKey, irc_initial_step_size);
+    this->_fields.push_back(SettingsNames::Optimizations::Irc::initialStepSize, irc_initial_step_size);
 
     UniversalSettings::OptionListDescriptor irc_coordinate_system("Set the coordinate system.");
     irc_coordinate_system.addOption("internal");
     irc_coordinate_system.addOption("cartesianWithoutRotTrans");
     irc_coordinate_system.addOption("cartesian");
     irc_coordinate_system.setDefaultOption(CoordinateSystemInterpreter::getStringFromCoordinateSystem(ircBase.coordinateSystem));
-    this->_fields.push_back(IrcOptimizerBase::ircCoordinateSystemKey, irc_coordinate_system);
+    this->_fields.push_back(SettingsNames::Optimizations::Irc::coordinateSystem, irc_coordinate_system);
 
     this->resetToDefaults();
   }
@@ -276,9 +274,9 @@ class IrcOptimizer : public IrcOptimizerBase {
   void setSettings(const Settings& settings) override {
     check.applySettings(settings);
     optimizer.applySettings(settings);
-    this->initialStepSize = settings.getDouble(IrcOptimizerBase::ircInitialStepSizeKey);
+    this->initialStepSize = settings.getDouble(SettingsNames::Optimizations::Irc::initialStepSize);
     this->coordinateSystem = CoordinateSystemInterpreter::getCoordinateSystemFromString(
-        settings.getString(IrcOptimizerBase::ircCoordinateSystemKey));
+        settings.getString(SettingsNames::Optimizations::Irc::coordinateSystem));
   };
   /**
    * @brief Get the public settings as a Utils::Settings object.

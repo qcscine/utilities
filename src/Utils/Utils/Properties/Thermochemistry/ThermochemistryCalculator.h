@@ -110,6 +110,10 @@ class ThermochemistryCalculator {
    */
   void setTemperature(double temperature);
   /**
+   * @brief Setter for the pressure at which the thermochemical calculation is performed.
+   */
+  void setPressure(double pressure);
+  /**
    * In NDDO semiempirical methods, the ZPVE is already included in the electronic energy
    * due to the way they are parametrized. In the thermochemical calculation it must then
    * not be included again.
@@ -139,6 +143,8 @@ class ThermochemistryCalculator {
   Geometry::Properties::PrincipalMomentsOfInertia principalMomentsOfInertia_;
   ElementTypeCollection elements_;
   double temperature_{298.15};
+  // Pressure in Pa. The default is 1 atm.
+  double pressure_{101325.0};
   int spinMultiplicity_{1};
   double electronicEnergy_{0};
   int sigma_{1};
@@ -147,7 +153,7 @@ class ThermochemistryCalculator {
  private:
   ThermochemicalContainer calculateVibrationalPart(double temperature) const;
   ThermochemicalContainer calculateRotationalPart(double temperature) const;
-  ThermochemicalContainer calculateTranslationalPart(double temperature) const;
+  ThermochemicalContainer calculateTranslationalPart(double temperature, double pressure) const;
   ThermochemicalContainer calculateElectronicPart(double temperature) const;
   // Sets the symmetry number for diatomic molecules
   void calculateSigmaForDiatomicMolecule();

@@ -159,7 +159,7 @@ class MockCalculatorWithReference final : public Core::CalculatorWithReference {
  private:
   Results r_;
   std::shared_ptr<Core::Calculator> referenceCalculator_;
-  std::unique_ptr<Settings> settings_ = std::make_unique<Settings>(Settings("dummy"));
+  std::unique_ptr<Settings> settings_ = std::make_unique<Settings>(Utils::Settings("dummy"));
 };
 
 /**
@@ -175,44 +175,44 @@ class AMolecularDynamicsTest : public Test {
 TEST_F(AMolecularDynamicsTest, SettingsWorkCorrectly) {
   MockCalculator mockCalculator;
   MolecularDynamics md(mockCalculator);
-  md.settings().modifyDouble(SettingsNames::timeStepInFemtoseconds, 3.0);
-  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 234);
-  md.settings().modifyString(SettingsNames::integrationAlgorithm, "euler");
-  md.settings().modifyDouble(SettingsNames::generationTemperature, 200.0);
-  md.settings().modifyInt(SettingsNames::generationSeed, 3);
-  md.settings().modifyString(SettingsNames::thermostatAlgorithm, "berendsen");
-  md.settings().modifyDouble(SettingsNames::targetTemperature, 500.0);
-  md.settings().modifyDouble(SettingsNames::temperatureCouplingTime, 15.0);
-  md.settings().modifyInt(SettingsNames::stochasticDynamicsSeed, 4);
-  md.settings().modifyBool(SettingsNames::saveVelocities, true);
-  md.settings().modifyBool(SettingsNames::saveTemperatures, true);
-  md.settings().modifyBool(SettingsNames::requireCharges, true);
-  md.settings().modifyBool(SettingsNames::requireBondOrders, true);
+  md.settings().modifyDouble(Utils::SettingsNames::timeStepInFemtoseconds, 3.0);
+  md.settings().modifyInt(Utils::SettingsNames::numberOfMDSteps, 234);
+  md.settings().modifyString(Utils::SettingsNames::integrationAlgorithm, "euler");
+  md.settings().modifyDouble(Utils::SettingsNames::generationTemperature, 200.0);
+  md.settings().modifyInt(Utils::SettingsNames::generationSeed, 3);
+  md.settings().modifyString(Utils::SettingsNames::thermostatAlgorithm, "berendsen");
+  md.settings().modifyDouble(Utils::SettingsNames::targetTemperature, 500.0);
+  md.settings().modifyDouble(Utils::SettingsNames::temperatureCouplingTime, 15.0);
+  md.settings().modifyInt(Utils::SettingsNames::stochasticDynamicsSeed, 4);
+  md.settings().modifyBool(Utils::SettingsNames::saveVelocities, true);
+  md.settings().modifyBool(Utils::SettingsNames::saveTemperatures, true);
+  md.settings().modifyBool(Utils::SettingsNames::requireCharges, true);
+  md.settings().modifyBool(Utils::SettingsNames::requireBondOrders, true);
 
-  ASSERT_THAT(md.settings().getDouble(SettingsNames::timeStepInFemtoseconds), Eq(3.0));
-  ASSERT_THAT(md.settings().getInt(SettingsNames::numberOfMDSteps), Eq(234));
-  ASSERT_THAT(md.settings().getString(SettingsNames::integrationAlgorithm), Eq("euler"));
-  ASSERT_THAT(md.settings().getDouble(SettingsNames::generationTemperature), Eq(200.0));
-  ASSERT_THAT(md.settings().getInt(SettingsNames::generationSeed), Eq(3));
-  ASSERT_THAT(md.settings().getString(SettingsNames::thermostatAlgorithm), Eq("berendsen"));
-  ASSERT_THAT(md.settings().getDouble(SettingsNames::targetTemperature), Eq(500.0));
-  ASSERT_THAT(md.settings().getDouble(SettingsNames::temperatureCouplingTime), Eq(15.0));
-  ASSERT_THAT(md.settings().getInt(SettingsNames::stochasticDynamicsSeed), Eq(4));
-  ASSERT_TRUE(md.settings().getBool(SettingsNames::saveVelocities));
-  ASSERT_TRUE(md.settings().getBool(SettingsNames::saveTemperatures));
-  ASSERT_TRUE(md.settings().getBool(SettingsNames::requireCharges));
-  ASSERT_TRUE(md.settings().getBool(SettingsNames::requireBondOrders));
+  ASSERT_THAT(md.settings().getDouble(Utils::SettingsNames::timeStepInFemtoseconds), Eq(3.0));
+  ASSERT_THAT(md.settings().getInt(Utils::SettingsNames::numberOfMDSteps), Eq(234));
+  ASSERT_THAT(md.settings().getString(Utils::SettingsNames::integrationAlgorithm), Eq("euler"));
+  ASSERT_THAT(md.settings().getDouble(Utils::SettingsNames::generationTemperature), Eq(200.0));
+  ASSERT_THAT(md.settings().getInt(Utils::SettingsNames::generationSeed), Eq(3));
+  ASSERT_THAT(md.settings().getString(Utils::SettingsNames::thermostatAlgorithm), Eq("berendsen"));
+  ASSERT_THAT(md.settings().getDouble(Utils::SettingsNames::targetTemperature), Eq(500.0));
+  ASSERT_THAT(md.settings().getDouble(Utils::SettingsNames::temperatureCouplingTime), Eq(15.0));
+  ASSERT_THAT(md.settings().getInt(Utils::SettingsNames::stochasticDynamicsSeed), Eq(4));
+  ASSERT_TRUE(md.settings().getBool(Utils::SettingsNames::saveVelocities));
+  ASSERT_TRUE(md.settings().getBool(Utils::SettingsNames::saveTemperatures));
+  ASSERT_TRUE(md.settings().getBool(Utils::SettingsNames::requireCharges));
+  ASSERT_TRUE(md.settings().getBool(Utils::SettingsNames::requireBondOrders));
 }
 
 TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithLeapFrog) {
   MockCalculator mockCalculator;
   MolecularDynamics md(mockCalculator);
 
-  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 7);
-  md.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::leapFrogOption);
-  md.settings().modifyString(SettingsNames::thermostatAlgorithm, "berendsen");
-  md.settings().modifyBool(SettingsNames::saveVelocities, true);
-  md.settings().modifyBool(SettingsNames::saveTemperatures, true);
+  md.settings().modifyInt(Utils::SettingsNames::numberOfMDSteps, 7);
+  md.settings().modifyString(Utils::SettingsNames::integrationAlgorithm, OptionNames::leapFrogOption);
+  md.settings().modifyString(Utils::SettingsNames::thermostatAlgorithm, "berendsen");
+  md.settings().modifyBool(Utils::SettingsNames::saveVelocities, true);
+  md.settings().modifyBool(Utils::SettingsNames::saveTemperatures, true);
 
   std::stringstream ss("3\n\n"
                        "O      0.0000000000    0.0000000000    0.0000000000\n"
@@ -239,7 +239,7 @@ TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithLeapFrog) {
   }
 
   // Different temperature should lead to different trajectory
-  md.settings().modifyDouble(SettingsNames::targetTemperature, 700);
+  md.settings().modifyDouble(Utils::SettingsNames::targetTemperature, 700);
   md.performMDSimulation(structure, log);
   MolecularTrajectory mtNew = md.getMolecularTrajectory();
 
@@ -249,7 +249,7 @@ TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithLeapFrog) {
   }
 
   // Initial velocities should lead to different trajectory
-  md.settings().modifyDouble(SettingsNames::targetTemperature, 300);
+  md.settings().modifyDouble(Utils::SettingsNames::targetTemperature, 300);
   md.setInitialVelocities(Eigen::MatrixXd::Random(structure.size(), 3));
   md.performMDSimulation(structure, log);
   MolecularTrajectory mtRandomStart = md.getMolecularTrajectory();
@@ -283,9 +283,9 @@ TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithEuler) {
   MockCalculator mockCalculator;
   MolecularDynamics md(mockCalculator);
 
-  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 7);
-  md.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::eulerOption);
-  md.settings().modifyString(SettingsNames::thermostatAlgorithm, "berendsen");
+  md.settings().modifyInt(Utils::SettingsNames::numberOfMDSteps, 7);
+  md.settings().modifyString(Utils::SettingsNames::integrationAlgorithm, OptionNames::eulerOption);
+  md.settings().modifyString(Utils::SettingsNames::thermostatAlgorithm, "berendsen");
 
   std::stringstream ss("5\n\n"
                        "C      0.0000000000    0.0000000000    0.0000000000\n"
@@ -315,7 +315,7 @@ TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithEuler) {
   }
 
   // Different temperature should lead to different trajectory
-  md.settings().modifyDouble(SettingsNames::targetTemperature, 700);
+  md.settings().modifyDouble(Utils::SettingsNames::targetTemperature, 700);
   md.performMDSimulation(structure, log);
   MolecularTrajectory mtNew = md.getMolecularTrajectory();
 
@@ -329,7 +329,7 @@ TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithEuler) {
   }
 
   // Initial velocities should lead to different trajectory
-  md.settings().modifyDouble(SettingsNames::targetTemperature, 300);
+  md.settings().modifyDouble(Utils::SettingsNames::targetTemperature, 300);
   md.setInitialVelocities(Eigen::MatrixXd::Random(structure.size(), 3));
   md.performMDSimulation(structure, log);
   MolecularTrajectory mtRandomStart = md.getMolecularTrajectory();
@@ -348,9 +348,9 @@ TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithVelocityVerle
   MockCalculator mockCalculator;
   MolecularDynamics md(mockCalculator);
 
-  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 7);
-  md.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::velocityVerletOption);
-  md.settings().modifyString(SettingsNames::thermostatAlgorithm, "berendsen");
+  md.settings().modifyInt(Utils::SettingsNames::numberOfMDSteps, 7);
+  md.settings().modifyString(Utils::SettingsNames::integrationAlgorithm, OptionNames::velocityVerletOption);
+  md.settings().modifyString(Utils::SettingsNames::thermostatAlgorithm, "berendsen");
 
   std::stringstream ss("2\n\n"
                        "H     0.0000000000    0.0000000000   -0.0000000000\n"
@@ -371,7 +371,7 @@ TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithVelocityVerle
   }
 
   // Different temperature should lead to different trajectory
-  md.settings().modifyDouble(SettingsNames::targetTemperature, 700);
+  md.settings().modifyDouble(Utils::SettingsNames::targetTemperature, 700);
   md.performMDSimulation(structure, log);
   MolecularTrajectory mtNew = md.getMolecularTrajectory();
 
@@ -382,7 +382,7 @@ TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithVelocityVerle
   }
 
   // Initial velocities should lead to different trajectory
-  md.settings().modifyDouble(SettingsNames::targetTemperature, 300);
+  md.settings().modifyDouble(Utils::SettingsNames::targetTemperature, 300);
   md.setInitialVelocities(Eigen::MatrixXd::Random(structure.size(), 3));
   md.performMDSimulation(structure, log);
   MolecularTrajectory mtRandomStart = md.getMolecularTrajectory();
@@ -401,14 +401,14 @@ TEST_F(AMolecularDynamicsTest, mdSimulationIsPerformedCorrectlyWithStochasticDyn
   TestCalculator testCalculator;
   MolecularDynamics md(testCalculator);
 
-  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 200);
-  md.settings().modifyDouble(SettingsNames::timeStepInFemtoseconds, 0.5);
+  md.settings().modifyInt(Utils::SettingsNames::numberOfMDSteps, 200);
+  md.settings().modifyDouble(Utils::SettingsNames::timeStepInFemtoseconds, 0.5);
   // Use small tau to observe rapid equilibration
-  md.settings().modifyDouble(SettingsNames::temperatureCouplingTime, 0.5);
-  md.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::stochasticDynamicsOption);
-  md.settings().modifyDouble(SettingsNames::generationTemperature, 700.0);
-  md.settings().modifyDouble(SettingsNames::targetTemperature, 250.0);
-  md.settings().modifyBool(SettingsNames::saveTemperatures, true);
+  md.settings().modifyDouble(Utils::SettingsNames::temperatureCouplingTime, 0.5);
+  md.settings().modifyString(Utils::SettingsNames::integrationAlgorithm, OptionNames::stochasticDynamicsOption);
+  md.settings().modifyDouble(Utils::SettingsNames::generationTemperature, 700.0);
+  md.settings().modifyDouble(Utils::SettingsNames::targetTemperature, 250.0);
+  md.settings().modifyBool(Utils::SettingsNames::saveTemperatures, true);
 
   // 10 water molecules
   std::stringstream ss("30\n\n"
@@ -613,9 +613,9 @@ TEST_F(AMolecularDynamicsTest, mdSimulationRespectsInitialVelocities) {
   MockCalculator mockCalculator;
   MolecularDynamics md(mockCalculator);
 
-  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 1);
-  md.settings().modifyBool(SettingsNames::saveVelocities, true);
-  md.settings().modifyBool(SettingsNames::saveTemperatures, true);
+  md.settings().modifyInt(Utils::SettingsNames::numberOfMDSteps, 1);
+  md.settings().modifyBool(Utils::SettingsNames::saveVelocities, true);
+  md.settings().modifyBool(Utils::SettingsNames::saveTemperatures, true);
 
   ElementTypeCollection arbitraryElements = {
       ElementType::H,  ElementType::C,  ElementType::P,  ElementType::Al, ElementType::Ar, ElementType::N,
@@ -637,7 +637,7 @@ TEST_F(AMolecularDynamicsTest, mdSimulationRespectsInitialVelocities) {
   ASSERT_THAT(md.getTemperatures()[0], Gt(50));
 
   // Zero velocities
-  md.settings().modifyDouble(SettingsNames::generationTemperature, 0.);
+  md.settings().modifyDouble(Utils::SettingsNames::generationTemperature, 0.);
   md.performMDSimulation(structure, log);
   ASSERT_THAT(md.getVelocities().size(), Eq(2));
   auto firstVelocities = md.getVelocities()[0];
@@ -659,10 +659,10 @@ TEST_F(AMolecularDynamicsTest, mdSimulationIsTerminatedEarly) {
   MockCalculator mockCalculator;
   MolecularDynamics md(mockCalculator);
 
-  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 15);
-  md.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::leapFrogOption);
-  md.settings().modifyBool(SettingsNames::requireCharges, true);
-  md.settings().modifyBool(SettingsNames::requireBondOrders, true);
+  md.settings().modifyInt(Utils::SettingsNames::numberOfMDSteps, 15);
+  md.settings().modifyString(Utils::SettingsNames::integrationAlgorithm, OptionNames::leapFrogOption);
+  md.settings().modifyBool(Utils::SettingsNames::requireCharges, true);
+  md.settings().modifyBool(Utils::SettingsNames::requireBondOrders, true);
 
   std::stringstream ss("3\n\n"
                        "O      0.0000000000    0.0000000000    0.0000000000\n"
@@ -703,10 +703,10 @@ TEST_F(AMolecularDynamicsTest, mdSimulationBiasPotentialEliminatesGradient) {
   MockCalculator mockCalculator;
   MolecularDynamics md(mockCalculator);
 
-  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 10);
-  md.settings().modifyString(SettingsNames::integrationAlgorithm, OptionNames::leapFrogOption);
-  md.settings().modifyString(SettingsNames::thermostatAlgorithm, OptionNames::noThermostatOption);
-  md.settings().modifyDouble(SettingsNames::generationTemperature, 0.0);
+  md.settings().modifyInt(Utils::SettingsNames::numberOfMDSteps, 10);
+  md.settings().modifyString(Utils::SettingsNames::integrationAlgorithm, OptionNames::leapFrogOption);
+  md.settings().modifyString(Utils::SettingsNames::thermostatAlgorithm, OptionNames::noThermostatOption);
+  md.settings().modifyDouble(Utils::SettingsNames::generationTemperature, 0.0);
 
   std::stringstream ss("3\n\n"
                        "O      0.0000000000    0.0000000000    0.0000000000\n"
@@ -746,9 +746,9 @@ TEST_F(AMolecularDynamicsTest, mdSimulationRunsWithCalculatorWithReference) {
   mockCalculatorWithReference.setReferenceCalculator(mockCalculator);
   MolecularDynamics md(mockCalculatorWithReference);
 
-  md.settings().modifyInt(SettingsNames::numberOfMDSteps, 5);
-  md.settings().modifyBool(SettingsNames::requireCharges, true);
-  md.settings().modifyBool(SettingsNames::requireBondOrders, true);
+  md.settings().modifyInt(Utils::SettingsNames::numberOfMDSteps, 5);
+  md.settings().modifyBool(Utils::SettingsNames::requireCharges, true);
+  md.settings().modifyBool(Utils::SettingsNames::requireBondOrders, true);
 
   std::stringstream ss("3\n\n"
                        "O      0.0000000000    0.0000000000    0.0000000000\n"

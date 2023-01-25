@@ -38,6 +38,12 @@ class DensityMatrix {
   const Matrix& betaMatrix() const;
   /*! @} */
 
+  /*! \name Accessors to the underlying matrices by  reference.  @{ */
+  Matrix& getRestrictedMatrix();
+  Matrix& getAlphaMatrix();
+  Matrix& getBetaMatrix();
+  /*! @} */
+
   /*! \name Accessors to the matrix elements.
       Using template functions to allow perfect forwarding to the Eigen functions.  @{ */
   template<typename Index>
@@ -72,6 +78,18 @@ class DensityMatrix {
   double getOccupation() const;
   double getAlphaOccupation() const;
   double getBetaOccupation() const;
+
+  /*! This function only adds up the matrices and not the occupation */
+  auto addDensity(const DensityMatrix& rhs, double alpha = 1) -> void;
+
+  /*! Function to add scaled matrix to alpha matrix */
+  auto addMatrixAlpha(const Matrix& rhs, double alpha = 1) -> void;
+
+  /*! Function to add scaled matrix to beta matrix */
+  auto addMatrixBeta(const Matrix& rhs, double alpha = 1) -> void;
+
+  /*! Function to add scaled matrix to restricted matrix */
+  auto addMatrixRestricted(const Matrix& rhs, double alpha = 1) -> void;
 
   /*! \name Arithmetic operations
    * In the case of functions for pairs of density matrices, the precondition is that they both have the same size
@@ -123,6 +141,18 @@ inline const DensityMatrix::Matrix& DensityMatrix::alphaMatrix() const {
 }
 
 inline const DensityMatrix::Matrix& DensityMatrix::betaMatrix() const {
+  return matrix_.betaMatrix();
+}
+
+inline DensityMatrix::Matrix& DensityMatrix::getRestrictedMatrix() {
+  return matrix_.restrictedMatrix();
+}
+
+inline DensityMatrix::Matrix& DensityMatrix::getAlphaMatrix() {
+  return matrix_.alphaMatrix();
+}
+
+inline DensityMatrix::Matrix& DensityMatrix::getBetaMatrix() {
   return matrix_.betaMatrix();
 }
 

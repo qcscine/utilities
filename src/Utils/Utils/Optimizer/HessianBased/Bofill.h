@@ -10,6 +10,7 @@
 
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include <Core/Log.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -27,10 +28,6 @@ namespace Utils {
  */
 class Bofill : public Optimizer {
  public:
-  static constexpr const char* bofillTrustRadius = "bofill_trust_radius";
-  static constexpr const char* bofillHessianUpdate = "bofill_hessian_update";
-  static constexpr const char* bofillMode = "bofill_follow_mode";
-
   /// @brief Default constructor.
   Bofill() = default;
   /**
@@ -152,26 +149,26 @@ class Bofill : public Optimizer {
     UniversalSettings::DoubleDescriptor bofill_trust_radius("The maximum RMS of a taken step.");
     bofill_trust_radius.setMinimum(0.0);
     bofill_trust_radius.setDefaultValue(trustRadius);
-    collection.push_back(Bofill::bofillTrustRadius, bofill_trust_radius);
+    collection.push_back(SettingsNames::Optimizations::Bofill::trustRadius, bofill_trust_radius);
     UniversalSettings::IntDescriptor bofill_hessian_update(
         "The number of approximate cycles in between actual Hessian calculations.");
     bofill_hessian_update.setMinimum(1);
     bofill_hessian_update.setDefaultValue(hessianUpdate);
-    collection.push_back(Bofill::bofillHessianUpdate, bofill_hessian_update);
+    collection.push_back(SettingsNames::Optimizations::Bofill::hessianUpdate, bofill_hessian_update);
     UniversalSettings::IntDescriptor bofill_follow_mode(
         "The number of the mode that should be followed starting with 0.");
     bofill_follow_mode.setMinimum(0);
     bofill_follow_mode.setDefaultValue(modeToFollow);
-    collection.push_back(Bofill::bofillMode, bofill_follow_mode);
+    collection.push_back(SettingsNames::Optimizations::Bofill::mode, bofill_follow_mode);
   };
   /**
    * @brief Updates the Bofill's options with those values given in the Settings.
    * @param settings The settings to update the option of the steepest descent with.
    */
   void applySettings(const Settings& settings) final {
-    trustRadius = settings.getDouble(Bofill::bofillTrustRadius);
-    hessianUpdate = settings.getInt(Bofill::bofillHessianUpdate);
-    modeToFollow = settings.getInt(Bofill::bofillMode);
+    trustRadius = settings.getDouble(SettingsNames::Optimizations::Bofill::trustRadius);
+    hessianUpdate = settings.getInt(SettingsNames::Optimizations::Bofill::hessianUpdate);
+    modeToFollow = settings.getInt(SettingsNames::Optimizations::Bofill::mode);
   };
   /**
    * @brief Prepares the Bofill optimizer for rerunning its optimize function.

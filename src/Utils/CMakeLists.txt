@@ -18,6 +18,8 @@ include(ImportIRC)
 import_irc()
 include(ImportLBFGSB)
 import_lbfgspp()
+include(ImportSpgLib)
+import_spglib()
 include(AddEigen)
 include(ImportGTest)
 import_gtest()
@@ -53,6 +55,7 @@ target_link_libraries(UtilsOS
     yaml-cpp
     irc
     lbfgspp
+    symspg_objects
 )
 
 target_include_directories(UtilsOS
@@ -61,6 +64,7 @@ target_include_directories(UtilsOS
     $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include/Scine>
   PRIVATE
     ${YAML_CPP_INCLUDE_DIR}
+    $<BUILD_INTERFACE:${SYMSPG_INCLUDE_DIR}>
 )
 add_eigen(UtilsOS PUBLIC)
 add_library(Scine::UtilsOS ALIAS UtilsOS)
@@ -83,7 +87,7 @@ install(
 
 # Targets
 install(
-  TARGETS UtilsOS UtilsOSModule
+  TARGETS UtilsOS UtilsOSModule symspg_objects
   EXPORT utilsOSTargets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
@@ -134,9 +138,9 @@ if(SCINE_BUILD_PYTHON_BINDINGS)
   set_target_properties(scine_utilities PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/scine_utilities
   )
-  target_include_directories(scine_utilities PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Python)
   target_link_libraries(scine_utilities PRIVATE Scine::UtilsOS Scine::Core yaml-cpp)
-  target_include_directories(scine_utilities PRIVATE ${YAML_CPP_INCLUDE_DIR})
+  target_include_directories(scine_utilities PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Python ${YAML_CPP_INCLUDE_DIR})
+
   install(CODE
     "execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install --prefix=${CMAKE_INSTALL_PREFIX} --upgrade ${CMAKE_CURRENT_BINARY_DIR}
                      RESULT_VARIABLE retcode)

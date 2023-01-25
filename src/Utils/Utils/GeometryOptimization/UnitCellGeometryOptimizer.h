@@ -23,6 +23,7 @@
 #include "Utils/Optimizer/HessianBased/Bofill.h"
 #include "Utils/Optimizer/HessianBased/EigenvectorFollowing.h"
 #include "Utils/Optimizer/HessianBased/NewtonRaphson.h"
+#include "Utils/UniversalSettings/OptimizationSettingsNames.h"
 #include "Utils/UniversalSettings/SettingsNames.h"
 #include <Core/Interfaces/Calculator.h>
 #include <Eigen/Core>
@@ -44,13 +45,6 @@ namespace Utils {
  */
 class UnitCellGeometryOptimizerBase : public GeometryOptimizerBase {
  public:
-  static constexpr const char* optimizeAnglesKey = "cellopt_optimize_angles";
-  static constexpr const char* optimizeAKey = "cellopt_optimize_a";
-  static constexpr const char* optimizeBKey = "cellopt_optimize_b";
-  static constexpr const char* optimizeCKey = "cellopt_optimize_c";
-  static constexpr const char* geooptMaxIterations = "cellopt_geoopt_max_convergence_iterations";
-  static constexpr const char* celloptMaxIterations = "cellopt_cellopt_max_convergence_iterations";
-
   /// @brief Default constructor.
   UnitCellGeometryOptimizerBase() = default;
 
@@ -131,16 +125,30 @@ class UnitCellGeometryOptimizerSettings : public Settings {
    * @param check The convergence check criteria.
    */
   UnitCellGeometryOptimizerSettings(const UnitCellGeometryOptimizerBase& base,
-                                    const GeometryOptimizer<OptimizerTypeGeometry> geoOptimizer,
+                                    GeometryOptimizer<OptimizerTypeGeometry> geoOptimizer,
                                     const OptimizerTypeCell& cellOptimizer, const ConvergenceCheckType& check)
     : Settings("UnitCellGeometryOptimizerSettings") {
-    // populate with fields of GeometryOptimizer
-    auto geometryOptimizerSettings =
-        GeometryOptimizerSettings<OptimizerTypeGeometry, ConvergenceCheckType>(base, geoOptimizer.optimizer, check);
-    auto fields = geometryOptimizerSettings.getDescriptorCollection();
-    for (const auto& field : fields) {
-      this->_fields.push_back(field.first, field.second);
+    if (!base.fixedAtoms.empty()) {
+      throw std::logic_error("Cartesian constraints cannot be set when the unit cell shall be optimized");
     }
+    // populate with fields of GeometryOptimizer
+    geoOptimizer.check = check;
+    auto baseSettings =
+        GeometryOptimizerSettings<OptimizerTypeGeometry, ConvergenceCheckType>(base, geoOptimizer.optimizer, check);
+    auto geometryOptimizerSettings = geoOptimizer.getSettings();
+
+    // GeometryOptimizerSettings take precedence
+    auto baseDescriptors = baseSettings.getDescriptorCollection();
+    auto geometryOptimizerDescriptors = geometryOptimizerSettings.getDescriptorCollection();
+    for (const auto& [key, value] : baseDescriptors) {
+      if (!geometryOptimizerDescriptors.exists(key)) {
+        this->_fields.push_back(key, value);
+      }
+    }
+    for (const auto& [key, value] : geometryOptimizerDescriptors) {
+      this->_fields.push_back(key, value);
+    }
+
     // add those of cell optimizer if it is different
     if (!std::is_same<OptimizerTypeCell, OptimizerTypeGeometry>::value) {
       cellOptimizer.addSettingsDescriptors(this->_fields);
@@ -150,17 +158,18 @@ class UnitCellGeometryOptimizerSettings : public Settings {
     UniversalSettings::IntDescriptor geoopt_max_iterations(
         "Set the max iterations for the micro geometry optimization cycles.");
     geoopt_max_iterations.setDefaultValue(base.geoMaxIterations);
-    this->_fields.push_back(UnitCellGeometryOptimizerBase::geooptMaxIterations, std::move(geoopt_max_iterations));
+    this->_fields.push_back(SettingsNames::Optimizations::CellOptimizer::geooptMaxIterations, std::move(geoopt_max_iterations));
 
     UniversalSettings::IntDescriptor cellopt_max_iterations(
         "Set the max iterations for the micro cell optimization cycles.");
     cellopt_max_iterations.setDefaultValue(base.cellMaxIterations);
-    this->_fields.push_back(UnitCellGeometryOptimizerBase::celloptMaxIterations, std::move(cellopt_max_iterations));
+    this->_fields.push_back(SettingsNames::Optimizations::CellOptimizer::celloptMaxIterations,
+                            std::move(cellopt_max_iterations));
 
     // angles
     UniversalSettings::BoolDescriptor angle_opt("Set true if you want to optimize the angles of the unitcell.");
     angle_opt.setDefaultValue(base.optAngles);
-    this->_fields.push_back(UnitCellGeometryOptimizerBase::optimizeAnglesKey, std::move(angle_opt));
+    this->_fields.push_back(SettingsNames::Optimizations::CellOptimizer::optimizeAngles, std::move(angle_opt));
 
     // lengths
     UniversalSettings::BoolDescriptor a_opt("Set true if you want to optimize the length of vector a.");
@@ -169,9 +178,9 @@ class UnitCellGeometryOptimizerSettings : public Settings {
     b_opt.setDefaultValue(base.optLengths[1]);
     UniversalSettings::BoolDescriptor c_opt("Set true if you want to optimize the length of vector c.");
     c_opt.setDefaultValue(base.optLengths[2]);
-    this->_fields.push_back(UnitCellGeometryOptimizerBase::optimizeAKey, std::move(a_opt));
-    this->_fields.push_back(UnitCellGeometryOptimizerBase::optimizeBKey, std::move(b_opt));
-    this->_fields.push_back(UnitCellGeometryOptimizerBase::optimizeCKey, std::move(c_opt));
+    this->_fields.push_back(SettingsNames::Optimizations::CellOptimizer::optimizeA, std::move(a_opt));
+    this->_fields.push_back(SettingsNames::Optimizations::CellOptimizer::optimizeB, std::move(b_opt));
+    this->_fields.push_back(SettingsNames::Optimizations::CellOptimizer::optimizeC, std::move(c_opt));
 
     this->resetToDefaults();
   }
@@ -258,7 +267,12 @@ class UnitCellGeometryOptimizer : public UnitCellGeometryOptimizerBase {
       throw std::logic_error("UnitCellGeometryOptimizer requires a calculator that has '" +
                              std::string(SettingsNames::periodicBoundaries) + "' as a possible setting.");
     }
-    // ensure our settings are up to date in case members have been altered + sanity checks
+    auto pbcString = _calculator.settings().getString(SettingsNames::periodicBoundaries);
+    if (pbcString.empty() || pbcString == "none") {
+      throw std::logic_error(
+          "Given calculator to UnitCellGeometryOptimizer does not have periodic boundaries activated");
+    }
+    // ensure our settings are up-to-date in case members have been altered + sanity checks
     setSettings(getSettings());
     bool disabledCellOpt = !optAngles && std::find(optLengths.begin(), optLengths.end(), true) == optLengths.end();
     if (disabledCellOpt) {
@@ -295,12 +309,12 @@ class UnitCellGeometryOptimizer : public UnitCellGeometryOptimizerBase {
       // optimizers that are missing the 'minIter' member because of template deduction
       if (!disabledCellOpt && instanceof <Bfgs>(geoOptimizer.optimizer)) {
         auto settings = this->getSettings();
-        settings.modifyInt(Bfgs::bfgsMinIter, 1);
+        settings.modifyInt(SettingsNames::Optimizations::Bfgs::minIter, 1);
         this->setSettings(settings);
       }
       if (!disabledCellOpt && instanceof <Bfgs>(cellOptimizer)) {
         auto settings = this->getSettings();
-        settings.modifyInt(Bfgs::bfgsMinIter, 1);
+        settings.modifyInt(SettingsNames::Optimizations::Bfgs::minIter, 1);
         this->setSettings(settings);
       }
       // we are converged if both optimizer did not need to change their given parameters
@@ -314,37 +328,37 @@ class UnitCellGeometryOptimizer : public UnitCellGeometryOptimizerBase {
    * @brief Function to apply the given settings to underlying classes.
    * @param settings The new settings.
    */
-  void setSettings(const Settings& settings) {
+  void setSettings(const Settings& settings) override {
     geoOptimizer.setSettings(settings);
     check.applySettings(settings);
     cellOptimizer.applySettings(settings);
 
     // For Cartesian constraints:
-    this->fixedAtoms = settings.getIntList(GeometryOptimizerBase::geooptFixedAtomsKey);
+    this->fixedAtoms = settings.getIntList(SettingsNames::Optimizations::GeometryOptimizer::fixedAtoms);
     if (!this->fixedAtoms.empty()) {
       throw std::logic_error("Cartesian constraints cannot be set when the unit cell shall be optimized");
     }
 
     // convergence settings
-    this->geoMaxIterations = settings.getInt(UnitCellGeometryOptimizerBase::geooptMaxIterations);
+    this->geoMaxIterations = settings.getInt(SettingsNames::Optimizations::CellOptimizer::geooptMaxIterations);
     Settings s1 = geoOptimizer.getSettings();
-    s1.modifyInt(GradientBasedCheck::gconvMaxIterKey, geoMaxIterations);
+    s1.modifyInt(SettingsNames::Optimizations::Convergence::maxIter, geoMaxIterations);
     geoOptimizer.setSettings(s1);
-    // celloptimer is plain optimizer and we work around this in private function before optimize call
-    this->cellMaxIterations = settings.getInt(UnitCellGeometryOptimizerBase::celloptMaxIterations);
+    // celloptimizer is plain optimizer and we work around this in private function before optimize call
+    this->cellMaxIterations = settings.getInt(SettingsNames::Optimizations::CellOptimizer::celloptMaxIterations);
 
     // unit cell optimization settings
-    this->optAngles = settings.getBool(UnitCellGeometryOptimizerBase::optimizeAnglesKey);
-    bool a = settings.getBool(UnitCellGeometryOptimizerBase::optimizeAKey);
-    bool b = settings.getBool(UnitCellGeometryOptimizerBase::optimizeBKey);
-    bool c = settings.getBool(UnitCellGeometryOptimizerBase::optimizeCKey);
+    this->optAngles = settings.getBool(SettingsNames::Optimizations::CellOptimizer::optimizeAngles);
+    bool a = settings.getBool(SettingsNames::Optimizations::CellOptimizer::optimizeA);
+    bool b = settings.getBool(SettingsNames::Optimizations::CellOptimizer::optimizeB);
+    bool c = settings.getBool(SettingsNames::Optimizations::CellOptimizer::optimizeC);
     this->optLengths = {a, b, c};
   };
   /**
    * @brief Get the public settings as a Utils::Settings object.
    * @return Settings A settings object with the current settings.
    */
-  Settings getSettings() const {
+  Settings getSettings() const override {
     return UnitCellGeometryOptimizerSettings<OptimizerTypeGeometry, OptimizerTypeCell, GradientBasedCheck>(
         *this, geoOptimizer, cellOptimizer, check);
   };
@@ -352,7 +366,7 @@ class UnitCellGeometryOptimizer : public UnitCellGeometryOptimizerBase {
    * @brief Get a copy of the settings of the calculator used for the energy calculations during the optimization.
    * @return std::shared_ptr<Settings> The settings of the calculator.
    */
-  std::shared_ptr<Settings> getCalculatorSettings() const {
+  std::shared_ptr<Settings> getCalculatorSettings() const override {
     return std::make_shared<Settings>(_calculator.settings());
   };
   /**
@@ -363,7 +377,7 @@ class UnitCellGeometryOptimizer : public UnitCellGeometryOptimizerBase {
    *                 the current value and to a const reference of the current
    *                 parameters.
    */
-  void addObserver(std::function<void(const int&, const double&, const Eigen::VectorXd&)> function) {
+  void addObserver(std::function<void(const int&, const double&, const Eigen::VectorXd&)> function) override {
     geoOptimizer.addObserver(function);
     cellOptimizer.addObserver(function);
   }
@@ -374,7 +388,7 @@ class UnitCellGeometryOptimizer : public UnitCellGeometryOptimizerBase {
    * the removal of all observers can increase performance as the observers are given
    * as std::functions and can not be added via templates.
    */
-  void clearObservers() {
+  void clearObservers() override {
     geoOptimizer.clearObservers();
     cellOptimizer.clearObservers();
   }
@@ -384,7 +398,7 @@ class UnitCellGeometryOptimizer : public UnitCellGeometryOptimizerBase {
    * @note getter to be accessible via base class
    * @return GradientBasedCheck the class holding all convergence thresholds.
    */
-  const GradientBasedCheck& getConvergenceCheck() const {
+  const GradientBasedCheck& getConvergenceCheck() const override {
     return check;
   };
   ~UnitCellGeometryOptimizer() override = default;
@@ -467,10 +481,19 @@ class UnitCellGeometryOptimizer : public UnitCellGeometryOptimizerBase {
     Eigen::VectorXd positions = Eigen::Map<Eigen::VectorXd>(pbc.getCellMatrix().data(), pbc.getCellMatrix().size());
     // hack for keeping maximum cycles
     auto maxTotalCycles = check.maxIter;
+    const double v = pbc.getVolume();
+    check.stepMaxCoeff *= v;
+    check.stepRMS *= v;
+    check.gradMaxCoeff *= v;
+    check.gradRMS *= v;
     check.maxIter = static_cast<unsigned>(this->cellMaxIterations);
     // optimize
     int cycles = cellOptimizer.optimize(positions, update, check, log);
     check.maxIter = maxTotalCycles;
+    check.stepMaxCoeff /= v;
+    check.stepRMS /= v;
+    check.gradMaxCoeff /= v;
+    check.gradRMS /= v;
     return cycles;
   }
 
