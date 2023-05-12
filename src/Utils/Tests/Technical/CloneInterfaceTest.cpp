@@ -24,14 +24,14 @@ struct TestObject {
 class InterfaceTest {
  public:
   virtual ~InterfaceTest() = default;
-  std::unique_ptr<InterfaceTest> clone() const {
-    return std::unique_ptr<InterfaceTest>(this->cloneImpl());
+  std::shared_ptr<InterfaceTest> clone() const {
+    return this->cloneImpl();
   }
 
   virtual double getNumber() const noexcept = 0;
 
  private:
-  virtual InterfaceTest* cloneImpl() const = 0;
+  virtual std::shared_ptr<InterfaceTest> cloneImpl() const = 0;
 };
 
 class AbstractTest : public CloneInterface<Abstract<AbstractTest>, InterfaceTest> {
@@ -54,7 +54,7 @@ class ConcreteNoAbstract : public CloneInterface<ConcreteNoAbstract, InterfaceTe
   std::unique_ptr<TestObject> testPtr;
 };
 
-class ConcreteWithAbstract : public CloneInterface<ConcreteWithAbstract, AbstractTest> {
+class ConcreteWithAbstract : public CloneInterface<ConcreteWithAbstract, AbstractTest, InterfaceTest> {
  public:
   ConcreteWithAbstract(double d) {
     testPtr = std::make_unique<TestObject>(d);

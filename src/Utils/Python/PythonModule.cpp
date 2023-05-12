@@ -78,12 +78,12 @@ PYBIND11_MODULE(scine_utilities, m) {
   init_molecular_trajectory(m);
   init_periodic_boundaries(m);
   init_periodic_system(m);
+  init_normal_modes(m);
   init_geometry(m);
   init_gtf(m);
   init_gto_expansion(m);
   init_atomic_gtos(m);
   init_molecular_orbitals(m);
-  init_normal_modes(m);
   init_bond_detector(m);
   init_property_list(m);
   init_quaternion_fit(m);

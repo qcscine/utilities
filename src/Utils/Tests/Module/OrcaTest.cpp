@@ -390,6 +390,48 @@ TEST_F(AOrcaTest, StatesHandlingAndInputCreationWorkCorrectly) {
   ASSERT_THAT(deleted, Eq(true));
 }
 
+TEST_F(AOrcaTest, CAMB3LYPWorksCorrectly) {
+  calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
+  calculator.settings().modifyString(Utils::SettingsNames::method, "CAM-B3LYP-D3BJ");
+  calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2-SVP FORCE_FAILURE");
+  std::stringstream stream("5\n\n"
+                           "C     0.00000000   0.00000001  -0.00000097\n"
+                           "H     0.62612502   0.62612484   0.62613824\n"
+                           "H    -0.62612503  -0.62612486   0.62613824\n"
+                           "H    -0.62612481   0.62612463  -0.62613657\n"
+                           "H     0.62612481  -0.62612464  -0.62613657\n");
+  auto structure = Utils::XyzStreamHandler::read(stream);
+
+  calculator.setStructure(structure);
+
+  try {
+    calculator.calculate("");
+  }
+  catch (Core::UnsuccessfulCalculationException& e) {
+  }
+
+  std::string inputFileName =
+      NativeFilenames::combinePathSegments(calculator.getCalculationDirectory(), calculator.getFileNameBase() + ".inp");
+  std::ifstream input;
+  input.open(inputFileName);
+  auto content = std::string(std::istreambuf_iterator<char>{input}, {});
+  input.close();
+
+  std::string regexString = "!\\sCAM-B3LYP\\sD3BJ";
+  std::regex regex(regexString);
+  std::smatch matches;
+  bool b = std::regex_search(content, matches, regex);
+
+  ASSERT_TRUE(b);
+
+  // Check whether the calculation directory can be deleted.
+  bool isDir = FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
+  boost::filesystem::remove_all(calculator.getCalculationDirectory());
+  bool deleted = !FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
+  ASSERT_THAT(isDir, Eq(true));
+  ASSERT_THAT(deleted, Eq(true));
+}
+
 TEST_F(AOrcaTest, SolventInputKeywordWorkCorrectly) {
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
   calculator.settings().modifyString(Utils::SettingsNames::solvent, "water");

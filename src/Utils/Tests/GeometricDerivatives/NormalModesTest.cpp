@@ -167,6 +167,22 @@ TEST_F(ANormalModesTest, ReturnsCorrectModeAndMolecularTrajectoryOfMode) {
   }
 }
 
+TEST_F(ANormalModesTest, CalculatesCorrectHarmonicInversionPointOfNormalMode) {
+  AtomCollection structure(elements, pos);
+  double wavenumber = 100.0;
+  double disp = NormalModeAnalysis::calculateHarmonicInversionPoint(wavenumber, 5);
+  // Comparison values were calculated by hand
+  EXPECT_THAT(disp, DoubleNear(3.639221, 1e-4));
+  double dispSmall = NormalModeAnalysis::calculateHarmonicInversionPoint(wavenumber, 3);
+  EXPECT_THAT(dispSmall, DoubleNear(2.903094, 1e-4));
+  double dispNeg = NormalModeAnalysis::calculateHarmonicInversionPoint(-wavenumber, 3);
+  ASSERT_THAT(dispNeg, DoubleNear(dispSmall, 1e-12));
+  double wavenumberCH = 3300.0;
+  double dispCH = NormalModeAnalysis::calculateHarmonicInversionPoint(wavenumberCH, 5);
+  EXPECT_THAT(dispCH, DoubleNear(0.6335071, 1e-4));
+  ASSERT_THAT(disp / dispCH, DoubleNear(5.7445626, 1e-6));
+}
+
 } // namespace Tests
 } // namespace Utils
 } // namespace Scine

@@ -22,7 +22,7 @@ using namespace UniversalSettings;
 namespace {
 
 pybind11::dict toDict(const ValueCollection& coll) {
-  pybind11::dict dictionary;
+  auto dictionary = pybind11::dict();
   for (const auto& key : coll.getKeys()) {
     dictionary[key.c_str()] = GenericValueMeta::convert(coll.getValue(key));
   }
@@ -225,10 +225,16 @@ void init_value_collection(pybind11::module& m) {
   // pickle support
   value_collection.def(pybind11::pickle(
       [](const ValueCollection& coll) { // __getstate__
-        /* Return a dict that fully encodes the state of the object */
-        return toDict(coll);
+        // return a dict that fully encodes the state of the object
+        // put this in a tuple, because an empty dict would be a false value
+        // this would lead to __setstate__ not being called when unpickling
+        // which would lead to a segfault or faulty object
+        return pybind11::make_tuple(toDict(coll), "valuecollection");
       },
-      [](pybind11::dict dict) { // __setstate__
+      [](pybind11::tuple dict_tuple) { // __setstate__
+        if (dict_tuple.size() != 2)
+          throw std::runtime_error("Invalid state for ValueCollection!");
+        auto dict = dict_tuple[0].cast<pybind11::dict>();
         ValueCollection coll;
         update(coll, dict, true);
         return coll;
@@ -241,4 +247,19 @@ void init_value_collection(pybind11::module& m) {
 
   parametrizedOptionValue.def(pybind11::self == pybind11::self);
   parametrizedOptionValue.def(pybind11::self != pybind11::self);
+  // pickle support
+  parametrizedOptionValue.def(pybind11::pickle(
+      [](const ParametrizedOptionValue& coll) { // __getstate__
+        // return a tuple with the name and the dict of options
+        return pybind11::make_tuple(coll.selectedOption, toDict(coll.optionSettings));
+      },
+      [](pybind11::tuple dict_tuple) { // __setstate__
+        if (dict_tuple.size() != 2)
+          throw std::runtime_error("Invalid state for ParametrizedOptionValue!");
+        auto name = dict_tuple[0].cast<std::string>();
+        auto dict = dict_tuple[1].cast<pybind11::dict>();
+        ValueCollection coll;
+        update(coll, dict, true);
+        return ParametrizedOptionValue{name, coll};
+      }));
 }

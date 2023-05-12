@@ -57,14 +57,13 @@ int TurbomoleMainOutputParser::getNumberOfNonZeroPointCharges() const {
 
   int numPointCharges = 0;
   while (std::getline(pc, line)) {
-    double x, y, z, charge;
     std::vector<std::string> lineSplitted;
     boost::split(lineSplitted, line, boost::is_any_of(" "), boost::token_compress_on);
     try {
-      x = std::stod(lineSplitted[0]);
-      y = std::stod(lineSplitted[1]);
-      z = std::stod(lineSplitted[2]);
-      charge = std::stod(lineSplitted[3]);
+      std::stod(lineSplitted[0]);
+      std::stod(lineSplitted[1]);
+      std::stod(lineSplitted[2]);
+      double charge = std::stod(lineSplitted[3]);
       if (charge != 0.0) {
         numPointCharges++;
       }

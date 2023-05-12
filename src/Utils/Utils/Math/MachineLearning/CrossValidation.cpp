@@ -51,7 +51,7 @@ std::pair<double, double> CrossValidation::evaluateRegressionModel(const Eigen::
 
 #pragma omp parallel
   {
-    std::unique_ptr<RegressionModel> localModel = model_.clone();
+    auto localModel = model_.clone();
 #pragma omp for schedule(dynamic)
     for (int i = 0; i < k_; ++i) {
       performIteration(i, absoluteErrors, *localModel);

@@ -39,8 +39,8 @@ class Abstract {};
  * derive from Base, hence they do not need an additional 'public Base'
  * statement.
  */
-template<class Derived, class... Bases>
-class CloneInterface : public Bases... {
+template<class Derived, class Base, class Interface = Base>
+class CloneInterface : public Base {
  public:
   ~CloneInterface() override = default;
   /**
@@ -53,7 +53,7 @@ class CloneInterface : public Bases... {
    * This is achieved with templetized Derived and Base classes.
    */
   std::shared_ptr<Derived> clone() const {
-    return std::shared_ptr<Derived>(static_cast<Derived*>(this->cloneImpl()));
+    return std::dynamic_pointer_cast<Derived>(this->cloneImpl());
   }
 
  private:
@@ -61,8 +61,8 @@ class CloneInterface : public Bases... {
    * This cloneImpl() overrides the Base class' method allowing for
    * covariant return type in the base class' clone().
    */
-  CloneInterface* cloneImpl() const override {
-    return new Derived(static_cast<const Derived&>(*this));
+  std::shared_ptr<Interface> cloneImpl() const override {
+    return std::make_shared<Derived>((static_cast<const Derived&>(*this)));
   }
 };
 
@@ -75,17 +75,17 @@ class CloneInterface : public Bases... {
  * in the Sparrow module is the most notorious example, the cloneImpl() method
  * must be virtualized in the abstract class.
  */
-template<class Derived, class... Bases>
-class CloneInterface<Abstract<Derived>, Bases...> : public Bases... {
+template<class Derived, class Base, class Interface>
+class CloneInterface<Abstract<Derived>, Base, Interface> : public Base {
  public:
   ~CloneInterface() override = default;
 
   std::shared_ptr<Derived> clone() const {
-    return std::shared_ptr<Derived>(static_cast<Derived*>(this->cloneImpl()));
+    return std::dynamic_pointer_cast<Derived>(this->cloneImpl());
   }
 
  private:
-  CloneInterface* cloneImpl() const override = 0;
+  std::shared_ptr<Interface> cloneImpl() const override = 0;
 };
 
 } // namespace Utils

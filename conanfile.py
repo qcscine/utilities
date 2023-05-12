@@ -12,7 +12,7 @@ from conans import tools
 
 class ScineUtilsConan(ScineConan):
     name = "scine_utilities"
-    version = "7.0.0"
+    version = "8.0.0"
     url = "https://github.com/qcscine/utilities"
     description = """
 Functionality which is used in most SCINE modules. It is vital for the correct

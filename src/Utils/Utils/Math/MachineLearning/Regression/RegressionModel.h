@@ -48,8 +48,8 @@ class RegressionModel {
    *        The derived, leaf class needs to inherit from Utils::CloneInterface and,
    *        if needed, implement a custom copy constructor. This reduces boilerplate code.
    */
-  std::unique_ptr<RegressionModel> clone() const {
-    return std::unique_ptr<RegressionModel>(this->cloneImpl());
+  std::shared_ptr<RegressionModel> clone() const {
+    return this->cloneImpl();
   }
 
  private:
@@ -57,7 +57,7 @@ class RegressionModel {
    * Implementation of the clone() function, pure virtual private method.
    * It returns a pointer to allow for covariant return types in inheritance.
    */
-  virtual RegressionModel* cloneImpl() const = 0;
+  virtual std::shared_ptr<RegressionModel> cloneImpl() const = 0;
 };
 
 } // namespace MachineLearning

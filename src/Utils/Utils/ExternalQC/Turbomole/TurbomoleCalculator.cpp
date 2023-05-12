@@ -61,6 +61,7 @@ TurbomoleCalculator::TurbomoleCalculator(const TurbomoleCalculator& rhs) {
   this->results() = rhs.results();
   this->turbomoleBinaryDir_ = rhs.turbomoleBinaryDir_;
   this->turbomoleSmpBinaryDir_ = rhs.turbomoleSmpBinaryDir_;
+  this->turbomoleScriptsDir_ = rhs.turbomoleScriptsDir_;
   this->binaryHasBeenChecked_ = rhs.binaryHasBeenChecked_;
 }
 
@@ -80,6 +81,9 @@ void TurbomoleCalculator::initializeProgram() {
     std::string smpArchitecture = architecture + "_smp";
     turbomoleBinaryDir_ = NativeFilenames::combinePathSegments(turboRootEnv, "bin", architecture);
     turbomoleSmpBinaryDir_ = NativeFilenames::combinePathSegments(turboRootEnv, "bin", smpArchitecture);
+    turbomoleScriptsDir_ = NativeFilenames::combinePathSegments(turboRootEnv, "scripts");
+    std::string newPath = turbomoleScriptsDir_ + ":" + std::getenv("PATH");
+    setenv("PATH", newPath.c_str(), 1);
     binaryHasBeenChecked_ = true;
   }
   else
@@ -253,7 +257,35 @@ const Results& TurbomoleCalculator::calculateImpl(std::string description) {
     }
   }
   if (requiredProperties_.containsSubSet(Property::Hessian) || requiredProperties_.containsSubSet(Property::Thermochemistry)) {
-    helper.execute("aoforce", true);
+    if (settings_->getString(SettingsNames::hessianCalculationType) == "analytical") {
+      helper.execute("aoforce", true);
+    }
+    else {
+      // -central as suggested by Turbomole manual
+      std::string numforceCommand = "../../scripts/NumForce -central ";
+      if (settings_->getBool(SettingsNames::enforceNumforce)) {
+        numforceCommand += "-c ";
+      }
+      if (settings_->getBool(SettingsNames::enableRi)) {
+        // one gradient call before NumForce
+        helper.execute("rdgrad", true);
+        // -ri for Ri
+        helper.execute(numforceCommand + "-ri ", true, "numforce.out");
+      }
+      else {
+        // one gradient call before NumForce
+        helper.execute("grad", true);
+        helper.execute(numforceCommand, true, "numforce.out");
+      }
+      // Check, if Turbomole's gradient check stopped numforce
+      std::ifstream out;
+      out.open(NativeFilenames::combinePathSegments(calculationDirectory_, "numforce.out"));
+      bool failedNumforceGradientCheck = helper.jobWasSuccessful(out, "no 2nd derivatives");
+      if (failedNumforceGradientCheck) {
+        throw std::runtime_error("Turbomole's gradient norm check failed -- "
+                                 "gradient norm on given structure too large. ");
+      }
+    }
   }
 
   // Turbomole writes some large .tmp files (even for successful calculation) that are not deleted automatically

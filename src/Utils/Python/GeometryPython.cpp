@@ -39,6 +39,10 @@ void init_geometry(pybind11::module& m) {
                          "positions and the maximum displacement have to be given as arguments.",
                          pybind11::arg("positions"), pybind11::arg("maxDisplacement"));
 
+  geometry_submodule.def("displace_along_modes", &Manipulations::displaceAlongModes, pybind11::arg("positions"),
+                         pybind11::arg("modes"), pybind11::arg("stepSizes"),
+                         "Displace a set of positions along vibrational mode(s) with certain step size(s)");
+
   geometry_submodule.def(
       "random_displacement_trajectory",
       pybind11::overload_cast<const AtomCollection&, unsigned int, double>(&Manipulations::randomDisplacementTrajectory),

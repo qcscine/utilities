@@ -6,6 +6,7 @@
  */
 #include <Core/Interfaces/Calculator.h>
 #include <Core/Interfaces/CalculatorWithReference.h>
+#include <Core/Module.h>
 #include <Core/ModuleManager.h>
 #include <Utils/Pybind.h>
 
@@ -13,6 +14,10 @@ using namespace Scine::Core;
 
 void module_manager_load(ModuleManager& manager, const std::string& filename) {
   manager.load(filename);
+}
+
+void module_manager_load_module(ModuleManager& manager, std::shared_ptr<Module> module) {
+  manager.load(module);
 }
 
 using GetVariantType = boost::variant<std::shared_ptr<Calculator>, std::shared_ptr<CalculatorWithReference>>;
@@ -67,6 +72,10 @@ void init_module_manager(pybind11::module& m) {
 
       SCINE Module files have the suffix ``.module.so`` to clearly disambiguate
       them from general-purpose shared libraries.
+    )");
+  module_manager.def("load_module", &module_manager_load_module, pybind11::arg("module"),
+                     R"(
+      Load a module object directly.
     )");
 
   module_manager.def_property_readonly("modules", &ModuleManager::getLoadedModuleNames, "List of loaded module names");

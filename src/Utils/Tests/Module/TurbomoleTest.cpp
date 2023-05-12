@@ -48,14 +48,19 @@ TEST_F(ATurbomoleTest, SettingsAreSetCorrectly) {
   calculator.settings().modifyInt(Utils::SettingsNames::maxScfIterations, 125);
   calculator.settings().modifyString(Utils::SettingsNames::method, "PBE-D3BJ");
   calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2-SVP");
+  calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::hessianCalculationType, "numerical");
   calculator.settings().modifyString(Utils::SettingsNames::spinMode, "unrestricted");
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, "test_1");
   calculator.settings().modifyDouble(Utils::SettingsNames::temperature, 300.3);
   calculator.settings().modifyString(Utils::SettingsNames::solvation, "cosmo");
   calculator.settings().modifyString(Utils::SettingsNames::solvent, "water");
+  calculator.settings().modifyInt(Utils::ExternalQC::SettingsNames::cavityPointsPerAtom, 362);
+  calculator.settings().modifyInt(Utils::ExternalQC::SettingsNames::cavitySegmentsPerAtom, 122);
   calculator.settings().modifyBool(Utils::ExternalQC::SettingsNames::enableRi, false);
   calculator.settings().modifyInt(Utils::ExternalQC::SettingsNames::numExcitedStates, 5);
-  calculator.settings().modifyBool(ExternalQC::SettingsNames::enforceScfCriterion, true);
+  calculator.settings().modifyBool(Utils::ExternalQC::SettingsNames::enforceScfCriterion, true);
+  calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::dftGrid, "6");
+  calculator.settings().modifyBool(Utils::ExternalQC::SettingsNames::enforceNumforce, true);
 
   ASSERT_THAT(calculator.settings().getInt(Utils::SettingsNames::externalProgramNProcs), Eq(2));
   ASSERT_THAT(calculator.settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(0.0001));
@@ -65,13 +70,19 @@ TEST_F(ATurbomoleTest, SettingsAreSetCorrectly) {
   ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::method), Eq("PBE-D3BJ"));
   ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::basisSet), Eq("def2-SVP"));
   ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::spinMode), Eq("unrestricted"));
+  ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::hessianCalculationType),
+              Eq("numerical"));
   ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory), Eq("test_1"));
   ASSERT_THAT(calculator.settings().getDouble(Utils::SettingsNames::temperature), Eq(300.3));
   ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::solvation), Eq("cosmo"));
   ASSERT_THAT(calculator.settings().getString(Utils::SettingsNames::solvent), Eq("water"));
+  ASSERT_THAT(calculator.settings().getInt(Utils::ExternalQC::SettingsNames::cavityPointsPerAtom), Eq(362));
+  ASSERT_THAT(calculator.settings().getInt(Utils::ExternalQC::SettingsNames::cavitySegmentsPerAtom), Eq(122));
   ASSERT_FALSE(calculator.settings().getBool(Utils::ExternalQC::SettingsNames::enableRi));
   ASSERT_THAT(calculator.settings().getInt(Utils::ExternalQC::SettingsNames::numExcitedStates), Eq(5));
   ASSERT_THAT(calculator.settings().getBool(ExternalQC::SettingsNames::enforceScfCriterion), Eq(true));
+  ASSERT_THAT(calculator.settings().getString(Utils::ExternalQC::SettingsNames::dftGrid), Eq("6"));
+  ASSERT_THAT(calculator.settings().getBool(Utils::ExternalQC::SettingsNames::enforceNumforce), Eq(true));
 }
 
 TEST_F(ATurbomoleTest, HessianOutputIsParsedCorrectly) {
@@ -230,6 +241,7 @@ TEST_F(ATurbomoleTest, TurbomoleCalculationIsPerformedCorrectlyViaScine) {
     calculator.settings().modifyInt(Utils::SettingsNames::externalProgramNProcs, 1);
     calculator.settings().modifyString(Utils::SettingsNames::method, "pbe d3bj");
     calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2-svp");
+    calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::dftGrid, "6");
     calculator.setRequiredProperties(Property::Energy);
 
     std::stringstream stream("5\n\n"
@@ -258,6 +270,16 @@ TEST_F(ATurbomoleTest, TurbomoleCalculationIsPerformedCorrectlyViaScine) {
     calculator.settings().modifyString(Utils::SettingsNames::spinMode, "restricted_open_shell");
     ASSERT_THROW(calculator.calculate(""), std::logic_error);
     calculator.settings().modifyString(Utils::SettingsNames::spinMode, "unrestricted");
+
+    // grid option is not available
+    calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::dftGrid, "8");
+    ASSERT_THROW(calculator.calculate(""), std::runtime_error);
+    calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::dftGrid, "m3");
+
+    // hessian calculation type not available
+    calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::hessianCalculationType, "semi-numerical");
+    ASSERT_THROW(calculator.calculate(""), std::runtime_error);
+    calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::hessianCalculationType, "analytical");
 
     // solvent is not implemented
     calculator.settings().modifyString(Utils::SettingsNames::solvation, "cosmo");
@@ -378,9 +400,17 @@ TEST_F(ATurbomoleTest, InputFileIsWrittenCorrectlyAndStatesHandlingWorks) {
     bool cosmoSectionFound = line.find("$cosmo") != std::string::npos;
     ASSERT_TRUE(cosmoSectionFound);
     std::getline(in, line);
+    // check if correct nppa (number of points per atoms) is set
     std::getline(in, line);
+    bool correctNppaFound = line.find("nppa= 1082") != std::string::npos;
+    // check if correct nppa (number of segments per atoms) is set
+    std::getline(in, line);
+    bool correctNspaFound = line.find("nspa=   92") != std::string::npos;
     // check if correct solvent radius is applied
+    std::getline(in, line);
     bool correctSolvRadFound = line.find("rsolv= 1.93") != std::string::npos;
+    ASSERT_TRUE(correctNppaFound);
+    ASSERT_TRUE(correctNspaFound);
     ASSERT_TRUE(correctSolvRadFound);
 
     // Check that the states handler works.
@@ -655,6 +685,8 @@ TEST_F(ATurbomoleTest, BasisSetStringIsConvertedCorrectly) {
     calculator.settings().modifyString(Utils::SettingsNames::basisSet, "dummyBasisSet");
     auto basisSet3 = calculator.settings().getString(Utils::SettingsNames::basisSet);
     ASSERT_THROW(helper.mapBasisSetToTurbomoleStringRepresentation(basisSet3), std::runtime_error);
+
+    boost::filesystem::remove_all(calculator.getCalculationDirectory());
   }
   else {
     auto logger = Core::Log();
@@ -714,10 +746,12 @@ TEST_F(ATurbomoleTest, ImprovedScfConvergenceSettingsAreAppliedCorrectly) {
     calculator.settings().modifyBool(Utils::SettingsNames::scfDamping, true);
     calculator.settings().modifyInt(Utils::SettingsNames::maxScfIterations, 250);
     calculator.settings().modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-4);
+    calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::dftGrid, "7");
 
     auto scfIter = calculator.settings().getInt(Utils::SettingsNames::maxScfIterations);
     auto scfOrbShift = calculator.settings().getDouble(Utils::ExternalQC::SettingsNames::scfOrbitalShift);
     auto scfConvCrit = int(round(-log10(calculator.settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion))));
+    auto gridSize = calculator.settings().getString(Utils::ExternalQC::SettingsNames::dftGrid);
 
     std::stringstream stream("5\n\n"
                              "C     0.00000000   0.00000001  -0.00000097\n"
@@ -748,21 +782,25 @@ TEST_F(ATurbomoleTest, ImprovedScfConvergenceSettingsAreAppliedCorrectly) {
     std::regex scfDamp(R"(scfdamp   start=0.500  step=0.05  min=0.10)");
     std::regex scfOrbitalShift(R"((scforbitalshift closedshell=)++([-\.0-9]+))");
     std::regex convThreshold(R"((scfconv)+ +([0-9]+))");
+    std::regex gridSizeRegex(R"((gridsize)+ +([7]+))");
 
-    std::smatch m1, m2, m3, m4;
+    std::smatch m1, m2, m3, m4, m5;
     bool scfIterFound = std::regex_search(content, m1, scfIterRegex);
     bool scfDampFound = std::regex_search(content, m2, scfDamp);
     bool scfOrbitalShiftFound = std::regex_search(content, m3, scfOrbitalShift);
     bool convThresholdFound = std::regex_search(content, m4, convThreshold);
+    bool gridSizeFound = std::regex_search(content, m5, gridSizeRegex);
 
     ASSERT_TRUE(scfIterFound);
     ASSERT_TRUE(scfDampFound);
     ASSERT_TRUE(scfOrbitalShiftFound);
     ASSERT_TRUE(convThresholdFound);
+    ASSERT_TRUE(gridSizeFound);
 
     ASSERT_EQ(std::stoi(m1[2]), scfIter);
     ASSERT_EQ(std::stod(m3[2]), scfOrbShift);
     ASSERT_EQ(std::stoi(m4[2]), scfConvCrit);
+    ASSERT_EQ(m5[2], gridSize);
     boost::filesystem::remove_all(calculator.getCalculationDirectory());
 
     // Check if scf convergence criteria are adapted for Hessian and/or gradients calculation
@@ -776,6 +814,8 @@ TEST_F(ATurbomoleTest, ImprovedScfConvergenceSettingsAreAppliedCorrectly) {
     calculator.setRequiredProperties(Property::Energy | Property::Gradients);
     auto thirdCalculator = calculator.clone();
     ASSERT_THAT(thirdCalculator->settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(1e-8));
+
+    boost::filesystem::remove_all(calculator.getCalculationDirectory());
   }
   else {
     auto logger = Core::Log();
@@ -793,6 +833,8 @@ TEST_F(ATurbomoleTest, InputFileIsWrittenCorrectlyAndUserDefinedSolventWorks) {
     calculator.settings().modifyInt(Utils::SettingsNames::spinMultiplicity, 2);
     calculator.settings().modifyString(Utils::SettingsNames::solvation, "cosmo");
     calculator.settings().modifyString(Utils::SettingsNames::solvent, "user_defined(80.1, 1.95)");
+    calculator.settings().modifyInt(Utils::ExternalQC::SettingsNames::cavityPointsPerAtom, 2562);
+    calculator.settings().modifyInt(Utils::ExternalQC::SettingsNames::cavitySegmentsPerAtom, 272);
 
     std::stringstream stream("5\n\n"
                              "C     0.00000000   0.00000001  -0.00000097\n"
@@ -830,8 +872,16 @@ TEST_F(ATurbomoleTest, InputFileIsWrittenCorrectlyAndUserDefinedSolventWorks) {
     std::getline(in, line);
     bool correctEpsFound = line.find("epsilon=   80.100") != std::string::npos;
     ASSERT_TRUE(correctEpsFound);
+    // check if correct nppa (number of points per atoms) is set
     std::getline(in, line);
+    bool correctNppaFound = line.find("nppa= 2562") != std::string::npos;
+    ASSERT_TRUE(correctNppaFound);
+    // check if correct nppa (number of segments per atoms) is set
+    std::getline(in, line);
+    bool correctNspaFound = line.find("nspa=  272") != std::string::npos;
+    ASSERT_TRUE(correctNspaFound);
     // check if correct solvent radius is applied
+    std::getline(in, line);
     bool correctSolvRadFound = line.find("rsolv= 1.95") != std::string::npos;
     ASSERT_TRUE(correctSolvRadFound);
 
@@ -968,6 +1018,38 @@ TEST_F(ATurbomoleTest, ExcitedStatesCalculationWorks) {
   else {
     auto logger = Core::Log();
     logger.output << "Turbomole input creation was not tested directly as no binary path was specified." << Core::Log::endl;
+  }
+#endif
+}
+
+TEST_F(ATurbomoleTest, NumforceCallWorks) {
+#ifndef _WIN32
+  const char* envVariablePtr = std::getenv("TURBODIR");
+  if (envVariablePtr) {
+    calculator.settings().modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-6);
+    calculator.settings().modifyBool(Utils::ExternalQC::SettingsNames::enforceScfCriterion, true);
+    calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::hessianCalculationType, "numerical");
+
+    std::stringstream stream("2\n\n"
+                             "H 3.073966 2.638248 0.173676\n"
+                             "H 2.715150 1.261101 0.831928\n");
+
+    auto structure = Utils::XyzStreamHandler::read(stream);
+    calculator.setStructure(structure);
+    calculator.setRequiredProperties(Utils::Property::Hessian);
+    ASSERT_THROW(calculator.calculate(""), std::runtime_error);
+    calculator.settings().modifyBool(Utils::ExternalQC::SettingsNames::enforceNumforce, true);
+    // Calculate
+    const auto& results = calculator.calculate("");
+    ASSERT_TRUE(results.has<Property::Hessian>());
+    // Get hessian and calculate eigenvalues
+    const auto& hessian = results.get<Property::Hessian>();
+    auto evals = hessian.eigenvalues();
+    // Check if lowest eval is equal to the reference eigenvalue
+    double ref_eval_0 = -0.05988705;
+    ASSERT_TRUE(abs(evals[0].real() - ref_eval_0) < 1e-6);
+
+    boost::filesystem::remove_all(calculator.getCalculationDirectory());
   }
 #endif
 }

@@ -72,6 +72,18 @@ NormalModesContainer calculateOrthogonalNormalModes(const HessianMatrix& hessian
  */
 double getWaveNumber(double value);
 
+/**
+ * @brief Calculate n-th harmonic inversion point for a given wave number in [cm^-1]
+ *
+ * @param wavenumber Wavenumber in [cm^-1]. Imaginary wavenumbers are given as negative numbers.
+ * @param n Value specifying the n-th harmonic inversion point to be calculated.
+ *          Usually is a positive integer, but can in principle be any positive real number.
+ * @return Displacement corresponding to the n-th harmonic inversion point.
+ * The displacement value should be used to displace along vibrational modes obtained from the normal mode analysis as
+ * implemented above.
+ */
+double calculateHarmonicInversionPoint(double wavenumber, double n);
+
 } // namespace NormalModeAnalysis
 } // namespace Utils
 } // namespace Scine

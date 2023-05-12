@@ -14,8 +14,8 @@ namespace Utils {
 
 namespace BSplines {
 
-InterpolationGenerator::InterpolationGenerator(const Eigen::Ref<const Eigen::MatrixXd>& dataPoints,
-                                               const unsigned degree, const bool uniformKnotVector)
+InterpolationGenerator::InterpolationGenerator(const Eigen::Ref<const Eigen::MatrixXd>& dataPoints, unsigned degree,
+                                               bool uniformKnotVector)
   : Generator(dataPoints, degree), uniformKnotVector_(uniformKnotVector) {
 }
 

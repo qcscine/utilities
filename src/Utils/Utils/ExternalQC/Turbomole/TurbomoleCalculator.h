@@ -172,6 +172,8 @@ class TurbomoleCalculator final : public CloneInterface<TurbomoleCalculator, Cor
   std::string turbomoleBinaryDir_;
   // The absolute path to the turbomole binaries for parallel calculations
   std::string turbomoleSmpBinaryDir_;
+  // The absolute path to the turbomole scripts directory
+  std::string turbomoleScriptsDir_;
   // The binary name
   std::string binary_;
   AtomCollection atoms_;

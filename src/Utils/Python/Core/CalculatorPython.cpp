@@ -13,12 +13,164 @@
 #include <Utils/Geometry/AtomCollection.h>
 #include <Utils/IO/ChemicalFileFormats/ChemicalFileHandler.h>
 #include <Utils/Settings.h>
+#include <Utils/Technical/CloneInterface.h>
 #include <Utils/UniversalSettings/ValueCollection.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <algorithm>
 #include <iostream>
+
+class PyStateHandableObject : public Scine::Core::StateHandableObject {
+ public:
+  /* Inherit the constructors */
+  using Scine::Core::StateHandableObject::StateHandableObject;
+
+  void loadState(std::shared_ptr<Scine::Core::State> state) override {
+    PYBIND11_OVERRIDE_PURE(void, StateHandableObject, loadState, state);
+  }
+  std::shared_ptr<Scine::Core::State> getState() const override {
+    PYBIND11_OVERRIDE_PURE(std::shared_ptr<Scine::Core::State>, StateHandableObject, getState, );
+  }
+};
+
+class PyObjectWithStructure : public Scine::Core::ObjectWithStructure {
+ public:
+  /* Inherit the constructors */
+  using Scine::Core::ObjectWithStructure::ObjectWithStructure;
+  void setStructure(const Scine::Utils::AtomCollection& structure) override {
+    PYBIND11_OVERRIDE_PURE(void, ObjectWithStructure, setStructure, structure);
+  }
+  std::unique_ptr<Scine::Utils::AtomCollection> getStructure() const override {
+    pybind11::gil_scoped_acquire gil; // Acquire the GIL while in this scope.
+    pybind11::function override = pybind11::get_override(this, "getStructure");
+    if (override) {          // method is found
+      auto obj = override(); // Call the Python function.
+      Scine::Utils::AtomCollection collection = obj.cast<Scine::Utils::AtomCollection>();
+      return std::make_unique<Scine::Utils::AtomCollection>(collection);
+    }
+    throw std::runtime_error("Missing overload of 'getStructure' in Python Calculator derivative.");
+  }
+  void modifyPositions(Scine::Utils::PositionCollection newPositions) override {
+    PYBIND11_OVERRIDE_PURE(void, ObjectWithStructure, modifyPositions, newPositions);
+  }
+  const Scine::Utils::PositionCollection& getPositions() const override {
+    PYBIND11_OVERRIDE_PURE(const Scine::Utils::PositionCollection&, ObjectWithStructure, getPositions, );
+  }
+};
+
+template<class Derived, class... Bases>
+class CloneHelper : public Bases... {
+ public:
+  ~CloneHelper() override = default;
+  std::shared_ptr<Derived> clone() const {
+    return clone_impl();
+  }
+  virtual std::shared_ptr<Derived> clone_impl() const = 0;
+
+ private:
+  Scine::Core::Calculator* cloneImpl() const override {
+    throw std::runtime_error("Should never be called");
+  }
+};
+
+template<class Derived, class... Bases>
+class CloneHelper<Scine::Utils::Abstract<Derived>, Bases...> : public Bases... {
+ public:
+  ~CloneHelper() override = default;
+
+  std::shared_ptr<Derived> clone() const {
+    return clone_impl();
+    ;
+  }
+  std::shared_ptr<Scine::Core::Calculator> clone_impl() const = 0;
+
+ private:
+  CloneHelper* cloneImpl() const override = 0;
+};
+
+class PyCalculator : public Scine::Core::Calculator {
+ public:
+  /* Inherit the constructors */
+  using Scine::Core::Calculator::Calculator;
+  PyCalculator() = default;
+
+  PyCalculator(const Scine::Core::Calculator& c) : Scine::Core::Calculator(c){};
+
+  void setRequiredProperties(const Scine::Utils::PropertyList& requiredProperties) override {
+    PYBIND11_OVERRIDE_PURE(void, Calculator, setRequiredProperties, requiredProperties);
+  }
+  Scine::Utils::PropertyList getRequiredProperties() const override {
+    PYBIND11_OVERRIDE_PURE(Scine::Utils::PropertyList, Scine::Core::Calculator, getRequiredProperties, );
+  }
+  Scine::Utils::PropertyList possibleProperties() const override {
+    PYBIND11_OVERRIDE_PURE(Scine::Utils::PropertyList, Scine::Core::Calculator, possibleProperties, );
+  }
+  const Scine::Utils::Results& calculate(std::string description) override {
+    PYBIND11_OVERRIDE_PURE(const Scine::Utils::Results&, Scine::Core::Calculator, calculate, description);
+  }
+  std::string name() const override {
+    PYBIND11_OVERRIDE_PURE(std::string, Scine::Core::Calculator, name, );
+  }
+  Scine::Utils::Settings& settings() override {
+    PYBIND11_OVERRIDE_PURE(Scine::Utils::Settings&, Scine::Core::Calculator, settings, );
+  }
+  const Scine::Utils::Settings& settings() const override {
+    PYBIND11_OVERRIDE_PURE(const Scine::Utils::Settings&, Scine::Core::Calculator, settings, );
+  }
+  Scine::Utils::Results& results() override {
+    PYBIND11_OVERRIDE_PURE(Scine::Utils::Results&, Scine::Core::Calculator, results, );
+  }
+  const Scine::Utils::Results& results() const override {
+    PYBIND11_OVERRIDE_PURE(const Scine::Utils::Results&, Scine::Core::Calculator, results, );
+  }
+  bool supportsMethodFamily(const std::string& methodFamily) const override {
+    PYBIND11_OVERRIDE_PURE(bool, Scine::Core::Calculator, supportsMethodFamily, methodFamily);
+  }
+  void setStructure(const Scine::Utils::AtomCollection& structure) override {
+    PYBIND11_OVERRIDE_PURE(void, Scine::Core::Calculator, setStructure, structure);
+  }
+  std::unique_ptr<Scine::Utils::AtomCollection> getStructure() const override {
+    pybind11::gil_scoped_acquire gil; // Acquire the GIL while in this scope.
+    pybind11::function override = pybind11::get_override(this, "getStructure");
+    if (override) {          // method is found
+      auto obj = override(); // Call the Python function.
+      Scine::Utils::AtomCollection collection = obj.cast<Scine::Utils::AtomCollection>();
+      return std::make_unique<Scine::Utils::AtomCollection>(collection);
+    }
+    throw std::runtime_error("Missing overload of 'getStructure' in Python Calculator derivative.");
+  }
+  void modifyPositions(Scine::Utils::PositionCollection newPositions) override {
+    PYBIND11_OVERRIDE_PURE(void, Scine::Core::Calculator, modifyPositions, newPositions);
+  }
+  const Scine::Utils::PositionCollection& getPositions() const override {
+    PYBIND11_OVERRIDE_PURE(const Scine::Utils::PositionCollection&, Scine::Core::Calculator, getPositions, );
+  }
+  void loadState(std::shared_ptr<Scine::Core::State> state) override {
+    PYBIND11_OVERRIDE_PURE(void, Scine::Core::Calculator, loadState, state);
+  }
+  std::shared_ptr<Scine::Core::State> getState() const override {
+    PYBIND11_OVERRIDE_PURE(std::shared_ptr<Scine::Core::State>, Scine::Core::Calculator, getState, );
+  }
+
+  pybind11::object clone_impl() const {
+    PYBIND11_OVERRIDE_PURE(pybind11::object, Scine::Core::Calculator, clone_impl, );
+  }
+
+  std::shared_ptr<Scine::Core::Calculator> cloneImpl() const override {
+    pybind11::function override = pybind11::get_override(this, "clone_impl");
+    if (override) { // method is found
+      auto cloned = override();
+      auto keep_python_state_alive = std::make_shared<pybind11::object>(cloned);
+      auto ptr = cloned.cast<Scine::Core::Calculator*>();
+      // aliasing shared_ptr: points to `Scine::Core::Calculator* ptr` but refcounts the Python object
+      return std::shared_ptr<Scine::Core::Calculator>(keep_python_state_alive, ptr);
+    }
+    else {
+      throw std::runtime_error("Missing overload of 'cloneImpl' in Python Calculator derivative.");
+    }
+  }
+};
 
 // Defined in ValueCollectionPython.cpp
 extern void update(Scine::Utils::UniversalSettings::ValueCollection& coll, const pybind11::dict& dictionary, bool preserveTypes);
@@ -74,7 +226,6 @@ std::shared_ptr<Scine::Core::Calculator> getCalculator(std::string method_family
   const char sep = '/';
   auto listOfMethods = split(method_family, sep);
   auto listOfPrograms = split(program, sep);
-
   auto dispatcher = [&listOfMethods, &listOfPrograms, &manager]() -> std::vector<std::shared_ptr<Scine::Core::Calculator>> {
     if (listOfMethods.size() != listOfPrograms.size()) {
       throw std::runtime_error("Unequal number of method families and programs given. Please provide a corresponding "
@@ -93,11 +244,11 @@ std::shared_ptr<Scine::Core::Calculator> getCalculator(std::string method_family
           "Please provide at least two method families (and the corresponding programs) for an embedding calculation.");
     }
   };
-
   std::shared_ptr<Scine::Core::Calculator> calc;
   if (listOfMethods.size() < 2 && listOfPrograms.size() < 2) {
     std::shared_ptr<Scine::Core::Calculator> calc;
     try {
+      auto f = Scine::Core::Calculator::supports(method_family);
       calc = manager.get<Scine::Core::Calculator>(Scine::Core::Calculator::supports(method_family), program);
     }
     catch (...) {
@@ -164,7 +315,6 @@ void setRequiredProperties(Scine::Core::Calculator& calculator, const std::vecto
   for (const auto& p : list) {
     properties.addProperty(p);
   }
-
   calculator.setRequiredProperties(properties);
 }
 
@@ -183,8 +333,24 @@ Scine::Utils::AtomCollection getStructure(const Scine::Core::Calculator& calc) {
   return ret;
 }
 
+std::shared_ptr<Scine::Core::Calculator> cloneHelperFunction(const Scine::Core::Calculator& calc) {
+  return calc.clone();
+}
+
+std::shared_ptr<Scine::Core::Calculator> shared_from_this(Scine::Core::Calculator& calc) {
+  return calc.shared_from_this();
+}
+
 void init_calculator(pybind11::module& m) {
-  pybind11::class_<Scine::Core::Calculator, std::shared_ptr<Scine::Core::Calculator>> calculator(m, "Calculator");
+  pybind11::class_<Scine::Core::State, std::shared_ptr<Scine::Core::State>> state(m, "State");
+  pybind11::class_<Scine::Core::StateHandableObject, PyStateHandableObject, std::shared_ptr<Scine::Core::StateHandableObject>> stateHandableObject(
+      m, "StateHandableObject");
+  pybind11::class_<Scine::Core::ObjectWithStructure, PyObjectWithStructure, std::shared_ptr<Scine::Core::ObjectWithStructure>> objectWithStructure(
+      m, "ObjectWithStructure");
+  pybind11::class_<Scine::Core::Calculator, Scine::Core::StateHandableObject, Scine::Core::ObjectWithStructure,
+                   PyCalculator, std::shared_ptr<Scine::Core::Calculator>>
+      calculator(m, "Calculator");
+  calculator.def(pybind11::init_alias<>(), "Default Constructor");
 
   calculator.doc() = "The Calculator is the abstract base for classes running electronic structure calculations.";
 
@@ -223,6 +389,8 @@ void init_calculator(pybind11::module& m) {
   calculator.def("has_results", &hasResults, "Check if results are present.");
 
   calculator.def("name", &Scine::Core::Calculator::name, "Yields the name of the calculator");
+  calculator.def("clone", &cloneHelperFunction, "Yields a copy of the calculator");
+  calculator.def("shared_from_this", &shared_from_this, "Yields a shared pointer to copy of the calculator");
 
   // Some static helper functions
 

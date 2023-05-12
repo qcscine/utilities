@@ -70,7 +70,7 @@ inline void setLog(Core::Calculator& calculator, bool error, bool warning, bool 
  * @param log A Scine logger
  * @param maxSpinDifference The range of the multiplicity checks, e.g. 1 will check m=1 and m=5 for a m=3 system
  */
-inline std::unique_ptr<Core::Calculator> spinPropensity(Core::Calculator& calculator, Core::Log& log, int maxSpinDifference) {
+inline std::shared_ptr<Core::Calculator> spinPropensity(Core::Calculator& calculator, Core::Log& log, int maxSpinDifference) {
   // references
   auto referenceResults = calculator.results();
   auto refSettings = calculator.settings();
@@ -142,12 +142,29 @@ inline std::pair<std::string, std::string> splitIntoMethodAndDispersion(const st
   // check for exceptions
   // if input contains one of these as a substring
   // we return the input as method and empty dispersion
+  // clang-format off
   std::vector<std::string> exceptions = {
       "PNO-CC",
       "HF-3C",
       "PBEH-3C",
       "B97-3C",
   };
+  // if input contains one of these as a substring
+  // we ignore the number of '-' in the exception and still check for dispersion
+  std::vector<std::string> exceptionsWithPotentialDisp = {
+      "CAM-B3LYP",
+      "M05-2X",
+      "M06-L",
+      "M06-2X",
+      "M06-HF",
+      "M08-HX",
+      "M08-SO",
+      "M11-L",
+      "MN12-L",
+      "MN12-SX",
+      "MN15-L",
+  };
+  // clang-format on
   std::string inputCopy(input.size(), 0);
   std::transform(input.begin(), input.end(), inputCopy.begin(), [](unsigned char c) { return std::toupper(c); });
   if (std::any_of(exceptions.begin(), exceptions.end(),
@@ -159,6 +176,24 @@ inline std::pair<std::string, std::string> splitIntoMethodAndDispersion(const st
   std::stringstream ss(input);
   while (std::getline(ss, segment, '-')) {
     segments.push_back(segment);
+  }
+  for (const auto& exceptionMethod : exceptionsWithPotentialDisp) {
+    if (inputCopy.find(exceptionMethod) != std::string::npos) {
+      auto allowed_hyphens = std::count(exceptionMethod.begin(), exceptionMethod.end(), '-');
+      std::vector<std::string> newSegments;
+      newSegments.push_back("");
+      for (int i = 0; i <= allowed_hyphens; ++i) {
+        if (i == 0)
+          newSegments[0] = segments[i];
+        else
+          newSegments[0] += "-" + segments[i];
+      }
+      for (unsigned long i = allowed_hyphens + 1; i < segments.size(); ++i) {
+        newSegments.push_back(segments[i]);
+      }
+      segments = newSegments;
+      break;
+    }
   }
   if (segments.size() > 2) {
     throw std::logic_error("The provided method '" + input +

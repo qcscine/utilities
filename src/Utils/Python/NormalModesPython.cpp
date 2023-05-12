@@ -41,6 +41,10 @@ void init_normal_modes(pybind11::module& m) {
       pybind11::arg("hessian"), pybind11::arg("elements"), pybind11::arg("positions"),
       pybind11::arg("normalize") = false, "Calculate the mass weighted normal modes.");
 
+  normal_modes_submodule.def("get_harmonic_inversion_point", &NormalModeAnalysis::calculateHarmonicInversionPoint,
+                             pybind11::arg("wavenumber"), pybind11::arg("n"),
+                             "Returns the n-th harmonic inversion point displacement for a given wavenumber.");
+
   pybind11::class_<NormalMode> normalMode(normal_modes_submodule, "mode");
 
   normalMode.def(pybind11::init<double, DisplacementCollection>(), pybind11::arg("wave_number"), pybind11::arg("mode"),

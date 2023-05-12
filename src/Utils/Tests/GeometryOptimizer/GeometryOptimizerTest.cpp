@@ -194,7 +194,7 @@ class GeoOptMockCalculator : public Core::Calculator {
   AtomCollection structure_;
   Results r_;
   std::unique_ptr<Settings> settings_;
-  Core::Calculator* cloneImpl() const final {
+  std::shared_ptr<Core::Calculator> cloneImpl() const final {
     return nullptr;
   }
 };

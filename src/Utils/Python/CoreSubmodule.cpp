@@ -11,6 +11,7 @@ void init_object_with_log(pybind11::module& m);
 void init_calculator(pybind11::module& m);
 void init_calculator_with_reference(pybind11::module& m);
 void init_wavefunction_output_generator(pybind11::module& m);
+void init_module(pybind11::module& m);
 void init_module_manager(pybind11::module& m);
 
 void init_core_submodule(pybind11::module& m) {
@@ -25,5 +26,6 @@ void init_core_submodule(pybind11::module& m) {
   init_calculator(core);
   init_calculator_with_reference(core);
   init_wavefunction_output_generator(core);
+  init_module(core);
   init_module_manager(core);
 }

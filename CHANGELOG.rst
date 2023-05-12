@@ -8,6 +8,22 @@ It is intended that only the first two groups (``New Features and Feature Update
 ``Important Technical Changes``) are important for the average user, while
 the last one is mainly aimed at developers and users that link deeply into the code.
 
+Release 8.0.0
+-------------
+
+New Features and Feature Updates
+................................
+
+- Turbomole calculator can now calculate Hessians numerically.
+- The DFT grid for the Turbomole calculator can now be varied.
+- The cavity construction for implicit solvation with the Turbomole calculator can now be modified by setting the points and segments per atom.
+- Update Calculator interface helpers to accommodate pure Python3 Calculators.
+- Added distortion of structure along a set of vibrational mode(s) and harmonic inversion point calculation.
+
+Important Technical Changes
+...........................
+- Changed Python state definition of ValueCollection to avoid faulty state for empty ValueCollections.
+
 Release 7.0.0
 -------------
 

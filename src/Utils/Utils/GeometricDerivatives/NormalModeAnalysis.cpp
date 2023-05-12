@@ -65,6 +65,18 @@ double getWaveNumber(double value) {
   return f1 * f2 * std::sqrt(f2 * value);
 }
 
+double calculateHarmonicInversionPoint(double wavenumber, double n) {
+  // Formula: $E_n = E_{pot}$, so $\hbar \omega (n + 1/2) = 1/2 m \omega^2 q^2$
+  // Then solve for q, use mass-weighted coordinates.
+  // For this calculation, everything is converted to Hartree atomic units.
+  // Imaginary wavenumbers are treated as regular ones.
+  double wavenumberInHartree = abs(wavenumber) * Constants::hartree_per_invCentimeter;
+  double dispOfInversionPoint = sqrt((2. * (n + 0.5)) / wavenumberInHartree);
+  // The mass-weighting in the normal mode analysis also needs to be converted to Hartree atomic units.
+  dispOfInversionPoint /= sqrt(Constants::electronRestMass_per_u);
+  return dispOfInversionPoint;
+}
+
 } // namespace NormalModeAnalysis
 } // namespace Utils
 } // namespace Scine

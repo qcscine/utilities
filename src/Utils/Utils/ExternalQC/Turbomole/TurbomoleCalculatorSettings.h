@@ -35,6 +35,7 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
   void addBaseWorkingDirectory(UniversalSettings::DescriptorCollection& settings);
   void addTemperature(UniversalSettings::DescriptorCollection& settings);
   void addPressure(UniversalSettings::DescriptorCollection& settings);
+  void addHessianCalculationType(UniversalSettings::DescriptorCollection& settings);
   void addElectronicTemperature(UniversalSettings::DescriptorCollection& settings);
   void addScfDamping(UniversalSettings::DescriptorCollection& settings);
   void addScfDampingValue(UniversalSettings::DescriptorCollection& settings);
@@ -46,6 +47,10 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
   void addEnableRi(UniversalSettings::DescriptorCollection& settings);
   void addNumExcitedStates(UniversalSettings::DescriptorCollection& settings);
   void addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings);
+  void addDftGrid(UniversalSettings::DescriptorCollection& settings);
+  void addCavityPointsPerAtom(UniversalSettings::DescriptorCollection& settings);
+  void addCavitySegmentsPerAtom(UniversalSettings::DescriptorCollection& settings);
+  void addEnforceNumforce(UniversalSettings::DescriptorCollection& settings);
 
   /**
    * @brief Constructor that populates the TurbomoleCalculatorSettings.
@@ -65,6 +70,7 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
     addScfDamping(_fields);
     addScfDampingValue(_fields);
     addScfOrbitalShift(_fields);
+    addHessianCalculationType(_fields);
     addElectronicTemperature(_fields);
     addSolvent(_fields);
     addSolvation(_fields);
@@ -73,6 +79,10 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
     addEnableRi(_fields);
     addNumExcitedStates(_fields);
     addScfCriterionEnforce(_fields);
+    addDftGrid(_fields);
+    addCavityPointsPerAtom(_fields);
+    addCavitySegmentsPerAtom(_fields);
+    addEnforceNumforce(_fields);
     resetToDefaults();
   };
 };
@@ -175,6 +185,14 @@ inline void TurbomoleCalculatorSettings::addScfOrbitalShift(UniversalSettings::D
   settings.push_back(SettingsNames::scfOrbitalShift, std::move(scfOrbitalShift));
 }
 
+inline void TurbomoleCalculatorSettings::addHessianCalculationType(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::OptionListDescriptor hessianType("The method for calculating the Hessian.");
+  hessianType.addOption("analytical");
+  hessianType.addOption("numerical");
+  hessianType.setDefaultOption("analytical");
+  settings.push_back(ExternalQC::SettingsNames::hessianCalculationType, std::move(hessianType));
+}
+
 inline void TurbomoleCalculatorSettings::addElectronicTemperature(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::DoubleDescriptor electronicTemperature(
       "Sets the electronic temperature for SCF calculations.");
@@ -232,6 +250,47 @@ inline void TurbomoleCalculatorSettings::addScfCriterionEnforce(UniversalSetting
       "even if derivative quantities are calculated.");
   scfEnforce.setDefaultValue(false);
   settings.push_back(SettingsNames::enforceScfCriterion, std::move(scfEnforce));
+}
+
+inline void TurbomoleCalculatorSettings::addDftGrid(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::OptionListDescriptor dftGrid(
+      "Specify DFT grid to be used."
+      "Possible grids range from 1-7 and m3-m5, respectively, where 1 is coarse and 7 most dense.");
+  // Add all possible options
+  dftGrid.addOption("m3");
+  dftGrid.addOption("m4");
+  dftGrid.addOption("m5");
+  for (int i = 1; i < 8; i++) {
+    dftGrid.addOption(std::to_string(i));
+  }
+  // Set Default value
+  dftGrid.setDefaultOption("m3");
+  settings.push_back(SettingsNames::dftGrid, std::move(dftGrid));
+}
+
+inline void TurbomoleCalculatorSettings::addCavityPointsPerAtom(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::IntDescriptor cavityPointsPerAtom(
+      "The number basis grid points per atom for the cavity construction"
+      "Allowed values must fulfill: i = 10 * 3^k * 4^l + 2");
+  cavityPointsPerAtom.setDefaultValue(1082);
+  cavityPointsPerAtom.setMinimum(12);
+  settings.push_back(SettingsNames::cavityPointsPerAtom, std::move(cavityPointsPerAtom));
+}
+
+inline void TurbomoleCalculatorSettings::addCavitySegmentsPerAtom(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::IntDescriptor cavitySegmentsPerAtom(
+      "The number of segments per atom for the cavity construction"
+      "Allowed values must fulfill: i = 10 * 3^k * 4^l + 2");
+  cavitySegmentsPerAtom.setDefaultValue(92);
+  cavitySegmentsPerAtom.setMinimum(12);
+  settings.push_back(SettingsNames::cavitySegmentsPerAtom, std::move(cavitySegmentsPerAtom));
+}
+
+inline void TurbomoleCalculatorSettings::addEnforceNumforce(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::BoolDescriptor enforceNumforce(
+      "Whether Turbomole should skip its gradient check when performing numforce.");
+  enforceNumforce.setDefaultValue(false);
+  settings.push_back(SettingsNames::enforceNumforce, std::move(enforceNumforce));
 }
 
 } // namespace ExternalQC

@@ -7,6 +7,7 @@
 #ifndef UTILS_GEOMETRY_MANIPULATIONS_H_
 #define UTILS_GEOMETRY_MANIPULATIONS_H_
 
+#include "Utils/GeometricDerivatives/NormalMode.h"
 #include "Utils/Geometry/AtomCollection.h"
 #include "Utils/MolecularTrajectory.h"
 #include "Utils/Typenames.h"
@@ -70,6 +71,23 @@ PositionCollection rotatePositions(const PositionCollection& positions, const Ei
  */
 void rotatePositionsInPlace(PositionCollection& pc, const Eigen::Quaterniond& rotation,
                             const Eigen::RowVector3d& pointOfRotation);
+/**
+ * @brief Displace position collection along certain vibrational mode(s).
+ * @param positions Position collection of interest.
+ * @param modes Vector of modes along which to displace.
+ * @param displacementSteps Vector of step sizes of the displacements along the different modes.
+ * @return Position collection of displaced positions.
+ */
+PositionCollection displaceAlongModes(const PositionCollection& positions, const std::vector<NormalMode>& modes,
+                                      const std::vector<double>& displacementSteps);
+/**
+ * @brief Displace position collection along certain vibrational mode(s) in place.
+ * @param positions Position collection of interest.
+ * @param modes Vector of modes along which to displace.
+ * @param displacementSteps Vector of step sizes of the displacements along the different modes.
+ */
+void displaceAlongModesInPlace(PositionCollection& positions, const std::vector<NormalMode>& modes,
+                               const std::vector<double>& displacementSteps);
 /**
  * @brief Randomly displaces all positions in all directions.
  *

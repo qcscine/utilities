@@ -96,6 +96,28 @@ TEST(GeometryTest, DoesRotatePositionCollectionWork) {
   }
 }
 
+TEST(GeometryTest, DoesDisplacePositionCollectionAlongModeWork) {
+  PositionCollection testPC = PositionCollection::Random(5, 3);
+  DisplacementCollection displ = DisplacementCollection::Random(testPC.rows(), testPC.cols());
+  NormalMode mode(0, displ);
+  DisplacementCollection displ2 = DisplacementCollection::Random(testPC.rows(), testPC.cols());
+  NormalMode mode2(0, displ2);
+
+  // displace along firt mode
+  PositionCollection displacedPC = Manipulations::displaceAlongModes(testPC, {mode}, {0.05});
+  // displace along second mode
+  Manipulations::displaceAlongModesInPlace(displacedPC, {mode2}, {0.7});
+
+  // displace back along both modes at once
+  Manipulations::displaceAlongModesInPlace(displacedPC, {mode2, mode}, {-0.7, -0.05});
+
+  for (int i = 0; i < testPC.rows(); ++i) {
+    ASSERT_THAT(displacedPC.row(i).x(), DoubleNear(testPC.row(i).x(), 1e-12));
+    ASSERT_THAT(displacedPC.row(i).y(), DoubleNear(testPC.row(i).y(), 1e-12));
+    ASSERT_THAT(displacedPC.row(i).z(), DoubleNear(testPC.row(i).z(), 1e-12));
+  }
+}
+
 TEST(GeometryTest, DoesRotateAroundAxisRotateRightAngle) {
   PositionCollection waterPC0(3, 3);
   waterPC0.row(0) = Position(0, 0, 0);

@@ -102,7 +102,7 @@ class QmmmGeoOptMockCalculator : public Core::Calculator {
   Results results_;
   std::unique_ptr<Settings> settings_;
   std::unique_ptr<TestCalculator> underlyingCalculator_;
-  Core::Calculator* cloneImpl() const final {
+  std::shared_ptr<Core::Calculator> cloneImpl() const final {
     return nullptr;
   }
 };

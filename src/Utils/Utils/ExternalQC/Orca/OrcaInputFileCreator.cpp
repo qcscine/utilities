@@ -141,7 +141,7 @@ void OrcaInputFileCreator::printCalculationType(std::ostream& out, const Setting
     }
     out << "Flipspin ";
     auto spinFlipSites = settings.getIntList(Utils::ExternalQC::SettingsNames::spinFlipSites);
-    for (int i = 0; i < spinFlipSites.size(); i++) {
+    for (unsigned long i = 0; i < spinFlipSites.size(); i++) {
       int site = spinFlipSites.at(i);
       if (i != spinFlipSites.size() - 1)
         out << site << ", ";

@@ -46,6 +46,10 @@ static constexpr const char* scfOrbitalShift = "scf_orbitalshift";
 static constexpr const char* scfDampingValue = "scf_damping_value";
 static constexpr const char* enableRi = "enable_ri";
 static constexpr const char* numExcitedStates = "num_excited_states";
+static constexpr const char* dftGrid = "dft_grid";
+static constexpr const char* cavityPointsPerAtom = "cavity_points_per_atom";
+static constexpr const char* cavitySegmentsPerAtom = "cavity_segments_per_atom";
+static constexpr const char* enforceNumforce = "enforce_numforce";
 
 } // namespace SettingsNames
 } // namespace ExternalQC

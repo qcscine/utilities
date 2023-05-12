@@ -121,7 +121,9 @@ void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, c
   if (!caseInsensitiveEqual(methodInput.first, "hf")) {
     // assume DFT if not HF
     helper.mapDftFunctionalToTurbomoleStringRepresentation(methodInput.first);
-    out << "dft\non\nfunc " << methodInput.first << "\n\n";
+    out << "dft\non\nfunc " << methodInput.first << "\n";
+    std::string dftGrid = settings.getString(SettingsNames::dftGrid);
+    out << "grid\n" << dftGrid << "\n\n";
   }
   // Dispersion Correction
   if (!methodInput.second.empty()) {
@@ -138,7 +140,7 @@ void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, c
       out << "dsp\nd4\n\n";
     }
     else {
-      throw std::runtime_error("Invalid dispersion correction!");
+      throw std::runtime_error("Invalid dispersion correction: " + methodInput.second);
     }
   }
   auto maxScfIterations = settings.getInt(Utils::SettingsNames::maxScfIterations);
@@ -306,8 +308,13 @@ void TurbomoleInputFileCreator::addSolvation(const Settings& settings) {
   if (epsilon == std::numeric_limits<double>::infinity() || probeRadius == std::numeric_limits<double>::infinity()) {
     throw std::runtime_error("The solvent '" + solvent + "' is currently not supported.");
   }
+  // Get settings for cavity construction
+  int pointsPerAtom = settings.getInt(SettingsNames::cavityPointsPerAtom);
+  int segmentsPerAtom = settings.getInt(SettingsNames::cavitySegmentsPerAtom);
 
-  out << epsilon << "\n\n\n\n\n\n\n"
+  out << epsilon << "\n\n\n\n"
+      << pointsPerAtom << "\n"
+      << segmentsPerAtom << "\n\n"
       << probeRadius << "\n\n\n\n"
       << "r all b"
       << "\n"
