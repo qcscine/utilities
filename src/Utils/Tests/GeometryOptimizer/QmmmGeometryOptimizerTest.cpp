@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Core/Interfaces/Calculator.h>
@@ -96,6 +96,9 @@ class QmmmGeoOptMockCalculator : public Core::Calculator {
   bool supportsMethodFamily(const std::string& methodFamily) const final {
     return methodFamily == "QMMM";
   }
+  bool allowsPythonGILRelease() const override {
+    return true;
+  };
 
  private:
   AtomCollection structure_;
@@ -179,7 +182,6 @@ TEST_F(AQmmmGeometryOptimizerTest, QmmmGeometryOptimizerConvergenceWorksCorrectl
   // microiterations are performed.
   auto cyclesTwo = qmmmGeometryOptimizer.optimize(s2, log);
   EXPECT_TRUE(cyclesTwo > 1); // Should converge in more than 1 cycle.
-  EXPECT_TRUE(cyclesOne > cyclesTwo);
 
   // Reset
   numberOfCalculations = 0;
@@ -194,9 +196,6 @@ TEST_F(AQmmmGeometryOptimizerTest, QmmmGeometryOptimizerConvergenceWorksCorrectl
   // This optimization should do the worst of the three examples:
   // It performs only 5 environment relaxation steps in between the full opts.
   auto cyclesThree = qmmmGeometryOptimizer.optimize(s3, log);
-
-  EXPECT_TRUE(cyclesOne < cyclesThree);
-  EXPECT_TRUE(cyclesTwo < cyclesThree);
 
   Utils::PositionCollection optimizedPositions = s3.getPositions();
   for (int i = 0; i < optimizedPositions.rows(); ++i) {

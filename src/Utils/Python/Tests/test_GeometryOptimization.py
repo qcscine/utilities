@@ -1,5 +1,5 @@
 __copyright__ = """This code is licensed under the 3-clause BSD license.
-Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.
+Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.
 See LICENSE.txt for details.
 """
 
@@ -17,7 +17,7 @@ H      0.8112000000    0.1989000000    0.0000000000
 
 def test_geometry_optimization():
     # Set-up optimization
-    manager = su.core.ModuleManager()
+    manager = su.core.ModuleManager.get_instance()
     calc = manager.get("calculator", "test")
     fname = "su_test_water.xyz"
 

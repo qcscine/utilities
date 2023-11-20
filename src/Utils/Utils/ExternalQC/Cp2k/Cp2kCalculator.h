@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_CP2KCALCULATOR_H
@@ -122,6 +122,13 @@ class Cp2kCalculator final : public CloneInterface<Cp2kCalculator, Core::Calcula
    * @return whether the calculator supports a method family
    */
   bool supportsMethodFamily(const std::string& methodFamily) const override;
+  /**
+   * @brief Whether the calculator has no underlying Python code and can therefore
+   * release the global interpreter lock in Python bindings
+   */
+  bool allowsPythonGILRelease() const override {
+    return true;
+  };
 
  private:
   /*

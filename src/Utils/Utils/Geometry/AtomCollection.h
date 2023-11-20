@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_ATOMCOLLECTION_H_
@@ -81,6 +81,15 @@ class AtomCollection {
    */
   void setPositions(PositionCollection positions);
   /**
+   * @brief Update all residue information
+   *
+   * The new data must have the correct size,
+   * this function does not resize the data objects.
+   *
+   * @param residues The new positions.
+   */
+  void setResidues(ResidueCollection residues);
+  /**
    * @brief Get the Elements object
    *
    * @return const ElementTypeCollection&
@@ -92,6 +101,12 @@ class AtomCollection {
    * @return const PositionCollection&
    */
   const PositionCollection& getPositions() const;
+  /**
+   * @brief Get the Residue object
+   *
+   * @return const ResidueCollection&
+   */
+  const ResidueCollection& getResidues() const;
   /**
    * @brief Set the Element of one existing atom.
    *
@@ -111,6 +126,15 @@ class AtomCollection {
    */
   void setPosition(int i, const Position& p);
   /**
+   * @brief Set the Residue information of one existing atom.
+   *
+   * This function can not access/create new atoms that are not present yet.
+   *
+   * @param i The index of the atom.
+   * @param r The new ResidueInformation.
+   */
+  void setResidueInformation(int i, const ResidueInformation& r);
+  /**
    * @brief Get the Element of a single atom.
    * @param i The index of the atom.
    * @return ElementType The Element of atom i.
@@ -123,10 +147,22 @@ class AtomCollection {
    */
   Position getPosition(int i) const;
   /**
+   * @brief Get the Residue Information of a a single atom.
+   * @param i The index of the atom.
+   * @return ResidueInformation The ResidueInformation of atom i.
+   */
+  ResidueInformation getResidueInformation(int i) const;
+  /**
    * @brief Getter for the collection size.
    * @return int Returns the number of atoms in the collection.
    */
   int size() const;
+  /**
+   * @brief Swap to entries by indices
+   * @param i The first index.
+   * @param j The second index.
+   */
+  void swapIndices(int i, int j);
   /**
    * @brief The start of the collection iterator.
    * @return iterator The iterator.
@@ -199,6 +235,7 @@ class AtomCollection {
  private:
   ElementTypeCollection elements_;
   PositionCollection positions_;
+  ResidueCollection residues_;
 };
 
 } /* namespace Utils */

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/GeometryOptimization/AfirOptimizer.h"
@@ -97,6 +97,9 @@ class AfirOptMockCalculator : public CloneInterface<AfirOptMockCalculator, Core:
   bool supportsMethodFamily(const std::string& /*methodFamily*/) const final {
     return true;
   }
+  bool allowsPythonGILRelease() const override {
+    return true;
+  };
 
  private:
   AtomCollection structure_;

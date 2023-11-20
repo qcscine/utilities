@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -270,6 +270,46 @@ TEST_F(AResultsTest, CanReturnAllContainedPropertiesList) {
   ASSERT_TRUE(containedPropertyList.containsSubSet(samePropertyList) && samePropertyList.containsSubSet(containedPropertyList));
   ASSERT_FALSE(containedPropertyList.containsSubSet(differentPropertyList) &&
                differentPropertyList.containsSubSet(containedPropertyList));
+}
+
+TEST_F(AResultsTest, CanAddResults) {
+  arbitraryResults.set<Property::Energy>(arbitraryEnergy);
+  arbitraryResults.set<Property::TwoElectronMatrix>(arbitraryTwoElectronMatrix);
+
+  PropertyList samePropertyList;
+  samePropertyList.addProperty(Property::Energy);
+  samePropertyList.addProperty(Property::TwoElectronMatrix);
+
+  PropertyList differentPropertyList;
+  differentPropertyList.addProperty(Property::Energy);
+  differentPropertyList.addProperty(Property::Gradients);
+
+  PropertyList containedPropertyList = arbitraryResults.allContainedProperties();
+
+  ASSERT_TRUE(containedPropertyList.containsSubSet(samePropertyList) && samePropertyList.containsSubSet(containedPropertyList));
+  ASSERT_FALSE(containedPropertyList.containsSubSet(differentPropertyList) &&
+               differentPropertyList.containsSubSet(containedPropertyList));
+
+  Results rhs;
+  rhs.set<Property::Energy>(42.0);
+  rhs.set<Property::SuccessfulCalculation>(true);
+  auto combinedResults = arbitraryResults + rhs;
+
+  ASSERT_LT(std::fabs(rhs.get<Property::Energy>() - 42.0), 1e-6);
+  ASSERT_LT(std::fabs(combinedResults.get<Property::Energy>() - 42.0), 1e-6);
+
+  containedPropertyList = combinedResults.allContainedProperties();
+
+  PropertyList combinedPropertyList;
+  combinedPropertyList.addProperty(Property::Energy);
+  combinedPropertyList.addProperty(Property::SuccessfulCalculation);
+  combinedPropertyList.addProperty(Property::TwoElectronMatrix);
+
+  ASSERT_TRUE(containedPropertyList.containsSubSet(samePropertyList));
+  ASSERT_FALSE(containedPropertyList.containsSubSet(differentPropertyList) &&
+               differentPropertyList.containsSubSet(containedPropertyList));
+  ASSERT_TRUE(containedPropertyList.containsSubSet(combinedPropertyList) &&
+              combinedPropertyList.containsSubSet(containedPropertyList));
 }
 
 } // namespace Tests

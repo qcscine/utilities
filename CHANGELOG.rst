@@ -8,12 +8,32 @@ It is intended that only the first two groups (``New Features and Feature Update
 ``Important Technical Changes``) are important for the average user, while
 the last one is mainly aimed at developers and users that link deeply into the code.
 
+Release 9.0.0
+-------------
+
+New Features and Feature Updates
+................................
+- Enable calculation of 57-Fe Mössbauer parameters with Orca.
+- Enable DLPNO-CCSD(T)-F12 calculations with Orca.
+- Added a MRCC calculator (requires MRCC executables at the `MRCC_BINARY_PATH` path
+  environment variable).
+  -  Supported methods: DFT, HF, MP2 [LNO-MP2], CC [LNO-CCSD, LNO-CCSD(T)]
+- Added transition state optimizer for QM/MM
+- Molecular trajectories in the PDB file format can now be read.
+
+Important Technical Changes
+...........................
+- Improve support for compilation on Windows (MSVC)
+
+Other
+.....
+- Update address in license
+
 Release 8.0.0
 -------------
 
 New Features and Feature Updates
 ................................
-
 - Turbomole calculator can now calculate Hessians numerically.
 - The DFT grid for the Turbomole calculator can now be varied.
 - The cavity construction for implicit solvation with the Turbomole calculator can now be modified by setting the points and segments per atom.

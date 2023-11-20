@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/Geometry/AtomCollection.h"
@@ -22,7 +22,7 @@ class AtomCollectionTest : public Test {
   PositionCollection randomPositions;
 
  private:
-  void TestBody() override {
+  void SetUp() final {
     randomElements = ElementTypeCollection{ElementType::Am, ElementType::Ce, ElementType::Ca};
     randomPositions = Eigen::MatrixX3d::Random(3, 3);
   }
@@ -46,7 +46,8 @@ TEST_F(AtomCollectionTest, HasSizeConstructor) {
 TEST_F(AtomCollectionTest, CanBeGeneratedFromElementTypeAndPositionCollections) {
   AtomCollection atoms(randomElements, randomPositions);
 
-  ASSERT_THAT(atoms.size(), Eq(randomElements.size()));
+  ASSERT_TRUE(randomElements.size() == 3);
+  ASSERT_TRUE(atoms.size() == randomElements.size());
   for (int i = 0; i < atoms.size(); ++i) {
     auto atom = atoms[i];
     ASSERT_THAT(atom.getElementType(), Eq(randomElements[i]));
@@ -81,6 +82,20 @@ TEST_F(AtomCollectionTest, AtomsCanBeAdded) {
   ASSERT_THAT(atoms.size(), Eq(randomElements.size() + 1));
   ASSERT_THAT(atoms[atoms.size() - 1].getElementType(), Eq(randomElement));
   ASSERT_THAT(atoms[atoms.size() - 1].getPosition(), Eq(randomPosition));
+}
+
+TEST_F(AtomCollectionTest, AtomsCanBeSwapped) {
+  AtomCollection atoms(randomElements, randomPositions);
+  AtomCollection other(randomElements, randomPositions);
+  ASSERT_TRUE(atoms.size() == 3);
+  ASSERT_TRUE(other.size() == 3);
+  ASSERT_TRUE(atoms == other);
+  other.swapIndices(0, 1);
+  ASSERT_FALSE(atoms == other);
+  ASSERT_TRUE(atoms[0].getElementType() == other[1].getElementType());
+  ASSERT_TRUE(atoms[1].getElementType() == other[0].getElementType());
+  ASSERT_TRUE(atoms[0].getPosition().isApprox(other[1].getPosition()));
+  ASSERT_TRUE(atoms[1].getPosition().isApprox(other[0].getPosition()));
 }
 
 TEST_F(AtomCollectionTest, AllowsForRangeBasedLoops) {

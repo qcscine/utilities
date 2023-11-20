@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -61,24 +61,6 @@ void update(ValueCollection& coll, const pybind11::dict& dictionary, bool preser
   }
 }
 
-struct CollectionIterWrapper {
-  // Pybind doesn't need much by way of iterator requirements
-  ValueCollection::Container::const_iterator iter;
-
-  std::pair<std::string, GenericValueMeta::Variant> operator*() const {
-    return std::make_pair(iter->first, GenericValueMeta::convert(iter->second));
-  }
-
-  CollectionIterWrapper& operator++() {
-    ++iter;
-    return *this;
-  }
-
-  bool operator==(const CollectionIterWrapper& other) const {
-    return iter == other.iter;
-  }
-};
-
 void init_value_collection(pybind11::module& m) {
   // "Forward-declare" ParametrizedOptionValue
   pybind11::class_<ParametrizedOptionValue> parametrizedOptionValue(m, "ParametrizedOptionValue");
@@ -88,9 +70,9 @@ void init_value_collection(pybind11::module& m) {
       Type-erased C++ map-like container with string keys that can store the
       following types of values: ``bool``, ``int``, ``float``, ``str``,
       ``ValueCollection`` (enables nesting!), ``List[int]``, ``List[str]``,
-      and ``List[ValueCollection]``.
+      ``List[float]`` and ``List[ValueCollection]``.
 
-      Has members to imitate behavior of a python dictionary with string keys.
+      Has members to imitate behavior of a Python dictionary with string keys.
 
       >>> coll = ValueCollection()
       >>> coll
@@ -208,8 +190,15 @@ void init_value_collection(pybind11::module& m) {
 
   value_collection.def("__delitem__", [](ValueCollection& coll, const std::string& key) { coll.dropValue(key); });
 
-  value_collection.def("items", [](const ValueCollection& coll) {
-    return pybind11::make_iterator(CollectionIterWrapper{coll.begin()}, CollectionIterWrapper{coll.end()});
+  value_collection.def("items", [](ValueCollection& coll) {
+    auto items = coll.items();
+    // Python only understands Variant
+    // we do a copy here, because iterators are problematic for nested objects
+    std::vector<std::pair<std::string, GenericValueMeta::Variant>> metaItems;
+    for (const auto& item : items) {
+      metaItems.push_back(std::make_pair(item.first, GenericValueMeta::convert(item.second)));
+    }
+    return metaItems;
   });
 
   /* Pickling support would be better, but is very tricky seeing as

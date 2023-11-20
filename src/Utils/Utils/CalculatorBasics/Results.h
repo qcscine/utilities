@@ -2,7 +2,7 @@
  * @file
  * @brief A file containing definitions of the results
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -24,8 +24,17 @@ namespace Utils {
 class PropertyNotPresentException : public std::exception {
  public:
   const char* what() const noexcept final {
-    return "Property desired not present in results.";
+    return message_.c_str();
   }
+
+  explicit PropertyNotPresentException(const std::shared_ptr<Property>& missingProperty = nullptr) {
+    if (missingProperty) {
+      message_ = "Property '" + std::string(propertyTypeName(*missingProperty)) + "' not present in results.";
+    }
+  }
+
+ private:
+  std::string message_ = "Property desired not present in results.";
 };
 
 /**
@@ -44,6 +53,8 @@ class Results {
   Results& operator=(Results&& rhs) noexcept;
   Results(const Results& rhs);
   Results& operator=(const Results& rhs);
+  Results operator+(const Results& rhs) const;
+  Results& operator+=(const Results& rhs);
 
   template<Property property>
   bool has() const {
@@ -56,7 +67,7 @@ class Results {
   template<Property property>
   const typename PropertyType<property>::Type& get() const {
     if (!has<property>()) {
-      throw PropertyNotPresentException();
+      throw PropertyNotPresentException(std::make_shared<Utils::Property>(property));
     }
     // need to cast boost any to right type
     return boost::any_cast<const typename PropertyType<property>::Type&>(resultsMap_.at(property));
@@ -68,7 +79,7 @@ class Results {
   template<Property property>
   typename PropertyType<property>::Type take() {
     if (!has<property>()) {
-      throw PropertyNotPresentException();
+      throw PropertyNotPresentException(std::make_shared<Utils::Property>(property));
     }
     auto result = boost::any_cast<typename PropertyType<property>::Type>(resultsMap_.at(property));
     resultsMap_.erase(property);

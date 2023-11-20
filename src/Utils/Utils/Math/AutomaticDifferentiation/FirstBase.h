@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -321,7 +321,7 @@ Crtp exp(const FirstBase<DerivativeT, Crtp>& value) {
 // deriving the cos function
 template<typename DerivativeT, typename Crtp>
 Crtp cos(const FirstBase<DerivativeT, Crtp>& value) {
-  return {std::cos(value.value()), -sin(value.value()) * value.derivatives()};
+  return {std::cos(value.value()), -std::sin(value.value()) * value.derivatives()};
 }
 
 // deriving the sin function

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/IO/ChemicalFileFormats/XyzStreamHandler.h"
@@ -9,8 +9,8 @@
 #include "Utils/Constants.h"
 #include "Utils/Geometry/AtomCollection.h"
 #include "Utils/Geometry/ElementInfo.h"
-#include "boost/optional.hpp"
-#include <boost/algorithm/string.hpp>
+#include "Utils/Strings.h"
+#include <boost/optional.hpp>
 #include <iomanip>
 #include <string>
 
@@ -217,17 +217,10 @@ std::pair<AtomCollection, std::vector<bool>> XyzStreamHandler::readNuclearElectr
 
   auto count = 0;
   while (getline(is, lineString)) {
-    std::vector<std::string> lineSplitted;
     // -- Main data parsing --
-    // Trim leading and final spaces in the string.
-    lineString.erase(lineString.begin(),
-                     std::find_if(lineString.begin(), lineString.end(), [&](int ch) { return std::isspace(ch) == 0; }));
-    lineString.erase(std::find_if(lineString.rbegin(), lineString.rend(), [&](int ch) { return std::isspace(ch) == 0; }).base(),
-                     lineString.end());
     // Split the string
-    boost::split(lineSplitted, lineString, boost::is_any_of(" "), boost::token_compress_on);
-
-    if (!(lineSplitted.size() == 4 || lineSplitted.size() == 5)) {
+    std::vector<std::string> lineSplitted = splitOnSpaceWithoutResultingSpace(lineString);
+    if (lineSplitted.size() != 4 && lineSplitted.size() != 5) {
       throw FormattedStreamHandler::FormatMismatchException();
     }
 

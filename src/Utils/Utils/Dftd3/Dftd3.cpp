@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -408,7 +408,7 @@ void Dftd3::calculate(Derivative d) {
   if (d != Derivative::None) {
     const unsigned N = structure_.size();
 #pragma omp parallel for
-    for (unsigned i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i) {
       gradients_.row(i) = Gradient(UpToSecondDerivatives_[i].deriv());
     }
   }

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_GAUSSIANCALCULATOR_H
@@ -133,6 +133,13 @@ class GaussianCalculator final : public Utils::CloneInterface<GaussianCalculator
    * @return whether the calculator supports a method family
    */
   bool supportsMethodFamily(const std::string& methodFamily) const override;
+  /**
+   * @brief Whether the calculator has no underlying Python code and can therefore
+   * release the global interpreter lock in Python bindings
+   */
+  bool allowsPythonGILRelease() const override {
+    return true;
+  };
 
  private:
   /*
@@ -163,7 +170,8 @@ class GaussianCalculator final : public Utils::CloneInterface<GaussianCalculator
   Utils::PropertyList requiredProperties_;
   // Keeps track of whether the binary has been checked for validity yet
   bool binaryHasBeenChecked_ = false;
-  const std::vector<std::string> availableSolvationModels_ = std::vector<std::string>{"cpcm", "pcm", "ipcm", "scipcm", "smd"};
+  const std::vector<std::string> availableSolvationModels_ =
+      std::vector<std::string>{"cpcm", "pcm", "dipole", "ipcm", "scipcm", "smd"};
 };
 
 } // namespace ExternalQC

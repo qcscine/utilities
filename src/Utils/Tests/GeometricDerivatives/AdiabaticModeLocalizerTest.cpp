@@ -1,13 +1,14 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
 #include "Utils/Constants.h"
 #include "Utils/GeometricDerivatives/AdiabaticModeLocalizer.h"
 #include "Utils/IO/ChemicalFileFormats/XyzStreamHandler.h"
+#include "Utils/MSVCCompatibility.h"
 #include "Utils/MolecularTrajectory.h"
 #include <gmock/gmock.h>
 #include <Eigen/Eigen>

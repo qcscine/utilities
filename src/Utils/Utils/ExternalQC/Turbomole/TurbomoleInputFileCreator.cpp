@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "TurbomoleInputFileCreator.h"
@@ -208,7 +208,7 @@ void TurbomoleInputFileCreator::checkAndUpdateControlFile(const Settings& settin
       out << "$scfdamp   start=" << std::fixed << std::setprecision(3) << dampingValue << "  step=0.05  min=0.10\n";
     }
     else if ((line.find("scforbitalshift") != std::string::npos)) {
-      out << "$scforbitalshift closedshell=" << scfOrbitalShift << "\n";
+      out << "$scforbitalshift automatic=" << scfOrbitalShift << "\n";
     }
     else if ((line.find("$drvopt") != std::string::npos) && (!settings.getString(SettingsNames::pointChargesFile).empty()))
       out << "$drvopt\n  point charges\n";
@@ -225,14 +225,10 @@ void TurbomoleInputFileCreator::checkAndUpdateControlFile(const Settings& settin
         pc.open(pointChargesFile);
         std::string line;
         while (std::getline(pc, line)) {
-          std::vector<std::string> lineSplitted;
-          line.erase(line.begin(), std::find_if(line.begin(), line.end(), [&](int ch) { return std::isspace(ch) == 0; }));
-          line.erase(std::find_if(line.rbegin(), line.rend(), [&](int ch) { return std::isspace(ch) == 0; }).base(),
-                     line.end());
           // Split the string
-          boost::split(lineSplitted, line, boost::is_any_of(" "), boost::token_compress_on);
-          if (!(lineSplitted.size() == 4)) {
-            throw std::runtime_error("Point charges file " + pointChargesFile + "has incorrect format! ");
+          std::vector<std::string> lineSplitted = splitOnSpaceWithoutResultingSpace(line);
+          if (lineSplitted.size() != 4) {
+            throw std::runtime_error("Point charges file " + pointChargesFile + "has incorrect format!\nin line '" + line + "'");
           }
           try {
             double x = std::stod(lineSplitted[0]);
@@ -324,7 +320,7 @@ void TurbomoleInputFileCreator::addSolvation(const Settings& settings) {
 
   // run cosmoprep
   auto directory = bp::start_dir(calculationDirectory_);
-  bp::ipstream stdout, stderr;
+  // bp::ipstream stdout, stderr;
   std::string outputFile = NativeFilenames::combinePathSegments(calculationDirectory_, "COSMO.out");
   std::string executable = NativeFilenames::combinePathSegments(turbomoleExecutableBase_, "cosmoprep");
   TurbomoleHelper helper(calculationDirectory_, turbomoleExecutableBase_);

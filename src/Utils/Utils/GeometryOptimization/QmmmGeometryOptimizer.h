@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -9,7 +9,9 @@
 #define UTILS_QMMMGEOMETRYOPTIMIZER_H
 
 #include "GeometryOptimizer.h"
+#include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/UniversalSettings/OptimizationSettingsNames.h"
+#include <Core/Interfaces/EmbeddingCalculator.h>
 #include <Core/Log.h>
 
 namespace Scine {
@@ -61,6 +63,11 @@ class QmmmGeometryOptimizerSettings : public Settings {
     this->_fields.push_back(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem,
                             std::move(geooptCoordinateSystem));
 
+    UniversalSettings::IntListDescriptor geooptFixedAtoms(
+        "List of atoms with Cartesian constraints applied to them during the optimization.");
+    geooptFixedAtoms.setDefaultValue({});
+    this->_fields.push_back(SettingsNames::Optimizations::GeometryOptimizer::fixedAtoms, std::move(geooptFixedAtoms));
+
     UniversalSettings::IntDescriptor qmmmOptMaxMacroiterations("The maximum number of macrocycles allowed.");
     qmmmOptMaxMacroiterations.setDefaultValue(qmmmOptimizer.maxMacrocycles);
     this->_fields.push_back(QmmmGeometryOptimizer<OptimizerType>::qmmmOptMaxMacroiterationsKey,
@@ -90,10 +97,20 @@ class QmmmGeometryOptimizerSettings : public Settings {
     this->_fields.push_back(QmmmGeometryOptimizer<OptimizerType>::qmmmOptBoundaryDistanceThresholdKey,
                             std::move(qmmmOptBoundaryDistanceThreshold));
 
+    UniversalSettings::BoolDescriptor qmmmOptConstrainOnlyDirectBoundary(
+        "Constrain only direct bond partners of the QM region in the MM region.");
+    qmmmOptConstrainOnlyDirectBoundary.setDefaultValue(qmmmOptimizer.constrainOnlyDirectBoundary);
+    this->_fields.push_back(QmmmGeometryOptimizer<OptimizerType>::qmmmOptConstrainOnlyDirectBoundaryKey,
+                            std::move(qmmmOptConstrainOnlyDirectBoundary));
+
     UniversalSettings::BoolDescriptor qmmmOptEnvOptAtStart(
         "Perform the MM-only optimization of the environment at the very beginning.");
     qmmmOptEnvOptAtStart.setDefaultValue(qmmmOptimizer.envOptAtStart);
     this->_fields.push_back(QmmmGeometryOptimizer<OptimizerType>::qmmmOptEnvOptAtStartKey, std::move(qmmmOptEnvOptAtStart));
+
+    UniversalSettings::BoolDescriptor qmmmOptimizeOnlyMM("Perform the MM-only optimization of the environment.");
+    qmmmOptimizeOnlyMM.setDefaultValue(qmmmOptimizer.optimizeOnlyMM);
+    this->_fields.push_back(QmmmGeometryOptimizer<OptimizerType>::qmmmOptimizeOnlyMMKey, std::move(qmmmOptimizeOnlyMM));
 
     this->resetToDefaults();
   }
@@ -125,14 +142,16 @@ class QmmmGeometryOptimizerSettings : public Settings {
  *                       may not yet be supported or may need additional specialization.
  */
 template<class OptimizerType>
-class QmmmGeometryOptimizer {
+class QmmmGeometryOptimizer : public GeometryOptimizerBase {
  public:
   static constexpr const char* qmmmOptMaxMacroiterationsKey = "qmmm_opt_max_macroiterations";
   static constexpr const char* qmmmOptMaxFullMicroiterationsKey = "qmmm_opt_max_full_microiterations";
   static constexpr const char* qmmmOptMaxEnvMicroiterationsKey = "qmmm_opt_max_env_microiterations";
   static constexpr const char* qmmmOptBoundaryDistanceThresholdKey = "qmmm_opt_boundary_distance_thresh";
+  static constexpr const char* qmmmOptConstrainOnlyDirectBoundaryKey = "qmmm_opt_constrain_only_direct_boundary";
   static constexpr const char* qmmmOptEnvOptSwitchOffKey = "qmmm_opt_env_switch_off";
   static constexpr const char* qmmmOptEnvOptAtStartKey = "qmmm_opt_env_start";
+  static constexpr const char* qmmmOptimizeOnlyMMKey = "optimize_mm_only";
   /**
    * @brief Constructor.
    * @param calculator The calculator to be used for the single point/gradient calculations.
@@ -143,8 +162,8 @@ class QmmmGeometryOptimizer {
       throw std::runtime_error(
           "The calculator chosen for the QM/MM geometry optimization does not support the QM/MM method.");
     }
-    auto silentLog = Core::Log::silent();
-    calculator_.setLog(silentLog);
+    auto log = Core::Log();
+    calculator_.setLog(log);
     fullOptimizer = std::make_unique<GeometryOptimizer<OptimizerType>>(calculator_);
     mmOptimizer = std::make_unique<GeometryOptimizer<OptimizerType>>(calculator_);
   };
@@ -156,12 +175,21 @@ class QmmmGeometryOptimizer {
    * @param log The logger.
    * @return int  The final number of full optimization cycles (for the full system) carried out.
    */
-  int optimize(AtomCollection& atoms, Core::Log& log) {
+  int optimize(AtomCollection& atoms, Core::Log& log) override {
+    auto calcStructure = calculator_.getStructure();
+    if (calcStructure && calcStructure->getElements() == atoms.getElements()) {
+      calculator_.modifyPositions(atoms.getPositions());
+    }
+    else {
+      calculator_.setStructure(atoms);
+    }
     // Set settings for full optimizer
     Settings s1 = fullOptimizer->getSettings();
     s1.modifyString(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem,
                     CoordinateSystemInterpreter::getStringFromCoordinateSystem(this->coordinateSystem));
     s1.modifyInt(SettingsNames::Optimizations::Convergence::maxIter, this->maxFullOptMicrocycles);
+    s1.modifyIntList(SettingsNames::Optimizations::GeometryOptimizer::fixedAtoms, this->fixedAtoms);
+
     fullOptimizer->setSettings(s1);
 
     // Set settings for MM optimizer
@@ -170,6 +198,7 @@ class QmmmGeometryOptimizer {
     s2.modifyString(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem,
                     CoordinateSystemInterpreter::getStringFromCoordinateSystem(CoordinateSystem::Cartesian));
     s2.modifyInt(SettingsNames::Optimizations::Convergence::maxIter, this->maxEnvOptMicrocycles);
+    s2.modifyInt(SettingsNames::Optimizations::Convergence::requirement, 2);
     mmOptimizer->setSettings(s2);
 
     // Add atoms close to boundary to constrained atoms for optimization of the environment
@@ -182,16 +211,50 @@ class QmmmGeometryOptimizer {
 
     while (!converged) {
       cycles++;
-
+      calculator_.modifyPositions(atoms.getPositions());
       // MM-only opt of the environment
       if (cycles <= envOptSwitchOff) {
         if (envOptAtStart || cycles != 1) {
-          calculator_.settings().modifyBool("ignore_qm", true);
-          auto envMicrocycles = mmOptimizer->optimize(atoms, log);
-          log.output << "Number of (MM-only) microcycles: " << envMicrocycles << Core::Log::endl;
-          calculator_.settings().modifyBool("ignore_qm", false);
+          calculator_.settings().modifyBool(Utils::SettingsNames::ignoreQmOption, true);
+          if (this->optimizeOnlyMM) {
+            // switch observers, otherwise nothing to report
+            auto observers = fullOptimizer->optimizer.getObservers();
+            for (const auto& observer : observers) {
+              mmOptimizer->addObserver(observer);
+            }
+          }
+          calculator_.setRequiredProperties(Property::Energy | Property::Gradients);
+          const auto preResults = calculator_.calculate();
+          const GradientCollection preGrad = preResults.template get<Property::Gradients>();
+          const Eigen::VectorXd gradient = Eigen::Map<const Eigen::VectorXd>(preGrad.data(), preGrad.size());
+          auto check = mmOptimizer->getConvergenceCheck();
+          int envMicrocycles = 0;
+          // check gradient manually, because we don't want to compare step or previous energy, but both gradient
+          // convergence values in order to not be too loose
+          if (sqrt(gradient.squaredNorm() / gradient.size()) < check.gradRMS &&
+              gradient.cwiseAbs().maxCoeff() < check.gradMaxCoeff) {
+            log.output << "MM is already converged, skipping microcycles" << Core::Log::endl;
+          }
+          else {
+            envMicrocycles = mmOptimizer->optimize(atoms, log);
+          }
+
+          if (this->optimizeOnlyMM) {
+            auto maxAllowedCycles =
+                mmOptimizer->getSettings().getInt(Utils::SettingsNames::Optimizations::Convergence::maxIter);
+            if (envMicrocycles == maxAllowedCycles) {
+              log.error << "The structure optimization did not converge within the maximum number of cycles. This "
+                           "number can be increased with the setting: "
+                        << std::string(qmmmOptMaxEnvMicroiterationsKey) << Core::Log::endl;
+            }
+            calculator_.settings().modifyBool(Utils::SettingsNames::ignoreQmOption, false);
+            return envMicrocycles;
+          }
+          calculator_.settings().modifyBool(Utils::SettingsNames::ignoreQmOption, false);
         }
       }
+
+      calculator_.modifyPositions(atoms.getPositions());
 
       // Full opt
       auto fullOptMicrocycles = fullOptimizer->optimize(atoms, log);
@@ -200,7 +263,7 @@ class QmmmGeometryOptimizer {
       }
       log.output << "Full optimization cycles in this macroiteration: " << fullOptMicrocycles << Core::Log::nl;
       totalCycles = (cycles - 1) * maxFullOptMicrocycles + fullOptMicrocycles;
-      log.output << "Total full optimization cycles: " << totalCycles << Core::Log::endl;
+      log.output << "Total full optimization cycles: " << cycles << Core::Log::endl;
       if (cycles == maxMacrocycles) {
         converged = true;
       }
@@ -212,13 +275,14 @@ class QmmmGeometryOptimizer {
    * @brief Function to apply the given settings to underlying classes.
    * @param settings The new settings.
    */
-  void setSettings(const Settings& settings) {
+  void setSettings(const Settings& settings) override {
     fullOptimizer->check.applySettings(settings);
     mmOptimizer->check.applySettings(settings);
     fullOptimizer->optimizer.applySettings(settings);
     mmOptimizer->check.applySettings(settings);
     this->coordinateSystem = CoordinateSystemInterpreter::getCoordinateSystemFromString(
         settings.getString(SettingsNames::Optimizations::GeometryOptimizer::coordinateSystem));
+    this->fixedAtoms = settings.getIntList(SettingsNames::Optimizations::GeometryOptimizer::fixedAtoms);
     this->maxMacrocycles = settings.getInt(qmmmOptMaxMacroiterationsKey);
     this->maxFullOptMicrocycles = settings.getInt(qmmmOptMaxFullMicroiterationsKey);
     this->maxEnvOptMicrocycles = settings.getInt(qmmmOptMaxEnvMicroiterationsKey);
@@ -226,19 +290,21 @@ class QmmmGeometryOptimizer {
         Utils::Constants::bohr_per_angstrom * settings.getDouble(qmmmOptBoundaryDistanceThresholdKey);
     this->envOptSwitchOff = settings.getInt(qmmmOptEnvOptSwitchOffKey);
     this->envOptAtStart = settings.getBool(qmmmOptEnvOptAtStartKey);
+    this->optimizeOnlyMM = settings.getBool(qmmmOptimizeOnlyMMKey);
+    this->constrainOnlyDirectBoundary = settings.getBool(qmmmOptConstrainOnlyDirectBoundaryKey);
   };
   /**
    * @brief Get the public settings as a Utils::Settings object.
    * @return Settings A settings object with the current settings.
    */
-  Settings getSettings() const {
+  Settings getSettings() const override {
     return QmmmGeometryOptimizerSettings<OptimizerType>(*this, *fullOptimizer, *mmOptimizer);
   };
   /**
    * @brief Get the settings of the calculator used for the energy calculations during the optimization.
    * @return std::shared_ptr<Settings> The settings of the calculator.
    */
-  std::shared_ptr<Settings> getCalculatorSettings() const {
+  std::shared_ptr<Settings> getCalculatorSettings() const override {
     return std::make_shared<Settings>(calculator_.settings());
   };
   /**
@@ -249,7 +315,7 @@ class QmmmGeometryOptimizer {
    *                 the current value and to a const reference of the current
    *                 parameters.
    */
-  void addObserver(std::function<void(const int&, const double&, const Eigen::VectorXd&)> function) {
+  void addObserver(std::function<void(const int&, const double&, const Eigen::VectorXd&)> function) override {
     fullOptimizer->addObserver(function);
   }
   /**
@@ -259,17 +325,25 @@ class QmmmGeometryOptimizer {
    * the removal of all observers can increase performance as the observers are given
    * as std::functions and can not be added via templates.
    */
-  void clearObservers() {
+  void clearObservers() override {
     fullOptimizer->clearObservers();
     mmOptimizer->clearObservers();
   }
+
+  /// @brief Virtual default destructor.
+  virtual ~QmmmGeometryOptimizer() = default;
+
   /**
    * @brief Clears constrained atoms. Should be called between multiple optimize calls
    *
    */
-  void clearConstrainedAtoms() {
+  inline void clearConstrainedAtoms() {
     this->fullOptimizer->fixedAtoms = {};
     this->mmOptimizer->fixedAtoms = {};
+  }
+
+  const GradientBasedCheck& getConvergenceCheck() const override {
+    return fullOptimizer->check;
   }
   /**
    * @brief The underlying geometry optimizer that optimizes the full system, public in order to change it's settings.
@@ -291,10 +365,16 @@ class QmmmGeometryOptimizer {
    *        are also frozen during the MM-only micro-opt.
    */
   double boundaryDistanceThreshold = 4.0 * Utils::Constants::bohr_per_angstrom;
+  /**
+   * @brief Whether only the direct MM boundary atoms should be frozen during the MM-only micro-opt.
+   */
+  bool constrainOnlyDirectBoundary = false;
   /// @brief The number of macrocycles after which the MM-only optimization is turned off.
   int envOptSwitchOff = 12;
   /// @brief Perform the MM-only optimization of the environment at the very beginning.
   bool envOptAtStart = true;
+  /// @brief Perform the MM-only optimization of the environment.
+  bool optimizeOnlyMM = false;
   /**
    * @brief Set the coordinate system in which the optimization shall be performed
    *
@@ -306,29 +386,50 @@ class QmmmGeometryOptimizer {
  private:
   Core::Calculator& calculator_;
   // Function that adds the MM atoms close to the boundary to the constrained atoms during the MM-only opt.
-  void addBoundaryAtomsToConstrainedAtoms(const Utils::AtomCollection& atoms) {
+  inline void addBoundaryAtomsToConstrainedAtoms(const Utils::AtomCollection& atoms) {
     auto mmOptSettings = mmOptimizer->getSettings();
-    auto constrainedAtoms = calculator_.settings().getIntList("qm_atoms");
+    auto constrainedAtoms = calculator_.settings().getIntList(Utils::SettingsNames::qmAtomsList);
 
-    // Add atoms close to boundary to the constrained atoms in MM optimization:
-    std::vector<int> qmAtoms = mmOptimizer->fixedAtoms;
-    // Loop over all atoms
-    for (int i = 0; i < atoms.size(); ++i) {
-      // Check whether it is not a QM atom
-      if (std::find(qmAtoms.begin(), qmAtoms.end(), i) == qmAtoms.end()) {
-        double minimalDistanceSquared = std::numeric_limits<double>::max();
-        for (const auto& qmAtomIndex : qmAtoms) {
-          double currentSquaredDistance = (atoms.getPosition(qmAtomIndex) - atoms.getPosition(i)).squaredNorm();
-          if (currentSquaredDistance < minimalDistanceSquared) {
-            minimalDistanceSquared = currentSquaredDistance;
+    if (constrainOnlyDirectBoundary) {
+      auto embeddingCalc = std::dynamic_pointer_cast<Core::EmbeddingCalculator>(calculator_.shared_from_this());
+      if (!embeddingCalc) {
+        throw std::runtime_error("QmmmGeometryOptimizer did not receive an EmbeddingCalculator");
+      }
+      auto mmCalc = embeddingCalc->getUnderlyingCalculators().at(1);
+      mmCalc->setRequiredProperties(Property::BondOrderMatrix);
+      auto bondOrderMatrix = mmCalc->calculate("bond orders").template get<Property::BondOrderMatrix>();
+      std::vector<int> directBoundaryAtoms;
+      for (int i = 0; i < atoms.size(); ++i) {
+        for (const auto& qmIndex : constrainedAtoms) {
+          if (bondOrderMatrix.getOrder(i, qmIndex) > 0.0) {
+            directBoundaryAtoms.push_back(i);
           }
         }
-        if (minimalDistanceSquared < std::pow(boundaryDistanceThreshold, 2)) {
-          constrainedAtoms.push_back(i);
+      }
+      constrainedAtoms.insert(constrainedAtoms.end(), directBoundaryAtoms.begin(), directBoundaryAtoms.end());
+    }
+    else {
+      double boundaryDistanceThresholdSquared = std::pow(boundaryDistanceThreshold, 2);
+
+      // Add atoms close to boundary to the constrained atoms in MM optimization:
+      const std::vector<int> qmAtoms = constrainedAtoms;
+      // Loop over all atoms
+      for (int i = 0; i < atoms.size(); ++i) {
+        // Check whether it is not a QM atom
+        if (std::find(qmAtoms.begin(), qmAtoms.end(), i) == qmAtoms.end()) {
+          double minimalDistanceSquared = std::numeric_limits<double>::max();
+          for (const auto& qmAtomIndex : qmAtoms) {
+            double currentSquaredDistance = (atoms.getPosition(qmAtomIndex) - atoms.getPosition(i)).squaredNorm();
+            if (currentSquaredDistance < minimalDistanceSquared) {
+              minimalDistanceSquared = currentSquaredDistance;
+            }
+          }
+          if (minimalDistanceSquared < boundaryDistanceThresholdSquared) {
+            constrainedAtoms.push_back(i);
+          }
         }
       }
     }
-
     mmOptSettings.modifyIntList(SettingsNames::Optimizations::GeometryOptimizer::fixedAtoms, constrainedAtoms);
     mmOptimizer->setSettings(mmOptSettings);
   };

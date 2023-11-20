@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -16,6 +16,7 @@ void init_orca_parser(pybind11::module& m) {
   using Parser = ExternalQC::OrcaMainOutputParser;
 
   pybind11::class_<Parser> parser(m, "OrcaOutputParser");
+  parser.def(pybind11::init<std::string>(), pybind11::arg("filename"));
   parser.def("raise_errors", &Parser::checkForErrors, "Raise an exception for any errors");
   parser.def("energy", &Parser::getEnergy, "Parse energy in Hartree from output");
   parser.def("bond_orders", &Parser::getBondOrders, "Parse Mayber bond orders from output");
@@ -29,4 +30,7 @@ void init_orca_parser(pybind11::module& m) {
   parser.def("zpve", &Parser::getZeroPointVibrationalEnergy, "Parse zero point vibrational energy in Hartree from output");
   parser.def("symmetry_number", &Parser::getSymmetryNumber,
              "Parse the molecular symmetry number for which thermochemistry was computed from the output");
+  parser.def("moessbauer_asymmetry_parameter", &Parser::getMoessbauerAsymmetryParameter, "");
+  parser.def("moessbauer_quadrupole_splittings", &Parser::getMoessbauerQuadrupoleSplittings, "");
+  parser.def("moessbauer_iron_electron_densities", &Parser::getMoessbauerIronElectronDensities, "");
 }

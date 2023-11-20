@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_ORCACALCULATORSETTINGS_H
@@ -43,12 +43,16 @@ class OrcaCalculatorSettings : public Scine::Utils::Settings {
   void addSolvation(UniversalSettings::DescriptorCollection& settings);
   void addElectronicTemperature(UniversalSettings::DescriptorCollection& settings);
   void addScfDamping(UniversalSettings::DescriptorCollection& settings);
+  void addGradientCalculationType(UniversalSettings::DescriptorCollection& settings);
   void addHessianCalculationType(UniversalSettings::DescriptorCollection& settings);
   void addSpecialOption(UniversalSettings::DescriptorCollection& settings);
   void addBrokenSymmetryOption(UniversalSettings::DescriptorCollection& settings);
   void addSpinFlipSites(UniversalSettings::DescriptorCollection& settings);
   void addInitialMultiplicity(UniversalSettings::DescriptorCollection& settings);
+  void addCalculateMoessbauerParameter(UniversalSettings::DescriptorCollection& settings);
   void addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings);
+  void addOrcaAuxCBasisSet(UniversalSettings::DescriptorCollection& settings);
+  void addOrcaCabsBasisSet(UniversalSettings::DescriptorCollection& settings);
 
   /**
    * @brief Constructor that populates the OrcaCalculatorSettings.
@@ -72,13 +76,17 @@ class OrcaCalculatorSettings : public Scine::Utils::Settings {
     addSolvent(_fields);
     addSolvation(_fields);
     addScfDamping(_fields);
+    addGradientCalculationType(_fields);
     addHessianCalculationType(_fields);
     addElectronicTemperature(_fields);
     addSpecialOption(_fields);
     addBrokenSymmetryOption(_fields);
     addSpinFlipSites(_fields);
     addInitialMultiplicity(_fields);
+    addCalculateMoessbauerParameter(_fields);
     addScfCriterionEnforce(_fields);
+    addOrcaAuxCBasisSet(_fields);
+    addOrcaCabsBasisSet(_fields);
     resetToDefaults();
   };
 };
@@ -214,6 +222,14 @@ inline void OrcaCalculatorSettings::addHessianCalculationType(UniversalSettings:
   settings.push_back(ExternalQC::SettingsNames::hessianCalculationType, std::move(hessianType));
 }
 
+inline void OrcaCalculatorSettings::addGradientCalculationType(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::OptionListDescriptor gradientType("The method for calculating the gradient.");
+  gradientType.addOption("analytical");
+  gradientType.addOption("numerical");
+  gradientType.setDefaultOption("analytical");
+  settings.push_back(ExternalQC::SettingsNames::gradientCalculationType, std::move(gradientType));
+}
+
 inline void OrcaCalculatorSettings::addElectronicTemperature(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::DoubleDescriptor electronicTemperature(
       "Sets the electronic temperature for SCF calculations.");
@@ -250,12 +266,33 @@ inline void OrcaCalculatorSettings::addInitialMultiplicity(UniversalSettings::De
   settings.push_back(ExternalQC::SettingsNames::initialSpinMultiplicity, std::move(initialSpinMultiplicity));
 }
 
+inline void OrcaCalculatorSettings::addCalculateMoessbauerParameter(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::BoolDescriptor calculateMoessbauerParameter(
+      "Whether to calculate the 57-Fe Moessbauer parameters.");
+  calculateMoessbauerParameter.setDefaultValue(false);
+  settings.push_back(ExternalQC::SettingsNames::calculateMoessbauerParameter, std::move(calculateMoessbauerParameter));
+}
+
 inline void OrcaCalculatorSettings::addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::BoolDescriptor scfEnforce(
       "Whether the set self_consistence_criterion should not be made stricter, "
       "even if derivative quantities are calculated.");
   scfEnforce.setDefaultValue(false);
   settings.push_back(SettingsNames::enforceScfCriterion, std::move(scfEnforce));
+}
+
+inline void OrcaCalculatorSettings::addOrcaAuxCBasisSet(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::StringDescriptor orcaAuxCBasisSet(
+      "Sets the auxiliary basis set for dynamical electron correlation treatment.");
+  orcaAuxCBasisSet.setDefaultValue("");
+  settings.push_back(ExternalQC::SettingsNames::orcaAuxCBasisSet, std::move(orcaAuxCBasisSet));
+}
+
+inline void OrcaCalculatorSettings::addOrcaCabsBasisSet(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::StringDescriptor orcaCabsBasisSet(
+      "Sets the complementary auxiliary basis set for F12 methods.");
+  orcaCabsBasisSet.setDefaultValue("");
+  settings.push_back(ExternalQC::SettingsNames::orcaCabsBasisSet, std::move(orcaCabsBasisSet));
 }
 
 } // namespace ExternalQC

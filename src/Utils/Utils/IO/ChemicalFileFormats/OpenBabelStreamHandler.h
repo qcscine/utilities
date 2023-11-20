@@ -3,7 +3,7 @@
  * @brief Implements a StreamHandler leveraging OpenBabel for access to more
  *   file formats
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef SCINE_OPENBABEL_FILEHANDLER_H

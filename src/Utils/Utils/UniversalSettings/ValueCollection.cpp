@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 /* Internal Headers */
@@ -303,6 +303,10 @@ std::vector<std::string> ValueCollection::getKeys() const {
     keys.push_back(v.first);
   }
   return keys;
+}
+
+std::vector<std::pair<std::string, GenericValue>> ValueCollection::items() const {
+  return values_;
 }
 
 bool ValueCollection::valueExists(const std::string& name) const {

@@ -2,12 +2,13 @@
  * @file
  * @brief Pdb-formatted streaming IO
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef INCLUDE_SCINE_UTILS_IO_PDB_STREAM_HANDLER_H
 #define INCLUDE_SCINE_UTILS_IO_PDB_STREAM_HANDLER_H
 
+#include "Utils/Bonds/BondOrderCollection.h"
 #include "Utils/IO/ChemicalFileFormats/FormattedStreamHandler.h"
 #include "boost/optional/optional_fwd.hpp"
 
@@ -55,7 +56,8 @@ class PdbStreamHandler : public FormattedStreamHandler {
    *
    * @note Currently only writes "UNX" as residue identifier.
    */
-  static void write(std::ostream& os, const AtomCollection& atoms, const std::string& comment = "");
+  static void write(std::ostream& os, const AtomCollection& atoms,
+                    BondOrderCollection bondOrders = BondOrderCollection(), const std::string& comment = "");
   /**
    * @brief Reads from an input stream in PDB format
    *
@@ -90,6 +92,8 @@ class PdbStreamHandler : public FormattedStreamHandler {
 
  private:
   static void extractContent(std::istream& is, PdbFileData& data);
+  std::vector<AtomCollection> structuresFromData(PdbFileData& data) const;
+
   static void extractOverlayIdentifiers(std::string line, PdbFileData& data);
   static bool isAtomLine(std::string line);
   static bool isModelLine(std::string line);
@@ -98,6 +102,7 @@ class PdbStreamHandler : public FormattedStreamHandler {
   bool includeH_ = true;
   bool parseOnlySolvent_ = false;
   unsigned int substructureID_ = 0;
+  std::vector<unsigned int> residueIndices_;
   std::vector<std::string> listOfSupportedSolventMolecules = {"HOH"};
 };
 

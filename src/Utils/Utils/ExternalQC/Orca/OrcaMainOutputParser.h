@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_EXTERNALQC_ORCAMAINOUTPUTPARSER_H
@@ -94,6 +94,23 @@ class OrcaMainOutputParser {
    * @return The molecular symmetry number.
    */
   double getSymmetryNumber() const;
+  /**
+   * @brief Parses the 57Fe-Moessbauer asymmetry parameters for all iron atoms. The parameter (eta) is derived from the
+   * electric field gradient tensors V_xx, V_yy and V_zz as: eta = |(V_xx - V_yy) / V_zz|.
+   * @return The asymmetry parameters for each iron atom.
+   */
+  std::vector<double> getMoessbauerAsymmetryParameter(int numIrons) const;
+  /**
+   * @brief Parses the 57Fe-Moessbauer quadrupole splittings Delta_E_Q for all iron atoms.
+   * @return The 57Fe-Moessbauer quadrupole splitting parameter.
+   */
+  std::vector<double> getMoessbauerQuadrupoleSplittings(int numIrons) const;
+  /**
+   * @brief Parses the 57Fe-Moessbauer iron electron densities rho(0). This quantity is needed to calculate the isomer
+   * shift delta according to the formula delta = alpha(rho(0) - C) + beta.
+   * @return The 57Fe-Moessbauer iron electron densities rho(0).
+   */
+  std::vector<double> getMoessbauerIronElectronDensities(int numIrons) const;
 
  private:
   void extractContent(const std::string& filename);

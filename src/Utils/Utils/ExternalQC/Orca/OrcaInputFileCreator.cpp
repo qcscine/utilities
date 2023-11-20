@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "OrcaInputFileCreator.h"
@@ -31,20 +31,36 @@ void OrcaInputFileCreator::createInputFile(const std::string& filename, const At
 
 void OrcaInputFileCreator::createInputFile(std::ostream& out, const AtomCollection& atoms, const Settings& settings,
                                            const PropertyList& requiredProperties) {
-  printCalculationType(out, settings, requiredProperties);
+  printCalculationType(out, atoms, settings, requiredProperties);
   printTitle(out);
   printStructure(out, atoms, settings);
 }
 
-void OrcaInputFileCreator::printCalculationType(std::ostream& out, const Settings& settings,
-                                                const PropertyList& requiredProperties) {
+void OrcaInputFileCreator::printCalculationType(std::ostream& out, const AtomCollection& atoms,
+                                                const Settings& settings, const PropertyList& requiredProperties) {
   const std::string basisSet = settings.getString(Utils::SettingsNames::basisSet);
   auto methodInput = Scine::Utils::CalculationRoutines::splitIntoMethodAndDispersion(
       settings.getString(Scine::Utils::SettingsNames::method));
   out << "! " << methodInput.first << " " << methodInput.second << " " << basisSet << std::endl;
 
   if (boost::to_upper_copy<std::string>(methodInput.first).find("DLPNO") != std::string::npos) {
-    out << "! " << basisSet << "/C" << std::endl;
+    auto auxCBasisSet = settings.getString(Scine::Utils::ExternalQC::SettingsNames::orcaAuxCBasisSet);
+    if (!auxCBasisSet.empty()) {
+      out << "! " << auxCBasisSet << "/C" << std::endl;
+    }
+    else {
+      out << "! " << basisSet << "/C" << std::endl;
+    }
+  }
+
+  if (boost::to_upper_copy<std::string>(methodInput.first).find("F12") != std::string::npos) {
+    auto cabsBasisSet = settings.getString(Scine::Utils::ExternalQC::SettingsNames::orcaCabsBasisSet);
+    if (!cabsBasisSet.empty()) {
+      out << "! " << cabsBasisSet << std::endl;
+    }
+    else {
+      out << "! " << basisSet << "-CABS" << std::endl;
+    }
   }
 
   auto spinMode = SpinModeInterpreter::getSpinModeFromString(settings.getString(Utils::SettingsNames::spinMode));
@@ -69,7 +85,9 @@ void OrcaInputFileCreator::printCalculationType(std::ostream& out, const Setting
     out << "! CPCM(" << solvent << ")" << std::endl;
   }
   if (requiredProperties.containsSubSet(Property::Gradients)) {
-    out << "! EnGrad TightSCF" << std::endl;
+    std::string gradType =
+        (settings.getString(SettingsNames::gradientCalculationType) == "analytical") ? "EnGrad TightSCF" : "NumGrad";
+    out << "! " << gradType << std::endl;
   }
   if (requiredProperties.containsSubSet(Property::Hessian)) {
     std::string freqType = (settings.getString(SettingsNames::hessianCalculationType) == "analytical") ? "AnFreq" : "NumFreq";
@@ -112,7 +130,7 @@ void OrcaInputFileCreator::printCalculationType(std::ostream& out, const Setting
   }
   // Scf convergence and Scf max iterations
   out << "%SCF\nTolE " << settings.getDouble(Utils::SettingsNames::selfConsistenceCriterion) << std::endl
-      << "MaxIter " << settings.getInt(Scine::Utils::SettingsNames::maxScfIterations) << std::endl;
+      << "MaxIter " << settings.getInt(Scine::Utils::SettingsNames::maxScfIterations);
   if (settings.getBool(Utils::ExternalQC::SettingsNames::performBrokenSymmetryCalculation)) {
     // First check if the
     int numUnpairedElec = settings.getInt(Utils::SettingsNames::spinMultiplicity) - 1;
@@ -152,8 +170,19 @@ void OrcaInputFileCreator::printCalculationType(std::ostream& out, const Setting
     double ms = (settings.getInt(Scine::Utils::SettingsNames::spinMultiplicity) - 1.0) / 2.0;
     out << "FinalMs " << std::fixed << std::setprecision(1) << ms;
   }
-
   out << "\nend" << std::endl;
+  if (settings.getBool(Utils::ExternalQC::SettingsNames::calculateMoessbauerParameter)) {
+    if (Moessbauer::moessbauerNeededAndPossible(atoms, settings)) {
+      // These settings correspond to the defaults recommended by the ORCA manual
+      out << "%basis NewGTO 26 \"CP(PPP)\" end\nend";
+      out << std::endl;
+    }
+    else {
+      throw std::logic_error("You requested the calculation of 75-Fe Moessbauer parameters, but your structure does "
+                             "not contain any Fe atoms!");
+    }
+  }
+
   // Write name of point charges file if it was set
   auto pointChargesFile = settings.getString(SettingsNames::pointChargesFile);
   if (!pointChargesFile.empty()) {
@@ -178,6 +207,13 @@ void OrcaInputFileCreator::printStructure(std::ostream& out, const AtomCollectio
     MolecularTrajectoryIO::writeXYZLine(out, a.getElementType(), a.getPosition());
   }
   out << "*" << std::endl;
+  // The EPR NMR block needs to be below the coordinate block for the "all Fe" command to be recognized.
+  if (Moessbauer::moessbauerNeededAndPossible(atoms, settings)) {
+    // These settings correspond to the defaults recommended by the ORCA manual
+    out << "%eprnmr nuclei = all Fe {rho, fgrad}";
+    out << std::endl;
+    out << "end";
+  }
 }
 
 } // namespace ExternalQC

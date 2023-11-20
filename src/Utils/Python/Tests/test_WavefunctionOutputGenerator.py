@@ -1,5 +1,5 @@
 __copyright__ = """This code is licensed under the 3-clause BSD license.
-Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.
+Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.
 See LICENSE.txt for details.
 """
 
@@ -16,7 +16,7 @@ def read_file(filename: str):
     return text
 
 def test_WavefunctionOutputGeneratorGeneratesFile():
-    manager = scine.core.ModuleManager()
+    manager = scine.core.ModuleManager.get_instance()
     calc = manager.get("calculator", "TEST")
     wf_gen = scine.core.to_wf_generator(calc)
 
@@ -29,7 +29,7 @@ def test_WavefunctionOutputGeneratorGeneratesFile():
     os.remove("test.out")
 
 def test_WavefunctionOutputGeneratorFileIsCorrect():
-    manager = scine.core.ModuleManager()
+    manager = scine.core.ModuleManager.get_instance()
     calc = manager.get("calculator", "TEST")
     wf_gen = scine.core.to_wf_generator(calc)
 
@@ -42,6 +42,6 @@ def test_WavefunctionOutputGeneratorFileIsCorrect():
     os.remove("test.out")
 
 def test_NoneTypeIfNotCastable():
-    manager = scine.core.ModuleManager()
+    manager = scine.core.ModuleManager.get_instance()
     calc = manager.get("calculator", "LENNARDJONES")
     assert scine.core.to_wf_generator(calc) is None

@@ -1,13 +1,14 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_ELEMENTINFO_H
 #define UTILS_ELEMENTINFO_H
 
 #include "Utils/Geometry/ElementTypes.h"
+#include "Utils/MSVCCompatibility.h"
 #include <stdexcept>
 #include <string>
 #include <unordered_map>

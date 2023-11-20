@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_EXTERNALQC_ORCAINPUTFILECREATOR_H
@@ -45,7 +45,8 @@ class OrcaInputFileCreator {
                               const PropertyList& requiredProperties);
 
  private:
-  static void printCalculationType(std::ostream& out, const Settings& settings, const PropertyList& requiredProperties);
+  static void printCalculationType(std::ostream& out, const AtomCollection& atoms, const Settings& settings,
+                                   const PropertyList& requiredProperties);
   static void printTitle(std::ostream& out);
   static void printStructure(std::ostream& out, const AtomCollection& atoms, const Settings& settings);
 };

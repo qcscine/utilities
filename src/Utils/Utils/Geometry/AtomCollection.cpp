@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/Geometry/AtomCollection.h"
@@ -9,13 +9,15 @@
 namespace Scine {
 namespace Utils {
 
-AtomCollection::AtomCollection(int N) : elements_(N), positions_(N, 3) {
+AtomCollection::AtomCollection(int N)
+  : elements_(N), positions_(N, 3), residues_(N, ResidueInformation({"UNX", "A", 1})) {
   positions_.setZero();
 }
 
 AtomCollection::AtomCollection(ElementTypeCollection elements, PositionCollection positions)
   : elements_(std::move(elements)), positions_(std::move(positions)) {
   assert(static_cast<Eigen::Index>(elements_.size()) == positions_.rows());
+  residues_ = ResidueCollection(elements_.size(), ResidueInformation({"UNX", "A", 1}));
 }
 
 void AtomCollection::setElements(ElementTypeCollection elements) {
@@ -28,13 +30,20 @@ void AtomCollection::setPositions(PositionCollection positions) {
   positions_ = std::move(positions);
 }
 
+void AtomCollection::setResidues(ResidueCollection residues) {
+  assert(static_cast<int>(residues.size()) == size());
+  residues_ = residues;
+}
+
 void AtomCollection::clear() {
   elements_.clear();
+  residues_.clear();
   positions_.resize(0, 3);
 }
 
 void AtomCollection::resize(int n) {
   elements_.resize(n);
+  residues_.resize(n, ResidueInformation({"UNX", "A", 1}));
   positions_.resize(n, 3);
 }
 
@@ -50,6 +59,7 @@ void AtomCollection::push_back(const Atom& atom) {
   elements_.push_back(atom.getElementType());
   positions_.conservativeResize(positions_.rows() + 1, 3);
   positions_.row(positions_.rows() - 1) = atom.getPosition();
+  residues_.push_back(ResidueInformation({"UNX", "A", 1}));
 }
 
 bool AtomCollection::operator==(const AtomCollection& other) const {
@@ -61,7 +71,7 @@ bool AtomCollection::operator!=(const AtomCollection& other) const {
 }
 
 bool AtomCollection::isApprox(const AtomCollection& other, double eps) const {
-  return (elements_ == other.elements_ && positions_.isApprox(other.positions_, eps));
+  return (elements_ == other.elements_ && positions_.isApprox(other.positions_, eps) && residues_ == other.residues_);
 }
 
 const ElementTypeCollection& AtomCollection::getElements() const {
@@ -70,6 +80,10 @@ const ElementTypeCollection& AtomCollection::getElements() const {
 
 const PositionCollection& AtomCollection::getPositions() const {
   return positions_;
+}
+
+const ResidueCollection& AtomCollection::getResidues() const {
+  return residues_;
 }
 
 void AtomCollection::setElement(int i, ElementType e) {
@@ -82,6 +96,11 @@ void AtomCollection::setPosition(int i, const Position& p) {
   positions_.row(i) = p;
 }
 
+void AtomCollection::setResidueInformation(int i, const ResidueInformation& r) {
+  assert(0 <= i && i < size());
+  residues_[i] = r;
+}
+
 ElementType AtomCollection::getElement(int i) const {
   assert(0 <= i && i < size());
   return elements_[i];
@@ -92,8 +111,21 @@ Position AtomCollection::getPosition(int i) const {
   return positions_.row(i);
 }
 
+ResidueInformation AtomCollection::getResidueInformation(int i) const {
+  assert(0 <= i && i < size());
+  return residues_[i];
+}
+
 int AtomCollection::size() const {
   return elements_.size();
+}
+
+void AtomCollection::swapIndices(int i, int j) {
+  assert(0 <= i && i < size());
+  assert(0 <= j && j < size());
+  std::swap(elements_[i], elements_[j]);
+  positions_.row(i).swap(positions_.row(j));
+  std::swap(residues_[i], residues_[j]);
 }
 
 AtomCollection AtomCollection::operator+(const AtomCollection& other) const {

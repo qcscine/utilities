@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -10,6 +10,7 @@
 #include "Utils/GeometricDerivatives/HessianUtilities.h"
 #include "Utils/GeometricDerivatives/NormalMode.h"
 #include "Utils/GeometricDerivatives/NormalModesContainer.h"
+#include "Utils/Geometry/Utilities/Transformations.h"
 #include <Eigen/Core>
 #include <vector>
 
@@ -18,13 +19,13 @@ namespace Utils {
 namespace NormalModeAnalysis {
 
 inline NormalModesContainer calculate(HessianUtilities& diagonalizer, int nAtoms, bool normalize) {
-  Eigen::VectorXd eigenvalues = diagonalizer.getInternalEigenvalues();
-  Eigen::MatrixXd cartesianDisplacements = diagonalizer.getBackTransformedInternalEigenvectors(normalize);
+  const Eigen::VectorXd eigenvalues = diagonalizer.getInternalEigenvalues();
+  const Eigen::MatrixXd cartesianDisplacements = diagonalizer.getBackTransformedInternalEigenvectors(normalize);
 
   NormalModesContainer modesContainer;
   DisplacementCollection dc(nAtoms, 3);
   for (int i = 0; i < cartesianDisplacements.cols(); ++i) {
-    for (int j = 0; j < nAtoms; ++j) {
+    for (long j = 0; j < nAtoms; ++j) {
       dc.row(j) = cartesianDisplacements.col(i).segment(3 * j, 3);
     }
 
@@ -35,7 +36,39 @@ inline NormalModesContainer calculate(HessianUtilities& diagonalizer, int nAtoms
   return modesContainer;
 }
 
+inline NormalModesContainer calculateFromPartial(HessianUtilities& diagonalizer, const std::vector<int>& partialIndices,
+                                                 int nSuperAtoms, int nPartialAtoms, int expectedModes, bool normalize) {
+  if (nPartialAtoms > nSuperAtoms) {
+    throw std::runtime_error("Number of partial atoms must be smaller or equal to the number of super atoms.");
+  }
+  const Eigen::VectorXd eigenvalues = diagonalizer.getInternalEigenvalues();
+  const Eigen::MatrixXd cartesianDisplacements = diagonalizer.getBackTransformedInternalEigenvectors(normalize);
+
+  NormalModesContainer modesContainer;
+  for (int i = 0; i < cartesianDisplacements.cols(); ++i) {
+    DisplacementCollection dc = DisplacementCollection::Zero(nSuperAtoms, 3);
+    for (long j = 0; j < nPartialAtoms; ++j) {
+      // fill displacement values only for atoms part of the partial Hessian, otherwise keep zeros
+      dc.row(partialIndices[j]) = cartesianDisplacements.col(i).segment(3 * j, 3);
+    }
+
+    const double freq = getWaveNumber(eigenvalues[i]);
+    NormalMode m(freq, dc);
+    modesContainer.add(std::move(m));
+  }
+  // add zero modes for atoms not part of the partial Hessian
+  for (long i = cartesianDisplacements.cols(); i < expectedModes; ++i) {
+    NormalMode m(0.0, DisplacementCollection::Zero(nSuperAtoms, 3));
+    modesContainer.add(std::move(m));
+  }
+  return modesContainer;
+}
+
 NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const AtomCollection& atoms) {
+  return calculateNormalModes(hessian, atoms.getElements(), atoms.getPositions(), true);
+}
+
+NormalModesContainer calculateNormalModes(const PartialHessian& hessian, const AtomCollection& atoms) {
   return calculateNormalModes(hessian, atoms.getElements(), atoms.getPositions(), true);
 }
 
@@ -48,14 +81,45 @@ NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const El
   return calculate(diagonalizer, nAtoms, normalize);
 }
 
+NormalModesContainer calculateNormalModes(const PartialHessian& hessian, const ElementTypeCollection& elements,
+                                          const PositionCollection& positions, bool normalize) {
+  const int nSuperAtoms = elements.size();
+  const int nPartialAtoms = hessian.getNumberOfAtoms();
+  const auto& partialAtoms = hessian.getPartialAtoms(elements, positions);
+
+  // determine number of modes of super system
+  auto rotoTranslation = Geometry::Transformations::calculateTranslationAndRotationModes(positions, elements);
+  int nSuperModes = static_cast<int>(rotoTranslation.rows());
+
+  HessianUtilities diagonalizer(hessian.getMatrix(), partialAtoms.getElements(), partialAtoms.getPositions(), true);
+  return calculateFromPartial(diagonalizer, hessian.getIndices(), nSuperAtoms, nPartialAtoms, nSuperModes, normalize);
+}
+
 NormalModesContainer calculateOrthogonalNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
                                                     const PositionCollection& positions, const GradientCollection& gradient) {
-  assert(gradient.size() == hessian.rows() && "Gradient dimension and hessian dimension do not match! (must be 3*N)");
+  assert(gradient.size() == hessian.rows() && "Gradient dimension and Hessian dimension do not match! (must be 3*N)");
   int nAtoms = elements.size();
 
   HessianUtilities diagonalizer(hessian, elements, positions, gradient, true);
 
   return calculate(diagonalizer, nAtoms, true);
+}
+
+NormalModesContainer calculateOrthogonalNormalModes(const PartialHessian& hessian, const ElementTypeCollection& elements,
+                                                    const PositionCollection& positions, const GradientCollection& gradient) {
+  assert(gradient.size() == hessian.getMatrix().rows() &&
+         "Gradient dimension and Hessian dimension do not match! (must be 3*N)");
+  const int nSuperAtoms = elements.size();
+  const int nPartialAtoms = hessian.getNumberOfAtoms();
+  const auto& partialAtoms = hessian.getPartialAtoms(elements, positions);
+
+  // determine number of modes of super system
+  auto rotoTranslation = Geometry::Transformations::calculateTranslationAndRotationModes(positions, elements);
+  int nSuperModes = static_cast<int>(rotoTranslation.rows());
+
+  HessianUtilities diagonalizer(hessian.getMatrix(), partialAtoms.getElements(), partialAtoms.getPositions(), gradient, true);
+
+  return calculateFromPartial(diagonalizer, hessian.getIndices(), nSuperAtoms, nPartialAtoms, nSuperModes, true);
 }
 
 double getWaveNumber(double value) {

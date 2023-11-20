@@ -1,0 +1,1885 @@
+ **********************************************************************
+                          MRCC program system
+ **********************************************************************
+ 
+                              Written by
+     Mihaly Kallay, Peter R. Nagy, David Mester, Laszlo Gyevi-Nagy,
+        Jozsef Csoka, P. Bernat Szabo, Zoltan Rolik, Gyula Samu,
+     Jozsef Csontos, Bence Hegely, Adam Ganyecz, Istvan Ladjanszki,
+       Lorant Szegedy, Bence Ladoczki, Klara Petrov, Mate Farkas,
+                    Pal D. Mezei, and Reka A. Horvath
+ 
+        Department of Physical Chemistry and Materials Science
+            Budapest University of Technology and Economics
+                  Budapest P.O.Box 91, H-1521 Hungary
+ 
+                              www.mrcc.hu
+ 
+                      Release date: March 18, 2022
+
+ ************************ 2023-07-21 08:58:22 *************************
+ Executing minp...
+
+ Reading input from MINP...
+ 
+ Input file:
+ 
+mem=1024mb
+mult=1
+charge=0
+calc=lno-ccsd
+localcc=on
+lcorthr=normal
+core=frozen
+ccsalg=dfdirect
+ccprog=ccsd
+scflshift=0.2
+scftol=7
+scfmaxit=100
+basis=def2-svp
+geom=xyz
+12
+
+C   1.39111 -0      -0     
+C   0.695557 -1.20474 -0      
+C   -0.695557 -1.20474  -0       
+C   -1.39111 0        -0      
+C   -0.695557 1.20474   -0       
+C   0.695557 1.20474  -0      
+H   1.23554  -2.14001 0       
+H   -1.23554 -2.14001 0       
+H   -2.47107 0        0       
+H   -1.23554 2.14001  0       
+H   1.23554 2.14001 0      
+H   2.47107 -0      0      
+ 
+ 
+ Checking keyword combinations...
+ 
+ Keywords:
+ 
+ active=none
+ agrid=ld0006-ld0590
+ agrid_pssp=ld0006-ld0194
+ agrid_pssp_sm=ld0006-ld0074
+ basis=def2-svp
+ basis_sm=none
+ basopt=off
+ bfbasis=none
+ bfgsmem=10
+ bfgstol=1.0d-3
+ bpcompo=0.985
+ bpcompv=0.98
+ bpdfo=0.985
+ bpocc=0.9999d0
+ bppdo=0.999d0
+ bppdv=0.98
+ bpedo=0.9999d0
+ bpedv=0.995d0
+ calc=ccsd
+ ccmaxit=50
+ ccprog=ccsd
+ ccsdalg=dfdirect
+ ccsdmkl=seq
+ ccsdrest=off
+ ccsdthreads=2
+ cctol=5
+ charge=0
+ cialg=direct
+ ciguess=off
+ cmpgrp=auto
+ comprest=off
+ core=frozen
+ corembed=off
+ csapprox=off
+ cvs=off
+ dboc=off
+ delocsomofact=
+ dendec=cholesky
+ dens=0
+ dfalg=lineq
+ dfbasis_cab=none
+ dfbasis_cor=auto
+ dfbasis_scf=auto
+ dfbasis_scf_sm=auto
+ dfintran=drpa
+ dft=off
+ dhexc=adc(2)
+ diag=david
+ docc=
+ domrad=10.d0
+ drpaalg=auto
+ dual=off
+ dual_df=off
+ ecp=auto
+ edisp=off
+ edisp_embed=off
+ embed=off
+ etemp=300
+ epert=none
+ eps=
+ espcharge=off
+ excrad=0.d0
+ excrad_fin=0.000000000D+00
+ fitting=coulomb
+ fmm=off
+ fmmord=8
+ freq=off
+ gamma=1.d0
+ gauss=spher
+ geom=xyz
+ gopt=off
+ ghost=none
+ gtol=7
+ grdens=off
+ gridbatch_cos=2000
+ grtol=10
+ guido_ct=off
+ hamilton=dc
+ iface=none
+ intalg=auto
+ itol=11
+ laptol=1.d-2
+ lccoporder=lccfirst
+ lcorthr=normal
+ lccrest=off
+ lmp2dens=on
+ lnoepso=1e-5
+ lnoepsv=1e-6
+ boysalg=jacobi
+ localcc=2021
+ localcorrsymm=off
+ locintrf=direct
+ mact=
+ maxact=off
+ maxdim=100
+ maxex=0
+ maxmicroit=100
+ mcscfiguess=hf
+ mem=1024mb
+ mmprog=
+ molden=on
+ mpitasks=1
+ mulmet=3
+ mult=1
+ nacto=0
+ nactv=0
+ naf_amp=1.d-2
+ naf_cor=1e-2
+ naf_scf=off
+ nafalg=albe
+ naftyp=jpq
+ nchol=auto
+ ndeps=1e-3
+ nstate=1
+ nsing=0
+ nto=off
+ ntrip=0
+ occ=
+ occri=off
+ oniom=off
+ oniom_eechg=off
+ oniom_pcm=off
+ oniom_qcorr=off
+ optalg=
+ optmaxit=50
+ optetol=1e-6
+ optex=0
+ optgtol=1e-4
+ optstol=1e-3
+ orblocc=off
+ orbloce=off
+ orbloco=boys
+ orblocv=pao
+ orblocguess=cholesky
+ osveps=-1.d0
+ ovirt=off
+ ovltol=1e-7
+ ovosnorb=80.0
+ pcm=off
+ popul=off
+ pressure=100000
+ pssp=off
+ ptfreq=0.0
+ ptthreads=2
+ qro=off
+ qscf=off
+ qmmm=off
+ redcost_exc=off
+ redcost_tddft=0.985d0
+ refdet=none
+ rest=0
+ rgrid=log3
+ rism=off
+ rohfcore=standard
+ rohftype=semicanonical
+ scfalg=auto
+ scf_conv=auto
+ scfdamp=0.0d0
+ scfdamp_mode=off
+ scfdamp_end=100
+ scfdamp_dampstep=0.d0
+ scfdamp_dtol=0.0d0
+ scfdamp_maxfact=0.0d0
+ scfdamp_minfact=0.0d0
+ scfdiis=on
+ scfdiis_dtol=0.0d0
+ scfdiis_end=100
+ scfdiis_start=2
+ scfdiis_step=1
+ scfdiis_watch=off
+ scfdiis_wrange=10
+ scfdiis_wlimit=5
+ scfdiis_delmax=2
+ scfdtol=8
+ scfext=10
+ scfguessdens=
+ scfiguess=sad
+ scfloc=off
+ scflshift=0.2
+ scflshift_end=8
+ scflshift_dtol=0.0
+ scflshift_gaptol=0.20
+ scfmaxit=100
+ scftype=
+ scftol=7
+ scspe=1.d0
+ scsph=1.d0
+ scsps=1.2d0
+ scsps_t=1.2d0
+ scspt=0.33333333333333
+ scspt_t=0.33333333333333
+ scspv=1.d0
+ spairtol=-1.d0
+ sqmprog=
+ subminp=top
+ symm=
+ talg=lapl
+ temp=298.15
+ test=off
+ theodore=off
+ tlmo=0.999
+ tpao=0.94
+ tprint=off
+ uncontract=off
+ unit=angs
+ usedisk=2
+ verbosity=2
+ wpairtol=1.d-5
+
+ ************************ 2023-07-21 08:58:22 *************************
+ Executing integ...
+
+ Allocation of 1024.0 Mbytes of memory...
+ 
+ 
+ Number of atoms:                 12
+ Charge:                           0
+ Number of electrons:             42
+ Number of core electrons:        12
+ Spin multiplicity:                1
+ 
+                 Cartesian coordinates [bohr]      Atomic mass [AMU]  Z
+   1  C     2.62881691    0.00000000    0.00000000    12.000000       6
+   2  C     1.31441223   -2.27662865    0.00000000    12.000000       6
+   3  C    -1.31441223   -2.27662865    0.00000000    12.000000       6
+   4  C    -2.62881691    0.00000000    0.00000000    12.000000       6
+   5  C    -1.31441223    2.27662865    0.00000000    12.000000       6
+   6  C     1.31441223    2.27662865    0.00000000    12.000000       6
+   7  H     2.33483222   -4.04403281    0.00000000     1.007825       1
+   8  H    -2.33483222   -4.04403281    0.00000000     1.007825       1
+   9  H    -4.66964554    0.00000000    0.00000000     1.007825       1
+  10  H    -2.33483222    4.04403281    0.00000000     1.007825       1
+  11  H     2.33483222    4.04403281    0.00000000     1.007825       1
+  12  H     4.66964554    0.00000000    0.00000000     1.007825       1
+ 
+ This molecule is an asymmetric top.
+ This molecule is planar.
+ 
+ Rotational constants [cm-1]: 
+      0.191283953231      0.191283474894      0.095641857031
+ 
+ Point group: D2h 
+ Computational point group: D2h 
+ 
+ Cartesian coordinates in standard orientation [bohr]
+   1  C     0.00000000    2.62881691    0.00000000
+   2  C    -2.27662865    1.31441223    0.00000000
+   3  C    -2.27662865   -1.31441223    0.00000000
+   4  C     0.00000000   -2.62881691    0.00000000
+   5  C     2.27662865   -1.31441223    0.00000000
+   6  C     2.27662865    1.31441223    0.00000000
+   7  H    -4.04403281    2.33483222    0.00000000
+   8  H    -4.04403281   -2.33483222    0.00000000
+   9  H     0.00000000   -4.66964554    0.00000000
+  10  H     4.04403281   -2.33483222    0.00000000
+  11  H     4.04403281    2.33483222    0.00000000
+  12  H     0.00000000    4.66964554    0.00000000
+ 
+ Nuclear repulsion energy [au]:        204.069354270801
+ 
+Warning: for H atoms in the case of dfbasis_scf=auto the AO basis is set as dfbasis_scf instead of def2-qzvp(pd)-ri-jk because the AO basis is larger. Set the dfbasis_scf=def2-qzvp(pd)-ri-jk in MINP if that is desired.
+ 
+ 
+ Basis set information:
+ 
+ Maximum angular momentum: g
+ Maximum number of contracted Gaussians:   10
+ Maximum number of primitive Gaussians:    14
+ Spherical harmonic GTOs are used.
+ 
+ 
+ Conventional basis set:
+ 
+   1  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   2  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   3  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   4  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   5  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   6  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   7  H  def2-svp [ 4s 1p | 2s 1p ]
+   8  H  def2-svp [ 4s 1p | 2s 1p ]
+   9  H  def2-svp [ 4s 1p | 2s 1p ]
+  10  H  def2-svp [ 4s 1p | 2s 1p ]
+  11  H  def2-svp [ 4s 1p | 2s 1p ]
+  12  H  def2-svp [ 4s 1p | 2s 1p ]
+ 
+ Total number of basis functions:    114
+ 
+ 
+ Fitting basis set for the SCF calculation:
+ 
+   1  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   2  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   3  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   4  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   5  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   6  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   7  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+   8  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+   9  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+  10  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+  11  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+  12  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+ 
+ Total number of basis functions:    630
+ 
+ 
+ Fitting basis set for the correlation calculation:
+ 
+   1  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   2  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   3  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   4  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   5  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   6  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   7  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+   8  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+   9  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+  10  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+  11  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+  12  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+ 
+ Total number of basis functions:    372
+ 
+ 
+ Initializing the SAD routines for the initial guess...
+ Checking the files required for the initial guess...
+ Density files have not been found for the initial guess.
+ Generating SCFDENSITIES.C.def2-svp.0
+ Generating SCFDENSITIES.H.def2-svp.0
+ CPU time [min]:     0.002                   Wall time [min]:     0.013
+ 
+ Character table for point group D2h:
+ 
+          E  C2z C2y C2x  i  Qxy Qxz Qyz 
+    Ag    1   1   1   1   1   1   1   1
+    B1g   1   1  -1  -1   1   1  -1  -1
+    B2g   1  -1   1  -1   1  -1   1  -1
+    B3g   1  -1  -1   1   1  -1  -1   1
+    Au    1   1   1   1  -1  -1  -1  -1
+    B1u   1   1  -1  -1  -1  -1   1   1
+    B2u   1  -1   1  -1  -1   1  -1   1
+    B3u   1  -1  -1   1  -1   1   1  -1
+ 
+ Number of basis functions per irrep:
+    Ag     24
+    B1g    18
+    B2g     6
+    B3g     9
+    Au      6
+    B1u     9
+    B2u    24
+    B3u    18
+ 
+ 
+ Calculation of overlap integrals...
+ CPU time [min]:     0.002                   Wall time [min]:     0.014
+ 
+ Calculation of the square root of the overlap matrix...
+ Minimum eigenvalue of the overlap matrix: 0.308292E-03
+ CPU time [min]:     0.003                   Wall time [min]:     0.014
+ 
+ Calculation of kinetic energy integrals...
+ CPU time [min]:     0.003                   Wall time [min]:     0.014
+ Calculation of dipole moment integrals...
+ CPU time [min]:     0.003                   Wall time [min]:     0.014
+ Calculation of nuclear attraction integrals...
+ CPU time [min]:     0.003                   Wall time [min]:     0.014
+ 
+ Calculation of prescreening integrals...
+ CPU time [min]:     0.003                   Wall time [min]:     0.014
+ 
+ Calculation of two-center Coulomb integrals...
+   1% done.
+  12% done.
+  23% done.
+  34% done.
+  47% done.
+  58% done.
+  69% done.
+  80% done.
+  91% done.
+ 100% done.
+ CPU time [min]:     0.003                   Wall time [min]:     0.014
+ 
+ Calculation of inverse square root of the two-center integral matrix...
+ CPU time [min]:     0.009                   Wall time [min]:     0.015
+ 
+ Calculation of three-center Coulomb integrals...
+   1% done.
+  14% done.
+  27% done.
+  38% done.
+  54% done.
+  68% done.
+  79% done.
+  91% done.
+ 100% done.
+ CPU time [min]:     0.019                   Wall time [min]:     0.017
+
+ ************************ 2023-07-21 08:58:23 *************************
+ Executing scf...
+
+ Allocation of 1024.0 Mbytes of memory...
+ ======================================================================
+ ITERATION STEP   1
+ CPU time [min]:     0.002                   Wall time [min]:     0.002
+ 
+ Constructing Fock-matrix...
+ Number of integral batches:    1
+ Occupied indices per batch:   21
+ CPU time [min]:     0.004                   Wall time [min]:     0.003
+ 
+ RMS of [F,P]:                                         0.03804349294156
+ RMS of difference density:                            0.04242243321397
+ Gap [au]:  0.46550911
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   1 IS       -229.9993683076503430 [AU]
+ ======================================================================
+ ITERATION STEP   2
+ CPU time [min]:     0.004                   Wall time [min]:     0.003
+ 
+ Constructing Fock-matrix...
+ Number of integral batches:    1
+ Occupied indices per batch:   21
+ CPU time [min]:     0.005                   Wall time [min]:     0.004
+ 
+ RMS of [F,P]:                                         0.00920945353730
+ RMS of difference density:                            0.00880971259834
+ Gap [au]:  0.47928182
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   2 IS       -230.5005317732359345 [AU]
+ ======================================================================
+ ITERATION STEP   3
+ CPU time [min]:     0.005                   Wall time [min]:     0.004
+ 
+ Constructing Fock-matrix...
+ Number of integral batches:    1
+ Occupied indices per batch:   21
+ CPU time [min]:     0.006                   Wall time [min]:     0.005
+ 
+ RMS of [F,P]:                                         0.00299811566822
+ RMS of difference density:                            0.00348702092461
+ Gap [au]:  0.47293484
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   3 IS       -230.5319941035967872 [AU]
+ ======================================================================
+ ITERATION STEP   4
+ CPU time [min]:     0.007                   Wall time [min]:     0.005
+ 
+ Constructing Fock-matrix...
+ Number of integral batches:    1
+ Occupied indices per batch:   21
+ CPU time [min]:     0.008                   Wall time [min]:     0.006
+ 
+ RMS of [F,P]:                                         0.00105868221882
+ RMS of difference density:                            0.00137973294154
+ Gap [au]:  0.47277488
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   4 IS       -230.5353969566976389 [AU]
+ ======================================================================
+ ITERATION STEP   5
+ CPU time [min]:     0.008                   Wall time [min]:     0.006
+ 
+ Constructing Fock-matrix...
+ Number of integral batches:    1
+ Occupied indices per batch:   21
+ CPU time [min]:     0.009                   Wall time [min]:     0.007
+ 
+ RMS of [F,P]:                                         0.00009037933602
+ RMS of difference density:                            0.00015089550503
+ Gap [au]:  0.47250320
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   5 IS       -230.5358673673949852 [AU]
+ ======================================================================
+ ITERATION STEP   6
+ CPU time [min]:     0.009                   Wall time [min]:     0.007
+ 
+ Constructing Fock-matrix...
+ Number of integral batches:    1
+ Occupied indices per batch:   21
+ CPU time [min]:     0.011                   Wall time [min]:     0.008
+ 
+ RMS of [F,P]:                                         0.00001125561025
+ RMS of difference density:                            0.00002277931548
+ Gap [au]:  0.47249479
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   6 IS       -230.5358723235225398 [AU]
+ ======================================================================
+ ITERATION STEP   7
+ CPU time [min]:     0.011                   Wall time [min]:     0.008
+ 
+ Constructing Fock-matrix...
+ Number of integral batches:    1
+ Occupied indices per batch:   21
+ CPU time [min]:     0.012                   Wall time [min]:     0.009
+ 
+ RMS of [F,P]:                                         0.00000175357445
+ RMS of difference density:                            0.00000636129417
+ Gap [au]:  0.47249283
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   7 IS       -230.5358723814475752 [AU]
+ ======================================================================
+ ITERATION STEP   8
+ CPU time [min]:     0.012                   Wall time [min]:     0.009
+ 
+ Constructing Fock-matrix...
+ Number of integral batches:    1
+ Occupied indices per batch:   21
+ CPU time [min]:     0.013                   Wall time [min]:     0.010
+ 
+ RMS of [F,P]:                                         0.00000021398017
+ RMS of difference density:                            0.00000083390099
+ Gap [au]:  0.47249254
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   8 IS       -230.5358723831083694 [AU]
+ ======================================================================
+ ITERATION STEP   9
+ CPU time [min]:     0.014                   Wall time [min]:     0.010
+ 
+ Constructing Fock-matrix...
+ Number of integral batches:    1
+ Occupied indices per batch:   21
+ CPU time [min]:     0.015                   Wall time [min]:     0.011
+ 
+ RMS of [F,P]:                                         0.00000002803540
+ RMS of difference density:                            0.00000006727061
+ Gap [au]:  0.47249259
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   9 IS       -230.5358723831375869 [AU]
+ ======================================================================
+ ITERATION STEP  10
+ CPU time [min]:     0.015                   Wall time [min]:     0.011
+ 
+ Constructing Fock-matrix...
+ Number of integral batches:    1
+ Occupied indices per batch:   21
+ CPU time [min]:     0.016                   Wall time [min]:     0.012
+ 
+ RMS of [F,P]:                                         0.00000000337273
+ RMS of difference density:                            0.00000000434361
+ Gap [au]:  0.47249259
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP  10 IS       -230.5358723831378143 [AU]
+ ======================================================================
+ 
+ SUCCESS...
+ THE SCF ITERATION HAS CONVERGED!
+ 
+                   Ag  B1g B2g B3g Au  B1u B2u B3u 
+ FINAL ALPHA OCC:   6   3   1   1   0   1   5   4
+ FINAL BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***FINAL HARTREE-FOCK ENERGY:       -230.5358723831378143 [AU]
+ 
+ RETURNING FROM SCF ALGORITHM
+ ======================================================================
+
+ ************************ 2023-07-21 08:58:23 *************************
+ Executing orbloc...
+
+ Allocation of 1024.0 Mbytes of memory...
+
+ Localization of occupied orbitals...
+ Localization type: Boys
+ Localization algorithm: Jacobi
+ 
+ Step   Convergence
+   1   6.608041666518
+   2   1.455982512005
+   3   0.037269657252
+   4   0.215489400614
+   5   0.108109941611
+   6   0.021696587723
+   7   0.003793850457
+   8   0.000940779272
+   9   0.000246747077
+  10   0.000064195369
+  11   0.000016592548
+  12   0.000004271189
+  13   0.000001096745
+  14   0.000000281216
+  15   0.000000072051
+  16   0.000000018453
+  17   0.000000004726
+  18   0.000000001210
+  19   0.000000000310
+
+ Localization succeeded.
+
+ File MOCOEF is overwritten with localized orbitals.
+ 
+ CPU time [min]:     0.001                   Wall time [min]:     0.001
+
+ ************************ 2023-07-21 08:58:24 *************************
+ Executing integ...
+
+ Allocation of 1024.0 Mbytes of memory...
+ 
+ 
+ Basis set information:
+ 
+ Maximum angular momentum: g
+ Maximum number of contracted Gaussians:   10
+ Maximum number of primitive Gaussians:    14
+ Spherical harmonic GTOs are used.
+ 
+ 
+ Conventional basis set:
+ 
+   1  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   2  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   3  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   4  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   5  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   6  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   7  H  def2-svp [ 4s 1p | 2s 1p ]
+   8  H  def2-svp [ 4s 1p | 2s 1p ]
+   9  H  def2-svp [ 4s 1p | 2s 1p ]
+  10  H  def2-svp [ 4s 1p | 2s 1p ]
+  11  H  def2-svp [ 4s 1p | 2s 1p ]
+  12  H  def2-svp [ 4s 1p | 2s 1p ]
+ 
+ Total number of basis functions:    114
+ 
+ 
+ Fitting basis set for the SCF calculation:
+ 
+   1  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   2  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   3  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   4  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   5  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   6  C  def2-qzvpp-ri-jk [ 14s 10p 6d 2f 1g | 10s 8p 5d 1f 1g ]
+   7  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+   8  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+   9  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+  10  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+  11  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+  12  H  def2-qzvpp [ 7s 3p 2d 1f | 4s 3p 2d 1f ]
+ 
+ Total number of basis functions:    630
+ 
+ 
+ Fitting basis set for the correlation calculation:
+ 
+   1  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   2  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   3  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   4  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   5  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   6  C  def2-svp-ri [ 8s 6p 5d 3f | 6s 5p 4d 1f ]
+   7  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+   8  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+   9  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+  10  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+  11  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+  12  H  def2-svp-ri [ 4s 3p 2d | 3s 2p 1d ]
+ 
+ Total number of basis functions:    372
+ 
+ 
+ Calculation of two-center Coulomb integrals...
+   1% done.
+  14% done.
+  25% done.
+  39% done.
+  57% done.
+  70% done.
+  83% done.
+  94% done.
+ 100% done.
+ CPU time [min]:     0.002                   Wall time [min]:     0.001
+ 
+
+ ************************ 2023-07-21 08:58:24 *************************
+ Executing drpa...
+
+ Three-index integral transformation
+ 
+ Allocation of 1024.0 Mbytes of memory...
+ 
+ Constructing PAOs...
+ CPU time [min]:     0.001                   Wall time [min]:     0.001
+ 
+ Executing the Boughton-Pulay algorithm...
+  with occ/virt MO completeness:    0.9990000000    0.9800000000
+ 
+   MO  Natoms  Completeness   Atoms
+    1    6     0.999508        1    2    3    4    5    6
+    2    6     0.999508        1    2    3    4    5    6
+    3    6     0.999117        1    2    3    4    7    8
+    4    6     0.999097        1    4    5    6    9   10
+    5    6     0.999117        1    2    3    4    7    8
+    6    6     0.999508        1    2    3    4    5    6
+    7    6     0.999117        1    2    5    6   11   12
+    8    6     0.999117        3    4    5    6    9   10
+    9    6     0.999508        1    2    3    4    5    6
+   10    6     0.999508        1    2    3    4    5    6
+   11    6     0.999508        1    2    3    4    5    6
+   12    6     0.999159        1    2    5    6   11   12
+   13    6     0.999159        3    4    5    6    9   10
+   14    6     0.999097        1    4    5    6   11   12
+   15    6     0.999159        1    2    3    4    7    8
+ 
+   16    5     0.986574        1    2    3    6   12
+   17    4     0.981507        1    2    6   12
+   18    5     0.983422        1    2    5    6   12
+   19    4     0.999064        1    2    4    6
+   20    4     0.992522        1    2    6   12
+   21    3     0.980848        1    2    6
+   22    4     0.992025        1    2    4    6
+   23    6     0.994507        1    2    3    5    6   12
+   24    5     0.995947        1    2    6    7   11
+   25    2     0.989560        1    6
+   26    1     0.997295        1
+   27    1     0.998552        1
+   28    2     0.981570        1    5
+   29    3     0.982724        1    2   12
+   30    5     0.986574        1    2    3    6    7
+   31    4     0.981507        1    2    3    7
+   32    5     0.983422        1    2    3    6    7
+   33    4     0.999064        1    2    3    5
+   34    4     0.983998        1    2    3    7
+   35    3     0.984780        1    2    7
+   36    4     0.992025        1    2    3    5
+   37    6     0.987315        1    2    3    4    7   12
+   38    6     0.989386        1    2    3    4    6    7
+   39    3     0.984531        1    2    8
+   40    2     0.990396        2    3
+   41    1     0.998552        2
+   42    1     0.991186        2
+   43    2     0.980350        2    3
+   44    5     0.986574        2    3    4    5    8
+   45    4     0.981507        2    3    4    8
+   46    5     0.983422        2    3    4    5    8
+   47    4     0.999064        2    3    4    6
+   48    4     0.983998        2    3    4    8
+   49    3     0.984780        3    4    8
+   50    4     0.992025        2    3    4    6
+   51    6     0.987315        1    2    3    4    8    9
+   52    6     0.989386        1    2    3    4    5    8
+   53    3     0.984531        3    4    7
+   54    2     0.990396        2    3
+   55    1     0.998552        3
+   56    1     0.991186        3
+   57    2     0.980350        2    3
+   58    5     0.986574        3    4    5    6    9
+   59    4     0.981507        3    4    5    9
+   60    5     0.983422        3    4    5    6    9
+   61    4     0.999064        1    3    4    5
+   62    4     0.992522        3    4    5    9
+   63    3     0.980848        3    4    5
+   64    4     0.992025        1    3    4    5
+   65    6     0.994507        2    3    4    5    6    9
+   66    5     0.995947        3    4    5    8   10
+   67    2     0.989560        4    5
+   68    1     0.997295        4
+   69    1     0.998552        4
+   70    2     0.981570        2    4
+   71    3     0.982724        4    5    9
+   72    5     0.986574        3    4    5    6   10
+   73    4     0.981507        4    5    6   10
+   74    5     0.983422        3    4    5    6   10
+   75    4     0.999064        2    4    5    6
+   76    4     0.983998        4    5    6   10
+   77    3     0.984780        4    5   10
+   78    4     0.992025        2    4    5    6
+   79    6     0.987315        1    4    5    6    9   10
+   80    6     0.989386        1    3    4    5    6   10
+   81    3     0.984531        4    5   11
+   82    2     0.990396        5    6
+   83    1     0.998552        5
+   84    1     0.991186        5
+   85    2     0.980350        5    6
+   86    5     0.986574        1    2    5    6   11
+   87    4     0.981507        1    5    6   11
+   88    5     0.983422        1    2    5    6   11
+   89    4     0.999064        1    3    5    6
+   90    4     0.983998        1    5    6   11
+   91    3     0.984780        1    6   11
+   92    4     0.992025        1    3    5    6
+   93    6     0.987315        1    4    5    6   11   12
+   94    6     0.989386        1    2    4    5    6   11
+   95    3     0.984531        1    6   10
+   96    2     0.990396        5    6
+   97    1     0.998552        6
+   98    1     0.991186        6
+   99    2     0.980350        5    6
+  100    5     0.982522        1    2    7    8   12
+  101    3     0.989952        2    3    7
+  102    2     0.990170        2    7
+  103    2     0.994988        2    7
+  104    2     0.997592        2    7
+  105    5     0.982522        3    4    7    8    9
+  106    3     0.989952        2    3    8
+  107    2     0.990170        3    8
+  108    2     0.994988        3    8
+  109    2     0.997592        3    8
+  110    5     0.982522        4    5    8    9   10
+  111    3     0.989952        3    4    9
+  112    2     0.990170        4    9
+  113    1     0.983262        9
+  114    2     0.993756        4    9
+  115    5     0.982522        4    5    9   10   11
+  116    3     0.989952        5    6   10
+  117    2     0.990170        5   10
+  118    2     0.994988        5   10
+  119    2     0.997592        5   10
+  120    5     0.982522        1    6   10   11   12
+  121    3     0.989952        5    6   11
+  122    2     0.990170        6   11
+  123    2     0.994988        6   11
+  124    2     0.997592        6   11
+  125    5     0.982522        1    6    7   11   12
+  126    3     0.989952        1    2   12
+  127    2     0.990170        1   12
+  128    1     0.983262       12
+  129    2     0.993756        1   12
+ CPU time [min]:     0.002                   Wall time [min]:     0.001
+ 
+ Warning: point group symmetry was detected, but localcorrsymm=off
+  The local correlation calculation will not exploit the symmetry
+ 
+ Constructing orbital domains...
+ CPU time [min]:     0.005                   Wall time [min]:     0.002
+ 
+ Dimensions of the primary domains:     Minimum / Average / Maximum
+ 
+ Number of atoms in domain:                  12      12.0        12
+ Number of atoms in occ BP domain:            6       6.0         6
+ Number of atoms in PAO BP domain:            1       3.3         6
+ Number of atomic orbitals:                 114     114.0       114
+ Number of PAOs:                             66      73.2        84
+ 
+ Prescreening pairs...
+ CPU time [min]:     0.005                   Wall time [min]:     0.002
+ 
+ Occupied LMO domain definition with Boughton-Pulay completeness:    0.9999000000
+ 
+   MO  Natoms  Completeness   Atoms
+    1   10     0.999989        1    2    3    4    5    6    7    8   11   12
+    2   10     0.999989        1    2    3    4    5    6    7    8    9   10
+    3    9     0.999964        1    2    3    4    5    6    7    8   12
+    4    9     0.999964        1    2    3    4    5    6    9   10   11
+    5    9     0.999964        1    2    3    4    5    6    7    8    9
+    6   10     0.999989        1    2    3    4    5    6    9   10   11   12
+    7    9     0.999964        1    2    3    4    5    6    7   11   12
+    8    9     0.999964        1    2    3    4    5    6    8    9   10
+    9   10     0.999989        1    2    3    4    5    6    7    8    9   10
+   10   10     0.999989        1    2    3    4    5    6    7    8   11   12
+   11   10     0.999989        1    2    3    4    5    6    9   10   11   12
+   12   10     0.999999        1    2    3    4    5    6    7   10   11   12
+   13   10     0.999999        1    2    3    4    5    6    8    9   10   11
+   14    9     0.999964        1    2    3    4    5    6   10   11   12
+   15   10     0.999999        1    2    3    4    5    6    7    8    9   12
+ 
+ Executing the Boughton-Pulay algorithm...
+  with occ MO completeness:    0.9850000000
+ 
+   MO  Natoms  Completeness   Atoms
+    1    5     0.990219        1    2    3    5    6
+    2    5     0.990219        1    2    3    4    5
+    3    2     0.990518        2    7
+    4    2     0.990518        5   10
+    5    2     0.990518        3    8
+    6    5     0.990219        1    3    4    5    6
+    7    2     0.990518        1   12
+    8    2     0.990518        4    9
+    9    5     0.990219        1    2    3    4    5
+   10    5     0.990219        1    2    3    5    6
+   11    5     0.990219        1    3    4    5    6
+   12    2     0.986980        1    6
+   13    2     0.986980        4    5
+   14    2     0.990518        6   11
+   15    2     0.986980        2    3
+ CPU time [min]:     0.006                   Wall time [min]:     0.003
+ 
+ Dimensions of the occupied LMO domains:  Minimum / Average / Maximum
+ 
+ Number of atoms in domain:                   9       9.6        10
+ Number of atomic orbitals:                  99     102.0       104
+ 
+ Total number of pairs:   105
+ Number of distant pairs: 0 (0.0%)
+ Sum of multipole based pair energies:      0.0000000000
+ 
+ CPU time [min]:     0.006                   Wall time [min]:     0.003
+ Number of strong pairs: 105 (100.0%)
+        1.53 MB memory is used for domain independent quantities
+ 
+ Calculating the contribution of occupied LMOs...
+    using local fitting domains
+ 
+ MO:     1
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.060890714766
+ Number of occupied LNOs:        15 (100.00%)
+ Number of virtual  LNOs:        78  (83.87%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.060802790375
+ Correction for frozen LNO [au]: -0.000087924391     (0.144%)
+ Number of NAFs:                244  (65.59%)
+ CPU time [min]:     0.030                   Wall time [min]:     0.009
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    15    78   244
+     44.33 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.741850360170
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.060794419593
+ 
+ CPU time [min]:     0.033                   Wall time [min]:     0.010
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.215882175409       -0.753444948786
+ Iteration  2        0.060806980107       -0.774352991232
+ Iteration  3        0.023936369541       -0.779746140962
+ Iteration  4        0.006150090579       -0.779861392658
+ Iteration  5        0.001915591668       -0.779882270328
+ Iteration  6        0.000555645617       -0.779884091529
+ Iteration  7        0.000136437648       -0.779882243099
+ Iteration  8        0.000039546475       -0.779882555787
+ 
+ CCSD iteration has converged in  8 steps.
+      184.65 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.025E-02            D1 diagnostic:      2.950E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.061918156855
+ 
+ CPU time [min]:     0.257                   Wall time [min]:     0.042
+ 
+ MO:     2
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.060890643616
+ Number of occupied LNOs:        15 (100.00%)
+ Number of virtual  LNOs:        78  (83.87%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.060802719320
+ Correction for frozen LNO [au]: -0.000087924296     (0.144%)
+ Number of NAFs:                244  (65.59%)
+ CPU time [min]:     0.281                   Wall time [min]:     0.048
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    15    78   244
+     44.33 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.741850349927
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.060794348839
+ 
+ CPU time [min]:     0.283                   Wall time [min]:     0.049
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.215882174648       -0.753444952645
+ Iteration  2        0.060806986345       -0.774352997197
+ Iteration  3        0.023936372221       -0.779746147772
+ Iteration  4        0.006150090149       -0.779861399339
+ Iteration  5        0.001915592055       -0.779882277207
+ Iteration  6        0.000555646102       -0.779884098541
+ Iteration  7        0.000136438103       -0.779882250070
+ Iteration  8        0.000039546563       -0.779882562751
+ 
+ CCSD iteration has converged in  8 steps.
+      184.65 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.025E-02            D1 diagnostic:      2.950E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.061918091969
+ 
+ CPU time [min]:     0.509                   Wall time [min]:     0.081
+ 
+ MO:     3
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.042606604400
+ Number of occupied LNOs:        14  (93.33%)
+ Number of virtual  LNOs:        51  (54.84%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.042489812881
+ Correction for frozen LNO [au]: -0.000116791518     (0.274%)
+ Number of NAFs:                171  (45.97%)
+ CPU time [min]:     0.528                   Wall time [min]:     0.086
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    14    51   171
+     17.25 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.541374840620
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.042468167802
+ 
+ CPU time [min]:     0.529                   Wall time [min]:     0.086
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.177432491664       -0.555527528173
+ Iteration  2        0.051846123410       -0.570856726756
+ Iteration  3        0.019465953760       -0.574781513466
+ Iteration  4        0.005196110150       -0.574679901525
+ Iteration  5        0.001661161779       -0.574721528886
+ Iteration  6        0.000435940073       -0.574707588715
+ Iteration  7        0.000095998318       -0.574707357084
+ Iteration  8        0.000023942880       -0.574707632722
+ 
+ CCSD iteration has converged in  8 steps.
+       42.12 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.055E-02            D1 diagnostic:      3.276E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.047313013805
+ 
+ CPU time [min]:     0.598                   Wall time [min]:     0.096
+ 
+ MO:     4
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.042606601542
+ Number of occupied LNOs:        14  (93.33%)
+ Number of virtual  LNOs:        51  (54.84%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.042489810347
+ Correction for frozen LNO [au]: -0.000116791194     (0.274%)
+ Number of NAFs:                171  (45.97%)
+ CPU time [min]:     0.616                   Wall time [min]:     0.101
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    14    51   171
+     17.25 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.541373919228
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.042468158057
+ 
+ CPU time [min]:     0.617                   Wall time [min]:     0.101
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.177433406369       -0.555526660260
+ Iteration  2        0.051841664005       -0.570855980995
+ Iteration  3        0.019465244649       -0.574780461794
+ Iteration  4        0.005193878824       -0.574678542799
+ Iteration  5        0.001661024766       -0.574720586664
+ Iteration  6        0.000435975248       -0.574706557309
+ Iteration  7        0.000096042712       -0.574706397809
+ Iteration  8        0.000023969740       -0.574706647656
+ 
+ CCSD iteration has converged in  8 steps.
+       42.12 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.055E-02            D1 diagnostic:      3.276E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.047312999945
+ 
+ CPU time [min]:     0.682                   Wall time [min]:     0.111
+ 
+ MO:     5
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.042606603689
+ Number of occupied LNOs:        14  (93.33%)
+ Number of virtual  LNOs:        51  (54.84%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.042489812472
+ Correction for frozen LNO [au]: -0.000116791216     (0.274%)
+ Number of NAFs:                171  (45.97%)
+ CPU time [min]:     0.700                   Wall time [min]:     0.115
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    14    51   171
+     17.25 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.541374805918
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.042468167410
+ 
+ CPU time [min]:     0.701                   Wall time [min]:     0.116
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.177432783604       -0.555527493723
+ Iteration  2        0.051846155144       -0.570856721973
+ Iteration  3        0.019465966677       -0.574781485630
+ Iteration  4        0.005196154411       -0.574679880737
+ Iteration  5        0.001661174837       -0.574721495930
+ Iteration  6        0.000435940797       -0.574707556322
+ Iteration  7        0.000095997709       -0.574707323167
+ Iteration  8        0.000023942716       -0.574707599055
+ 
+ CCSD iteration has converged in  8 steps.
+       42.12 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.055E-02            D1 diagnostic:      3.276E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.047313013436
+ 
+ CPU time [min]:     0.773                   Wall time [min]:     0.126
+ 
+ MO:     6
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.060890635428
+ Number of occupied LNOs:        15 (100.00%)
+ Number of virtual  LNOs:        78  (83.87%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.060802711481
+ Correction for frozen LNO [au]: -0.000087923947     (0.144%)
+ Number of NAFs:                244  (65.59%)
+ CPU time [min]:     0.796                   Wall time [min]:     0.132
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    15    78   244
+     44.33 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.741851515083
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.060794210479
+ 
+ CPU time [min]:     0.798                   Wall time [min]:     0.133
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.215927373336       -0.753446060360
+ Iteration  2        0.060820178007       -0.774354859339
+ Iteration  3        0.023939806979       -0.779747089021
+ Iteration  4        0.006150746865       -0.779862637558
+ Iteration  5        0.001915618931       -0.779883484353
+ Iteration  6        0.000555616208       -0.779885236938
+ Iteration  7        0.000136238585       -0.779883396023
+ Iteration  8        0.000039507911       -0.779883717904
+ 
+ CCSD iteration has converged in  8 steps.
+      184.65 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.025E-02            D1 diagnostic:      2.950E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.061917968581
+ 
+ CPU time [min]:     1.028                   Wall time [min]:     0.166
+ 
+ MO:     7
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.042606633661
+ Number of occupied LNOs:        14  (93.33%)
+ Number of virtual  LNOs:        51  (54.84%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.042489841410
+ Correction for frozen LNO [au]: -0.000116792251     (0.274%)
+ Number of NAFs:                171  (45.97%)
+ CPU time [min]:     1.046                   Wall time [min]:     0.170
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    14    51   171
+     17.25 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.541378796039
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.042468198834
+ 
+ CPU time [min]:     1.047                   Wall time [min]:     0.171
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.177576178473       -0.555532552661
+ Iteration  2        0.051857951701       -0.570876705302
+ Iteration  3        0.019472290432       -0.574790345930
+ Iteration  4        0.005215262035       -0.574691918264
+ Iteration  5        0.001667448463       -0.574728136647
+ Iteration  6        0.000436358125       -0.574714381054
+ Iteration  7        0.000095840517       -0.574713498449
+ Iteration  8        0.000023896553       -0.574713868053
+ 
+ CCSD iteration has converged in  8 steps.
+       42.12 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.055E-02            D1 diagnostic:      3.276E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.047313043574
+ 
+ CPU time [min]:     1.111                   Wall time [min]:     0.180
+ 
+ MO:     8
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.042606633221
+ Number of occupied LNOs:        14  (93.33%)
+ Number of virtual  LNOs:        51  (54.84%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.042489840670
+ Correction for frozen LNO [au]: -0.000116792551     (0.274%)
+ Number of NAFs:                171  (45.97%)
+ CPU time [min]:     1.129                   Wall time [min]:     0.185
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    14    51   171
+     17.25 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.541378839458
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.042468198119
+ 
+ CPU time [min]:     1.130                   Wall time [min]:     0.185
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.177576180960       -0.555532597749
+ Iteration  2        0.051857962617       -0.570876751355
+ Iteration  3        0.019472293080       -0.574790392977
+ Iteration  4        0.005215266993       -0.574691966070
+ Iteration  5        0.001667448893       -0.574728183598
+ Iteration  6        0.000436358129       -0.574714428187
+ Iteration  7        0.000095840486       -0.574713545433
+ Iteration  8        0.000023896503       -0.574713915091
+ 
+ CCSD iteration has converged in  8 steps.
+       42.12 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.055E-02            D1 diagnostic:      3.276E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.047313042945
+ 
+ CPU time [min]:     1.199                   Wall time [min]:     0.195
+ 
+ MO:     9
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.060890693008
+ Number of occupied LNOs:        15 (100.00%)
+ Number of virtual  LNOs:        78  (83.87%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.060802768403
+ Correction for frozen LNO [au]: -0.000087924605     (0.144%)
+ Number of NAFs:                244  (65.59%)
+ CPU time [min]:     1.222                   Wall time [min]:     0.201
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    15    78   244
+     44.33 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.741850444221
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.060794397897
+ 
+ CPU time [min]:     1.224                   Wall time [min]:     0.203
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.215882186117       -0.753445041826
+ Iteration  2        0.060806986321       -0.774353087190
+ Iteration  3        0.023936371867       -0.779746238228
+ Iteration  4        0.006150090516       -0.779861489799
+ Iteration  5        0.001915591945       -0.779882367695
+ Iteration  6        0.000555645952       -0.779884189038
+ Iteration  7        0.000136438006       -0.779882340561
+ Iteration  8        0.000039546546       -0.779882653241
+ 
+ CCSD iteration has converged in  8 steps.
+      184.65 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.025E-02            D1 diagnostic:      2.950E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.061918137382
+ 
+ CPU time [min]:     1.451                   Wall time [min]:     0.235
+ 
+ MO:    10
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.060890565375
+ Number of occupied LNOs:        15 (100.00%)
+ Number of virtual  LNOs:        78  (83.87%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.060802641697
+ Correction for frozen LNO [au]: -0.000087923679     (0.144%)
+ Number of NAFs:                244  (65.59%)
+ CPU time [min]:     1.475                   Wall time [min]:     0.240
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    15    78   244
+     44.33 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.741850285367
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.060794271028
+ 
+ CPU time [min]:     1.477                   Wall time [min]:     0.241
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.215882162416       -0.753444890495
+ Iteration  2        0.060806985869       -0.774352933029
+ Iteration  3        0.023936373261       -0.779746083436
+ Iteration  4        0.006150090539       -0.779861335335
+ Iteration  5        0.001915592111       -0.779882212939
+ Iteration  6        0.000555646024       -0.779884034103
+ Iteration  7        0.000136437875       -0.779882185679
+ Iteration  8        0.000039546522       -0.779882498367
+ 
+ CCSD iteration has converged in  8 steps.
+      184.65 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.025E-02            D1 diagnostic:      2.950E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.061918023533
+ 
+ CPU time [min]:     1.706                   Wall time [min]:     0.274
+ 
+ MO:    11
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.060890738829
+ Number of occupied LNOs:        15 (100.00%)
+ Number of virtual  LNOs:        78  (83.87%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.060802814348
+ Correction for frozen LNO [au]: -0.000087924481     (0.144%)
+ Number of NAFs:                244  (65.59%)
+ CPU time [min]:     1.730                   Wall time [min]:     0.280
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    15    78   244
+     44.33 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.741851517901
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.060794313234
+ 
+ CPU time [min]:     1.733                   Wall time [min]:     0.281
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.215927378413       -0.753446051295
+ Iteration  2        0.060820171497       -0.774354849410
+ Iteration  3        0.023939803266       -0.779747078011
+ Iteration  4        0.006150746623       -0.779862626318
+ Iteration  5        0.001915618585       -0.779883473146
+ Iteration  6        0.000555615922       -0.779885225766
+ Iteration  7        0.000136238449       -0.779883384851
+ Iteration  8        0.000039507881       -0.779883706731
+ 
+ CCSD iteration has converged in  8 steps.
+      184.65 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.025E-02            D1 diagnostic:      2.950E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.061918059835
+ 
+ CPU time [min]:     1.959                   Wall time [min]:     0.313
+ 
+ MO:    12
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.052609855073
+ Number of occupied LNOs:        13  (86.67%)
+ Number of virtual  LNOs:        60  (64.52%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.052475352874
+ Correction for frozen LNO [au]: -0.000134502199     (0.256%)
+ Number of NAFs:                192  (51.61%)
+ CPU time [min]:     1.979                   Wall time [min]:     0.318
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    13    60   192
+     22.33 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.581251240319
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.052475447621
+ 
+ CPU time [min]:     1.980                   Wall time [min]:     0.318
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.188192409273       -0.595770423881
+ Iteration  2        0.054151392778       -0.612066332048
+ Iteration  3        0.020496731636       -0.616117101191
+ Iteration  4        0.005591863728       -0.616055671647
+ Iteration  5        0.001828891036       -0.616088032188
+ Iteration  6        0.000510672547       -0.616076169677
+ Iteration  7        0.000119255838       -0.616076236541
+ Iteration  8        0.000036001626       -0.616076674756
+ 
+ CCSD iteration has converged in  8 steps.
+       70.97 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.100E-02            D1 diagnostic:      3.426E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.054492528367
+ 
+ CPU time [min]:     2.071                   Wall time [min]:     0.331
+ 
+ MO:    13
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.052609848733
+ Number of occupied LNOs:        13  (86.67%)
+ Number of virtual  LNOs:        60  (64.52%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.052475346477
+ Correction for frozen LNO [au]: -0.000134502256     (0.256%)
+ Number of NAFs:                192  (51.61%)
+ CPU time [min]:     2.091                   Wall time [min]:     0.336
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    13    60   192
+     22.33 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.581251242987
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.052475441116
+ 
+ CPU time [min]:     2.092                   Wall time [min]:     0.337
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.188192197992       -0.595770427982
+ Iteration  2        0.054151477093       -0.612066295818
+ Iteration  3        0.020496733836       -0.616117094071
+ Iteration  4        0.005591855649       -0.616055666435
+ Iteration  5        0.001828876336       -0.616088030665
+ Iteration  6        0.000510670652       -0.616076168481
+ Iteration  7        0.000119256468       -0.616076236813
+ Iteration  8        0.000036002130       -0.616076674585
+ 
+ CCSD iteration has converged in  8 steps.
+       70.97 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.100E-02            D1 diagnostic:      3.426E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.054492522499
+ 
+ CPU time [min]:     2.176                   Wall time [min]:     0.349
+ 
+ MO:    14
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.042606602791
+ Number of occupied LNOs:        14  (93.33%)
+ Number of virtual  LNOs:        51  (54.84%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.042489811322
+ Correction for frozen LNO [au]: -0.000116791469     (0.274%)
+ Number of NAFs:                171  (45.97%)
+ CPU time [min]:     2.194                   Wall time [min]:     0.354
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    14    51   171
+     17.25 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.541373961920
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.042468159029
+ 
+ CPU time [min]:     2.195                   Wall time [min]:     0.354
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.177433711685       -0.555526706698
+ Iteration  2        0.051841690799       -0.570856059787
+ Iteration  3        0.019465258773       -0.574780517686
+ Iteration  4        0.005193919245       -0.574678605345
+ Iteration  5        0.001661037732       -0.574720637934
+ Iteration  6        0.000435976211       -0.574706608965
+ Iteration  7        0.000096042228       -0.574706448083
+ Iteration  8        0.000023969631       -0.574706698129
+ 
+ CCSD iteration has converged in  8 steps.
+       42.12 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.055E-02            D1 diagnostic:      3.276E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.047313000860
+ 
+ CPU time [min]:     2.262                   Wall time [min]:     0.364
+ 
+ MO:    15
+ Number of atoms in domain:      12
+ Number of atomic orbitals:     114
+ Number of atoms for local DF:   12
+ Number of fitting functions:   372 (100.00%)
+ Number of occupied orbitals:    15
+ Number of virtual  orbitals:    93
+ Number of Cholesky vectors:      5
+ MP2 energy in ED [au]:          -0.052609899729
+ Number of occupied LNOs:        13  (86.67%)
+ Number of virtual  LNOs:        60  (64.52%)
+ Number of Cholesky vectors:      5
+ MP2 energy in LIS [au]:         -0.052475397509
+ Correction for frozen LNO [au]: -0.000134502219     (0.256%)
+ Number of NAFs:                192  (51.61%)
+ CPU time [min]:     2.282                   Wall time [min]:     0.369
+ 
+
+ Direct DF-CCSD calculation
+ 
+ Convergence criterion:  1.0E-05
+ 
+ Number of occupied/virtual/auxiliary orbitals:    13    60   192
+     22.33 MB is the minimal memory requirement for CCSD
+ 
+ MP2 correlation energy [au]:       -0.581248297012
+ 
+ LMP2 domain correlation energy contribution [au]:       -0.052475449606
+ 
+ CPU time [min]:     2.283                   Wall time [min]:     0.370
+ 
+ 
+ Starting CCSD iterations...
+ 
+                     Residual norm       Correlation Energy
+ Iteration  1        0.188095992960       -0.595767531611
+ Iteration  2        0.054193518152       -0.612044599104
+ Iteration  3        0.020499228742       -0.616109600308
+ Iteration  4        0.005588800093       -0.616049278122
+ Iteration  5        0.001822181213       -0.616083395971
+ Iteration  6        0.000509843070       -0.616071698789
+ Iteration  7        0.000119646287       -0.616072471811
+ Iteration  8        0.000036299170       -0.616072699075
+ 
+ CCSD iteration has converged in  8 steps.
+       70.97 MB memory was utilized by CCSD
+ 
+ T1 diagnostic:      1.100E-02            D1 diagnostic:      3.426E-02
+ 
+ T1 contribution [au]:                         0.000000000000
+ CCSD correlation energy [au]:                -0.054492577312
+ 
+ CPU time [min]:     2.365                   Wall time [min]:     0.382
+ 
+ **********************************************************************
+ Dimensions of the extended domains:    Minimum / Average / Maximum
+ 
+ Number of atoms in domain:                  12      12.0        12
+ Number of atomic orbitals:                 114     114.0       114
+ Number of fitting functions:               372     372.0       372
+ Number of occupied localized MOs:           15      15.0        15
+ Number of PAOs:                             93      93.0        93
+ Number of occupied LNOs:                    13      14.2        15
+ Number of virtual  LNOs:                    51      63.6        78
+ Number of NAFs:                            171     204.4       244
+ 
+ **********************************************************************
+ Distant (and weak) pair contributions, corrections
+ 
+ Sum of pair energies [au]:                     0.000000000000    (0.000%)
+ Sum of energy corrections [au]:               -0.001631802273    (0.210%)
+ Pair energies + LNO corrections [au]:         -0.001631802273
+ Sum of LMP2 contributions [au]:               -0.778813273860
+ 
+ **********************************************************************
+  Time of manipulations in the EDs:      max CPU/Wall [s]  all CPU/Wall [min]
+ 
+ PD construction & multipole pair E       0.29     0.10     0.00     0.00
+ Construct MO basis of the ED             0.03     0.01     0.01     0.00
+ (mu,nu|P) evaluation & trf 2 (ai|P)      0.26     0.06     0.06     0.01
+ Evaluate MP2 energy of the ED            0.08     0.01     0.01     0.00
+ Transformations to the LNO basis         0.07     0.02     0.01     0.00
+ Build W_PQ (Jai or Jpi part)             0.02     0.00     0.00     0.00
+ Evaluate MP2 energy of the LIS           0.04     0.00     0.00     0.00
+ (mu,nu|P) evaluation & trf 2 J(abQ)      0.98     0.26     0.20     0.05
+ Total of the above for all EDs           1.48     0.37     0.30     0.07
+ 
+ **********************************************************************
+ Maximum memory requirement [MB]:       
+ 
+ PD construction & multipole pair E          2.4
+ AO integral evaluation in the EDs          56.8
+ (mu,nu|P) evaluation & trf 2 (aI|P)        74.4
+ Evaluate MP2 energy in the EDs             14.8
+ Transformation to the LNO basis            15.8
+ (mu,nu|P) to Jab transformation            68.2
+ Evaluate MP2 energy in the LIS             18.0
+ Minimum requirement for LIS CCSD           44.3
+ Actually allocated  for LIS CCSD          184.7
+ Minimum requirement for LIS (T)             0.0
+ Actually allocated  for LIS (T)             0.0
+ 
+ ======================================================================
+ ======================================================================
+ 
+ 
+ 
+ ======================================================================
+ ======================================================================
+ 
+ Final local CC results:
+ 
+ Minimum number of correlated electrons:        26       ( 86.7%)
+ Maximum number of correlated electrons:        30       (100.0%)
+ Average number of correlated electrons:        28.4     ( 94.7%)
+ Minimum number of correlated orbitals:         65       ( 60.2%)
+ Maximum number of correlated orbitals:         93       ( 86.1%)
+ Average number of correlated orbitals:         77.8     ( 72.0%)
+ 
+ CPU time for integral calculations [min]:                  0.019
+ Wall time for integral calculations [min]:                 0.017
+ 
+ CPU time for SCF calculation [min]:                        0.017
+ Wall time for SCF calculation [min]:                       0.012
+ 
+ CPU time for orbital localization [min]:                   0.001
+ Wall time for orbital localization [min]:                  0.001
+ 
+ CPU time for integral transformations [min]:               0.316
+ Wall time for integral transformations [min]:              0.082
+ 
+ Reference energy [au]:                                  -230.535872383138
+ 
+ LMP2 correlation energy [au]:                             -0.778813273860
+ Total LMP2 energy [au]:                                 -231.314685656998
+ 
+ Total MP2 correction for dropped NAFs [au]:               -0.000180122923
+ Total MP2 correction [au]:                                -0.001811925196
+ 
+ CPU time for CCSD calculations [min]:                      2.049
+ Total CPU time for CCSD [min]:                             2.401
+ Wall time for CCSD calculations [min]:                     0.299
+ Total wall time for CCSD [min]:                            0.412
+ 
+ CCSD correlation energy [au]:                             -0.818864180898
+ Total CCSD energy [au]:                                 -231.354736564036
+ CCSD correlation energy + MP2 corrections [au]:           -0.820676106094
+ Total LNO-CCSD energy with MP2 corrections [au]:        -231.356548489232
+ 
+ ======================================================================
+ ======================================================================
+ 
+ ************************ 2023-07-21 08:58:47 *************************
+                      Normal termination of mrcc.
+ **********************************************************************

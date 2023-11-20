@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UNIVERSALSETTINGS_VALUECOLLECTION_H
@@ -42,6 +42,7 @@ class ValueCollection {
   bool empty() const;
 
   std::vector<std::string> getKeys() const;
+  Container items() const;
   bool valueExists(const std::string& name) const;
 
   void addGenericValue(std::string name, GenericValue value);

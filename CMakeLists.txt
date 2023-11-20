@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.9)
 # tree must then provide a properly namespaced target with the same name as
 # your project.
 project(UtilsOS
-  VERSION 8.0.0
+  VERSION 9.0.0
   DESCRIPTION "Utilities to be used (statically linked) in all other SCINE modules."
 )
 

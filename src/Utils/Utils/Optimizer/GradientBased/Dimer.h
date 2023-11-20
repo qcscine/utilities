@@ -1,13 +1,14 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
 #ifndef UTILS_DIMER_H_
 #define UTILS_DIMER_H_
 
+#include "Utils/MSVCCompatibility.h"
 #include "Utils/Optimizer/GradientBased/Gdiis.h"
 #include "Utils/Optimizer/GradientBased/GradientBasedCheck.h"
 #include "Utils/Optimizer/Optimizer.h"

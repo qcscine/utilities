@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_ORCACALCULATOR_H
@@ -122,6 +122,13 @@ class OrcaCalculator final : public CloneInterface<OrcaCalculator, Core::Calcula
    * @return whether the calculator supports a method family
    */
   bool supportsMethodFamily(const std::string& methodFamily) const override;
+  /**
+   * @brief Whether the calculator has no underlying Python code and can therefore
+   * release the global interpreter lock in Python bindings
+   */
+  bool allowsPythonGILRelease() const override {
+    return true;
+  };
 
  private:
   /*
@@ -166,7 +173,9 @@ class OrcaCalculator final : public CloneInterface<OrcaCalculator, Core::Calcula
       std::vector<std::string>{"DFT", "HF", "CC", "HF-3C", "PBEH-3C", "B97-3C"};
   // incomplete list of methods with no analytical Hessian, add if you find a new one
   const std::vector<std::string> numFreqMethods_ =
-      std::vector<std::string>{"M06", "DLPNO-CCSD(T)", "DLPNO-CCSD", "HF-3C", "PBEH-3C", "B97-3C"};
+      std::vector<std::string>{"M06", "DLPNO-CCSD(T)", "DLPNO-CCSD(T)-F12", "DLPNO-CCSD", "HF-3C", "PBEH-3C", "B97-3C"};
+  // incomplete list of methods with no analytical gradient, add if you find a new one
+  const std::vector<std::string> numGradMethods_ = std::vector<std::string>{"DLPNO-CCSD(T)", "DLPNO-CCSD(T)-F12"};
 };
 
 } // namespace ExternalQC

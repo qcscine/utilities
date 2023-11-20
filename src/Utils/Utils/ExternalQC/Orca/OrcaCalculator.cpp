@@ -1,11 +1,12 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/ExternalQC/Orca/OrcaCalculator.h"
 #include "Utils/ExternalQC/ExternalProgram.h"
+#include "Utils/ExternalQC/Orca/MoessbauerParameters.h"
 #include "Utils/ExternalQC/Orca/OrcaCalculatorSettings.h"
 #include "Utils/ExternalQC/Orca/OrcaHessianOutputParser.h"
 #include "Utils/ExternalQC/Orca/OrcaInputFileCreator.h"
@@ -52,17 +53,18 @@ OrcaCalculator::OrcaCalculator() {
   applySettings();
 }
 
-OrcaCalculator::OrcaCalculator(const OrcaCalculator& rhs) {
+OrcaCalculator::OrcaCalculator(const OrcaCalculator& rhs) : CloneInterface(rhs) {
   this->requiredProperties_ = rhs.requiredProperties_;
   auto valueCollection = dynamic_cast<const Utils::UniversalSettings::ValueCollection&>(rhs.settings());
   this->settings_ =
       std::make_unique<Utils::Settings>(Utils::Settings(valueCollection, rhs.settings().getDescriptorCollection()));
   this->setLog(rhs.getLog());
   applySettings();
-  this->setStructure(rhs.atoms_);
-  this->results() = rhs.results();
-  this->orcaExecutable_ = rhs.orcaExecutable_;
-  this->binaryHasBeenChecked_ = rhs.binaryHasBeenChecked_;
+  atoms_ = rhs.atoms_;
+  calculationDirectory_ = NativeFilenames::createRandomDirectoryName(baseWorkingDirectory_);
+  results_ = rhs.results();
+  orcaExecutable_ = rhs.orcaExecutable_;
+  binaryHasBeenChecked_ = rhs.binaryHasBeenChecked_;
 }
 
 void OrcaCalculator::applySettings() {
@@ -83,6 +85,12 @@ void OrcaCalculator::applySettings() {
       this->getLog().warning << "Warning: Energy accuracy was increased to 1e-8 to ensure valid gradients/hessian as "
                                 "recommended by ORCA developers."
                              << Core::Log::nl;
+    }
+    if (requiredProperties_.containsSubSet(Property::Gradients) &&
+        std::find(numGradMethods_.begin(), numGradMethods_.end(), settings_->getString(Utils::SettingsNames::method)) !=
+            numGradMethods_.end()) {
+      settings_->modifyString(SettingsNames::gradientCalculationType, "numerical");
+      this->getLog().output << "Calculating gradients numerically." << Core::Log::nl;
     }
     if (requiredProperties_.containsSubSet(Property::Hessian) &&
         std::find(numFreqMethods_.begin(), numFreqMethods_.end(), settings_->getString(Utils::SettingsNames::method)) !=
@@ -118,6 +126,9 @@ const Utils::PositionCollection& OrcaCalculator::getPositions() const {
 
 void OrcaCalculator::setRequiredProperties(const PropertyList& requiredProperties) {
   requiredProperties_ = requiredProperties;
+  if (requiredProperties_.containsSubSet(Property::Thermochemistry)) {
+    requiredProperties_.addProperty(Property::Hessian);
+  }
 }
 
 PropertyList OrcaCalculator::getRequiredProperties() const {
@@ -127,7 +138,7 @@ PropertyList OrcaCalculator::getRequiredProperties() const {
 Utils::PropertyList OrcaCalculator::possibleProperties() const {
   return Property::Energy | Property::Gradients | Property::Hessian | Property::BondOrderMatrix |
          Property::Thermochemistry | Property::AtomicCharges | Property::PointChargesGradients |
-         Property::OrbitalEnergies | Property::SuccessfulCalculation;
+         Property::MoessbauerParameter | Property::OrbitalEnergies | Property::SuccessfulCalculation;
 }
 
 const Results& OrcaCalculator::calculate(std::string description) {
@@ -203,6 +214,14 @@ const Results& OrcaCalculator::calculateImpl(std::string description) {
     std::string pcGradientsFile = externalProgram.generateFullFilename(fileNameBase_ + ".pcgrad");
     OrcaPointChargesGradientsFileParser pcParser(pcGradientsFile);
     results_.set<Property::PointChargesGradients>(pcParser.getPointChargesGradients());
+  }
+  if (requiredProperties_.containsSubSet(Property::MoessbauerParameter)) {
+    Moessbauer::MoessbauerParameterContainer moessbauerContainer;
+    int numIrons = Moessbauer::determineNumIrons(atoms_);
+    moessbauerContainer.etas = parser.getMoessbauerAsymmetryParameter(numIrons);
+    moessbauerContainer.quadrupoleSplittings = parser.getMoessbauerQuadrupoleSplittings(numIrons);
+    moessbauerContainer.densities = parser.getMoessbauerIronElectronDensities(numIrons);
+    results_.set<Property::MoessbauerParameter>(moessbauerContainer);
   }
   if (requiredProperties_.containsSubSet(Property::OrbitalEnergies)) {
     results_.set<Property::OrbitalEnergies>(parser.getOrbitalEnergies());

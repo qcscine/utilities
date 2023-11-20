@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "TurbomoleCalculator.h"
@@ -15,6 +15,7 @@
 #include "Utils/ExternalQC/Turbomole/TurbomoleState.h"
 #include "Utils/IO/FilesystemHelpers.h"
 #include "Utils/IO/NativeFilenames.h"
+#include "Utils/MSVCCompatibility.h"
 #include "Utils/Properties/Thermochemistry/ThermochemistryCalculator.h"
 #include "Utils/Scf/LcaoUtils/SpinMode.h"
 #include "Utils/Solvation/ImplicitSolvation.h"
@@ -50,15 +51,16 @@ TurbomoleCalculator::TurbomoleCalculator() {
   applySettings();
 }
 
-TurbomoleCalculator::TurbomoleCalculator(const TurbomoleCalculator& rhs) {
+TurbomoleCalculator::TurbomoleCalculator(const TurbomoleCalculator& rhs) : CloneInterface(rhs) {
   this->requiredProperties_ = rhs.requiredProperties_;
   auto valueCollection = dynamic_cast<const Utils::UniversalSettings::ValueCollection&>(rhs.settings());
   this->settings_ =
       std::make_unique<Utils::Settings>(Utils::Settings(valueCollection, rhs.settings().getDescriptorCollection()));
   this->setLog(rhs.getLog());
   applySettings();
-  this->setStructure(rhs.atoms_);
-  this->results() = rhs.results();
+  atoms_ = rhs.atoms_;
+  calculationDirectory_ = NativeFilenames::createRandomDirectoryName(baseWorkingDirectory_);
+  results_ = rhs.results();
   this->turbomoleBinaryDir_ = rhs.turbomoleBinaryDir_;
   this->turbomoleSmpBinaryDir_ = rhs.turbomoleSmpBinaryDir_;
   this->turbomoleScriptsDir_ = rhs.turbomoleScriptsDir_;
@@ -69,7 +71,7 @@ void TurbomoleCalculator::initializeProgram() {
   const char* turboRootEnv = std::getenv("TURBODIR");
   const char* paraArchEnv = std::getenv("PARA_ARCH");
   if (paraArchEnv) {
-    unsetenv("PARA_ARCH");
+    UnsetEnv_("PARA_ARCH");
   }
   std::string archScript = NativeFilenames::combinePathSegments(turboRootEnv, "scripts", "sysname");
   if (bfs::exists(archScript)) {
@@ -96,8 +98,8 @@ void TurbomoleCalculator::initializeProgram() {
     std::stringstream temp_str;
     temp_str << numProcs;
     const std::string numProcsChar = temp_str.str();
-    setenv("PARA_ARCH", "SMP", 1);
-    setenv("PARNODES", numProcsChar.c_str(), 1);
+    SetEnv_("PARA_ARCH", "SMP");
+    SetEnv_("PARNODES", numProcsChar);
   }
 }
 
@@ -221,7 +223,7 @@ const Results& TurbomoleCalculator::calculateImpl(std::string description) {
   helper.execute(executableName, true);
 
   TurbomoleMainOutputParser parser(files_);
-  parser.checkForErrors();
+  parser.checkForErrors(getLog());
 
   // steer the orbitals after an SCF calculation if required
   if (settings_->getBool(SettingsNames::steerOrbitals)) {

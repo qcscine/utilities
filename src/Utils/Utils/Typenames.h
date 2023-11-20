@@ -2,7 +2,7 @@
  * @file
  * @brief A file containing definitions of classes that are just different names
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_TYPENAMES_H_
@@ -32,6 +32,18 @@ using DisplacementCollection = Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::R
  * @brief Another name for an std::vector<ElementType> .
  */
 using ElementTypeCollection = std::vector<ElementType>;
+
+/**
+ * @class Scine::Utils::ElementTypeCollection Typenames.h
+ * @brief Another name for an std::pair<std::tuple<std::string, std::string, unsigned int>>.
+ */
+using ResidueInformation = std::tuple<std::string, std::string, unsigned int>;
+
+/**
+ * @class Scine::Utils::ElementTypeCollection Typenames.h
+ * @brief Another name for an std::vector<ResidueInformation>.
+ */
+using ResidueCollection = std::vector<ResidueInformation>;
 
 /**
  * @class Scine::Utils::Gradient Typenames.h

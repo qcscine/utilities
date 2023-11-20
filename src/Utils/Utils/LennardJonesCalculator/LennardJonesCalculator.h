@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_LENNARDJONESCALCULATOR_H
@@ -49,6 +49,13 @@ class LennardJonesCalculator : public CloneInterface<LennardJonesCalculator, Cor
   Utils::Results& results() final;
   const Utils::Results& results() const final;
   std::unique_ptr<Utils::AtomCollection> getStructure() const final;
+  /**
+   * @brief Whether the calculator has no underlying Python code and can therefore
+   * release the global interpreter lock in Python bindings
+   */
+  bool allowsPythonGILRelease() const override {
+    return true;
+  };
 
  private:
   /*

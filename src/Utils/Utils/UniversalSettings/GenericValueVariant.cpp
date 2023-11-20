@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -39,6 +39,9 @@ GenericValueMeta::Variant GenericValueMeta::convert(const GenericValue& v) {
     }
   );
   // clang-format on
+  if (!maybeVariant.is_initialized()) {
+    throw InvalidValueConversionException();
+  }
   return maybeVariant.value();
 }
 

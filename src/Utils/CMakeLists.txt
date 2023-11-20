@@ -44,6 +44,10 @@ set_target_properties(UtilsOS PROPERTIES
   WINDOWS_EXPORT_ALL_SYMBOLS ON
 )
 
+if(MSVC)
+  target_compile_options(UtilsOS PRIVATE /bigobj /MP /openmp-)
+endif()
+
 target_link_libraries(UtilsOS
   PUBLIC
     Boost::boost
@@ -57,6 +61,10 @@ target_link_libraries(UtilsOS
     lbfgspp
     symspg_objects
 )
+
+if(MSVC)
+  target_compile_definitions(UtilsOS PUBLIC BOOST_ALL_NO_LIB)
+endif()
 
 target_include_directories(UtilsOS
   PUBLIC
@@ -76,6 +84,10 @@ set_target_properties(UtilsOSModule PROPERTIES
   OUTPUT_NAME "utilsos.module"
   PREFIX ""
 )
+
+if(MSVC)
+  target_compile_options(UtilsOSModule PRIVATE /bigobj /MP /openmp-)
+endif()
 
 # -- Define Install
 # Headers
@@ -125,6 +137,10 @@ if(SCINE_BUILD_TESTS)
     COPY ${CMAKE_CURRENT_SOURCE_DIR}/Tests/Resources
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
   )
+
+  if(MSVC)
+    target_compile_options(UtilsOS_tests PRIVATE /bigobj /MP /openmp-)
+  endif()
 endif()
 
 # Python bindings

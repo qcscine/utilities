@@ -1,6 +1,6 @@
 __copyright__ = """This file is part of SCINE Utilities.
 This code is licensed under the 3-clause BSD license.
-Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.
+Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.
 See LICENSE.txt for details.
 """
 
@@ -12,7 +12,7 @@ from conans import tools
 
 class ScineUtilsConan(ScineConan):
     name = "scine_utilities"
-    version = "8.0.0"
+    version = "9.0.0"
     url = "https://github.com/qcscine/utilities"
     description = """
 Functionality which is used in most SCINE modules. It is vital for the correct

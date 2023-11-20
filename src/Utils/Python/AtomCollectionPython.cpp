@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/Geometry/AtomCollection.h>
@@ -26,6 +26,14 @@ void init_atom_collection(pybind11::module& m) {
   atom_collection.def("set_element", &AtomCollection::setElement, "Set an element type");
   atom_collection.def("get_element", &AtomCollection::getElement, "Get an element type");
 
+  atom_collection.def_property("residues", &AtomCollection::getResidues, &AtomCollection::setResidues,
+                               "The residue information (residue label, chain label, residue index)");
+
+  atom_collection.def("set_residue_info", &AtomCollection::setResidueInformation,
+                      "Set the residue information (residue label, chain label, residue index)");
+  atom_collection.def("get_residue_info", &AtomCollection::getResidueInformation,
+                      "Get the residue information (residue label, chain label, residue index)");
+
   atom_collection.def_property("positions", &AtomCollection::getPositions, &AtomCollection::setPositions,
                                "All positions of the collection");
 
@@ -38,6 +46,9 @@ void init_atom_collection(pybind11::module& m) {
   atom_collection.def("resize", &AtomCollection::resize, "Resize the collection. Does not preserve contained data.");
   atom_collection.def("at", &AtomCollection::at, "Access a particular atom");
   atom_collection.def("push_back", &AtomCollection::push_back, "Add a new atom");
+  atom_collection.def("append", &AtomCollection::push_back, "Add a new atom");
+  atom_collection.def("swap_indices", &AtomCollection::swapIndices, pybind11::arg("i"), pybind11::arg("j"),
+                      "Swap two atoms by the specified indices");
 
   // Comparison operators
   atom_collection.def(pybind11::self == pybind11::self);

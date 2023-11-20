@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -25,6 +25,7 @@ static constexpr const char* symmetryNumber = "symmetry_number";
 static constexpr const char* methodParameters = "method_parameters";
 static constexpr const char* NDDODipoleApproximation = "nddo_dipole";
 static constexpr const char* mmCharges = "mm_charges";
+static constexpr const char* parameterFilePath = "mm_parameter_file";
 
 // Model
 static constexpr const char* method = "method";
@@ -46,6 +47,12 @@ static constexpr const char* externalProgramMemory = "external_program_memory";
 static constexpr const char* externalProgramNProcs = "external_program_nprocs";
 
 static constexpr const char* scfDamping = "scf_damping";
+
+// QM/MM
+static constexpr const char* qmAtomsList = "qm_atoms";
+static constexpr const char* electrostaticEmbedding = "electrostatic_embedding";
+static constexpr const char* ignoreQmOption = "ignore_qm";
+static constexpr const char* optimizeLinks = "optimize_links";
 
 //! @brief Struct to contain the name of the mixers available.
 struct ScfMixers {

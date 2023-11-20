@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -11,7 +11,6 @@
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <boost/optional.hpp>
 
 using namespace Scine::Utils;
 
@@ -40,6 +39,19 @@ void init_normal_modes(pybind11::module& m) {
           &NormalModeAnalysis::calculateNormalModes),
       pybind11::arg("hessian"), pybind11::arg("elements"), pybind11::arg("positions"),
       pybind11::arg("normalize") = false, "Calculate the mass weighted normal modes.");
+  normal_modes_submodule.def(
+      "calculate",
+      pybind11::overload_cast<const PartialHessian&, const AtomCollection&>(&NormalModeAnalysis::calculateNormalModes),
+      pybind11::arg("partial_hessian"), pybind11::arg("atoms"),
+      "Calculate the mass weighted normal modes from a"
+      "partial Hessian and the super system.");
+  normal_modes_submodule.def(
+      "calculate",
+      pybind11::overload_cast<const PartialHessian&, const ElementTypeCollection&, const PositionCollection&, bool>(
+          &NormalModeAnalysis::calculateNormalModes),
+      pybind11::arg("partial_hessian"), pybind11::arg("elements"), pybind11::arg("positions"),
+      pybind11::arg("normalize") = false,
+      "Calculate the mass weighted normal modes from a partial Hessian and the super system.");
 
   normal_modes_submodule.def("get_harmonic_inversion_point", &NormalModeAnalysis::calculateHarmonicInversionPoint,
                              pybind11::arg("wavenumber"), pybind11::arg("n"),

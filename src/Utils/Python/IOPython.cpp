@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -39,7 +39,8 @@ void init_io(pybind11::module& m) {
 
   pybind11::enum_<MolecularTrajectoryIO::format>(io, "TrajectoryFormat")
       .value("Xyz", MolecularTrajectoryIO::format::xyz)
-      .value("Binary", MolecularTrajectoryIO::format::binary);
+      .value("Binary", MolecularTrajectoryIO::format::binary)
+      .value("Pdb", MolecularTrajectoryIO::format::pdb);
 
   io.def("read_trajectory",
          pybind11::overload_cast<const enum MolecularTrajectoryIO::format, const std::string&>(&MolecularTrajectoryIO::read),

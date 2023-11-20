@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -20,6 +20,23 @@ Results::Results(const Results& rhs) = default;
 Results& Results::operator=(const Results& rhs) {
   static_assert(std::is_move_assignable<Results>::value, "Must be move assignable!");
   *this = Results(rhs);
+  return *this;
+}
+
+Results Results::operator+(const Results& rhs) const {
+  auto combined = Results(*this);
+  combined += rhs;
+  return combined;
+}
+
+Results& Results::operator+=(const Results& rhs) {
+  // Loop manually, because we are lacking definitions for merge
+  for (auto property : allProperties) {
+    const auto rhsIt = rhs.resultsMap_.find(property);
+    if (rhsIt != rhs.resultsMap_.end()) {
+      this->resultsMap_[rhsIt->first] = rhsIt->second;
+    }
+  }
   return *this;
 }
 

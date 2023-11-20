@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_EXTERNALQC_SETTINGSNAMES_H
@@ -18,16 +18,20 @@ static constexpr const char* deleteTemporaryFiles = "delete_tmp_files";
 static constexpr const char* steerOrbitals = "steer_orbitals";
 static constexpr const char* pointChargesFile = "point_charges_file";
 static constexpr const char* enforceScfCriterion = "enforce_scf_criterion";
+static constexpr const char* hessianCalculationType = "hessian_calculation_type";
 // orca
 static constexpr const char* orcaFilenameBase = "orca_filename_base";
 static constexpr const char* specialOption = "special_option";
 static constexpr const char* performBrokenSymmetryCalculation = "perform_broken_symmetry_calculation";
 static constexpr const char* initialSpinMultiplicity = "initial_spin_multiplicity";
 static constexpr const char* spinFlipSites = "spin_flip_sites";
+static constexpr const char* calculateMoessbauerParameter = "calculate_moessbauer";
+static constexpr const char* orcaAuxCBasisSet = "auxc_basis_set";
+static constexpr const char* orcaCabsBasisSet = "cabs_basis_set";
+static constexpr const char* gradientCalculationType = "gradient_calculation_type";
 // cp2k
 static constexpr const char* cp2kFilenameBase = "cp2k_filename_base";
 static constexpr const char* moleculePeriodicBoundaries = "28.35, 28.35, 28.35, 90.0, 90.0, 90.0, XYZ";
-static constexpr const char* hessianCalculationType = "hessian_calculation_type";
 static constexpr const char* relMultiGridCutoff = "relative_multi_grid_cutoff";
 static constexpr const char* orbitalTransformation = "orbital_transformation";
 static constexpr const char* outerScf = "outer_scf";

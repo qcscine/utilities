@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILSOS_SHELL_H
@@ -97,6 +97,14 @@ class Shell {
    */
   inline auto setAlpha(const std::vector<double>& new_alpha) -> void {
     this->_vecAlpha = new_alpha;
+  }
+  /**
+   * @brief Overwrite the coefficient vector.
+   * @note Must be the same length as the contraction.
+   * @param new_coeffs
+   */
+  inline auto setCoefficients(const std::vector<double>& new_coeffs) -> void {
+    this->_vecCoeffs = new_coeffs;
   }
 
   inline const std::vector<double>& getVecAlpha() const {

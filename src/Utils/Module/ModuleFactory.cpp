@@ -1,13 +1,14 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
 #include "Cp2kModule.h"
 #include "GaussianModule.h"
 #include "LennardJonesModule.h"
+#include "MrccModule.h"
 #include "OrcaModule.h"
 #include "TestModule.h"
 #include "TurbomoleModule.h"
@@ -16,8 +17,8 @@ namespace Scine {
 namespace Utils {
 
 std::vector<std::shared_ptr<Scine::Core::Module>> moduleFactory() {
-  return {Cp2kModule::make(),      OrcaModule::make(), GaussianModule::make(),
-          TurbomoleModule::make(), TestModule::make(), LennardJonesModule::make()};
+  return {Cp2kModule::make(), OrcaModule::make(),         GaussianModule::make(), TurbomoleModule::make(),
+          TestModule::make(), LennardJonesModule::make(), MrccModule::make()};
 }
 
 } // namespace Utils

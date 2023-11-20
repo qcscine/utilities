@@ -1,0 +1,515 @@
+ **********************************************************************
+                          MRCC program system
+ **********************************************************************
+ 
+                              Written by
+     Mihaly Kallay, Peter R. Nagy, David Mester, Laszlo Gyevi-Nagy,
+        Jozsef Csoka, P. Bernat Szabo, Zoltan Rolik, Gyula Samu,
+     Jozsef Csontos, Bence Hegely, Adam Ganyecz, Istvan Ladjanszki,
+       Lorant Szegedy, Bence Ladoczki, Klara Petrov, Mate Farkas,
+                    Pal D. Mezei, and Reka A. Horvath
+ 
+        Department of Physical Chemistry and Materials Science
+            Budapest University of Technology and Economics
+                  Budapest P.O.Box 91, H-1521 Hungary
+ 
+                              www.mrcc.hu
+ 
+                      Release date: March 18, 2022
+
+ ************************ 2023-07-21 08:57:42 *************************
+ Executing minp...
+
+ Reading input from MINP...
+ 
+ Input file:
+ 
+mem=1024mb
+mult=1
+charge=0
+calc=hf
+scflshift=0.2
+scftol=7
+scfmaxit=100
+basis=def2-svp
+geom=xyz
+12
+
+C   1.39111 -0      -0     
+C   0.695557 -1.20474 -0      
+C   -0.695557 -1.20474  -0       
+C   -1.39111 0        -0      
+C   -0.695557 1.20474   -0       
+C   0.695557 1.20474  -0      
+H   1.23554  -2.14001 0       
+H   -1.23554 -2.14001 0       
+H   -2.47107 0        0       
+H   -1.23554 2.14001  0       
+H   1.23554 2.14001 0      
+H   2.47107 -0      0      
+ 
+ 
+ Checking keyword combinations...
+ 
+ Keywords:
+ 
+ active=none
+ agrid=ld0006-ld0590
+ agrid_pssp=ld0006-ld0194
+ agrid_pssp_sm=ld0006-ld0074
+ basis=def2-svp
+ basis_sm=none
+ basopt=off
+ bfbasis=none
+ bfgsmem=10
+ bfgstol=1.0d-3
+ bpcompo=0.985
+ bpcompv=0.98
+ bpdfo=0.985
+ bpocc=0.985
+ bppdo=0.985
+ bppdv=0.98
+ bpedo=0.985
+ bpedv=0.98
+ calc=scf
+ ccmaxit=50
+ ccprog=mrcc
+ ccsdalg=disk
+ ccsdmkl=seq
+ ccsdrest=off
+ ccsdthreads=2
+ cctol=6
+ charge=0
+ cialg=disk
+ ciguess=off
+ cmpgrp=auto
+ comprest=off
+ core=frozen
+ corembed=off
+ csapprox=off
+ cvs=off
+ dboc=off
+ delocsomofact=
+ dendec=cholesky
+ dens=0
+ dfalg=lineq
+ dfbasis_cab=none
+ dfbasis_cor=none
+ dfbasis_scf=none
+ dfbasis_scf_sm=none
+ dfintran=ovirt
+ dft=off
+ dhexc=adc(2)
+ diag=david
+ docc=
+ domrad=10.d0
+ drpaalg=fit
+ dual=off
+ dual_df=off
+ ecp=auto
+ edisp=off
+ edisp_embed=off
+ embed=off
+ etemp=300
+ epert=none
+ eps=
+ espcharge=off
+ excrad=0.d0
+ excrad_fin=0.000000000D+00
+ fitting=coulomb
+ fmm=off
+ fmmord=8
+ freq=off
+ gamma=1.d0
+ gauss=spher
+ geom=xyz
+ gopt=off
+ ghost=none
+ gtol=7
+ grdens=off
+ gridbatch_cos=2000
+ grtol=10
+ guido_ct=off
+ hamilton=dc
+ iface=none
+ intalg=auto
+ itol=11
+ laptol=1.d-2
+ lccoporder=trffirst
+ lcorthr=normal
+ lccrest=off
+ lmp2dens=on
+ lnoepso=0.d0
+ lnoepsv=1e-6
+ boysalg=jacobi
+ localcc=off
+ localcorrsymm=off
+ locintrf=disk
+ mact=
+ maxact=off
+ maxdim=100
+ maxex=0
+ maxmicroit=100
+ mcscfiguess=hf
+ mem=1024mb
+ mmprog=
+ molden=on
+ mpitasks=1
+ mulmet=0
+ mult=1
+ nacto=0
+ nactv=0
+ naf_amp=1.d-2
+ naf_cor=off
+ naf_scf=off
+ nafalg=albe
+ naftyp=
+ nchol=auto
+ ndeps=1e-3
+ nstate=1
+ nsing=0
+ nto=off
+ ntrip=0
+ occ=
+ occri=off
+ oniom=off
+ oniom_eechg=off
+ oniom_pcm=off
+ oniom_qcorr=off
+ optalg=
+ optmaxit=50
+ optetol=1e-6
+ optex=0
+ optgtol=1e-4
+ optstol=1e-3
+ orblocc=off
+ orbloce=off
+ orbloco=off
+ orblocv=off
+ orblocguess=cholesky
+ osveps=1e-3
+ ovirt=off
+ ovltol=1e-7
+ ovosnorb=80.0
+ pcm=off
+ popul=off
+ pressure=100000
+ pssp=off
+ ptfreq=0.0
+ ptthreads=2
+ qro=off
+ qscf=off
+ qmmm=off
+ redcost_exc=off
+ redcost_tddft=off
+ refdet=none
+ rest=0
+ rgrid=log3
+ rism=off
+ rohfcore=semicanonical
+ rohftype=standard
+ scfalg=auto
+ scf_conv=auto
+ scfdamp=0.0d0
+ scfdamp_mode=off
+ scfdamp_end=100
+ scfdamp_dampstep=0.d0
+ scfdamp_dtol=0.0d0
+ scfdamp_maxfact=0.0d0
+ scfdamp_minfact=0.0d0
+ scfdiis=on
+ scfdiis_dtol=0.0d0
+ scfdiis_end=100
+ scfdiis_start=2
+ scfdiis_step=1
+ scfdiis_watch=off
+ scfdiis_wrange=10
+ scfdiis_wlimit=5
+ scfdiis_delmax=2
+ scfdtol=7
+ scfext=10
+ scfguessdens=
+ scfiguess=sad
+ scfloc=off
+ scflshift=0.2
+ scflshift_end=8
+ scflshift_dtol=0.0
+ scflshift_gaptol=0.20
+ scfmaxit=100
+ scftype=
+ scftol=7
+ scspe=1.d0
+ scsph=1.d0
+ scsps=1.2d0
+ scsps_t=1.2d0
+ scspt=0.33333333333333
+ scspt_t=0.33333333333333
+ scspv=1.d0
+ spairtol=1e-4
+ sqmprog=
+ subminp=top
+ symm=
+ talg=occ
+ temp=298.15
+ test=off
+ theodore=off
+ tlmo=0.999
+ tpao=0.94
+ tprint=off
+ uncontract=off
+ unit=angs
+ usedisk=2
+ verbosity=2
+ wpairtol=0.100000000E-05
+
+ ************************ 2023-07-21 08:57:42 *************************
+ Executing integ...
+
+ Allocation of 1024.0 Mbytes of memory...
+ 
+ 
+ Number of atoms:                 12
+ Charge:                           0
+ Number of electrons:             42
+ Number of core electrons:        12
+ Spin multiplicity:                1
+ 
+                 Cartesian coordinates [bohr]      Atomic mass [AMU]  Z
+   1  C     2.62881691    0.00000000    0.00000000    12.000000       6
+   2  C     1.31441223   -2.27662865    0.00000000    12.000000       6
+   3  C    -1.31441223   -2.27662865    0.00000000    12.000000       6
+   4  C    -2.62881691    0.00000000    0.00000000    12.000000       6
+   5  C    -1.31441223    2.27662865    0.00000000    12.000000       6
+   6  C     1.31441223    2.27662865    0.00000000    12.000000       6
+   7  H     2.33483222   -4.04403281    0.00000000     1.007825       1
+   8  H    -2.33483222   -4.04403281    0.00000000     1.007825       1
+   9  H    -4.66964554    0.00000000    0.00000000     1.007825       1
+  10  H    -2.33483222    4.04403281    0.00000000     1.007825       1
+  11  H     2.33483222    4.04403281    0.00000000     1.007825       1
+  12  H     4.66964554    0.00000000    0.00000000     1.007825       1
+ 
+ This molecule is an asymmetric top.
+ This molecule is planar.
+ 
+ Rotational constants [cm-1]: 
+      0.191283953231      0.191283474894      0.095641857031
+ 
+ Point group: D2h 
+ Computational point group: D2h 
+ 
+ Cartesian coordinates in standard orientation [bohr]
+   1  C     0.00000000    2.62881691    0.00000000
+   2  C    -2.27662865    1.31441223    0.00000000
+   3  C    -2.27662865   -1.31441223    0.00000000
+   4  C     0.00000000   -2.62881691    0.00000000
+   5  C     2.27662865   -1.31441223    0.00000000
+   6  C     2.27662865    1.31441223    0.00000000
+   7  H    -4.04403281    2.33483222    0.00000000
+   8  H    -4.04403281   -2.33483222    0.00000000
+   9  H     0.00000000   -4.66964554    0.00000000
+  10  H     4.04403281   -2.33483222    0.00000000
+  11  H     4.04403281    2.33483222    0.00000000
+  12  H     0.00000000    4.66964554    0.00000000
+ 
+ Nuclear repulsion energy [au]:        204.069354270801
+ 
+ 
+ Basis set information:
+ 
+ Maximum angular momentum: d
+ Maximum number of contracted Gaussians:    3
+ Maximum number of primitive Gaussians:     7
+ Spherical harmonic GTOs are used.
+ 
+   1  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   2  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   3  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   4  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   5  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   6  C  def2-svp [ 7s 4p 1d | 3s 2p 1d ]
+   7  H  def2-svp [ 4s 1p | 2s 1p ]
+   8  H  def2-svp [ 4s 1p | 2s 1p ]
+   9  H  def2-svp [ 4s 1p | 2s 1p ]
+  10  H  def2-svp [ 4s 1p | 2s 1p ]
+  11  H  def2-svp [ 4s 1p | 2s 1p ]
+  12  H  def2-svp [ 4s 1p | 2s 1p ]
+ 
+ Total number of basis functions:    114
+ 
+ 
+ Initializing the SAD routines for the initial guess...
+ Checking the files required for the initial guess...
+ Density files have not been found for the initial guess.
+ Generating SCFDENSITIES.C.def2-svp.0
+ Generating SCFDENSITIES.H.def2-svp.0
+ CPU time [min]:     0.002                   Wall time [min]:     0.013
+ 
+ Character table for point group D2h:
+ 
+          E  C2z C2y C2x  i  Qxy Qxz Qyz 
+    Ag    1   1   1   1   1   1   1   1
+    B1g   1   1  -1  -1   1   1  -1  -1
+    B2g   1  -1   1  -1   1  -1   1  -1
+    B3g   1  -1  -1   1   1  -1  -1   1
+    Au    1   1   1   1  -1  -1  -1  -1
+    B1u   1   1  -1  -1  -1  -1   1   1
+    B2u   1  -1   1  -1  -1   1  -1   1
+    B3u   1  -1  -1   1  -1   1   1  -1
+ 
+ Number of basis functions per irrep:
+    Ag     24
+    B1g    18
+    B2g     6
+    B3g     9
+    Au      6
+    B1u     9
+    B2u    24
+    B3u    18
+ 
+ 
+ Calculation of overlap integrals...
+ CPU time [min]:     0.002                   Wall time [min]:     0.013
+ 
+ Calculation of the square root of the overlap matrix...
+ Minimum eigenvalue of the overlap matrix: 0.308292E-03
+ CPU time [min]:     0.002                   Wall time [min]:     0.013
+ 
+ Calculation of kinetic energy integrals...
+ CPU time [min]:     0.002                   Wall time [min]:     0.013
+ Calculation of nuclear attraction integrals...
+ CPU time [min]:     0.002                   Wall time [min]:     0.013
+ 
+ Calculation of prescreening integrals...
+ CPU time [min]:     0.002                   Wall time [min]:     0.014
+ 
+ Calculation of two-electron integrals...
+   1% done.
+  14% done.
+  30% done.
+  41% done.
+  57% done.
+  69% done.
+  84% done.
+ 100% done.
+ CPU time [min]:     0.035                   Wall time [min]:     0.046
+
+ ************************ 2023-07-21 08:57:45 *************************
+ Executing scf...
+
+ Allocation of 1024.0 Mbytes of memory...
+ ======================================================================
+ ITERATION STEP   1
+ CPU time [min]:     0.002                   Wall time [min]:     0.002
+ 
+ RMS of [F,P]:                                         0.03804406447490
+ RMS of difference density:                            0.04241973372842
+ Gap [au]:  0.46550831
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   1 IS       -229.9994802469208821 [AU]
+ ======================================================================
+ ITERATION STEP   2
+ CPU time [min]:     0.004                   Wall time [min]:     0.004
+ 
+ RMS of [F,P]:                                         0.00920748959881
+ RMS of difference density:                            0.00881002740774
+ Gap [au]:  0.47928073
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   2 IS       -230.5006556001189324 [AU]
+ ======================================================================
+ ITERATION STEP   3
+ CPU time [min]:     0.006                   Wall time [min]:     0.006
+ 
+ RMS of [F,P]:                                         0.00299714967119
+ RMS of difference density:                            0.00349104192633
+ Gap [au]:  0.47293518
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   3 IS       -230.5321111631265012 [AU]
+ ======================================================================
+ ITERATION STEP   4
+ CPU time [min]:     0.008                   Wall time [min]:     0.008
+ 
+ RMS of [F,P]:                                         0.00105836351938
+ RMS of difference density:                            0.00138028005439
+ Gap [au]:  0.47277505
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   4 IS       -230.5355128061672758 [AU]
+ ======================================================================
+ ITERATION STEP   5
+ CPU time [min]:     0.010                   Wall time [min]:     0.009
+ 
+ RMS of [F,P]:                                         0.00009036099530
+ RMS of difference density:                            0.00015070676881
+ Gap [au]:  0.47250329
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   5 IS       -230.5359830522136235 [AU]
+ ======================================================================
+ ITERATION STEP   6
+ CPU time [min]:     0.012                   Wall time [min]:     0.011
+ 
+ RMS of [F,P]:                                         0.00001123454256
+ RMS of difference density:                            0.00002278502040
+ Gap [au]:  0.47249494
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   6 IS       -230.5359880070160443 [AU]
+ ======================================================================
+ ITERATION STEP   7
+ CPU time [min]:     0.013                   Wall time [min]:     0.013
+ 
+ RMS of [F,P]:                                         0.00000175213924
+ RMS of difference density:                            0.00000635519918
+ Gap [au]:  0.47249299
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   7 IS       -230.5359880647374666 [AU]
+ ======================================================================
+ ITERATION STEP   8
+ CPU time [min]:     0.015                   Wall time [min]:     0.014
+ 
+ RMS of [F,P]:                                         0.00000021404041
+ RMS of difference density:                            0.00000083257726
+ Gap [au]:  0.47249270
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   8 IS       -230.5359880663965555 [AU]
+ ======================================================================
+ ITERATION STEP   9
+ CPU time [min]:     0.017                   Wall time [min]:     0.016
+ 
+ RMS of [F,P]:                                         0.00000002800144
+ RMS of difference density:                            0.00000006721006
+ Gap [au]:  0.47249276
+ ALPHA OCC:   6   3   1   1   0   1   5   4
+ BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***HARTREE-FOCK ENERGY IN STEP   9 IS       -230.5359880664254888 [AU]
+ ======================================================================
+ 
+ SUCCESS...
+ THE SCF ITERATION HAS CONVERGED!
+ 
+                   Ag  B1g B2g B3g Au  B1u B2u B3u 
+ FINAL ALPHA OCC:   6   3   1   1   0   1   5   4
+ FINAL BETA  OCC:   6   3   1   1   0   1   5   4
+ 
+ ***FINAL HARTREE-FOCK ENERGY:       -230.5359880664254888 [AU]
+ 
+ RETURNING FROM SCF ALGORITHM
+ ======================================================================
+ 
+ ************************ 2023-07-21 08:57:46 *************************
+                      Normal termination of mrcc.
+ **********************************************************************

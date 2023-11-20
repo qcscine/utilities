@@ -1,5 +1,5 @@
 __copyright__ = """This code is licensed under the 3-clause BSD license.
-Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.
+Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.
 See LICENSE.txt for details.
 """
 
@@ -53,7 +53,7 @@ def collect_data(pkg_name: str) -> Dict[str, List[str]]:
 setuptools.setup(
     name="scine_utilities",
     version="@PROJECT_VERSION@",
-    author="ETH Zurich, Laboratory of Physical Chemistry, Reiher Group",
+    author="ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group",
     author_email="scine@phys.chem.ethz.ch",
     description="Utilities used in all SCINE modules",
     long_description=long_description,

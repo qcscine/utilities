@@ -1,13 +1,14 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
 #ifndef UTILS_NORMALMODEANALYSIS_H
 #define UTILS_NORMALMODEANALYSIS_H
 
+#include <Utils/DataStructures/PartialHessian.h>
 #include <Utils/Geometry/AtomCollection.h>
 #include <Utils/Typenames.h>
 
@@ -27,6 +28,16 @@ namespace NormalModeAnalysis {
 NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const AtomCollection& atoms);
 
 /**
+ * @brief Calculate the normal modes container of structure with given partial Hessian
+ *
+ * @param hessian   The partial Hessian (non-mass weighted, in cartesian coordinates).
+ * @param atoms     The AtomCollection of the super structure.
+ * @return The normal modes obtained from the mass weighted Hessian back-scaled to Cartesian coordinates summarized in a
+ * container with non-partial Hessian atoms being padded with zeros.
+ */
+NormalModesContainer calculateNormalModes(const PartialHessian& hessian, const AtomCollection& atoms);
+
+/**
  * @brief Calculate the normal modes container of structure with given hessian
  *
  * @param hessian   The hessian (non-mass weighted, in cartesian coordinates).
@@ -38,6 +49,20 @@ NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const At
  * container.
  */
 NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
+                                          const PositionCollection& positions, bool normalize = true);
+
+/**
+ * @brief Calculate the normal modes container of structure with given partial Hessian
+ *
+ * @param hessian   The partial hessian (non-mass weighted, in cartesian coordinates).
+ * @param elements  The elements of the underlying super structure.
+ * @param positions The atom positions of the underlying super structure.
+ * @param normalize If true (default value), returns the normalized MW normal modes.
+ *                  Returns the MW normal modes otherwise, with the norm given by the reduced mass.
+ * @return The normal modes obtained from the mass weighted Hessian back-scaled to Cartesian coordinates summarized in a
+ * container with non-partial Hessian atoms being padded with zeros.
+ */
+NormalModesContainer calculateNormalModes(const PartialHessian& hessian, const ElementTypeCollection& elements,
                                           const PositionCollection& positions, bool normalize = true);
 
 /**
@@ -53,6 +78,18 @@ NormalModesContainer calculateUnnormalizedNormalModes(const HessianMatrix& hessi
                                                       const PositionCollection& positions);
 
 /**
+ * @brief Calculate the unnormalized normal modes of a structure with a given partial Hessian.
+ *
+ * @param hessian   The partial Hessian (non-mass weighted, in Cartesian coordinates).
+ * @param elements  The elements of the underlying super structure.
+ * @param positions The atom positions of the underlying super structure.
+ * @return The normal modes obtained from the mass-weighted Hessian back-scaled to Cartesian coordinates summarized in a
+ * container with non-partial Hessian atoms being padded with zeros.
+ */
+NormalModesContainer calculateUnnormalizedNormalModes(const PartialHessian& hessian, const ElementTypeCollection& elements,
+                                                      const PositionCollection& positions);
+
+/**
  * @brief Calculate the normal modes container of structure with given hessian s.t.
  *        it is orthogonal to a gradient.
  *
@@ -61,6 +98,20 @@ NormalModesContainer calculateUnnormalizedNormalModes(const HessianMatrix& hessi
  * @param positions The atom positions of the underlying structure.
  * @param gradient  The gradient to which the hessian must be orthogonal to.
  * @return The mass weighted normalmodes summerized in a container.
+ */
+NormalModesContainer calculateOrthogonalNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
+                                                    const PositionCollection& positions, const GradientCollection& gradient);
+
+/**
+ * @brief Calculate the normal modes container of structure with given partial Hessian s.t.
+ *        it is orthogonal to a partial gradient.
+ *
+ * @param hessian   The partial Hessian (non-mass weighted, in cartesian coordinates).
+ * @param elements  The elements of the underlying super structure.
+ * @param positions The atom positions of the underlying super structure.
+ * @param gradient  The partial gradient to which the Hessian must be orthogonal to.
+ * @return The mass weighted normalmodes summerized in a container with non-partial Hessian atoms being padded with
+ * zeros.
  */
 NormalModesContainer calculateOrthogonalNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
                                                     const PositionCollection& positions, const GradientCollection& gradient);

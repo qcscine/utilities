@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/ExternalQC/Cp2k/Cp2kCalculator.h"
@@ -52,15 +52,16 @@ Cp2kCalculator::Cp2kCalculator() {
   applySettings();
 }
 
-Cp2kCalculator::Cp2kCalculator(const Cp2kCalculator& rhs) {
+Cp2kCalculator::Cp2kCalculator(const Cp2kCalculator& rhs) : CloneInterface(rhs) {
   this->requiredProperties_ = rhs.requiredProperties_;
   auto valueCollection = dynamic_cast<const Utils::UniversalSettings::ValueCollection&>(rhs.settings());
   this->settings_ =
       std::make_unique<Utils::Settings>(Utils::Settings(valueCollection, rhs.settings().getDescriptorCollection()));
   this->setLog(rhs.getLog());
   applySettings();
-  this->setStructure(rhs.atoms_);
-  this->results() = rhs.results();
+  atoms_ = rhs.atoms_;
+  calculationDirectory_ = NativeFilenames::createRandomDirectoryName(baseWorkingDirectory_);
+  results_ = rhs.results();
   this->cp2kExecutable_ = rhs.cp2kExecutable_;
   this->binaryHasBeenChecked_ = rhs.binaryHasBeenChecked_;
 }
@@ -422,7 +423,8 @@ void Cp2kCalculator::deleteTemporaryFiles() {
       try {
         if (bfs::is_regular_file(it->status())) {
           std::smatch match;
-          if (std::regex_search(it->path().filename().string(), match, filter)) {
+          std::string s = it->path().filename().string();
+          if (std::regex_search(s, match, filter)) {
             bfs::remove(it->path());
           }
         }

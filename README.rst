@@ -44,7 +44,7 @@ commands::
     git submodule update
     mkdir build
     cd build
-    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../inst ..
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../inst -DSCINE_BUILD_PYTHON_BINDINGS=ON ..
     make -j 4
     make UtilsOSDocumentation
     make test

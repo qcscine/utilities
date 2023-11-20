@@ -1,19 +1,20 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "TurbomoleMainOutputParser.h"
+#include "Utils/MSVCCompatibility.h"
 #include <Utils/Bonds/BondOrderCollection.h>
 #include <Utils/ExternalQC/Exceptions.h>
 #include <Utils/IO/Regex.h>
+#include <Utils/Strings.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <boost/process.hpp>
 #include <fstream>
-#include <iostream>
 #include <iterator>
 #include <regex>
 
@@ -57,19 +58,28 @@ int TurbomoleMainOutputParser::getNumberOfNonZeroPointCharges() const {
 
   int numPointCharges = 0;
   while (std::getline(pc, line)) {
-    std::vector<std::string> lineSplitted;
-    boost::split(lineSplitted, line, boost::is_any_of(" "), boost::token_compress_on);
+    std::vector<std::string> lineSplitted = splitOnSpaceWithoutResultingSpace(line);
+    if (lineSplitted.size() != 4) {
+      std::string error = "Point charges file " + files_.pointChargesFile +
+                          " has an incorrect format due to the line:\n" + line + "\nwhich we split into the vector\n[";
+      for (const auto& v : lineSplitted) {
+        error += v + ", ";
+      }
+      error += "]\n";
+      throw std::runtime_error(error);
+    }
     try {
       std::stod(lineSplitted[0]);
       std::stod(lineSplitted[1]);
       std::stod(lineSplitted[2]);
       double charge = std::stod(lineSplitted[3]);
-      if (charge != 0.0) {
+      if (std::fabs(charge) > 1e-6) {
         numPointCharges++;
       }
     }
     catch (std::exception& e) {
-      throw std::runtime_error("Point charges file " + files_.pointChargesFile + " has incorrect format!");
+      throw std::runtime_error("Point charges file " + files_.pointChargesFile + " has an incorrect format!:\n" +
+                               e.what() + "\noccured due to the line:\n" + line);
     }
   }
   pc.close();
@@ -216,8 +226,13 @@ Utils::BondOrderCollection TurbomoleMainOutputParser::getBondOrders() const {
   return bondOrders;
 }
 
-void TurbomoleMainOutputParser::checkForErrors() const {
-  std::regex regex("(convergence criteria cannot be satisfied)");
+void TurbomoleMainOutputParser::checkForErrors(Core::Log& log) const {
+  const std::regex cosmoWarning(R"(WARNING: COSMO detected\s+(\d+)\s?disjunct cavities)");
+  std::smatch cosmoMatch;
+  if (std::regex_search(content_, cosmoMatch, cosmoWarning)) {
+    log.warning << "Multiple (" << cosmoMatch[1] << ") COSMO cavities were constructed " << Core::Log::nl;
+  }
+  const std::regex regex("(convergence criteria cannot be satisfied)");
   std::smatch match;
   if (std::regex_search(content_, match, regex)) {
     throw ScfNotConvergedError("SCF in Turbomole calculation did not converge.");

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -9,7 +9,6 @@
 #include <Utils/Geometry/ElementInfo.h>
 #include <Utils/IO/ChemicalFileFormats/PdbStreamHandler.h>
 #include <gmock/gmock.h>
-#include <iostream>
 #include <sstream>
 #include <vector>
 
@@ -174,7 +173,7 @@ TEST_F(PdbStreamHandlerTest, Selfconsistent) {
   for (const auto& PDBInput : {tyrosine, structureWithOverlay}) {
     std::stringstream in(PDBInput), out;
     auto structure = handler.read(in);
-    handler.write(out, structure[0], "Test PDB file");
+    handler.write(out, structure[0], BondOrderCollection(), "Test PDB file");
     auto secondTime = handler.read(out);
     // Make sure that Hydrogens are parsed
     ASSERT_THAT(structure[0].size(), Eq(secondTime[0].size()));
@@ -220,7 +219,7 @@ TEST_F(PdbStreamHandlerTest, CommentIsSetCorrectly) {
   std::stringstream in(tyrosine), out;
   auto structure = handler.read(in);
   // Pick same comment as in input
-  PdbStreamHandler::write(out, structure[0], "comment");
+  PdbStreamHandler::write(out, structure[0], BondOrderCollection(), "comment");
   std::string line;
   std::istringstream f(out.str());
   std::getline(f, line);

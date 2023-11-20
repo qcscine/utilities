@@ -1,7 +1,7 @@
 /**
  * @file NumericalHessianCalculator.h
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -26,12 +26,12 @@ class Results;
  * This class calculates the Hessian and, optionally, the dipole gradient (semi-)numerically.
  * Useful if analytic second derivatives are not available.
  *
- * calculateFromEnergyDifferences uses the following, where D = delta / 2:
- * d^2E/dx^2 = 1 / delta^2 * (E(x-2D) - 2 * E(x) + E(x+2D))
- * d^2E/dxdy = 1 / delta^2 * (E(x+D,y+D) - E(x+D,y-D) - E(x-D,y+D) + E(x-D,y-D))
+ * calculateFromEnergyDifferences uses the following, where delta is the step size:
+ * d^2E/dx^2 = 1 / delta^2 * (E(x-delta) - 2 * E(x) + E(x+delta))
+ * d^2E/dxdy = 1 / 4*delta^2 * (E(x+delta,y+delta) - E(x+delta,y-delta) - E(x-delta,y+delta) + E(x-delta,y-delta))
  *
- * calculateFromGradientDifferences uses the following, where D = delta / 2:
- * d^2E/dxdy = 1 / (2*delta) * (g_j(i+D,j) - g_j(i-D,j) + g_i(i,j+D) - g_i(i,j-D))
+ * calculateFromGradientDifferences uses the following, where delta is the step size:
+ * d^2E/dxdy = 1 / (2*delta) * (g_j(i+delta,j) - g_j(i-delta,j))
  *
  * The second formulation is more stable numerically and is used as default.
  *
@@ -50,6 +50,7 @@ class NumericalHessianCalculator {
    * @return A Results class with an hessian matrix and, if needed, a dipole gradient.
    */
   Results calculate(double delta = defaultDelta);
+
   /**
    * @brief Calculates the hessian matrix and, if needed, the dipole gradient from a subset of atoms.
    * @param indices A vector containing the indices of the atom from which to calculate the Hessian and dipole Gradient.

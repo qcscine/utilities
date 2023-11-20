@@ -1,11 +1,12 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/GeometricDerivatives/NumericalHessianCalculator.h"
 #include "Utils/GeometryOptimization/IrcOptimizer.h"
+#include "Utils/MSVCCompatibility.h"
 #include <Core/Interfaces/Calculator.h>
 #include <Utils/CalculatorBasics.h>
 #include <Utils/Math/AutomaticDifferentiation/AutomaticDifferentiationHelpers.h>
@@ -118,6 +119,9 @@ class HessianMockCalculator : public CloneInterface<HessianMockCalculator, Core:
   void loadState(std::shared_ptr<Core::State> state) final {
     auto mockstate = std::dynamic_pointer_cast<MockState>(state);
   }
+  bool allowsPythonGILRelease() const override {
+    return true;
+  };
 
  private:
   AtomCollection structure_;

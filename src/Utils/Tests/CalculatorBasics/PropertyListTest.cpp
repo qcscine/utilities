@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -21,14 +21,32 @@ class APropertyListTest : public Test {
 
 TEST_F(APropertyListTest, CanAddEnergy) {
   aPropertyList.addProperty(Property::Energy);
+  ASSERT_TRUE(aPropertyList.containsSubSet(Property::Energy));
 }
 
 TEST_F(APropertyListTest, CanAddGradient) {
   aPropertyList.addProperty(Property::Gradients);
+  ASSERT_TRUE(aPropertyList.containsSubSet(Property::Gradients));
 }
 
 TEST_F(APropertyListTest, CanAddHessian) {
   aPropertyList.addProperty(Property::Hessian);
+}
+
+TEST_F(APropertyListTest, CanAddPartialHessian) {
+  aPropertyList.addProperty(Property::PartialHessian);
+}
+
+TEST_F(APropertyListTest, CanAddMultipleProperties) {
+  auto a = PropertyList(Property::Energy);
+  a.addProperty(Property::Gradients);
+  a.addProperty(Property::Hessian);
+  auto b = PropertyList();
+  b.addProperties(a);
+  ASSERT_TRUE(a.containsSubSet(Property::Energy) && a.containsSubSet(Property::Gradients) &&
+              a.containsSubSet(Property::Hessian));
+  ASSERT_TRUE(b.containsSubSet(Property::Energy) && b.containsSubSet(Property::Gradients) &&
+              b.containsSubSet(Property::Hessian));
 }
 
 TEST_F(APropertyListTest, CanAddMolecularDipole) {
@@ -45,13 +63,21 @@ TEST_F(APropertyListTest, CanAddElectronMatrices) {
 
 TEST_F(APropertyListTest, CanAddEverything) {
   aPropertyList.addProperty(
-      Property::Energy | Property::Gradients | Property::Hessian | Property::AtomicHessians | Property::Dipole |
-      Property::DipoleGradient | Property::DipoleMatrixAO | Property::DipoleMatrixMO | Property::DensityMatrix |
-      Property::OneElectronMatrix | Property::TwoElectronMatrix | Property::OverlapMatrix |
-      Property::CoefficientMatrix | Property::OrbitalEnergies | Property::ElectronicOccupation |
-      Property::Thermochemistry | Property::ExcitedStates | Property::AOtoAtomMapping | Property::AtomicCharges |
-      Property::BondOrderMatrix | Property::Description | Property::SuccessfulCalculation | Property::ProgramName |
-      Property::PointChargesGradients | Property::AtomicGtos | Property::GridOccupation | Property::StressTensor);
+      Property::Energy | Property::Gradients | Property::Hessian | Property::PartialHessian | Property::AtomicHessians |
+      Property::Dipole | Property::DipoleGradient | Property::DipoleMatrixAO | Property::DipoleMatrixMO |
+      Property::DensityMatrix | Property::OneElectronMatrix | Property::TwoElectronMatrix | Property::OverlapMatrix |
+      Property::CoefficientMatrix | Property::OrbitalEnergies | Property::ElectronicOccupation | Property::Thermochemistry |
+      Property::ExcitedStates | Property::AOtoAtomMapping | Property::AtomicCharges | Property::BondOrderMatrix |
+      Property::Description | Property::SuccessfulCalculation | Property::ProgramName | Property::PointChargesGradients |
+      Property::MoessbauerParameter | Property::AtomicGtos | Property::GridOccupation | Property::StressTensor);
+}
+
+TEST_F(APropertyListTest, CanRemoveAProperty) {
+  PropertyList newPropertyList;
+  newPropertyList.addProperty(Property::Energy | Property::Hessian);
+  newPropertyList.removeProperty(Property::Hessian);
+  ASSERT_FALSE(newPropertyList.containsSubSet(Utils::Property::Hessian));
+  ASSERT_TRUE(newPropertyList.containsSubSet(Utils::Property::Energy));
 }
 
 } // namespace Tests

@@ -31,3 +31,4 @@ Further Contributors
   (https://github.com/qcscine/utilities/pull/1)
 - Sebastian Ehlert (`@awvwgk <https://github.com/awvwgk>`_), University of Bonn
   (https://github.com/qcscine/utilities/issues/4)
+- Juuso Lehtivarjo, NMR Solutions Ltd.

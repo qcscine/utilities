@@ -1,12 +1,13 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_EXTERNALQC_TURBOMOLEMAINOUTPUTPARSER_H
 #define UTILS_EXTERNALQC_TURBOMOLEMAINOUTPUTPARSER_H
 
+#include <Core/Log.h>
 #include <Utils/ExternalQC/Turbomole/TurbomoleFiles.h>
 #include <Utils/Typenames.h>
 #include <string>
@@ -32,7 +33,7 @@ class TurbomoleMainOutputParser {
    * @brief Parse the Turbomole output for errors, it is expected to do nothing if no error is present
    * @throws OutputFileParsingError if error is present
    */
-  void checkForErrors() const;
+  void checkForErrors(Core::Log& log) const;
   /**
    * @brief Parse the energy from the Turbomole output.
    * @return The energy as a double.

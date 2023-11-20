@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "GaussianCalculator.h"
@@ -56,8 +56,9 @@ GaussianCalculator::GaussianCalculator(const GaussianCalculator& rhs) {
       std::make_unique<Utils::Settings>(Utils::Settings(valueCollection, rhs.settings().getDescriptorCollection()));
   this->setLog(rhs.getLog());
   applySettings();
-  this->setStructure(rhs.atoms_);
-  this->results() = rhs.results();
+  atoms_ = rhs.atoms_;
+  calculationDirectory_ = NativeFilenames::createRandomDirectoryName(baseWorkingDirectory_);
+  results_ = rhs.results();
   this->gaussianExecutable_ = rhs.gaussianExecutable_;
   this->gaussianDirectory_ = rhs.gaussianDirectory_;
   this->binaryHasBeenChecked_ = rhs.binaryHasBeenChecked_;

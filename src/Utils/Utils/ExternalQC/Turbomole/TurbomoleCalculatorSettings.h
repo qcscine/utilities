@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_TURBOMOLECALCULATORSETTINGS_H
@@ -179,9 +179,9 @@ inline void TurbomoleCalculatorSettings::addScfDampingValue(UniversalSettings::D
 
 inline void TurbomoleCalculatorSettings::addScfOrbitalShift(UniversalSettings::DescriptorCollection& settings) {
   Utils::UniversalSettings::DoubleDescriptor scfOrbitalShift(
-      "Shift closed shells to lower energies to aid convergence.");
+      "Shift virtual orbitals to higher energies to aid convergence.");
   // internal default
-  scfOrbitalShift.setDefaultValue(0.4);
+  scfOrbitalShift.setDefaultValue(0.1);
   settings.push_back(SettingsNames::scfOrbitalShift, std::move(scfOrbitalShift));
 }
 

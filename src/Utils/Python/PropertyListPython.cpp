@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/CalculatorBasics/PropertyList.h>
@@ -19,6 +19,7 @@ void init_property_list(pybind11::module& m) {
   property.value("Energy", Property::Energy);
   property.value("Gradients", Property::Gradients);
   property.value("Hessian", Property::Hessian);
+  property.value("PartialHessian", Property::PartialHessian);
   property.value("AtomicHessians", Property::AtomicHessians);
   property.value("Dipole", Property::Dipole);
   property.value("DipoleGradient", Property::DipoleGradient);
@@ -32,6 +33,7 @@ void init_property_list(pybind11::module& m) {
   property.value("OrbitalEnergies", Property::OrbitalEnergies);
   property.value("BondOrderMatrix", Property::BondOrderMatrix);
   property.value("Thermochemistry", Property::Thermochemistry);
+  property.value("MoessbauerParameter", Property::MoessbauerParameter);
   property.value("ExcitedStates", Property::ExcitedStates);
   property.value("AtomicCharges", Property::AtomicCharges);
   property.value("AtomicGtos", Property::AtomicGtos);
@@ -39,14 +41,16 @@ void init_property_list(pybind11::module& m) {
   property.value("PointChargesGradients", Property::PointChargesGradients);
   property.value("GridOccupation", Property::GridOccupation);
   property.value("StressTensor", Property::StressTensor);
+  property.value("PartialEnergies", Property::PartialEnergies);
   property.value("Description", Property::Description);
   property.value("SuccessfulCalculation", Property::SuccessfulCalculation);
   property.value("ProgramName", Property::ProgramName);
 
   pybind11::class_<PropertyList> property_list(m, "PropertyList");
   property_list.def(pybind11::init<>(), "Empty-initialize");
-  property_list.def(pybind11::init<Property>(), "Default initalize from a property");
+  property_list.def(pybind11::init<Property>(), "Default initialize from a property");
   property_list.def("add_property", &PropertyList::addProperty, "Add a property to the list");
+  property_list.def("remove_property", &PropertyList::removeProperty, "Remove a property from the list");
   property_list.def(
       "contains_subset", &PropertyList::containsSubSet,
       "Check whether this list of properties encompasses all properties set the supplied list of properties");

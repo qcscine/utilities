@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include <Utils/Bonds/BondDetector.h>
@@ -302,7 +302,7 @@ TEST_F(ATurbomoleTest, TurbomoleCalculationIsPerformedCorrectlyViaScine) {
     ASSERT_FALSE(boost::filesystem::exists(outputFiles.dscfFile));
 
     // Assert energy
-    ASSERT_THAT(results.get<Property::Energy>(), DoubleNear(-40.41523066560, 1e-8));
+    ASSERT_THAT(results.get<Property::Energy>(), DoubleNear(-40.41523066560, 1e-7));
 
     // Check whether the calculation directory can be deleted.
     bool isDir = FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
@@ -780,7 +780,7 @@ TEST_F(ATurbomoleTest, ImprovedScfConvergenceSettingsAreAppliedCorrectly) {
 
     std::regex scfIterRegex(R"((scfiterlimit)+ +([0-9]+))");
     std::regex scfDamp(R"(scfdamp   start=0.500  step=0.05  min=0.10)");
-    std::regex scfOrbitalShift(R"((scforbitalshift closedshell=)++([-\.0-9]+))");
+    std::regex scfOrbitalShift(R"((scforbitalshift automatic=)++([-\.0-9]+))");
     std::regex convThreshold(R"((scfconv)+ +([0-9]+))");
     std::regex gridSizeRegex(R"((gridsize)+ +([7]+))");
 
@@ -999,7 +999,7 @@ TEST_F(ATurbomoleTest, ExcitedStatesCalculationWorks) {
     ExternalQC::TurbomoleMainOutputParser parser(outputFiles);
 
     double energy = parser.getExcitedStateEnergy(1);
-    ASSERT_THAT(energy, DoubleNear(-40.03033677012758, 1e-8));
+    ASSERT_THAT(energy, DoubleNear(-40.03033677012758, 1e-7));
 
     GradientCollection grad = parser.getGradients();
 
@@ -1009,7 +1009,7 @@ TEST_F(ATurbomoleTest, ExcitedStatesCalculationWorks) {
 
     for (int i = 0; i < 3; ++i) {
       for (int j = 0; j < 3; ++j) {
-        ASSERT_THAT(grad(i, j), DoubleNear(refGrad(i, j), 1e-6));
+        ASSERT_THAT(grad(i, j), DoubleNear(refGrad(i, j), 1e-5));
       }
     }
 
@@ -1046,7 +1046,7 @@ TEST_F(ATurbomoleTest, NumforceCallWorks) {
     const auto& hessian = results.get<Property::Hessian>();
     auto evals = hessian.eigenvalues();
     // Check if lowest eval is equal to the reference eigenvalue
-    double ref_eval_0 = -0.05988705;
+    double ref_eval_0 = -0.06076541616112619;
     ASSERT_TRUE(abs(evals[0].real() - ref_eval_0) < 1e-6);
 
     boost::filesystem::remove_all(calculator.getCalculationDirectory());

@@ -1,10 +1,11 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #include "Utils/GeometricDerivatives/NormalModesContainer.h"
+#include "Utils/MSVCCompatibility.h"
 #include <cmath>
 
 namespace Scine {

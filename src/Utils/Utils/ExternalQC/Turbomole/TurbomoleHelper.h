@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -65,6 +65,7 @@ class TurbomoleHelper {
                                                                            {"camb3lyp", "cam-b3lyp"},
                                                                            {"bvwn", "b-vwn"},
                                                                            {"bp", "b-p"},
+                                                                           {"bp86", "b-p"},
                                                                            {"bhlyp", "bh-lyp"},
                                                                            {"m06l", "m06-l"},
                                                                            {"b97d", "b97-d"},

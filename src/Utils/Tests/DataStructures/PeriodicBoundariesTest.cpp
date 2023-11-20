@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -42,7 +42,6 @@ class APeriodicBoundariesTest : public Test {
   Eigen::Vector3d angles2;
 
  private:
-  // void TestBody() override {
   void SetUp() override {
     randomPositions1 = Eigen::MatrixX3d::Random(50, 3);
     randomPositions2 = Eigen::MatrixX3d::Random(50, 3);

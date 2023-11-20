@@ -1,5 +1,5 @@
 __copyright__ = """This code is licensed under the 3-clause BSD license.
-Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.
+Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.
 See LICENSE.txt for details.
 """
 
@@ -27,7 +27,7 @@ sys.modules[__name__] = module
 spec.loader.exec_module(module)
 
 # Step 2: Load the accompanying C++ module
-manager = module.core.ModuleManager()
+manager = module.core.ModuleManager.get_instance()
 # scine_utilities provides both Gaussian and Orca, maybe more later. Testing
 # for one should be enough to ensure the the module is present.
 if not manager.module_loaded('Gaussian'):

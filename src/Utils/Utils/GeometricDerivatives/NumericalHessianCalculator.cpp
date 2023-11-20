@@ -1,7 +1,7 @@
 /**
  * @file NumericalHessianCalculator.cpp
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -89,15 +89,14 @@ double NumericalHessianCalculator::hessianElementSameFromEnergy(int i, const Pos
 double NumericalHessianCalculator::hessianElementDifferentFromEnergy(int i, int j, const PositionCollection& referencePositions,
                                                                      double delta) {
   auto modifiedPositions = referencePositions;
-  auto D = delta / 2;
 
   auto atomI = i / 3;
   auto compI = i % 3;
   auto atomJ = j / 3;
   auto compJ = j % 3;
 
-  modifiedPositions.row(atomI)[compI] = referencePositions.row(atomI)(compI) + D;
-  modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) + D;
+  modifiedPositions.row(atomI)[compI] = referencePositions.row(atomI)(compI) + delta;
+  modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) + delta;
   calculator_.modifyPositions(modifiedPositions);
   auto r = calculator_.calculate("");
   if (!r.get<Property::SuccessfulCalculation>()) {
@@ -105,8 +104,8 @@ double NumericalHessianCalculator::hessianElementDifferentFromEnergy(int i, int 
   }
   auto Epp = r.get<Property::Energy>();
 
-  modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - D;
-  modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) + D;
+  modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - delta;
+  modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) + delta;
   calculator_.modifyPositions(modifiedPositions);
   r = calculator_.calculate("");
   if (!r.get<Property::SuccessfulCalculation>()) {
@@ -114,8 +113,8 @@ double NumericalHessianCalculator::hessianElementDifferentFromEnergy(int i, int 
   }
   auto Emp = r.get<Property::Energy>();
 
-  modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) + D;
-  modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) - D;
+  modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) + delta;
+  modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) - delta;
   calculator_.modifyPositions(modifiedPositions);
   r = calculator_.calculate("");
   if (!r.get<Property::SuccessfulCalculation>()) {
@@ -123,8 +122,8 @@ double NumericalHessianCalculator::hessianElementDifferentFromEnergy(int i, int 
   }
   auto Epm = r.get<Property::Energy>();
 
-  modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - D;
-  modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) - D;
+  modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - delta;
+  modifiedPositions.row(atomJ)(compJ) = referencePositions.row(atomJ)(compJ) - delta;
   calculator_.modifyPositions(modifiedPositions);
   r = calculator_.calculate("");
   if (!r.get<Property::SuccessfulCalculation>()) {
@@ -132,7 +131,7 @@ double NumericalHessianCalculator::hessianElementDifferentFromEnergy(int i, int 
   }
   auto Emm = r.get<Property::Energy>();
 
-  return (Epp - Epm - Emp + Emm) / (delta * delta);
+  return (Epp - Epm - Emp + Emm) / (4 * delta * delta);
 }
 
 Results NumericalHessianCalculator::calculateFromGradientDifferences(double delta) {
@@ -192,12 +191,11 @@ Eigen::VectorXd NumericalHessianCalculator::addGradientContribution(DipoleGradie
                                                                     std::shared_ptr<Core::State> state) const {
   calculator.loadState(std::move(state));
   auto modifiedPositions = referencePositions;
-  auto D = delta / 2;
 
   auto atomI = i / 3;
   auto compI = i % 3;
 
-  modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) + D;
+  modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) + delta;
   calculator.modifyPositions(modifiedPositions);
   const auto& rPlus = calculator.calculate("");
   if (!rPlus.get<Property::SuccessfulCalculation>()) {
@@ -208,7 +206,7 @@ Eigen::VectorXd NumericalHessianCalculator::addGradientContribution(DipoleGradie
     dipoleDiff.row(i) = rPlus.get<Property::Dipole>();
   }
 
-  modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - D;
+  modifiedPositions.row(atomI)(compI) = referencePositions.row(atomI)(compI) - delta;
   calculator.modifyPositions(std::move(modifiedPositions));
   const auto& rMinus = calculator.calculate("");
   gradDifference -= rMinus.get<Property::Gradients>();
@@ -217,12 +215,12 @@ Eigen::VectorXd NumericalHessianCalculator::addGradientContribution(DipoleGradie
   }
   if (dipoleGradient_) { // minus delta
     dipoleDiff.row(i) -= rMinus.get<Property::Dipole>();
-    dipoleDiff.row(i) /= delta;
+    dipoleDiff.row(i) /= (2 * delta);
   }
 
   // Linearize the GradientCollection to be ready to be summed up in the hessian
   Eigen::RowVectorXd gradientDiff = Eigen::Map<Eigen::RowVectorXd>(gradDifference.data(), gradDifference.size());
-  return gradientDiff / delta;
+  return gradientDiff / (2 * delta);
 }
 
 Results NumericalHessianCalculator::calculateFromGradientDifferences(double delta, const std::vector<int>& atomsToUpdate) {

@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 /* Includes */
@@ -38,9 +38,11 @@ void init_molecular_dynamics(pybind11::module& m);
 void init_molecular_orbitals(pybind11::module& m);
 void init_molecular_surface(pybind11::module& m);
 void init_molecular_trajectory(pybind11::module& m);
+void init_moessbauer_container(pybind11::module& m);
 void init_normal_modes(pybind11::module& m);
 void init_opt_settings_names(pybind11::module& m);
 void init_orca_parser(pybind11::module& m);
+void init_partial_hessian(pybind11::module& m);
 void init_periodic_boundaries(pybind11::module& m);
 void init_periodic_system(pybind11::module& m);
 void init_property_list(pybind11::module& m);
@@ -78,6 +80,7 @@ PYBIND11_MODULE(scine_utilities, m) {
   init_molecular_trajectory(m);
   init_periodic_boundaries(m);
   init_periodic_system(m);
+  init_partial_hessian(m);
   init_normal_modes(m);
   init_geometry(m);
   init_gtf(m);
@@ -85,6 +88,7 @@ PYBIND11_MODULE(scine_utilities, m) {
   init_atomic_gtos(m);
   init_molecular_orbitals(m);
   init_bond_detector(m);
+  init_moessbauer_container(m);
   init_property_list(m);
   init_quaternion_fit(m);
   init_typenames(m);

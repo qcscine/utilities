@@ -1,14 +1,13 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
 #include "Ediis.h"
 #include "EdiisCoefficientOptimizer.h"
 #include <Eigen/QR>
-#include <iostream>
 
 namespace Scine {
 namespace Utils {

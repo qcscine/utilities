@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -170,7 +170,7 @@ class GeometryOptimizer : public GeometryOptimizerBase {
   explicit GeometryOptimizer(Core::Calculator& calculator) : _calculator(calculator) {
     // WARNING: check for null reference if accessing calculator here, because ReaDuct can plug in a nullptr.
     /* set private members according to template */
-    // Performs better with Cartesian coordinates with current internal coordinates
+    // Performs better with Cartesian coordinates than with current internal coordinates
     if (std::is_same<OptimizerType, Dimer>::value) {
       this->coordinateSystem = CoordinateSystem::CartesianWithoutRotTrans;
     }
@@ -200,7 +200,9 @@ class GeometryOptimizer : public GeometryOptimizerBase {
     else {
       _calculator.setStructure(atoms);
     }
-    _calculator.setRequiredProperties(_requiredProperties);
+    auto originalProperties = _calculator.getRequiredProperties();
+    originalProperties.addProperties(_requiredProperties);
+    _calculator.setRequiredProperties(originalProperties);
     // Transformation into internal coordinates
     if (this->coordinateSystem == CoordinateSystem::Internal) {
       if (!_internalAvailable) {
@@ -356,7 +358,18 @@ class GeometryOptimizer : public GeometryOptimizerBase {
           coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
         }
         _calculator.modifyPositions(coordinates);
-        _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients);
+        auto originalProperties = _calculator.getRequiredProperties();
+        if (originalProperties.containsSubSet(Property::Hessian)) {
+          originalProperties.removeProperty(Property::Hessian);
+        }
+        if (originalProperties.containsSubSet(Property::PartialHessian)) {
+          originalProperties.removeProperty(Property::PartialHessian);
+        }
+        if (originalProperties.containsSubSet(Property::Thermochemistry)) {
+          originalProperties.removeProperty(Property::Thermochemistry);
+        }
+        originalProperties.addProperties(_requiredProperties);
+        _calculator.setRequiredProperties(originalProperties);
         _atoms.get().setPositions(coordinates);
         Results results =
             CalculationRoutines::calculateWithCatch(_calculator, *_log, "Aborting optimization due to failed calculation");
@@ -390,7 +403,10 @@ class GeometryOptimizer : public GeometryOptimizerBase {
           _calculator.modifyPositions(coordinates);
           _atoms.get().setPositions(coordinates);
 
-          _calculator.setRequiredProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
+          auto originalProperties = _calculator.getRequiredProperties();
+          originalProperties.addProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
+          _calculator.setRequiredProperties(originalProperties);
+
           Results results = CalculationRoutines::calculateWithCatch(_calculator, *_log,
                                                                     "Aborting optimization due to failed calculation");
           value = results.get<Property::Energy>();

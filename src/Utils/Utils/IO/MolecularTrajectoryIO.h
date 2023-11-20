@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 #ifndef UTILS_MOLECULARTRAJECTORYIO_H
@@ -24,7 +24,7 @@ class MolecularTrajectoryIO {
   /**
    * @brief Enum class for possible input and output formats.
    */
-  enum class format { xyz, binary };
+  enum class format { xyz, binary, pdb };
   /**
    * @brief Write a molecular trajectory to a file.
    *
@@ -73,6 +73,7 @@ class MolecularTrajectoryIO {
   static void writeXYZ(std::ostream& out, const MolecularTrajectory& m);
   static MolecularTrajectory readBinary(std::istream& in);
   static MolecularTrajectory readXYZ(std::istream& in);
+  static MolecularTrajectory readPdb(std::istream& in);
 };
 
 } /* namespace Utils */

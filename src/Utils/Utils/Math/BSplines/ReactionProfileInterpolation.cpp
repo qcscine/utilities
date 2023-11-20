@@ -1,7 +1,7 @@
 /**
  * @file
  * @copyright This code is licensed under the 3-clause BSD license.\n
- *            Copyright ETH Zurich, Laboratory of Physical Chemistry, Reiher Group.\n
+ *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
 
@@ -187,6 +187,7 @@ TrajectorySpline ReactionProfileInterpolation::spline(unsigned int nInterpolatio
   TrajectorySpline fullSpline(this->_start->getElements(), distances, this->_data);
 
   // Evenly interpolate start -> end
+  int compressedTSPosition = -1;
   Eigen::VectorXd compressedKnots(nInterpolationPoints);
   compressedKnots[0] = 0.0;
   compressedKnots[nInterpolationPoints - 1] = 1.0;
@@ -198,6 +199,7 @@ TrajectorySpline ReactionProfileInterpolation::spline(unsigned int nInterpolatio
     for (unsigned int i = 0; i < nInterpolationPoints - 2; i++) {
       if (compressedKnots[i + off] + interval >= tsPosition && tsPosition >= compressedKnots[i + off]) {
         compressedKnots[i + 1] = tsPosition;
+        compressedTSPosition = i + 1;
         off = 1;
         compressedKnots[i + 1 + off] = compressedKnots[i] + interval;
       }
@@ -217,13 +219,18 @@ TrajectorySpline ReactionProfileInterpolation::spline(unsigned int nInterpolatio
   // Interpolate compressed data from full spline
   Eigen::MatrixXd compressedData(nInterpolationPoints, this->_data.cols());
   for (unsigned int i = 0; i < nInterpolationPoints; i++) {
-    auto interpolated = fullSpline.evaluate(compressedKnots[i], degree);
-    auto positions = std::get<1>(interpolated).getPositions();
-    Eigen::VectorXd dataVector(this->_data.cols());
-    dataVector[0] = std::get<0>(interpolated);
-    Eigen::VectorXd posVector = Eigen::Map<Eigen::VectorXd>(positions.data(), this->_data.cols() - 1);
-    dataVector.segment(1, this->_data.cols() - 1) = posVector;
-    compressedData.row(i) = dataVector;
+    if (int(i) == compressedTSPosition) {
+      compressedData.row(i) = this->_data.row((*_tsIdx));
+    }
+    else {
+      Eigen::VectorXd dataVector(this->_data.cols());
+      auto interpolated = fullSpline.evaluate(compressedKnots[i], degree);
+      auto positions = std::get<1>(interpolated).getPositions();
+      dataVector[0] = std::get<0>(interpolated);
+      Eigen::VectorXd posVector = Eigen::Map<Eigen::VectorXd>(positions.data(), this->_data.cols() - 1);
+      dataVector.segment(1, this->_data.cols() - 1) = posVector;
+      compressedData.row(i) = dataVector;
+    }
   }
 
   return TrajectorySpline(this->_start->getElements(), compressedKnots, compressedData,
