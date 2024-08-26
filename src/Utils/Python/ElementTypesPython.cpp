@@ -511,4 +511,11 @@ void init_element_type(pybind11::module& m) {
         throw std::runtime_error("No such element type");
       },
       pybind11::prepend());
+  element_type.def(pybind11::pickle(
+      [](const ElementType& e) { // __getstate__
+        return ElementInfo::symbol(e);
+      },
+      [](std::string symbol) { // __setstate__
+        return ElementInfo::elementTypeForSymbol(symbol);
+      }));
 }

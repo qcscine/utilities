@@ -130,6 +130,11 @@ void MolStreamHandler::write(std::ostream& os, const AtomCollection& atoms,
 
   // Atom block: one line per atom
   std::vector<std::pair<unsigned, unsigned>> isotopes;
+  if (atoms.getPositions().array().abs().maxCoeff() * Constants::angstrom_per_bohr > 1e+5) {
+    throw std::runtime_error("MOL files cannot encode structures with coordinates larger than 1e+5 accurately.\n"
+                             "Please use a different file format or ensure that the absolute coordinate values\n"
+                             "are small.");
+  }
   for (unsigned i = 0; i < N; ++i) {
     ElementType element = atoms.getElement(i);
     os << std::setprecision(4) << std::fixed << std::setw(10)
@@ -163,6 +168,10 @@ void MolStreamHandler::write(std::ostream& os, const AtomCollection& atoms,
 
   // Bond block: one line per bond
   if (bondOrdersOption) {
+    if (N > 999) {
+      throw std::runtime_error("Unable to write bond orders in a MOL file for systems with more than 999 atoms.\n"
+                               "Please use a different file format.");
+    }
     const auto& bondOrders = bondOrdersOption.value();
     for (unsigned i = 0; i < N - 1; ++i) {
       for (unsigned j = i + 1; j < N; ++j) {

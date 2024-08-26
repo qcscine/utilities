@@ -62,6 +62,9 @@ std::string TurbomoleInputFileCreator::getMultipleEHTParameterCorrection(const A
 }
 
 void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, const AtomCollection& atoms) {
+  if (atoms.size() == 0) {
+    throw std::runtime_error("The current system does not have any atoms");
+  }
   // Check this before because define yields very strange output in case that charge and multiplicity don't match.
   CalculationRoutines::checkValidityOfChargeAndMultiplicity(settings.getInt(Utils::SettingsNames::molecularCharge),
                                                             settings.getInt(Utils::SettingsNames::spinMultiplicity), atoms);
@@ -73,8 +76,10 @@ void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, c
   out << "\n"
       << "\n"
       << "a coord"
-      << "\n"
-      << "*\nno\n";
+      << "\n\n*\n";
+  if (atoms.size() > 1) {
+    out << "no\n";
+  }
 
   auto basisSet = settings.getString(Utils::SettingsNames::basisSet);
   TurbomoleHelper helper(calculationDirectory_, turbomoleExecutableBase_);
@@ -84,32 +89,42 @@ void TurbomoleInputFileCreator::prepareDefineSession(const Settings& settings, c
   out << settings.getInt(Scine::Utils::SettingsNames::molecularCharge) << "\n";
 
   auto spinMode = SpinModeInterpreter::getSpinModeFromString(settings.getString(Utils::SettingsNames::spinMode));
-  auto multiplicity = settings.getInt(Scine::Utils::SettingsNames::spinMultiplicity);
-  // If spin mode is not set or set to "restricted", let turbomole handle spin mode automatically (default is RHF)
-  if (spinMode == SpinMode::Any) {
-    out << "\n\n\n";
-  }
-  else if (spinMode == SpinMode::Restricted) {
-    if (multiplicity != 1) {
-      throw std::logic_error("Specified restricted spin for multiplicity larger than 1.");
-    }
-    out << "\n\n\n";
-  }
-  else if (spinMode == SpinMode::Unrestricted) {
-    int numElectrons = multiplicity - 1;
-    if (numElectrons == 0) {
-      out << "no\ns\n*\n\n";
-    }
-    else {
-      out << "no\nu " << numElectrons << "\n*\n\n";
-    }
-  }
-  else if (spinMode == SpinMode::RestrictedOpenShell) {
-    throw std::logic_error("Spin mode not implemented in Turbomole!");
+  if (atoms.size() == 1) {
+    // Turbomole is inconsistent with single atom cases
+    // for some cases (mainly negative ions) it is not easily possible
+    // to enforce certain multiplicities
+    // therefore, we trust Turbomole here and spam \n
+    // overshooting is no problem for the next menu
+    out << "\n\n\n\n\n\n";
   }
   else {
-    throw std::logic_error("Specified unknown spin mode " + SpinModeInterpreter::getStringFromSpinMode(spinMode) +
-                           " in settings."); // this should have been handled by settings
+    auto multiplicity = settings.getInt(Scine::Utils::SettingsNames::spinMultiplicity);
+    // If spin mode is not set or set to "restricted", let Turbomole handle spin mode automatically (default is RHF)
+    if (spinMode == SpinMode::Any) {
+      out << "\n\n\n";
+    }
+    else if (spinMode == SpinMode::Restricted) {
+      if (multiplicity != 1) {
+        throw std::logic_error("Specified restricted spin for multiplicity larger than 1.");
+      }
+      out << "\n\n\n";
+    }
+    else if (spinMode == SpinMode::Unrestricted) {
+      int numElectrons = multiplicity - 1;
+      if (numElectrons == 0) {
+        out << "no\ns\n*\n\n";
+      }
+      else {
+        out << "no\nu " << numElectrons << "\n*\n\n";
+      }
+    }
+    else if (spinMode == SpinMode::RestrictedOpenShell) {
+      throw std::logic_error("Spin mode not implemented in Turbomole!");
+    }
+    else {
+      throw std::logic_error("Specified unknown spin mode " + SpinModeInterpreter::getStringFromSpinMode(spinMode) +
+                             " in settings."); // this should have been handled by settings
+    }
   }
   bool enableRi = settings.getBool(SettingsNames::enableRi);
   if (enableRi) {
@@ -289,6 +304,7 @@ void TurbomoleInputFileCreator::addSolvation(const Settings& settings) {
   std::for_each(solvent.begin(), solvent.end(), [](char& c) { c = ::tolower(c); });
 
   std::ofstream out;
+  out.imbue(std::locale("C"));
   out.open(files_.solvationInputFile);
 
   double epsilon = std::numeric_limits<double>::infinity();

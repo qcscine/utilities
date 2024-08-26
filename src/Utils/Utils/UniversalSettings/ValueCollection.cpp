@@ -200,6 +200,28 @@ void ValueCollection::modifyIntList(const std::string& name, GenericValue::IntLi
   modifyValue(name, GenericValue::fromIntList(std::move(value)));
 }
 
+void ValueCollection::addIntListList(std::string name, GenericValue::IntListList value) {
+  addGenericValue(std::move(name), GenericValue::fromIntListList(std::move(value)));
+}
+
+GenericValue::IntListList ValueCollection::getIntListList(const std::string& name) const {
+  const auto& genericValue = getGenericValue(name);
+  try {
+    return genericValue.toIntListList();
+  }
+  catch (InvalidValueConversionException&) {
+    throw ValueHasDifferentTypeException(name);
+  }
+}
+
+void ValueCollection::modifyIntListList(const std::string& name, GenericValue::IntListList value) {
+  const auto& genericValue = getGenericValue(name);
+  if (!genericValue.isIntListList()) {
+    throw InvalidValueConversionException();
+  }
+  modifyValue(name, GenericValue::fromIntListList(std::move(value)));
+}
+
 void ValueCollection::addDoubleList(std::string name, GenericValue::DoubleList value) {
   addGenericValue(std::move(name), GenericValue::fromDoubleList(std::move(value)));
 }

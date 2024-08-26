@@ -45,11 +45,13 @@ NormalModesContainer calculateNormalModes(const PartialHessian& hessian, const A
  * @param positions The atom positions of the underlying structure.
  * @param normalize If true (default value), returns the normalized MW normal modes.
  *                  Returns the MW normal modes otherwise, with the norm given by the reduced mass.
+ * @param massWeighted If true, the mass-weighted Hessian is diagonalized. By default, true.
  * @return The normal modes obtained from the mass weighted Hessian back-scaled to Cartesian coordinates summarized in a
  * container.
  */
 NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
-                                          const PositionCollection& positions, bool normalize = true);
+                                          const PositionCollection& positions, bool normalize = true,
+                                          bool massWeighted = true);
 
 /**
  * @brief Calculate the normal modes container of structure with given partial Hessian
@@ -59,11 +61,13 @@ NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const El
  * @param positions The atom positions of the underlying super structure.
  * @param normalize If true (default value), returns the normalized MW normal modes.
  *                  Returns the MW normal modes otherwise, with the norm given by the reduced mass.
+ * @param massWeighted If true, the mass-weighted Hessian is diagonalized. By default, true.
  * @return The normal modes obtained from the mass weighted Hessian back-scaled to Cartesian coordinates summarized in a
  * container with non-partial Hessian atoms being padded with zeros.
  */
 NormalModesContainer calculateNormalModes(const PartialHessian& hessian, const ElementTypeCollection& elements,
-                                          const PositionCollection& positions, bool normalize = true);
+                                          const PositionCollection& positions, bool normalize = true,
+                                          bool massWeighted = true);
 
 /**
  * @brief Calculate the unnormalized normal modes of a structure with a given Hessian.

@@ -5,6 +5,7 @@
  *            See LICENSE.txt for details.
  */
 #include "TurbomoleCalculator.h"
+#include "Utils/CalculatorBasics/CalculationRoutines.h"
 #include "Utils/ExternalQC/Exceptions.h"
 #include "Utils/ExternalQC/ExternalProgram.h"
 #include "Utils/ExternalQC/Turbomole/OrbitalSteering/TurbomoleOrbitalSteerer.h"
@@ -134,6 +135,14 @@ void TurbomoleCalculator::applySettings() {
                                 "as recommended by TURBOMOLE developers."
                              << Core::Log::nl;
     }
+    const std::vector<std::string> coarseGrids = {"m3", "1", "2", "3"};
+    const bool usesCoarseGrid = std::find(coarseGrids.begin(), coarseGrids.end(),
+                                          settings_->getString(SettingsNames::dftGrid)) != coarseGrids.end();
+    if (!(settings_->getBool(SettingsNames::enforceGrid)) && requiredProperties_.containsSubSet(Property::Hessian) &&
+        usesCoarseGrid) {
+      settings_->modifyString(SettingsNames::dftGrid, "m4");
+      this->getLog().warning << "Warning: Grid accuracy was increased to 'm4' to ensure valid Hessians." << Core::Log::nl;
+    }
   }
   else {
     settings_->throwIncorrectSettings();
@@ -186,6 +195,15 @@ const Results& TurbomoleCalculator::calculate(std::string description) {
 }
 
 const Results& TurbomoleCalculator::calculateImpl(std::string description) {
+  int nElectrons = 0;
+  for (const auto& e : atoms_.getElements()) {
+    nElectrons += static_cast<int>(ElementInfo::Z(e));
+  }
+  if ((nElectrons - settings_->getInt(Utils::SettingsNames::molecularCharge)) <= 0) {
+    results_ = CalculationRoutines::calculateZeroElectrons(atoms_, requiredProperties_);
+    return results_;
+  }
+
   initializeProgram();
   ExternalProgram externalProgram;
   externalProgram.setWorkingDirectory(calculationDirectory_);

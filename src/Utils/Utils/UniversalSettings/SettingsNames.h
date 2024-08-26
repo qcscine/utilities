@@ -54,6 +54,10 @@ static constexpr const char* electrostaticEmbedding = "electrostatic_embedding";
 static constexpr const char* ignoreQmOption = "ignore_qm";
 static constexpr const char* optimizeLinks = "optimize_links";
 
+// QM/QM
+static constexpr const char* qmqmAtomIndices = "qmqm_atom_indices";
+static constexpr const char* nonAdditiveXCFunctional = "non_additive_xc_functional";
+
 //! @brief Struct to contain the name of the mixers available.
 struct ScfMixers {
   static constexpr const char* noMixer = "no_mixer";

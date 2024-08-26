@@ -39,8 +39,9 @@ struct RewriteAsVariant {
  */
 struct GenericValueMeta {
   //! Member types of GenericValue
-  using Types = std::tuple<bool, int, double, std::string, ValueCollection, ParametrizedOptionValue, GenericValue::IntList,
-                           GenericValue::DoubleList, GenericValue::StringList, GenericValue::CollectionList>;
+  using Types =
+      std::tuple<bool, int, double, std::string, ValueCollection, ParametrizedOptionValue, GenericValue::IntList,
+                 GenericValue::IntListList, GenericValue::DoubleList, GenericValue::StringList, GenericValue::CollectionList>;
 
   //! GenericValue's equivalent as a variant (sum type)
   using Variant = RewriteAsVariant<Types>::Type;
@@ -49,8 +50,8 @@ struct GenericValueMeta {
   static auto factories() {
     return std::make_tuple(&GenericValue::fromBool, &GenericValue::fromInt, &GenericValue::fromDouble,
                            &GenericValue::fromString, &GenericValue::fromCollection, &GenericValue::fromOptionWithSettings,
-                           &GenericValue::fromIntList, &GenericValue::fromDoubleList, &GenericValue::fromStringList,
-                           &GenericValue::fromCollectionList);
+                           &GenericValue::fromIntList, &GenericValue::fromIntListList, &GenericValue::fromDoubleList,
+                           &GenericValue::fromStringList, &GenericValue::fromCollectionList);
   }
 
   //! GenericValue's checker functions to see whether a wrapped type is a particular member
@@ -58,8 +59,9 @@ struct GenericValueMeta {
     return std::make_tuple(std::mem_fn(&GenericValue::isBool), std::mem_fn(&GenericValue::isInt),
                            std::mem_fn(&GenericValue::isDouble), std::mem_fn(&GenericValue::isString),
                            std::mem_fn(&GenericValue::isCollection), std::mem_fn(&GenericValue::isOptionWithSettings),
-                           std::mem_fn(&GenericValue::isIntList), std::mem_fn(&GenericValue::isDoubleList),
-                           std::mem_fn(&GenericValue::isStringList), std::mem_fn(&GenericValue::isCollectionList));
+                           std::mem_fn(&GenericValue::isIntList), std::mem_fn(&GenericValue::isIntListList),
+                           std::mem_fn(&GenericValue::isDoubleList), std::mem_fn(&GenericValue::isStringList),
+                           std::mem_fn(&GenericValue::isCollectionList));
   }
 
   //! GenericValue's get functions retrieving a particular type
@@ -67,8 +69,9 @@ struct GenericValueMeta {
     return std::make_tuple(std::mem_fn(&GenericValue::toBool), std::mem_fn(&GenericValue::toInt),
                            std::mem_fn(&GenericValue::toDouble), std::mem_fn(&GenericValue::toString),
                            std::mem_fn(&GenericValue::toCollection), std::mem_fn(&GenericValue::toOptionWithSettings),
-                           std::mem_fn(&GenericValue::toIntList), std::mem_fn(&GenericValue::toDoubleList),
-                           std::mem_fn(&GenericValue::toStringList), std::mem_fn(&GenericValue::toCollectionList));
+                           std::mem_fn(&GenericValue::toIntList), std::mem_fn(&GenericValue::toIntListList),
+                           std::mem_fn(&GenericValue::toDoubleList), std::mem_fn(&GenericValue::toStringList),
+                           std::mem_fn(&GenericValue::toCollectionList));
   }
 
   template<std::size_t... Inds>

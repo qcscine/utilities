@@ -9,8 +9,10 @@
 #include "Utils/Constants.h"
 #include "Utils/Geometry/AtomCollection.h"
 #include "Utils/Geometry/ElementInfo.h"
+#include "Utils/MolecularTrajectory.h"
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 
 namespace Scine {
 namespace Utils {
@@ -19,16 +21,11 @@ std::pair<AtomCollection, BondOrderCollection> PdbStreamHandler::read(std::istre
   if (format != "pdb") {
     throw FormattedStreamHandler::FormatUnsupportedException();
   }
-  auto data = read(is);
-
-  if (substructureID_ > data.size()) {
-    std::string message = "Cannot parse substructure " + std::to_string(substructureID_) +
-                          "when structure size is: " + std::to_string(data.size());
-    throw std::runtime_error(message);
+  PdbFileData data = extractContent(is, true);
+  if (data.atomCollections.size() < substructureID_) {
+    throw std::runtime_error("Structure index out of range.");
   }
-
-  // TODO: parse the connectivity block in the PdbFileData.
-  return std::make_pair(data[substructureID_], BondOrderCollection());
+  return std::make_pair(data.atomCollections[substructureID_], data.bondOrderCollection);
 }
 
 void PdbStreamHandler::write(std::ostream& os, const std::string& format, const AtomCollection& atoms,
@@ -36,7 +33,6 @@ void PdbStreamHandler::write(std::ostream& os, const std::string& format, const 
   if (format != "pdb") {
     throw FormattedStreamHandler::FormatUnsupportedException();
   }
-
   write(os, atoms, BondOrderCollection(), comment);
 }
 
@@ -45,7 +41,6 @@ void PdbStreamHandler::write(std::ostream& os, const std::string& format, const 
   if (format != "pdb") {
     throw FormattedStreamHandler::FormatUnsupportedException();
   }
-
   write(os, atoms, bondOrders, comment);
 }
 
@@ -62,254 +57,301 @@ std::string PdbStreamHandler::name() const {
   return PdbStreamHandler::model;
 }
 
-// Extract Content from the file
-void PdbStreamHandler::extractContent(std::istream& is, PdbFileData& data) {
-  is.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+std::vector<Eigen::Triplet<double>> PdbStreamHandler::getConnectTriplet(const std::string& line) {
+  std::vector<Eigen::Triplet<double>> triplets;
+  std::string connect;
+  std::string iString;
+  std::string jString;
+  std::stringstream lineStream(line);
+  lineStream >> connect;
+  lineStream >> iString;
+  const unsigned int iAtom = std::stoi(iString) - 1;
+  while (lineStream >> jString) {
+    const unsigned int jAtom = std::stoi(jString) - 1;
+    triplets.emplace_back(iAtom, jAtom, 1.0);
+  }
+  return triplets;
+}
 
-  data.content = std::string(std::istreambuf_iterator<char>{is}, {});
+unsigned int PdbStreamHandler::getTerminusIndexFromLine(const std::string& line) {
+  std::stringstream lineStream(line);
+  std::string ter;
+  unsigned int index = 0;
+  lineStream >> ter >> index;
+  return index - 1;
+}
 
-  std::istringstream in(data.content);
+PdbFileData PdbStreamHandler::extractContent(std::istream& is, bool onlyOneStructure) const {
+  PdbFileData data;
+  AtomCollection nextAtomCollection;
+  ResidueCollection nextResidueCollection;
   std::string line;
-  int numModels = 0;
-  bool structureHasModels = false;
-  while (std::getline(in, line)) {
-    // Extract header
-    if (!isAtomLine(line) && !isModelLine(line) && !(line.rfind("ENDMDL", 0) == 0)) {
-      std::istringstream headerLine(line);
-      data.header.append(std::string(std::istreambuf_iterator<char>{headerLine}, {}));
-      data.header.append("\n");
+  std::vector<Eigen::Triplet<double>> triplets;
+  std::vector<unsigned int> termini;
+  bool skipAtoms = false;
+  bool skipTermini = false;
+  while (std::getline(is, line)) {
+    if (isConnectLine(line)) {
+      const auto lineTriplets = getConnectTriplet(line);
+      triplets.insert(triplets.end(), lineTriplets.begin(), lineTriplets.end());
     }
-
-    else if (isModelLine(line)) {
-      structureHasModels = true;
-      numModels++;
+    else if (!skipAtoms && isAtomLine(line)) {
+      const Atom atom = getAtomFromPdbLine(line);
+      if (!this->includeH_ && atom.getElementType() == ElementType::H) {
+        continue;
+      }
+      nextResidueCollection.push_back(getResidueInformationFromPdbLine(line));
+      nextAtomCollection.push_back(atom);
     }
-    // Extract connectivity block
-    else if (line.rfind("CONECT", 0) == 0) {
-      std::istringstream connectivityLine(line);
-      data.connectivityBlock.append(std::string(std::istreambuf_iterator<char>{connectivityLine}, {}));
-      data.connectivityBlock.append("\n");
+    else if (!skipTermini && isTerminusLine(line)) {
+      termini.push_back(getTerminusIndexFromLine(line));
+    }
+    else if (isEndModelLine(line)) {
+      nextAtomCollection.setResidues(nextResidueCollection);
+      data.atomCollections.push_back(nextAtomCollection);
+      nextAtomCollection = AtomCollection();
+      nextResidueCollection = ResidueCollection();
+      skipTermini = true;
+      if (onlyOneStructure && data.atomCollections.size() > this->substructureID_) {
+        skipAtoms = true;
+      }
     }
   }
-  if (numModels > 1) {
-    data.numModels = numModels;
+  if (nextAtomCollection.size() != 0) {
+    nextAtomCollection.setResidues(nextResidueCollection);
+    data.atomCollections.push_back(nextAtomCollection);
   }
+  if (data.atomCollections.empty()) {
+    throw std::runtime_error("No atom coordinates found in pdb file.");
+  }
+  // We cannot parse the CONECT block if we skipped atoms before.
+  if (this->includeH_) {
+    const unsigned int nAtoms = data.atomCollections[0].size();
+    /*
+     * To make our life more difficult, termini can be encoded in the pdb file. These termini count
+     * towards the index used in the CONECT statements. Therefore, we must adjust the atom indices
+     * in the CONECT statements by the number of termini with an index lower than this index.
+     */
+    shiftBondIndicesByTermini(triplets, termini);
+    Eigen::SparseMatrix<double> bondOrderMatrix(nAtoms, nAtoms);
+    bondOrderMatrix.setFromTriplets(triplets.begin(), triplets.end());
+    BondOrderCollection bondOrderCollection(nAtoms);
+    bondOrderCollection.setMatrix(bondOrderMatrix);
+    data.bondOrderCollection = bondOrderCollection;
+  }
+  return data;
+}
 
-  in.clear();
-  in.seekg(0);
+inline std::string PdbStreamHandler::removeAllSpacesFromString(std::string string) {
+  string.erase(std::remove(string.begin(), string.end(), ' '), string.end());
+  return string;
+}
 
-  // iterate over the file again to extract the atom blocks
-  if (structureHasModels) {
-    data.atomBlocks.resize(data.numModels);
-    extractModels(in, line, data);
+unsigned int PdbStreamHandler::sequenceNumberStringToInt(const std::string& sequenceNumberString) {
+  /*
+   * Sometimes the sequence number is given as a hexadecimal number. However, the first 9999 indices
+   * are usually still given in decimal. Only then hexadecimal numbers are used. In that case, a
+   * hexadecimal number will always contain at least one non-digit character, e.g., A000, A001.
+   */
+  bool isDecimal = true;
+  for (const auto& c : sequenceNumberString) {
+    if (!std::isdigit(c)) {
+      isDecimal = false;
+      break;
+    }
+  }
+  if (isDecimal) {
+    return std::stoi(sequenceNumberString);
   }
   else {
-    data.atomBlocks.resize(1);
-    data.nAtoms = 0;
-    extractStructure(in, line, data);
+    unsigned int x = 0;
+    std::stringstream stringstream;
+    stringstream << std::hex << sequenceNumberString;
+    stringstream >> x;
+    return x;
   }
 }
 
-std::vector<AtomCollection> PdbStreamHandler::structuresFromData(PdbFileData& data) const {
-  std::vector<AtomCollection> structures;
-  // Create a single identifier if none is parsed
-  if (data.overlayIdentifiers.empty()) {
-    data.overlayIdentifiers.emplace_back("A");
-  }
-
-  auto removeAllSpacesFromString = [](std::string a) -> std::string {
-    a.erase(std::remove(a.begin(), a.end(), ' '), a.end());
-    return a;
-  };
-
-  std::string line;
-  for (const auto& atomBlock : data.atomBlocks) {
-    for (const auto& s : data.overlayIdentifiers) {
-      std::istringstream in(atomBlock);
-      AtomCollection structure;
-      for (int i = 0; i < data.nAtoms; ++i) {
-        std::getline(in, line);
-        std::istringstream iss(line);
-
-        if (iss.str().empty()) {
-          continue;
-        }
-
-        // Get the elements
-        std::string elementStr = removeAllSpacesFromString(iss.str().substr(76, 3));
-        // get the residue names
-        const std::string residueNameStr = removeAllSpacesFromString(iss.str().substr(17, 3));
-        const std::string overlayIdentifier = removeAllSpacesFromString(iss.str().substr(16, 1));
-
-        if (elementStr == "H" && !includeH_) {
-          continue;
-        }
-
-        if (elementStr == "HOH" && !parseOnlySolvent_) {
-          continue;
-        }
-
-        elementStr.erase(remove_if(elementStr.begin(), elementStr.end(), [](char c) { return !isalpha(c); }),
-                         elementStr.end());
-        // Make sure capitalization matches our variant
-        std::transform(std::begin(elementStr), std::begin(elementStr) + 1, std::begin(elementStr), ::toupper);
-        // Make other letters lowercase
-        std::transform(std::begin(elementStr) + 1, std::end(elementStr), std::begin(elementStr) + 1, ::tolower);
-
-        ElementType f;
-        try {
-          f = ElementInfo::elementTypeForSymbol(elementStr);
-        }
-        catch (...) {
-          throw FormattedStreamHandler::FormatMismatchException();
-        }
-
-        // Get the positions
-        double x, y, z;
-        try {
-          x = std::stod(iss.str().substr(31, 8));
-          y = std::stod(iss.str().substr(39, 8));
-          z = std::stod(iss.str().substr(47, 8));
-        }
-        catch (...) {
-          throw FormattedStreamHandler::FormatMismatchException();
-        }
-
-        Position position(x, y, z);
-        position *= Constants::bohr_per_angstrom;
-        const Atom atom(f, position);
-
-        if (residueNameStr == "HOH" && parseOnlySolvent_) {
-          structure.push_back(atom);
-        }
-
-        else if ((!parseOnlySolvent_ && residueNameStr != "HOH") && (overlayIdentifier == s || overlayIdentifier.empty())) {
-          structure.push_back(atom);
-        }
-      }
-      if (structure.size() == 0) {
-        throw std::runtime_error("Error parsing the structure!");
-      }
-      structures.push_back(structure);
+inline ResidueInformation PdbStreamHandler::getResidueInformationFromPdbLine(const std::string& line) {
+  try {
+    const std::string residueNameStr = removeAllSpacesFromString(line.substr(17, 3));
+    const std::string atomTypeStr = removeAllSpacesFromString(line.substr(12, 4));
+    const std::string chainIdentifier = removeAllSpacesFromString(line.substr(21, 1));
+    const std::string residueSequenceNumberStr = removeAllSpacesFromString(line.substr(22, 4));
+    unsigned int residueSequenceNumber = 1;
+    if (!residueSequenceNumberStr.empty()) {
+      residueSequenceNumber = sequenceNumberStringToInt(residueSequenceNumberStr);
     }
+    return {residueNameStr, atomTypeStr, chainIdentifier, residueSequenceNumber};
   }
-  return structures;
+  catch (...) {
+    throw std::runtime_error("Unable to read residue information from pdb file.\n"
+                             "The problematic line is:\n" +
+                             line);
+  }
+}
+
+inline Atom PdbStreamHandler::getAtomFromPdbLine(const std::string& line) {
+  std::string elementStr = removeAllSpacesFromString(line.substr(76, 3));
+  elementStr.erase(remove_if(elementStr.begin(), elementStr.end(), [](char c) { return !isalpha(c); }), elementStr.end());
+  // Make sure capitalization matches our variant
+  std::transform(std::begin(elementStr), std::begin(elementStr) + 1, std::begin(elementStr), ::toupper);
+  // Make other letters lowercase
+  std::transform(std::begin(elementStr) + 1, std::end(elementStr), std::begin(elementStr) + 1, ::tolower);
+  try {
+    const ElementType elementType = ElementInfo::elementTypeForSymbol(elementStr);
+    const double xCoord = std::stod(line.substr(31, 8));
+    const double yCoord = std::stod(line.substr(39, 8));
+    const double zCoord = std::stod(line.substr(47, 8));
+    Position position(xCoord, yCoord, zCoord);
+    position *= Constants::bohr_per_angstrom;
+    return Atom(elementType, position);
+  }
+  catch (...) {
+    throw std::runtime_error("Unable to read atom information from pdb file.\n"
+                             "The problematic line is:\n" +
+                             line);
+  }
 }
 
 std::vector<AtomCollection> PdbStreamHandler::read(std::istream& is) const {
-  PdbFileData data;
-  extractContent(is, data);
-  return structuresFromData(data);
+  return extractContent(is).atomCollections;
 }
 
-void PdbStreamHandler::write(std::ostream& os, const AtomCollection& atoms, BondOrderCollection bondOrders,
-                             const std::string& comment) {
+void PdbStreamHandler::write(std::ostream& os, const AtomCollection& atoms, const BondOrderCollection& bondOrders,
+                             const std::string& comment, bool trajectoryFormat, unsigned int counter) {
+  if (atoms.getPositions().array().abs().maxCoeff() * Constants::angstrom_per_bohr > 1e+5) {
+    throw std::runtime_error("PDB files cannot encode structures with coordinates larger than 1e+5 accurately.\n"
+                             "Please use a different file format or ensure that the absolute coordinate values\n"
+                             "are small.");
+  }
   const unsigned int N = atoms.size();
-  const auto atomResidues = atoms.getResidues();
-  os << comment << "\n";
+  const auto& atomResidues = atoms.getResidues();
+  if (!comment.empty()) {
+    os << "REMARK " << comment << "\n";
+  }
+  os << "MODEL        " << counter << "\n";
+  const PositionCollection positions = atoms.getPositions() * Constants::angstrom_per_bohr;
   for (unsigned int i = 0; i < N; ++i) {
     const std::string element = ElementInfo::symbol(atoms.getElement(int(i)));
-    auto position = atoms.getPosition(int(i)) * Constants::angstrom_per_bohr;
+    Eigen::Vector3d position = positions.row(i);
     const auto& resLabel = std::get<0>(atomResidues[i]);
-    const auto& chainLabel = std::get<1>(atomResidues[i]);
-    const auto& resIndex = std::get<2>(atomResidues[i]);
+    const auto& atomType = std::get<1>(atomResidues[i]);
+    const auto& chainLabel = std::get<2>(atomResidues[i]);
+    const unsigned& resIndex = std::get<3>(atomResidues[i]);
+    const std::string resIndexString = sequenceNumberIntToString(resIndex);
     if (chainLabel.size() > 1) {
       throw std::runtime_error("Chain labels in pdb files may only be one character long.");
     }
-    os << "ATOM  " << std::setw(5) << std::right << i + 1 << " " << std::setw(4) << std::left << element << " "
-       << std::setw(3) << std::right << resLabel << " " << std::setw(1) << std::right << chainLabel << std::setw(4)
-       << std::right << resIndex << "    " << std::setw(8) << std::right << std::fixed << std::setprecision(3)
-       << position(0) << std::setw(8) << std::right << std::fixed << std::setprecision(3) << position(1) << std::setw(8)
-       << std::right << std::fixed << std::setprecision(3) << position(2) << std::setw(6) << std::right << std::fixed
-       << std::setprecision(2) << 1.0 << std::setw(6) << std::right << std::fixed << std::setprecision(2) << 0.0
-       << std::setw(12) << std::right << element << "\n";
+    os << "ATOM  " << std::setw(5) << std::right << i + 1 << " " << std::setw(4) << std::left << atomType << " "
+       << std::setw(3) << std::right << resLabel << " " << std::setw(1) << std::right << chainLabel << resIndexString
+       << "    " << std::setw(8) << std::right << std::fixed << std::setprecision(3) << position(0) << std::setw(8)
+       << std::right << std::fixed << std::setprecision(3) << position(1) << std::setw(8) << std::right << std::fixed
+       << std::setprecision(3) << position(2) << std::setw(6) << std::right << std::fixed << std::setprecision(2) << 1.0
+       << std::setw(6) << std::right << std::fixed << std::setprecision(2) << 0.0 << std::setw(12) << std::right
+       << element << "\n";
   }
-  if (!bondOrders.empty()) {
-    for (unsigned int i = 0; i < N; ++i) {
-      const auto bondPartners = bondOrders.getBondPartners(int(i));
-      if (!bondPartners.empty()) {
-        os << "CONNECT " << i + 1;
-        for (const auto& j : bondPartners) {
-          os << " " << j + 1;
+  os << "ENDMDL" << std::endl;
+  if (!trajectoryFormat) {
+    if (!bondOrders.empty()) {
+      for (unsigned int i = 0; i < N; ++i) {
+        const auto bondPartners = bondOrders.getBondPartners(int(i));
+        if (!bondPartners.empty()) {
+          os << "CONECT" << std::setw(5) << std::right << i + 1;
+          for (const auto& j : bondPartners) {
+            os << std::setw(5) << std::right << j + 1;
+          }
+          os << "\n";
         }
-        os << "\n";
       }
     }
-  }
-  os << "MASTER        0";
-  for (unsigned i = 0; i < 7; ++i) {
+    os << "MASTER        0";
+    for (unsigned i = 0; i < 7; ++i) {
+      os << std::setw(5) << std::right << 0;
+    }
+    os << std::setw(5) << std::right << N;
     os << std::setw(5) << std::right << 0;
+    os << std::setw(5) << std::right << N;
+    os << std::setw(5) << std::right << 0 << "\n";
+    os << "END" << std::endl;
   }
-  os << std::setw(5) << std::right << N;
-  os << std::setw(5) << std::right << 0;
-  os << std::setw(5) << std::right << N;
-  os << std::setw(5) << std::right << 0 << "\n";
-  os << "END" << std::endl;
 }
 
 void PdbStreamHandler::setReadH(bool includeH) {
   includeH_ = includeH;
 }
 
-void PdbStreamHandler::parseOnlySolvent(bool parseOnlySolvent) {
-  parseOnlySolvent_ = parseOnlySolvent;
-}
-
 void PdbStreamHandler::setSubstructureID(int substructureID) {
   substructureID_ = substructureID;
 }
 
-void PdbStreamHandler::extractOverlayIdentifiers(std::string line, PdbFileData& data) {
-  std::string identifier = line.substr(16, 1);
-  identifier.erase(std::remove(identifier.begin(), identifier.end(), ' '), identifier.end());
-  if (!identifier.empty() && std::find(data.overlayIdentifiers.begin(), data.overlayIdentifiers.end(), identifier) ==
-                                 data.overlayIdentifiers.end()) {
-    data.overlayIdentifiers.push_back(identifier);
-  }
-}
-
-bool PdbStreamHandler::isAtomLine(std::string line) {
+bool PdbStreamHandler::isAtomLine(const std::string& line) {
   return (line.rfind("ATOM", 0) == 0) || (line.rfind("HETATM", 0) == 0);
 }
 
-bool PdbStreamHandler::isModelLine(std::string line) {
-  return line.rfind("MODEL", 0) == 0;
+bool PdbStreamHandler::isConnectLine(const std::string& line) {
+  return line.find("CONECT") != std::string::npos;
 }
 
-void PdbStreamHandler::extractModels(std::istringstream& in, std::string& line, PdbFileData& data) {
-  int modelNumber = 0;
-  while (std::getline(in, line)) {
-    if (isModelLine(line)) {
-      data.nAtoms = 0;
-      std::string atomBlock;
-      while (!(line.rfind("ENDMDL", 0) == 0) && std::getline(in, line)) {
-        // Extract atom block
-        if (isAtomLine(line)) {
-          data.nAtoms++;
-          // Find overlaying substructures
-          extractOverlayIdentifiers(line, data);
-          std::istringstream atomLine(line);
-          atomBlock.append(std::string(std::istreambuf_iterator<char>{atomLine}, {}));
-          atomBlock.append("\n");
-        }
-      }
-      data.atomBlocks.at(modelNumber) = atomBlock;
-      modelNumber++;
-    }
+bool PdbStreamHandler::isEndModelLine(const std::string& line) {
+  return line.find("ENDMDL") != std::string::npos;
+  ;
+}
+
+void PdbStreamHandler::shiftBondIndicesByTermini(std::vector<Eigen::Triplet<double>>& triplets,
+                                                 const std::vector<unsigned int>& termini) {
+  if (termini.empty()) {
+    return;
+  }
+  for (auto& triplet : triplets) {
+    const unsigned int iAtom = triplet.row();
+    const unsigned int jAtom = triplet.col();
+    triplet = Eigen::Triplet<double>(shiftAtomIndexByTermini(iAtom, termini), shiftAtomIndexByTermini(jAtom, termini), 1.0);
   }
 }
 
-void PdbStreamHandler::extractStructure(std::istringstream& in, std::string& line, PdbFileData& data) {
-  while (std::getline(in, line)) {
-    if (isAtomLine(line)) {
-      // Find overlaying substructures
-      extractOverlayIdentifiers(line, data);
-      data.nAtoms++;
-      std::istringstream atomLine(line);
-      data.atomBlocks[0].append(std::string(std::istreambuf_iterator<char>{atomLine}, {}));
-      data.atomBlocks[0].append("\n");
-    }
+unsigned int PdbStreamHandler::shiftAtomIndexByTermini(unsigned int iAtom, const std::vector<unsigned int>& termini) {
+  const unsigned int lessThanIAtom = std::lower_bound(termini.begin(), termini.end(), iAtom) - termini.begin();
+  if (iAtom < lessThanIAtom) {
+    throw std::runtime_error("Terminus indices in pdb file have incorrect numbering");
   }
+  return iAtom - lessThanIAtom;
+}
+
+bool PdbStreamHandler::isTerminusLine(const std::string& line) {
+  return line.find("TER") != std::string::npos;
+  ;
+}
+void PdbStreamHandler::writeTrajectory(std::ostream& os, const MolecularTrajectory& m,
+                                       const BondOrderCollection& bondOrders, const std::string& comment) {
+  if (m.empty())
+    return;
+  if (m.getResidues().empty()) {
+    throw std::runtime_error("The residue information is required to write a pdb trajectory file");
+  }
+  for (int i = 0; i < m.size() - 1; ++i) {
+    AtomCollection atoms(m.getElementTypes(), m.at(i));
+    atoms.setResidues(m.getResidues());
+    write(os, atoms, bondOrders, comment, true, i);
+  }
+  AtomCollection atoms(m.getElementTypes(), m.at(m.size() - 1));
+  atoms.setResidues(m.getResidues());
+  write(os, atoms, bondOrders, comment, m.size() - 1);
+}
+std::string PdbStreamHandler::sequenceNumberIntToString(const unsigned int& sequenceInteger) {
+  std::stringstream stream;
+  stream << std::setw(4) << std::right;
+  if (sequenceInteger > 9999) {
+    stream << std::hex;
+  }
+  if (sequenceInteger > sequenceNumberStringToInt("eeee")) {
+    throw std::runtime_error(
+        "Residue sequence number is larger than eeee. This cannot be handled while writing pdb files.");
+  }
+  stream << sequenceInteger;
+  std::string result = stream.str();
+  result.erase(std::remove_if(result.begin(), result.end(), [](char c) { return c == "'"[0] || c == ','; }), result.end());
+  return result;
 }
 
 } // namespace Utils

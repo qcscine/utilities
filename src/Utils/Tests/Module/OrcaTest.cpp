@@ -24,7 +24,7 @@ namespace Scine {
 namespace Utils {
 namespace Tests {
 
-class AOrcaTest : public Test {
+class AnOrcaTest : public Test {
  public:
   ExternalQC::OrcaCalculator calculator;
   boost::filesystem::path pathToResource;
@@ -36,7 +36,7 @@ class AOrcaTest : public Test {
   }
 };
 
-TEST_F(AOrcaTest, SettingsAreSetCorrectly) {
+TEST_F(AnOrcaTest, SettingsAreSetCorrectly) {
   calculator.settings().modifyInt(Utils::SettingsNames::externalProgramNProcs, 2);
   calculator.settings().modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 0.0001);
   calculator.settings().modifyInt(Utils::SettingsNames::molecularCharge, 1);
@@ -87,7 +87,7 @@ TEST_F(AOrcaTest, SettingsAreSetCorrectly) {
   ASSERT_THAT(calculator.settings().getBool(ExternalQC::SettingsNames::enforceScfCriterion), Eq(true));
 }
 
-TEST_F(AOrcaTest, OrbitalEnergiesAreParsedCorrectly) {
+TEST_F(AnOrcaTest, OrbitalEnergiesAreParsedCorrectly) {
   ExternalQC::OrcaMainOutputParser parser((pathToResource / "orca_test_calc.out").string());
   parser.checkForErrors();
   const auto orbitalEnergies = parser.getOrbitalEnergies();
@@ -110,7 +110,7 @@ TEST_F(AOrcaTest, OrbitalEnergiesAreParsedCorrectly) {
   ASSERT_THROW(ExternalQC::OrcaMainOutputParser((pathToResource / "this_file_does_not_exist.out").string()), std::runtime_error);
 }
 
-TEST_F(AOrcaTest, HessianIsParsedCorrectly) {
+TEST_F(AnOrcaTest, HessianIsParsedCorrectly) {
   ExternalQC::OrcaMainOutputParser parser((pathToResource / "orca_test_calc.out").string());
   parser.checkForErrors();
   const auto hessianFile = (pathToResource / "orca_test_calc.hess").string();
@@ -124,7 +124,7 @@ TEST_F(AOrcaTest, HessianIsParsedCorrectly) {
   ASSERT_THAT(hessian(3, 7), DoubleNear(hessian(7, 3), 1e-10));
 }
 
-TEST_F(AOrcaTest, ErrorsAreFound) {
+TEST_F(AnOrcaTest, ErrorsAreFound) {
   bool errorFound = false;
   ExternalQC::OrcaMainOutputParser parser((pathToResource / "orca_test_calc_error.out").string());
   try {
@@ -146,7 +146,7 @@ TEST_F(AOrcaTest, ErrorsAreFound) {
   ASSERT_TRUE(errorFound);
 }
 
-TEST_F(AOrcaTest, HirshfeldChargesAreParsedCorrectly) {
+TEST_F(AnOrcaTest, HirshfeldChargesAreParsedCorrectly) {
   ExternalQC::OrcaMainOutputParser parser((pathToResource / "orca_hirshfeld_test_calc.out").string());
   std::vector<double> charges = parser.getHirshfeldCharges();
   double energy = parser.getEnergy();
@@ -161,7 +161,7 @@ TEST_F(AOrcaTest, HirshfeldChargesAreParsedCorrectly) {
   }
 }
 
-TEST_F(AOrcaTest, BondOrdersAreParsedCorrectly) {
+TEST_F(AnOrcaTest, BondOrdersAreParsedCorrectly) {
   ExternalQC::OrcaMainOutputParser parser((pathToResource / "orca_bond_orders_test_calc.out").string());
   Utils::BondOrderCollection bondOrders = parser.getBondOrders();
   double energy = parser.getEnergy();
@@ -205,7 +205,7 @@ TEST_F(AOrcaTest, BondOrdersAreParsedCorrectly) {
   }
 }
 
-TEST_F(AOrcaTest, BondOrdersOfLargeMoleculeAreParsedCorrectly) {
+TEST_F(AnOrcaTest, BondOrdersOfLargeMoleculeAreParsedCorrectly) {
   ExternalQC::OrcaMainOutputParser parser((pathToResource / "orca_large_bond_orders_test_calc.out").string());
   Utils::BondOrderCollection bondOrders = parser.getBondOrders();
   double energy = parser.getEnergy();
@@ -227,7 +227,7 @@ TEST_F(AOrcaTest, BondOrdersOfLargeMoleculeAreParsedCorrectly) {
   ASSERT_THAT(bondOrderMatrix.rows(), Eq(nAtoms));
 }
 
-TEST_F(AOrcaTest, OutputIsParsedCorrectly) {
+TEST_F(AnOrcaTest, OutputIsParsedCorrectly) {
   ExternalQC::OrcaMainOutputParser parser((pathToResource / "orca_test_calc.out").string());
 
   ASSERT_THAT(parser.getEnergy(), DoubleNear(-75.818269296087, 1e-8));
@@ -265,7 +265,7 @@ TEST_F(AOrcaTest, OutputIsParsedCorrectly) {
   ASSERT_FALSE(thermochemistry.overall.heatCapacityV == container.heatCapacityV);
 }
 
-TEST_F(AOrcaTest, CheckResultsClearing1) {
+TEST_F(AnOrcaTest, CheckResultsClearing1) {
   calculator.results().set<Property::Energy>(42.0);
   std::stringstream stream("5\n\n"
                            "C     0.00000000   0.00000001  -0.00000097\n"
@@ -279,7 +279,7 @@ TEST_F(AOrcaTest, CheckResultsClearing1) {
   ASSERT_FALSE(calculator.results().has<Property::Energy>());
 }
 
-TEST_F(AOrcaTest, CheckResultsClearing2) {
+TEST_F(AnOrcaTest, CheckResultsClearing2) {
   std::stringstream stream("5\n\n"
                            "C     0.00000000   0.00000001  -0.00000097\n"
                            "H     0.62612502   0.62612484   0.62613824\n"
@@ -294,7 +294,7 @@ TEST_F(AOrcaTest, CheckResultsClearing2) {
   ASSERT_FALSE(calculator.results().has<Property::Energy>());
 }
 
-TEST_F(AOrcaTest, CloneInterfaceWorksCorrectly) {
+TEST_F(AnOrcaTest, CloneInterfaceWorksCorrectly) {
   calculator.settings().modifyInt(Utils::SettingsNames::externalProgramNProcs, 2);
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
 
@@ -319,7 +319,7 @@ TEST_F(AOrcaTest, CloneInterfaceWorksCorrectly) {
               Eq(newCalculator->settings().getString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory)));
 }
 
-TEST_F(AOrcaTest, StatesHandlingAndInputCreationWorkCorrectly) {
+TEST_F(AnOrcaTest, StatesHandlingAndInputCreationWorkCorrectly) {
   // Set up.
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
   calculator.settings().modifyString(Utils::SettingsNames::method, "PBE-D3BJ");
@@ -402,7 +402,7 @@ TEST_F(AOrcaTest, StatesHandlingAndInputCreationWorkCorrectly) {
   ASSERT_THAT(deleted, Eq(true));
 }
 
-TEST_F(AOrcaTest, InputFileIsCreatedCorrectlyForMoessbauerCalculation) {
+TEST_F(AnOrcaTest, InputFileIsCreatedCorrectlyForMoessbauerCalculation) {
   // Set up.
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
   calculator.settings().modifyBool(Utils::ExternalQC::SettingsNames::calculateMoessbauerParameter, true);
@@ -454,7 +454,7 @@ TEST_F(AOrcaTest, InputFileIsCreatedCorrectlyForMoessbauerCalculation) {
   ASSERT_TRUE(feBasisSectionFound);
 }
 
-TEST_F(AOrcaTest, CAMB3LYPWorksCorrectly) {
+TEST_F(AnOrcaTest, CAMB3LYPWorksCorrectly) {
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
   calculator.settings().modifyString(Utils::SettingsNames::method, "CAM-B3LYP-D3BJ");
   calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2-SVP FORCE_FAILURE");
@@ -496,7 +496,7 @@ TEST_F(AOrcaTest, CAMB3LYPWorksCorrectly) {
   ASSERT_THAT(deleted, Eq(true));
 }
 
-TEST_F(AOrcaTest, SolventInputKeywordWorkCorrectly) {
+TEST_F(AnOrcaTest, SolventInputKeywordWorkCorrectly) {
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
   calculator.settings().modifyString(Utils::SettingsNames::solvent, "water");
   calculator.settings().modifyString(Utils::SettingsNames::solvation, "any");
@@ -541,7 +541,7 @@ TEST_F(AOrcaTest, SolventInputKeywordWorkCorrectly) {
   ASSERT_THAT(deleted, Eq(true));
 }
 
-TEST_F(AOrcaTest, SmdSolvationWorksCorrectly) {
+TEST_F(AnOrcaTest, SmdSolvationWorksCorrectly) {
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
   calculator.settings().modifyString(Utils::SettingsNames::solvent, "toluene");
   calculator.settings().modifyString(Utils::SettingsNames::solvation, "smd");
@@ -591,7 +591,56 @@ TEST_F(AOrcaTest, SmdSolvationWorksCorrectly) {
   ASSERT_THAT(deleted, Eq(true));
 }
 
-TEST_F(AOrcaTest, SpinModeInputKeywordWorksCorrectly) {
+TEST_F(AnOrcaTest, UserDefinedSolvationWorksCorrectly) {
+  calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
+  calculator.settings().modifyString(Utils::SettingsNames::solvent, "user_defined(80.1, 1.95)");
+  calculator.settings().modifyString(Utils::SettingsNames::solvation, "cpcm");
+  calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2-SVP FORCE_FAILURE");
+
+  std::stringstream stream("5\n\n"
+                           "C     0.00000000   0.00000001  -0.00000097\n"
+                           "H     0.62612502   0.62612484   0.62613824\n"
+                           "H    -0.62612503  -0.62612486   0.62613824\n"
+                           "H    -0.62612481   0.62612463  -0.62613657\n"
+                           "H     0.62612481  -0.62612464  -0.62613657\n");
+
+  auto structure = Utils::XyzStreamHandler::read(stream);
+
+  calculator.setStructure(structure);
+
+  try {
+    calculator.calculate("");
+  }
+  catch (Core::UnsuccessfulCalculationException& e) {
+  }
+
+  std::string inputFileName =
+      NativeFilenames::combinePathSegments(calculator.getCalculationDirectory(), calculator.getFileNameBase() + ".inp");
+  std::ifstream input;
+  input.open(inputFileName);
+  auto content = std::string(std::istreambuf_iterator<char>{input}, {});
+  input.close();
+
+  std::string regexString = "epsilon\\s80.1";
+  std::regex regex(regexString);
+  std::smatch matches;
+  bool b = std::regex_search(content, matches, regex);
+  ASSERT_TRUE(b);
+
+  regexString = "rsolv\\s1.95";
+  std::regex regex2(regexString);
+  std::smatch matches2;
+  b = std::regex_search(content, matches2, regex2);
+  ASSERT_TRUE(b);
+  // Check whether the calculation directory can be deleted.
+  bool isDir = FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
+  boost::filesystem::remove_all(calculator.getCalculationDirectory());
+  bool deleted = !FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
+  ASSERT_THAT(isDir, Eq(true));
+  ASSERT_THAT(deleted, Eq(true));
+}
+
+TEST_F(AnOrcaTest, SpinModeInputKeywordWorksCorrectly) {
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
   calculator.settings().modifyString(Utils::SettingsNames::spinMode, "unrestricted");
   calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2-SVP FORCE_FAILURE");
@@ -635,7 +684,7 @@ TEST_F(AOrcaTest, SpinModeInputKeywordWorksCorrectly) {
   ASSERT_THAT(deleted, Eq(true));
 }
 
-TEST_F(AOrcaTest, TemporaryFilesAreDeletedCorrectly) {
+TEST_F(AnOrcaTest, TemporaryFilesAreDeletedCorrectly) {
   // Set up.
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());
   calculator.settings().modifyString(Utils::SettingsNames::method, "FORCE_FAILURE");
@@ -717,7 +766,7 @@ TEST_F(AOrcaTest, TemporaryFilesAreDeletedCorrectly) {
   ASSERT_THAT(deleted, Eq(true));
 }
 
-TEST_F(AOrcaTest, PointChargesGradientsAreCorrectlyParsed) {
+TEST_F(AnOrcaTest, PointChargesGradientsAreCorrectlyParsed) {
   ExternalQC::OrcaPointChargesGradientsFileParser parser((pathToResource / "orca_point_charges_gradients.pcgrad").string());
   auto gradients = parser.getPointChargesGradients();
 
@@ -742,7 +791,7 @@ TEST_F(AOrcaTest, PointChargesGradientsAreCorrectlyParsed) {
   }
 }
 
-TEST_F(AOrcaTest, MoessbauerParametersAreParsedCorrectly) {
+TEST_F(AnOrcaTest, MoessbauerParametersAreParsedCorrectly) {
   ExternalQC::OrcaMainOutputParser parser((pathToResource / "orca_moessbauer_test_calc.out").string());
   parser.checkForErrors();
   int numIrons = 2;
@@ -771,7 +820,7 @@ TEST_F(AOrcaTest, MoessbauerParametersAreParsedCorrectly) {
   ASSERT_THAT(feDensities.at(3), DoubleNear(11822.049028714, 1e-8));
 }
 
-TEST_F(AOrcaTest, OrcaCalculationIsPerformedCorrectlyViaScine) {
+TEST_F(AnOrcaTest, OrcaCalculationIsPerformedCorrectlyViaScine) {
 #ifndef _WIN32
   const char* envVariablePtr = std::getenv("ORCA_BINARY_PATH");
   if (envVariablePtr) {
@@ -809,7 +858,115 @@ TEST_F(AOrcaTest, OrcaCalculationIsPerformedCorrectlyViaScine) {
 #endif
 }
 
-TEST_F(AOrcaTest, ScfConvergenceIncreasedForPropertyCalculation) {
+TEST_F(AnOrcaTest, OrcaCalculationHandlesZeroKelvinCorrectly) {
+#ifndef _WIN32
+  const char* envVariablePtr = std::getenv("ORCA_BINARY_PATH");
+  if (envVariablePtr) {
+    // Set-up
+    calculator.settings().modifyInt(Utils::SettingsNames::externalProgramNProcs, 1);
+    calculator.settings().modifyString(Utils::SettingsNames::method, "PBE-D3BJ");
+    calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2-SVP");
+    calculator.settings().modifyDouble(Utils::SettingsNames::temperature, 0.0);
+    calculator.setRequiredProperties(Property::Energy | Property::Thermochemistry);
+
+    std::stringstream stream("5\n\n"
+                             "C     0.00000000   0.00000001  -0.00000097\n"
+                             "H     0.62612502   0.62612484   0.62613824\n"
+                             "H    -0.62612503  -0.62612486   0.62613824\n"
+                             "H    -0.62612481   0.62612463  -0.62613657\n"
+                             "H     0.62612481  -0.62612464  -0.62613657\n");
+    auto structure = Utils::XyzStreamHandler::read(stream);
+    calculator.setStructure(structure);
+
+    // Calculate
+    const auto& results = calculator.calculate("");
+    // Assert energy
+    const double energy = -40.41525379;
+    ASSERT_THAT(results.get<Property::Energy>(), DoubleNear(energy, 1e-6));
+    auto thermochemistry = results.get<Property::Thermochemistry>();
+    ASSERT_THAT(thermochemistry.overall.gibbsFreeEnergy,
+                DoubleNear(energy + thermochemistry.overall.zeroPointVibrationalEnergy, 1e-6));
+
+    // Check whether the calculation directory can be deleted.
+    bool isDir = FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
+    boost::filesystem::remove_all(calculator.getCalculationDirectory());
+    bool deleted = !FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
+    ASSERT_THAT(isDir, Eq(true));
+    ASSERT_THAT(deleted, Eq(true));
+  }
+  else {
+    auto logger = Core::Log();
+    logger.output << "Orca calculations were not tested directly as no binary path was specified." << Core::Log::endl;
+  }
+#endif
+}
+
+TEST_F(AnOrcaTest, OrcaElectrostaticEmbedding) {
+#ifndef _WIN32
+  const char* envVariablePtr = std::getenv("ORCA_BINARY_PATH");
+  if (envVariablePtr) {
+    // Set-up
+    calculator.settings().modifyInt(Utils::SettingsNames::externalProgramNProcs, 1);
+    calculator.settings().modifyString(Utils::SettingsNames::method, "PBE-D3BJ");
+    calculator.settings().modifyString(Utils::SettingsNames::basisSet, "def2-SVP");
+
+    /*
+     * I copy the file with the partial charges here because the absolute path to the file can become too
+     * long for Orca.
+     */
+    const std::string fileName = "etoh-water-env-charges.pc";
+    boost::filesystem::path chargePath = pathToResource / boost::filesystem::path(fileName);
+    std::ifstream inputChargeFile(chargePath.string());
+    std::ofstream localChargeFile(fileName);
+    localChargeFile << inputChargeFile.rdbuf();
+    inputChargeFile.close();
+    localChargeFile.close();
+
+    calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::pointChargesFile, fileName);
+    calculator.setRequiredProperties(Property::Energy | Property::Gradients | Property::PointChargesGradients);
+
+    std::ifstream input((pathToResource / boost::filesystem::path("etoh.xyz")).string());
+    auto structure = Utils::XyzStreamHandler::read(input);
+    calculator.setStructure(structure);
+
+    // Calculate
+    const auto& results = calculator.calculate("");
+    const auto& gradients = results.get<Property::Gradients>();
+    const auto& pointChargeGradients = results.get<Property::PointChargesGradients>();
+    Eigen::MatrixXd referenceGradients(9, 3);
+    referenceGradients << 6.853288e-03, -1.467868e-02, 1.918601e-03, -1.191180e-02, 3.120763e-02, 3.726501e-03,
+        -6.252831e-03, 3.083466e-03, -4.476670e-03, 9.338627e-03, -1.813259e-03, 2.286019e-03, -6.475387e-03,
+        5.781725e-03, 4.509401e-03, -1.666350e-04, -8.788508e-03, -8.529894e-03, 6.576240e-03, -8.608201e-03,
+        5.959057e-03, -6.843780e-04, -7.835331e-03, -6.689076e-03, 2.698203e-03, 1.558661e-03, 1.142349e-03;
+    Eigen::MatrixXd referencePointChargeGradients(10, 3);
+    referencePointChargeGradients << 1.140913e-06, 1.726287e-06, 2.785306e-06, -5.605660e-07, -7.253590e-07,
+        -1.300952e-06, -6.515240e-07, -8.476030e-07, -1.513198e-06, -5.422563e-06, -3.452400e-08, -3.137530e-07,
+        2.678984e-06, 1.047870e-07, 5.184300e-08, 2.474056e-06, -7.007000e-09, 1.609300e-07, -1.997151e-06,
+        2.548890e-06, -6.988200e-08, 1.073967e-06, -1.261605e-06, 4.832500e-08, 9.155280e-07, -1.173020e-06,
+        2.676100e-08, -8.506255e-06, 1.963883e-05, -7.809655e-06;
+
+    const double diffGrad = (gradients - referenceGradients).array().abs().maxCoeff();
+    EXPECT_NEAR(diffGrad, 0.0, 1e-6);
+    const double pointChargeDiff =
+        (pointChargeGradients.topRows(10) - referencePointChargeGradients).array().abs().maxCoeff();
+    EXPECT_NEAR(pointChargeDiff, 0.0, 1e-6);
+
+    // Check whether the calculation directory can be deleted.
+    bool isDir = FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
+    boost::filesystem::remove_all(calculator.getCalculationDirectory());
+    boost::filesystem::remove(fileName);
+    bool deleted = !FilesystemHelpers::isDirectory(calculator.getCalculationDirectory());
+    ASSERT_THAT(isDir, Eq(true));
+    ASSERT_THAT(deleted, Eq(true));
+  }
+  else {
+    auto logger = Core::Log();
+    logger.output << "Orca calculations were not tested directly as no binary path was specified." << Core::Log::endl;
+  }
+#endif
+}
+
+TEST_F(AnOrcaTest, ScfConvergenceIncreasedForPropertyCalculation) {
   // set low scf convergence criterion
   calculator.settings().modifyDouble(Utils::SettingsNames::selfConsistenceCriterion, 1e-4);
   // request Hessian calculation
@@ -825,7 +982,7 @@ TEST_F(AOrcaTest, ScfConvergenceIncreasedForPropertyCalculation) {
   ASSERT_THAT(thirdCalculator->settings().getDouble(Utils::SettingsNames::selfConsistenceCriterion), Eq(1e-8));
 }
 
-TEST_F(AOrcaTest, BrokenSymmetryCalculationIsSetUpCorrectly) {
+TEST_F(AnOrcaTest, BrokenSymmetryCalculationIsSetUpCorrectly) {
   // set low scf convergence criterion
   calculator.settings().modifyBool(Utils::ExternalQC::SettingsNames::performBrokenSymmetryCalculation, true);
   calculator.settings().modifyString(Utils::ExternalQC::SettingsNames::baseWorkingDirectory, pathToResource.string());

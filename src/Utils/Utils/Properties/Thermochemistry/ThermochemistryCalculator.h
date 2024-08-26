@@ -8,6 +8,7 @@
 #ifndef UTILS_THERMOCHEMISTRYCALCULATOR_H
 #define UTILS_THERMOCHEMISTRYCALCULATOR_H
 
+#include <Utils/DataStructures/PartialHessian.h>
 #include <Utils/GeometricDerivatives/NormalModesContainer.h>
 #include <Utils/Geometry.h>
 namespace Scine {
@@ -101,7 +102,11 @@ class ThermochemistryCalculator {
                             ElementTypeCollection elements, int spinMultiplicity, double electronicEnergy);
   ThermochemistryCalculator(const HessianMatrix& hessian, const AtomCollection& atoms, int spinMultiplicity,
                             double electronicEnergy);
+  ThermochemistryCalculator(const PartialHessian& hessian, const AtomCollection& atoms, int spinMultiplicity,
+                            double electronicEnergy);
   ThermochemistryCalculator(const HessianMatrix& hessian, ElementTypeCollection elements,
+                            const PositionCollection& positions, int spinMultiplicity, double electronicEnergy);
+  ThermochemistryCalculator(const PartialHessian& hessian, ElementTypeCollection elements,
                             const PositionCollection& positions, int spinMultiplicity, double electronicEnergy);
   ~ThermochemistryCalculator() = default;
 

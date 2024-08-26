@@ -111,6 +111,20 @@ void InformationOutput::print(const std::string& key, const DescriptorCollection
             << "default value for element: " << descriptor.getDefaultItemValue() << std::endl;
         break;
       }
+      case GenericDescriptor::Type::IntListList: {
+        const auto& descriptor = setting.getIntListListDescriptor();
+        std::stringstream items;
+        for (const auto& i : descriptor.getDefaultValue()) {
+          for (const auto& j : i) {
+            items << j << ", ";
+          }
+        }
+        out << "list of integer lists. "
+            << "Default value for lists: [" << items.str() << "], "
+            << "bounds for element: [" << descriptor.getItemMinimum() << " - " << descriptor.getItemMaximum() << "], "
+            << "default value for element: " << descriptor.getDefaultItemValue() << std::endl;
+        break;
+      }
       case GenericDescriptor::Type::DoubleList: {
         const auto& descriptor = setting.getDoubleListDescriptor();
         std::stringstream items;

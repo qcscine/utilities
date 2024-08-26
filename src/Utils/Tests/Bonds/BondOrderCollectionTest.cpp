@@ -9,9 +9,8 @@
 #include <Eigen/SparseCore>
 
 using namespace testing;
-namespace Scine {
-namespace Utils {
-namespace Tests {
+
+namespace Scine::Utils::Tests {
 
 TEST(BondOrderCollectionTest, Empty) {
   int size = 3;
@@ -103,6 +102,21 @@ TEST(BondOrderCollectionTest, AbsoluteValues) {
   ASSERT_EQ(b.getOrder(0, 2), 1);
 }
 
-} /* namespace Tests */
-} /* namespace Utils */
-} /* namespace Scine */
+TEST(BondOrderCollectionTest, RemoveAtoms) {
+  Eigen::MatrixXd bondOrders = Eigen::MatrixXd::Zero(6, 6);
+  // 6 atoms in 2 molecules with 3 atoms each. For instance, two water molecules.
+  // For the sake of the unit test, I also added a bond between the central atoms of the molecules.
+  bondOrders << 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0;
+  BondOrderCollection bondOrderCollection(6);
+  bondOrderCollection.setMatrix(bondOrders.sparseView());
+  ASSERT_EQ(bondOrderCollection.getSystemSize(), 6);
+  ASSERT_EQ(bondOrderCollection.getOrder(1, 0), 1);
+  // Remove one of the molecules.
+  bondOrderCollection.removeAtomsByIndices({0, 1, 2});
+  ASSERT_EQ(bondOrderCollection.getSystemSize(), 3);
+  ASSERT_EQ(bondOrderCollection.getOrder(1, 0), 1);
+  ASSERT_EQ(bondOrderCollection.getOrder(2, 0), 0);
+  ASSERT_EQ(bondOrderCollection.getOrder(2, 1), 1);
+}
+
+} // namespace Scine::Utils::Tests

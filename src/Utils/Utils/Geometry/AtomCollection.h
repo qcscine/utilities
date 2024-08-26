@@ -88,7 +88,7 @@ class AtomCollection {
    *
    * @param residues The new positions.
    */
-  void setResidues(ResidueCollection residues);
+  void setResidues(const ResidueCollection& residues);
   /**
    * @brief Get the Elements object
    *
@@ -231,6 +231,34 @@ class AtomCollection {
    * @return The combined atom collection.
    */
   AtomCollection& operator+=(const AtomCollection& other);
+  /**
+   * @brief Remove atoms by residue label.
+   * @param residueLabel The list of residue labels to be removed.
+   * @return The indices of the removed atoms. The indices refer to the indexing in the AtomCollection before
+   *         removing.
+   */
+  std::vector<unsigned int> removeAtomsByResidueLabel(const std::vector<std::string>& residueLabels);
+  /**
+   * @brief Remove atoms if their residue label is not within the given list.
+   * @param residueLabel The residue label list.
+   * @return The indices of the removed atoms. The indices refer to the indexing in the AtomCollection before
+   *         removing.
+   */
+  std::vector<unsigned int> keepAtomsByResidueLabel(const std::vector<std::string>& residueLabels);
+  /**
+   * @brief Remove atoms by their index.
+   * @param atomsToBeRemoved The indices of the atoms to be removed.
+   * @return The indices of the removed atoms. The indices refer to the indexing in the AtomCollection before
+   *         removing.
+   */
+  std::vector<unsigned int> removeAtomsByIndices(const std::vector<unsigned int>& atomsToBeRemoved);
+  /**
+   * @brief Keep atoms by their index.
+   * @param atomsToKeep The indices of the atoms to keep.
+   * @return The indices of the removed atoms. The indices refer to the indexing in the AtomCollection before
+   *         removing.
+   */
+  std::vector<unsigned int> keepAtomsByIndices(const std::vector<unsigned int>& atomsToKeep);
 
  private:
   ElementTypeCollection elements_;

@@ -46,6 +46,7 @@ class GenericValue {
   //!@name Types
   //!@{
   using IntList = std::vector<int>;
+  using IntListList = std::vector<std::vector<int>>;
   using DoubleList = std::vector<double>;
   using StringList = std::vector<std::string>;
   using CollectionList = std::vector<ValueCollection>;
@@ -79,6 +80,7 @@ class GenericValue {
   static GenericValue fromOptionWithSettings(ParametrizedOptionValue v);
 
   static GenericValue fromIntList(IntList v);
+  static GenericValue fromIntListList(IntListList v);
   static GenericValue fromDoubleList(DoubleList v);
   static GenericValue fromStringList(const StringList& v);
   static GenericValue fromCollectionList(CollectionList v);
@@ -94,6 +96,7 @@ class GenericValue {
   bool isOptionWithSettings() const;
 
   bool isIntList() const;
+  bool isIntListList() const;
   bool isDoubleList() const;
   bool isStringList() const;
   bool isCollectionList() const;
@@ -109,6 +112,7 @@ class GenericValue {
   ParametrizedOptionValue toOptionWithSettings() const;
 
   IntList toIntList() const;
+  IntListList toIntListList() const;
   DoubleList toDoubleList() const;
   StringList toStringList() const;
   CollectionList toCollectionList() const;

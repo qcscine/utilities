@@ -38,7 +38,7 @@ void recursivePropertyAdditionToResults(pybind11::class_<Results>& /* results */
 
 template<std::size_t index, std::size_t... Inds>
 void recursivePropertyAdditionToResults(pybind11::class_<Results>& results) {
-  add_property<static_cast<Property>(1 << index)>(results);
+  add_property<static_cast<Property>(1ULL << index)>(results);
 
   recursivePropertyAdditionToResults<Inds...>(results);
 }
@@ -54,5 +54,5 @@ void init_results(pybind11::module& m) {
   pybind11::class_<Results> results(m, "Results");
   results.def(pybind11::init<>());
 
-  ::detail::unpackVariadicIndices(results, std::make_index_sequence<std::tuple_size<PropertyTypeTuple>::value>{});
+  ::detail::unpackVariadicIndices(results, std::make_index_sequence<N_PROPERTIES>{});
 }

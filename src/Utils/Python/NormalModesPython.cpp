@@ -32,26 +32,29 @@ void init_normal_modes(pybind11::module& m) {
   normal_modes_submodule.def(
       "calculate",
       pybind11::overload_cast<const HessianMatrix&, const AtomCollection&>(&NormalModeAnalysis::calculateNormalModes),
-      pybind11::arg("hessian"), pybind11::arg("atoms"), "Calculate the mass weighted normal modes.");
+      pybind11::arg("hessian"), pybind11::arg("atoms"),
+      "Calculate the normal modes in cartesian coordinates from an internally derived mass weighted Hessian.");
   normal_modes_submodule.def(
       "calculate",
-      pybind11::overload_cast<const HessianMatrix&, const ElementTypeCollection&, const PositionCollection&, bool>(
+      pybind11::overload_cast<const HessianMatrix&, const ElementTypeCollection&, const PositionCollection&, bool, bool>(
           &NormalModeAnalysis::calculateNormalModes),
       pybind11::arg("hessian"), pybind11::arg("elements"), pybind11::arg("positions"),
-      pybind11::arg("normalize") = false, "Calculate the mass weighted normal modes.");
+      pybind11::arg("normalize") = true, pybind11::arg("mass_weighted") = true,
+      "Calculate the normal modes in Cartesian coordinates from an internally derived mass weighted Hessian.");
   normal_modes_submodule.def(
       "calculate",
       pybind11::overload_cast<const PartialHessian&, const AtomCollection&>(&NormalModeAnalysis::calculateNormalModes),
       pybind11::arg("partial_hessian"), pybind11::arg("atoms"),
-      "Calculate the mass weighted normal modes from a"
+      "Calculate the normal modes in Cartesian coordinates from an internally derived mass weighted"
       "partial Hessian and the super system.");
   normal_modes_submodule.def(
       "calculate",
-      pybind11::overload_cast<const PartialHessian&, const ElementTypeCollection&, const PositionCollection&, bool>(
+      pybind11::overload_cast<const PartialHessian&, const ElementTypeCollection&, const PositionCollection&, bool, bool>(
           &NormalModeAnalysis::calculateNormalModes),
       pybind11::arg("partial_hessian"), pybind11::arg("elements"), pybind11::arg("positions"),
-      pybind11::arg("normalize") = false,
-      "Calculate the mass weighted normal modes from a partial Hessian and the super system.");
+      pybind11::arg("normalize") = true, pybind11::arg("mass_weighted") = true,
+      "Calculate the normal modes in Cartesian coordinates from an internally derived mass weighted"
+      "partial Hessian and the super system.");
 
   normal_modes_submodule.def("get_harmonic_inversion_point", &NormalModeAnalysis::calculateHarmonicInversionPoint,
                              pybind11::arg("wavenumber"), pybind11::arg("n"),

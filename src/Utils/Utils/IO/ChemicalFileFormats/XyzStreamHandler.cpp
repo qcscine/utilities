@@ -10,7 +10,6 @@
 #include "Utils/Geometry/AtomCollection.h"
 #include "Utils/Geometry/ElementInfo.h"
 #include "Utils/Strings.h"
-#include <boost/optional.hpp>
 #include <iomanip>
 #include <string>
 
@@ -164,11 +163,11 @@ void XyzStreamHandler::write(std::ostream& os, const AtomCollection& atoms, cons
   for (int i = 0; i < N; ++i) {
     auto position = atoms.getPosition(i);
 
-    os << std::left << std::setw(3) << ElementInfo::symbol(atoms.getElement(i));
+    os << std::left << std::setw(3) << ElementInfo::symbol(atoms.getElement(i)) << " ";
     // clang-format off
     os << std::right
-      << std::setw(16) << toAngstrom(Bohr(position.x()))
-      << std::setw(16) << toAngstrom(Bohr(position.y()))
+      << std::setw(16) << toAngstrom(Bohr(position.x())) << " "
+      << std::setw(16) << toAngstrom(Bohr(position.y())) << " "
       << std::setw(16) << toAngstrom(Bohr(position.z()))
       << "\n";
     // clang-format on

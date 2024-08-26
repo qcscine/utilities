@@ -223,6 +223,17 @@ UniversalSettings::ValueCollection deserializeValueCollection(const YAML::Node& 
         collection.addCollectionList(key, collectionList);
       }
     }
+    else if (pair.second.IsSequence()) {
+      std::vector<std::vector<int>> listOfLists;
+      for (const auto& list : pair.second) {
+        std::vector<int> integers;
+        for (auto subnode : pair.second) {
+          integers.push_back(safeInt(subnode.Scalar()).value());
+        }
+        listOfLists.push_back(integers);
+      }
+      collection.addIntListList(key, std::move(listOfLists));
+    }
     else if (pair.second.IsMap()) {
       if (pair.second.size() == 2 && mapIsAParametrizedOption(pair.second)) {
         std::string selectedOption;
@@ -285,6 +296,10 @@ void nodeToSettings(Settings& settings, const YAML::Node& node, bool allowSuperf
       else if (value.isIntList()) {
         auto val = it->second.as<std::vector<int>>();
         settings.modifyIntList(key, val);
+      }
+      else if (value.isIntListList()) {
+        auto val = it->second.as<std::vector<std::vector<int>>>();
+        settings.modifyIntListList(key, val);
       }
       else if (value.isDoubleList()) {
         auto val = it->second.as<std::vector<double>>();

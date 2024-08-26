@@ -47,7 +47,7 @@ TEST_F(AtomCollectionTest, CanBeGeneratedFromElementTypeAndPositionCollections) 
   AtomCollection atoms(randomElements, randomPositions);
 
   ASSERT_TRUE(randomElements.size() == 3);
-  ASSERT_TRUE(atoms.size() == randomElements.size());
+  ASSERT_TRUE((unsigned int)atoms.size() == randomElements.size());
   for (int i = 0; i < atoms.size(); ++i) {
     auto atom = atoms[i];
     ASSERT_THAT(atom.getElementType(), Eq(randomElements[i]));
@@ -128,6 +128,73 @@ TEST_F(AtomCollectionTest, AtomCollectionsCanBeCombined) {
   ASSERT_THAT(merge.size(), 2 * first.size() + 2 * second.size());
   ASSERT_THAT(merge.getElement(0), first.getElement(0));
   ASSERT_THAT(merge.getElement(merge.size() - 1), second.getElement(second.size() - 1));
+}
+
+TEST_F(AtomCollectionTest, RemoveAtomsByResidueLabel) {
+  AtomCollection atomCollection;
+  atomCollection.push_back(Atom(ElementType::He, Position(0, 0, 0)));
+  atomCollection.push_back(Atom(ElementType::Ne, Position(1, 0, 0)));
+  atomCollection.push_back(Atom(ElementType::Ar, Position(0, 2, 0)));
+  atomCollection.push_back(Atom(ElementType::Kr, Position(0, 2, 1)));
+  const ResidueCollection residueCollection = {ResidueInformation("A", "", "C", 1), ResidueInformation("B", "", "C", 1),
+                                               ResidueInformation("B", "", "C", 1), ResidueInformation("A", "", "C", 1)};
+  atomCollection.setResidues(residueCollection);
+  const std::vector<unsigned int> deletedAtoms = atomCollection.removeAtomsByResidueLabel({"A"});
+  ASSERT_EQ(deletedAtoms.size(), 2);
+  ASSERT_EQ(deletedAtoms[0], 0);
+  ASSERT_EQ(deletedAtoms[1], 3);
+  ASSERT_EQ(atomCollection.size(), 2);
+  const std::vector<unsigned int> deletedAtoms2 = atomCollection.removeAtomsByResidueLabel({"A"});
+  ASSERT_EQ(deletedAtoms2.size(), 0);
+  ASSERT_EQ(atomCollection.size(), 2);
+  const std::vector<unsigned int> deletedAtoms3 = atomCollection.removeAtomsByResidueLabel({"B"});
+  ASSERT_EQ(deletedAtoms3.size(), 2);
+  ASSERT_EQ(deletedAtoms3[0], 0);
+  ASSERT_EQ(deletedAtoms3[1], 1);
+  ASSERT_EQ(atomCollection.size(), 0);
+}
+
+TEST_F(AtomCollectionTest, KeepAtomsByResidueLabel) {
+  AtomCollection atomCollection;
+  atomCollection.push_back(Atom(ElementType::He, Position(0, 0, 0)));
+  atomCollection.push_back(Atom(ElementType::Ne, Position(1, 0, 0)));
+  atomCollection.push_back(Atom(ElementType::Ar, Position(0, 2, 0)));
+  atomCollection.push_back(Atom(ElementType::Kr, Position(0, 2, 1)));
+  const ResidueCollection residueCollection = {ResidueInformation("A", "", "C", 1), ResidueInformation("B", "", "C", 1),
+                                               ResidueInformation("B", "", "C", 1), ResidueInformation("A", "", "C", 1)};
+  atomCollection.setResidues(residueCollection);
+  const std::vector<unsigned int> deletedAtoms = atomCollection.keepAtomsByResidueLabel({"A"});
+  ASSERT_EQ(deletedAtoms.size(), 2);
+  ASSERT_EQ(deletedAtoms[0], 1);
+  ASSERT_EQ(deletedAtoms[1], 2);
+  ASSERT_EQ(atomCollection.size(), 2);
+  const std::vector<unsigned int> deletedAtoms2 = atomCollection.removeAtomsByResidueLabel({"B"});
+  ASSERT_EQ(deletedAtoms2.size(), 0);
+  ASSERT_EQ(atomCollection.size(), 2);
+  const std::vector<unsigned int> deletedAtoms3 = atomCollection.keepAtomsByResidueLabel({"Z"});
+  ASSERT_EQ(deletedAtoms3.size(), 2);
+  ASSERT_EQ(deletedAtoms3[0], 0);
+  ASSERT_EQ(deletedAtoms3[1], 1);
+  ASSERT_EQ(atomCollection.size(), 0);
+}
+
+TEST_F(AtomCollectionTest, KeepAtomsByIndex) {
+  AtomCollection atomCollection;
+  atomCollection.push_back(Atom(ElementType::He, Position(0, 0, 0)));
+  atomCollection.push_back(Atom(ElementType::Ne, Position(1, 0, 0)));
+  atomCollection.push_back(Atom(ElementType::Ar, Position(0, 2, 0)));
+  atomCollection.push_back(Atom(ElementType::Kr, Position(0, 2, 1)));
+  const std::vector<unsigned int> deletedAtoms = atomCollection.keepAtomsByIndices({0, 1, 3});
+  ASSERT_EQ(deletedAtoms.size(), 1);
+  ASSERT_EQ(deletedAtoms[0], 2);
+  ASSERT_EQ(atomCollection.size(), 3);
+  const std::vector<unsigned int> deletedAtoms2 = atomCollection.keepAtomsByIndices({0});
+  ASSERT_EQ(deletedAtoms2.size(), 2);
+  ASSERT_EQ(atomCollection.size(), 1);
+  const std::vector<unsigned int> deletedAtoms3 = atomCollection.keepAtomsByIndices({});
+  ASSERT_EQ(deletedAtoms3.size(), 1);
+  ASSERT_EQ(deletedAtoms3[0], 0);
+  ASSERT_EQ(atomCollection.size(), 0);
 }
 
 } /* namespace Tests */

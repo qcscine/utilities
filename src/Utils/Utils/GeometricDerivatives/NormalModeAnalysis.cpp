@@ -19,10 +19,15 @@ namespace Utils {
 namespace NormalModeAnalysis {
 
 inline NormalModesContainer calculate(HessianUtilities& diagonalizer, int nAtoms, bool normalize) {
+  // TODO: If there is an external electric field, we cannot simply project out the translational degrees of freedom!
+  NormalModesContainer modesContainer;
+  if (nAtoms < 2) {
+    return modesContainer;
+  }
+
   const Eigen::VectorXd eigenvalues = diagonalizer.getInternalEigenvalues();
   const Eigen::MatrixXd cartesianDisplacements = diagonalizer.getBackTransformedInternalEigenvectors(normalize);
 
-  NormalModesContainer modesContainer;
   DisplacementCollection dc(nAtoms, 3);
   for (int i = 0; i < cartesianDisplacements.cols(); ++i) {
     for (long j = 0; j < nAtoms; ++j) {
@@ -65,33 +70,36 @@ inline NormalModesContainer calculateFromPartial(HessianUtilities& diagonalizer,
 }
 
 NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const AtomCollection& atoms) {
-  return calculateNormalModes(hessian, atoms.getElements(), atoms.getPositions(), true);
+  return calculateNormalModes(hessian, atoms.getElements(), atoms.getPositions());
 }
 
 NormalModesContainer calculateNormalModes(const PartialHessian& hessian, const AtomCollection& atoms) {
-  return calculateNormalModes(hessian, atoms.getElements(), atoms.getPositions(), true);
+  return calculateNormalModes(hessian, atoms.getElements(), atoms.getPositions());
 }
 
 NormalModesContainer calculateNormalModes(const HessianMatrix& hessian, const ElementTypeCollection& elements,
-                                          const PositionCollection& positions, bool normalize) {
+                                          const PositionCollection& positions, bool normalize, bool massWeighted) {
   int nAtoms = elements.size();
 
-  HessianUtilities diagonalizer(hessian, elements, positions, true);
+  HessianUtilities diagonalizer(hessian, elements, positions, massWeighted);
 
   return calculate(diagonalizer, nAtoms, normalize);
 }
 
 NormalModesContainer calculateNormalModes(const PartialHessian& hessian, const ElementTypeCollection& elements,
-                                          const PositionCollection& positions, bool normalize) {
+                                          const PositionCollection& positions, bool normalize, bool massWeighted) {
   const int nSuperAtoms = elements.size();
   const int nPartialAtoms = hessian.getNumberOfAtoms();
+  if (nPartialAtoms < 2) {
+    return NormalModesContainer();
+  }
   const auto& partialAtoms = hessian.getPartialAtoms(elements, positions);
 
   // determine number of modes of super system
   auto rotoTranslation = Geometry::Transformations::calculateTranslationAndRotationModes(positions, elements);
   int nSuperModes = static_cast<int>(rotoTranslation.rows());
 
-  HessianUtilities diagonalizer(hessian.getMatrix(), partialAtoms.getElements(), partialAtoms.getPositions(), true);
+  HessianUtilities diagonalizer(hessian.getMatrix(), partialAtoms.getElements(), partialAtoms.getPositions(), massWeighted);
   return calculateFromPartial(diagonalizer, hessian.getIndices(), nSuperAtoms, nPartialAtoms, nSuperModes, normalize);
 }
 

@@ -4,9 +4,7 @@
  *            Copyright ETH Zurich, Department of Chemistry and Applied Biosciences, Reiher Group.\n
  *            See LICENSE.txt for details.
  */
-#include <Core/Interfaces/Calculator.h>
-#include <Utils/CalculatorBasics/Results.h>
-#include <Utils/CalculatorBasics/TestCalculator.h>
+#include <Utils/CalculatorBasics/QmmmTestCalculator.h>
 #include <Utils/GeometryOptimization/GeometryOptimizer.h>
 #include <Utils/GeometryOptimization/QmmmGeometryOptimizer.h>
 #include <Utils/IO/ChemicalFileFormats/XyzStreamHandler.h>
@@ -18,97 +16,6 @@ using namespace testing;
 namespace Scine {
 namespace Utils {
 namespace Tests {
-
-namespace {
-// Counter for the number of calculations to adapt energy and gradients in mock calculator.
-int numberOfCalculations = 0;
-} // namespace
-
-// Define mock settings
-class QmmmGeoOptMockCalculatorSettings : public Scine::Utils::Settings {
- public:
-  QmmmGeoOptMockCalculatorSettings() : Settings("QmmmGeoOptMockCalculatorSettings") {
-    Utils::UniversalSettings::BoolDescriptor ignoreQm(
-        "Whether to ignore all contributions from the QM calculation, and therefore, not performing it.");
-    ignoreQm.setDefaultValue(false);
-    this->_fields.push_back("ignore_qm", std::move(ignoreQm));
-    Utils::UniversalSettings::IntListDescriptor qmAtoms("A list of the indices of the atoms in the QM region.");
-    this->_fields.push_back("qm_atoms", std::move(qmAtoms));
-
-    resetToDefaults();
-  };
-};
-
-// Define a mock calculator
-class QmmmGeoOptMockCalculator : public Core::Calculator {
- public:
-  QmmmGeoOptMockCalculator() {
-    this->settings_ = std::make_unique<QmmmGeoOptMockCalculatorSettings>();
-    this->underlyingCalculator_ = std::make_unique<TestCalculator>();
-    this->underlyingCalculator_->setPrecision(7);
-  };
-  ~QmmmGeoOptMockCalculator() override = default;
-  void setStructure(const AtomCollection& structure) final {
-    underlyingCalculator_->setStructure(structure);
-    structure_ = structure;
-  }
-  void modifyPositions(PositionCollection newPositions) final {
-    underlyingCalculator_->modifyPositions(newPositions);
-    structure_.setPositions(newPositions);
-  }
-  const PositionCollection& getPositions() const final {
-    return underlyingCalculator_->getPositions();
-  }
-  void setRequiredProperties(const PropertyList& /* requiredProperties */) final{};
-  PropertyList getRequiredProperties() const final {
-    return PropertyList{};
-  }
-  PropertyList possibleProperties() const final {
-    return Utils::Property::Energy | Utils::Property::Gradients;
-  }
-  const Results& calculate(std::string dummy = "") final {
-    results_ = underlyingCalculator_->calculate(dummy);
-    return results_;
-  };
-  std::string name() const final {
-    return std::string("QmmmGeoOptMockCalculator");
-  };
-  std::shared_ptr<Core::State> getState() const final {
-    return nullptr;
-  }
-  void loadState(std::shared_ptr<Core::State> /* state */) final {
-  }
-  const Settings& settings() const final {
-    return *settings_;
-  }
-  Settings& settings() final {
-    return *settings_;
-  }
-  Utils::Results& results() final {
-    return results_;
-  }
-  const Utils::Results& results() const final {
-    return results_;
-  }
-  std::unique_ptr<Utils::AtomCollection> getStructure() const final {
-    return std::make_unique<Utils::AtomCollection>(structure_);
-  }
-  bool supportsMethodFamily(const std::string& methodFamily) const final {
-    return methodFamily == "QMMM";
-  }
-  bool allowsPythonGILRelease() const override {
-    return true;
-  };
-
- private:
-  AtomCollection structure_;
-  Results results_;
-  std::unique_ptr<Settings> settings_;
-  std::unique_ptr<TestCalculator> underlyingCalculator_;
-  std::shared_ptr<Core::Calculator> cloneImpl() const final {
-    return nullptr;
-  }
-};
 
 /**
  * @class AQmmmGeometryOptimizerTest QmmmGeometryOptimizerTest.cpp
@@ -142,7 +49,7 @@ TEST_F(AQmmmGeometryOptimizerTest, QmmmGeometryOptimizerConvergenceWorksCorrectl
   // minimum (w.r.t. the test calcutor).
   auto structure = Utils::XyzStreamHandler::read(ss);
 
-  QmmmGeoOptMockCalculator calculator;
+  QmmmTestCalculator calculator;
   calculator.settings().modifyIntList("qm_atoms", std::vector<int>{{8, 11, 12}});
 
   Core::Log log = Core::Log::silent();
@@ -169,7 +76,6 @@ TEST_F(AQmmmGeometryOptimizerTest, QmmmGeometryOptimizerConvergenceWorksCorrectl
   EXPECT_TRUE(cyclesOne > maxFullOptMicroiter);
 
   // Reset
-  numberOfCalculations = 0;
   qmmmGeometryOptimizer.clearConstrainedAtoms();
 
   // Modified optimizer settings
@@ -184,7 +90,6 @@ TEST_F(AQmmmGeometryOptimizerTest, QmmmGeometryOptimizerConvergenceWorksCorrectl
   EXPECT_TRUE(cyclesTwo > 1); // Should converge in more than 1 cycle.
 
   // Reset
-  numberOfCalculations = 0;
   qmmmGeometryOptimizer.clearConstrainedAtoms();
 
   // Modified optimizer settings
@@ -195,7 +100,7 @@ TEST_F(AQmmmGeometryOptimizerTest, QmmmGeometryOptimizerConvergenceWorksCorrectl
   AtomCollection s3 = structure;
   // This optimization should do the worst of the three examples:
   // It performs only 5 environment relaxation steps in between the full opts.
-  auto cyclesThree = qmmmGeometryOptimizer.optimize(s3, log);
+  qmmmGeometryOptimizer.optimize(s3, log);
 
   Utils::PositionCollection optimizedPositions = s3.getPositions();
   for (int i = 0; i < optimizedPositions.rows(); ++i) {

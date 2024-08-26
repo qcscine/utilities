@@ -15,7 +15,6 @@
 
 namespace Scine {
 namespace Utils {
-
 namespace LcaoUtils {
 
 DensityMatrixBuilder::DensityMatrixBuilder(const MolecularOrbitals& coefficientMatrix)

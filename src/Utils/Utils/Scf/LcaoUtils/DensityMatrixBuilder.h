@@ -36,6 +36,7 @@ class DensityMatrixBuilder {
   explicit DensityMatrixBuilder(const MolecularOrbitals& coefficientMatrix);
   /*! Generates a restricted density matrix for the given number of electrons. */
   DensityMatrix generateRestrictedForNumberElectrons(int nElectrons) const;
+
   /*! Generates an unrestricted density matrix for the given number of electrons and corresponding spin multiplicity. */
   DensityMatrix generateUnrestrictedForNumberElectronsAndMultiplicity(int nElectrons, int spinMultiplicity) const;
   /*! Generates an unrestricted density matrix for the given number of alpha and beta electrons. */

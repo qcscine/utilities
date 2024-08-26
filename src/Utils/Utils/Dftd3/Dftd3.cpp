@@ -408,7 +408,7 @@ void Dftd3::calculate(Derivative d) {
   if (d != Derivative::None) {
     const unsigned N = structure_.size();
 #pragma omp parallel for
-    for (int i = 0; i < N; ++i) {
+    for (unsigned int i = 0; i < N; ++i) {
       gradients_.row(i) = Gradient(UpToSecondDerivatives_[i].deriv());
     }
   }

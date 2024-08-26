@@ -16,12 +16,20 @@ namespace Geometry {
 namespace Manipulations {
 
 PositionCollection translatePositions(const PositionCollection& positions, const Eigen::RowVector3d& translation) {
+  if (translation.size() != 3) {
+    throw std::runtime_error("Shift vector for translation has size " + std::to_string(translation.size()) + ".\n" +
+                             "Requires size of 3.");
+  }
   PositionCollection pc = positions;
   translatePositionsInPlace(pc, translation);
   return pc;
 }
 
 void translatePositionsInPlace(PositionCollection& positions, const Eigen::RowVector3d& translation) {
+  if (translation.size() != 3) {
+    throw std::runtime_error("Shift vector for translation has size " + std::to_string(translation.size()) + ".\n" +
+                             "Requires size of 3.");
+  }
   positions.rowwise() += translation;
 }
 

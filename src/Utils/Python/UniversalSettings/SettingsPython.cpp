@@ -90,11 +90,20 @@ void init_settings(pybind11::module& m) {
 
   settings.def(
       "extract",
-      [](Settings& settings, const std::string& name, const GenericValueMeta::Variant& v) {
-        GenericValue result = settings.extract(name, GenericValueMeta::convert(v));
-        return GenericValueMeta::convert(result);
+      [](Settings& settings, const std::string& name, const pybind11::object& default_value) -> pybind11::object {
+        if (default_value.is(pybind11::none())) {
+          if (settings.valueExists(name)) {
+            auto result = settings.getValue(name);
+            settings.dropValue(name);
+            return pybind11::cast(GenericValueMeta::convert(result));
+          }
+          return default_value;
+        }
+        GenericValue result =
+            settings.extract(name, GenericValueMeta::convert(default_value.cast<GenericValueMeta::Variant>()));
+        return pybind11::cast(GenericValueMeta::convert(result));
       },
-      pybind11::arg("name"), pybind11::arg("default_value"),
+      pybind11::arg("name"), pybind11::arg("default_value") = pybind11::none(),
       "Gets a value from the settings based on the given key and removes it from the settings.\n"
       "If it is not present the given default value is returned.");
 

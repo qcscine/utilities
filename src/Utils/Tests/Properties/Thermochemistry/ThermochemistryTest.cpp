@@ -5,6 +5,7 @@
  *            See LICENSE.txt for details.
  */
 
+#include <Utils/DataStructures/PartialHessian.h>
 #include <Utils/GeometricDerivatives/NormalModeAnalysis.h>
 #include <Utils/Geometry.h>
 #include <Utils/Properties/Thermochemistry/ThermochemistryCalculator.h>
@@ -44,16 +45,22 @@ class AThermochemistryTest : public Test {
  public:
   NormalModesContainer formaldehydeNormalModes;
   NormalModesContainer HFNormalModes;
+  NormalModesContainer arNormalModes;
   Geometry::Properties::PrincipalMomentsOfInertia formaldehydePMI;
   Geometry::Properties::PrincipalMomentsOfInertia hfPMI;
+  Geometry::Properties::PrincipalMomentsOfInertia arPMI;
   std::unique_ptr<ThermochemistryCalculator> arbitraryTCCalculator;
   ElementTypeCollection formaldehydeElements;
   ElementTypeCollection hfElements;
+  ElementTypeCollection arElements;
   PositionCollection hfPositions = Eigen::MatrixX3d::Zero(2, 3);
+  PositionCollection arPositions = Eigen::MatrixX3d::Zero(1, 3);
   int formaldehydeMultiplicity = 1;
   int hfMultiplicity = 1;
+  int arMultiplicity = 1;
   double arbitraryEnergy = 1.0;
   Eigen::MatrixXd hfHessian = Eigen::MatrixXd::Zero(6, 6);
+  Eigen::MatrixXd arHessian = Eigen::MatrixXd::Zero(3, 3);
 
  protected:
   void SetUp() final {
@@ -116,6 +123,20 @@ class AThermochemistryTest : public Test {
     hfHessian *= Constants::meter_per_angstrom;             // J / angstrom^2
     hfHessian *= Constants::hartree_per_joule;              // hartree / angstrom^2
     hfHessian *= std::pow(Constants::angstrom_per_bohr, 2); // hartree / bohr^2
+
+    arElements = {ElementType::Ar};
+    // clang-format off
+    arPositions << 0.0000000000000,    0.0000000000000,    0.0000000000000;
+    // clang-format on
+    const Eigen::MatrixXd identity = Eigen::MatrixXd::Identity(3, 3);
+    NormalMode m1ar(0.0, identity.row(0));
+    NormalMode m2ar(0.0, identity.row(1));
+    NormalMode m3ar(0.0, identity.row(2));
+    arNormalModes.add(m1ar);
+    arNormalModes.add(m2ar);
+    arNormalModes.add(m3ar);
+    arPMI.eigenvalues = Eigen::Vector3d::Zero();
+    arPMI.eigenvectors = Eigen::MatrixXd::Identity(3, 3);
   }
 };
 
@@ -273,6 +294,68 @@ TEST_F(AThermochemistryTest, CatchesZeroTemperature) {
   ASSERT_THAT(container.rotationalComponent.entropy, -std::numeric_limits<double>::infinity());
   ASSERT_THAT(container.translationalComponent.enthalpy, 0);
   ASSERT_THAT(container.translationalComponent.entropy, -std::numeric_limits<double>::infinity());
+  ASSERT_THAT(container.overall.gibbsFreeEnergy, container.overall.zeroPointVibrationalEnergy + arbitraryEnergy);
+}
+
+TEST_F(AThermochemistryTest, SingleAtomThermoChemistryPartialHessian) {
+  std::vector<int> indices = {0};
+  auto partialHessian = PartialHessian(arHessian, indices);
+  auto normalModes = NormalModeAnalysis::calculateNormalModes(partialHessian, arElements, arPositions);
+  // Test thermochemistry for a single atom starting from a normal mode container.
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(normalModes, arPMI, arElements, arMultiplicity, 0.0);
+  arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::notIncluded);
+  arbitraryTCCalculator->setTemperature(298.15);
+  arbitraryTCCalculator->setPressure(1e+5);
+  auto container = arbitraryTCCalculator->calculate();
+  // Check for NaN.
+  ASSERT_THAT(container.vibrationalComponent.enthalpy, container.vibrationalComponent.zeroPointVibrationalEnergy);
+  ASSERT_THAT(container.vibrationalComponent.entropy, 0);
+  ASSERT_THAT(container.rotationalComponent.enthalpy, 0);
+  ASSERT_THAT(container.rotationalComponent.entropy, 0);
+  ASSERT_TRUE(container.translationalComponent.enthalpy == container.translationalComponent.enthalpy);
+  ASSERT_TRUE(container.translationalComponent.entropy == container.translationalComponent.entropy);
+  ASSERT_TRUE(abs(container.overall.gibbsFreeEnergy - container.translationalComponent.gibbsFreeEnergy) < 1e-9);
+  ASSERT_TRUE(container.translationalComponent.enthalpy > 0.0);
+  ASSERT_TRUE(container.translationalComponent.entropy > 0.0);
+}
+
+TEST_F(AThermochemistryTest, SingleAtomThermoChemistryI) {
+  // Test thermochemistry for a single atom starting from a normal mode container.
+  arbitraryTCCalculator = std::make_unique<ThermochemistryCalculator>(arNormalModes, arPMI, arElements, arMultiplicity, 0.0);
+  arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::notIncluded);
+  arbitraryTCCalculator->setTemperature(298.15);
+  arbitraryTCCalculator->setPressure(1e+5);
+  auto container = arbitraryTCCalculator->calculate();
+  // Check for NaN.
+  ASSERT_THAT(container.vibrationalComponent.enthalpy, container.vibrationalComponent.zeroPointVibrationalEnergy);
+  ASSERT_THAT(container.vibrationalComponent.entropy, 0);
+  ASSERT_THAT(container.rotationalComponent.enthalpy, 0);
+  ASSERT_THAT(container.rotationalComponent.entropy, 0);
+  ASSERT_TRUE(container.translationalComponent.enthalpy == container.translationalComponent.enthalpy);
+  ASSERT_TRUE(container.translationalComponent.entropy == container.translationalComponent.entropy);
+  ASSERT_TRUE(abs(container.overall.gibbsFreeEnergy - container.translationalComponent.gibbsFreeEnergy) < 1e-9);
+  ASSERT_TRUE(container.translationalComponent.enthalpy > 0.0);
+  ASSERT_TRUE(container.translationalComponent.entropy > 0.0);
+}
+
+TEST_F(AThermochemistryTest, SingleAtomThermoChemistryII) {
+  // Test thermochemistry for a single atom starting from the Hessian.
+  arbitraryTCCalculator =
+      std::make_unique<ThermochemistryCalculator>(arHessian, AtomCollection(arElements, arPositions), arMultiplicity, 0.0);
+  arbitraryTCCalculator->setZPVEInclusion(ZPVEInclusion::notIncluded);
+  arbitraryTCCalculator->setTemperature(298.15);
+  arbitraryTCCalculator->setPressure(1e+5);
+  auto container = arbitraryTCCalculator->calculate();
+  // Check for NaN.
+  ASSERT_THAT(container.vibrationalComponent.enthalpy, container.vibrationalComponent.zeroPointVibrationalEnergy);
+  ASSERT_THAT(container.vibrationalComponent.entropy, 0);
+  ASSERT_THAT(container.rotationalComponent.enthalpy, 0);
+  ASSERT_THAT(container.rotationalComponent.entropy, 0);
+  ASSERT_TRUE(container.translationalComponent.enthalpy == container.translationalComponent.enthalpy);
+  ASSERT_TRUE(container.translationalComponent.entropy == container.translationalComponent.entropy);
+  ASSERT_TRUE(abs(container.overall.gibbsFreeEnergy - container.translationalComponent.gibbsFreeEnergy) < 1e-9);
+  ASSERT_TRUE(container.translationalComponent.enthalpy > 0.0);
+  ASSERT_TRUE(container.translationalComponent.entropy > 0.0);
 }
 
 } // namespace Utils

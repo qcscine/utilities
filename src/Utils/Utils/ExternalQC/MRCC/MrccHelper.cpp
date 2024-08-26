@@ -38,10 +38,10 @@ const MrccFiles& MrccHelper::getFiles() {
 
 void MrccHelper::run() {
   const auto workingDirectory = boost::process::start_dir(this->workingDirectory_);
-  boost::process::ipstream stderr;
+  boost::process::ipstream _stderr;
   boost::filesystem::remove(files_.output);
   boost::process::child c(this->dmrccExecutable_, boost::process::std_out > files_.output,
-                          boost::process::std_err > stderr, workingDirectory);
+                          boost::process::std_err > _stderr, workingDirectory);
   c.wait();
 }
 

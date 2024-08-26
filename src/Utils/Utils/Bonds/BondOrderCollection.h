@@ -25,26 +25,20 @@ class BondOrderCollection {
    * @brief Create an empty collection.
    * @param numberAtoms The number of atoms.
    */
-  BondOrderCollection(int numberAtoms) {
-    bondOrderMatrix_.resize(numberAtoms, numberAtoms);
-  }
+  BondOrderCollection(int numberAtoms);
 
   /**
    * @brief Whether this collection is empty, i.e. whether there are any
    *   non-zero bond orders in this collection
    */
-  bool empty() const {
-    return bondOrderMatrix_.nonZeros() == 0;
-  }
+  bool empty() const;
 
   /**
    * @brief Get the Matrix.
    * @return const Eigen::SparseMatrix<double>& The bond order matrix. This is a symmetric
    *   matrix.
    */
-  const Eigen::SparseMatrix<double>& getMatrix() const {
-    return bondOrderMatrix_;
-  }
+  const Eigen::SparseMatrix<double>& getMatrix() const;
   /**
    * @brief Set the Matrix.
    * @tparam T Any matrix type.
@@ -62,18 +56,11 @@ class BondOrderCollection {
    *
    * @param numberAtoms The new number of atoms.
    */
-  void resize(int numberAtoms) {
-    bondOrderMatrix_.resize(numberAtoms, numberAtoms);
-  }
+  void resize(int numberAtoms);
   /// @brief Set all bond orders to zero and frees the memory.
-  void setZero() {
-    bondOrderMatrix_.setZero();
-    bondOrderMatrix_.data().squeeze();
-  }
+  void setZero();
   /// @brief Set all bond orders to their absolute value.
-  void setToAbsoluteValues() {
-    bondOrderMatrix_ = bondOrderMatrix_.cwiseAbs();
-  }
+  void setToAbsoluteValues();
   /**
    * @brief Get the system size.
    * @tparam Index The type of the index desired. Defaults to integer
@@ -150,14 +137,15 @@ class BondOrderCollection {
    *
    * @return Whether the matrices are approximately the same
    */
-  bool operator==(const BondOrderCollection& other) const {
-    return bondOrderMatrix_.isApprox(other.bondOrderMatrix_);
-  }
+  bool operator==(const BondOrderCollection& other) const;
 
   //! Negates @see operator ==
-  bool operator!=(const BondOrderCollection& other) const {
-    return !(*this == other);
-  }
+  bool operator!=(const BondOrderCollection& other) const;
+  /**
+   * @brief Remove atoms from the bond order collection according to the given index list.
+   * @param atomIndices The indices for the atoms to be removed.
+   */
+  void removeAtomsByIndices(const std::vector<unsigned int>& atomIndices);
 
  private:
   Eigen::SparseMatrix<double> bondOrderMatrix_;

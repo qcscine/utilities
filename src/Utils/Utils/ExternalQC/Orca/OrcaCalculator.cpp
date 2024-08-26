@@ -5,6 +5,7 @@
  *            See LICENSE.txt for details.
  */
 #include "Utils/ExternalQC/Orca/OrcaCalculator.h"
+#include "Utils/CalculatorBasics/CalculationRoutines.h"
 #include "Utils/ExternalQC/ExternalProgram.h"
 #include "Utils/ExternalQC/Orca/MoessbauerParameters.h"
 #include "Utils/ExternalQC/Orca/OrcaCalculatorSettings.h"
@@ -156,6 +157,15 @@ const Results& OrcaCalculator::calculate(std::string description) {
 }
 
 const Results& OrcaCalculator::calculateImpl(std::string description) {
+  int nElectrons = 0;
+  for (const auto& e : atoms_.getElements()) {
+    nElectrons += static_cast<int>(ElementInfo::Z(e));
+  }
+  if ((nElectrons - settings_->getInt(Utils::SettingsNames::molecularCharge)) <= 0) {
+    results_ = CalculationRoutines::calculateZeroElectrons(atoms_, requiredProperties_);
+    return results_;
+  }
+
   ExternalProgram externalProgram;
   externalProgram.setWorkingDirectory(calculationDirectory_);
   externalProgram.createWorkingDirectory();
@@ -197,17 +207,29 @@ const Results& OrcaCalculator::calculateImpl(std::string description) {
     results_.set<Property::AtomicCharges>(parser.getHirshfeldCharges());
   }
   if (requiredProperties_.containsSubSet(Property::Thermochemistry)) {
-    ThermochemicalContainer thermochemicalContainer;
-    thermochemicalContainer.symmetryNumber = parser.getSymmetryNumber();
-    thermochemicalContainer.enthalpy = parser.getEnthalpy();
-    thermochemicalContainer.entropy = parser.getEntropy();
-    thermochemicalContainer.zeroPointVibrationalEnergy = parser.getZeroPointVibrationalEnergy();
-    thermochemicalContainer.gibbsFreeEnergy = parser.getGibbsFreeEnergy();
-    thermochemicalContainer.heatCapacityP = std::numeric_limits<double>::quiet_NaN();
-    thermochemicalContainer.heatCapacityV = std::numeric_limits<double>::quiet_NaN();
-
+    const double temperature = settings_->getDouble(Utils::SettingsNames::temperature);
     ThermochemicalComponentsContainer thermochemistry;
-    thermochemistry.overall = thermochemicalContainer;
+    // Orca does not print the symmetry number, enthalpy, ZPE etc. if the temperature is 0 K.
+    if (temperature > 1e-6) {
+      ThermochemicalContainer thermochemicalContainer;
+      thermochemicalContainer.symmetryNumber = parser.getSymmetryNumber();
+      thermochemicalContainer.enthalpy = parser.getEnthalpy();
+      thermochemicalContainer.entropy = parser.getEntropy();
+      thermochemicalContainer.zeroPointVibrationalEnergy = parser.getZeroPointVibrationalEnergy();
+      thermochemicalContainer.gibbsFreeEnergy = parser.getGibbsFreeEnergy();
+      thermochemicalContainer.heatCapacityP = std::numeric_limits<double>::quiet_NaN();
+      thermochemicalContainer.heatCapacityV = std::numeric_limits<double>::quiet_NaN();
+      thermochemistry.overall = thermochemicalContainer;
+    }
+    else {
+      auto thermoCalc = ThermochemistryCalculator(results_.get<Property::Hessian>(), atoms_,
+                                                  settings_->getInt(Utils::SettingsNames::spinMultiplicity),
+                                                  results_.get<Property::Energy>());
+      thermoCalc.setTemperature(settings_->getDouble(Utils::SettingsNames::temperature));
+      thermoCalc.setPressure(settings_->getDouble(Utils::SettingsNames::pressure));
+      thermochemistry = thermoCalc.calculate();
+    }
+
     results_.set<Property::Thermochemistry>(thermochemistry);
   }
   if (requiredProperties_.containsSubSet(Property::PointChargesGradients)) {

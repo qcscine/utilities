@@ -89,32 +89,10 @@ void TurbomoleHelper::emptyFile(std::string file) {
 void TurbomoleHelper::mapBasisSetToTurbomoleStringRepresentation(std::string& basisSetString) {
   std::transform(std::begin(basisSetString), std::end(basisSetString), std::begin(basisSetString),
                  [](const auto c) { return std::tolower(c); });
-  std::array<std::string, 4> basisSetIdentifiers = {"def2-", "def-", "cc-p", "aug-cc-p"};
-  std::array<std::string, 3> basisSetToUpperCase = {"6-31g*", "sto-3g", "6-31g**"};
-
-  // For a set of basis sets, partial transformation to uppercase is required
-  bool isIdentified = false;
-  std::string id;
-  for (const auto& identifier : basisSetIdentifiers) {
-    if (basisSetString.compare(0, identifier.length(), identifier) == 0) {
-      isIdentified = true;
-      id = identifier;
-    }
-  }
-
-  if (isIdentified) {
-    int length = id.length();
-    std::string basisSetQuality = basisSetString.substr(basisSetString.find(id) + length);
-    std::transform(std::begin(basisSetQuality), std::end(basisSetQuality), std::begin(basisSetQuality),
-                   [](unsigned char u) { return std::toupper(u); });
-
-    basisSetString = id + basisSetQuality;
-  }
-  // some other basis sets are uppercase only
-  else if (std::find(std::begin(basisSetToUpperCase), std::end(basisSetToUpperCase), basisSetString) !=
-           basisSetToUpperCase.end()) {
-    std::transform(std::begin(basisSetString), std::end(basisSetString), std::begin(basisSetString),
-                   [](unsigned char u) { return std::toupper(u); });
+  auto it = std::find(std::begin(basisSetNotationsLower_), std::end(basisSetNotationsLower_), basisSetString);
+  if (it != basisSetNotationsLower_.end()) {
+    assert(std::distance(basisSetNotationsLower_.begin(), it) < static_cast<long>(basisSetNotations_.size()));
+    basisSetString = basisSetNotations_[std::distance(basisSetNotationsLower_.begin(), it)];
   }
   else
     throw std::runtime_error("Basis set " + basisSetString + " currently not supported by Turbomole calculator.");

@@ -18,6 +18,7 @@ static constexpr const char* deleteTemporaryFiles = "delete_tmp_files";
 static constexpr const char* steerOrbitals = "steer_orbitals";
 static constexpr const char* pointChargesFile = "point_charges_file";
 static constexpr const char* enforceScfCriterion = "enforce_scf_criterion";
+static constexpr const char* enforceGrid = "enforce_grid";
 static constexpr const char* hessianCalculationType = "hessian_calculation_type";
 // orca
 static constexpr const char* orcaFilenameBase = "orca_filename_base";

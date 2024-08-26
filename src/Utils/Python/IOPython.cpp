@@ -49,6 +49,12 @@ void init_io(pybind11::module& m) {
   io.def("write_trajectory",
          pybind11::overload_cast<const enum MolecularTrajectoryIO::format, const std::string&, const MolecularTrajectory&>(
              &MolecularTrajectoryIO::write),
+         pybind11::arg("f"), pybind11::arg("fileName"), pybind11::arg("m"), "Writes trajectory to a file");
+
+  io.def("write_trajectory",
+         pybind11::overload_cast<const enum MolecularTrajectoryIO::format, const std::string&,
+                                 const MolecularTrajectory&, const BondOrderCollection&>(&MolecularTrajectoryIO::write),
+         pybind11::arg("f"), pybind11::arg("fileName"), pybind11::arg("m"), pybind11::arg("bondorders"),
          "Writes trajectory to a file");
 
   io.def("read_trajectory",

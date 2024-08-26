@@ -240,7 +240,7 @@ class Optimizer {
     tmp1 << es.eigenvalues()[modeToMaximize], minstep[modeToMaximize], minstep[modeToMaximize], 0;
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es2;
     es2.compute(tmp1);
-    const double lambdaP = es2.eigenvalues()[1]; // corresponds to highest eigenvalue
+    const double lambdaP = es2.eigenvalues()[1]; // corresponds to the highest eigenvalue
     /* set of eigenvalues and steps without followed EV */
     Eigen::VectorXd notFollowingMinstep(nEV - 1);
     Eigen::VectorXd notFollowingEigenvalues(nEV - 1);

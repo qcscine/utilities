@@ -17,6 +17,7 @@
 #include <Utils/Scf/LcaoUtils/SpinMode.h>
 #include <Utils/Settings.h>
 #include <Utils/UniversalSettings/SettingsNames.h>
+#include <boost/algorithm/string.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 #include <string>
 
@@ -72,7 +73,30 @@ inline std::vector<std::string> split(const std::string& s, char delimiter) {
   return elements;
 }
 
-inline std::vector<std::shared_ptr<Scine::Core::Calculator>>
+/**
+ * @brief Join a vector of strings with '/' as delimiter.
+ * @param sVector    The strings.
+ * @param joinFirstN Join only the first N elements in sVector.
+ * @return The joined string.
+ */
+inline std::string join(const std::vector<std::string>& sVector, unsigned int joinFirstN) {
+  std::string result;
+  joinFirstN = (joinFirstN <= sVector.size()) ? joinFirstN : sVector.size();
+  if (joinFirstN == 0) {
+    return result;
+  }
+  result = sVector[0];
+  for (unsigned int i = 1; i < joinFirstN; ++i) {
+    result += "/" + sVector[i];
+  }
+  return result;
+}
+
+/**
+ * No longer used in this file and anywhere else in utils. However, it is a public function in a header.
+ * Setting it as deprecated instead of removing it.
+ */
+[[deprecated]] inline std::vector<std::shared_ptr<Scine::Core::Calculator>>
 determineUnderlyingCalculators(std::vector<std::string>& listOfMethods, std::vector<std::string>& listOfPrograms) {
   auto& manager = Scine::Core::ModuleManager::getInstance();
   if (listOfMethods.size() != listOfPrograms.size()) {
@@ -93,6 +117,50 @@ determineUnderlyingCalculators(std::vector<std::string>& listOfMethods, std::vec
   }
 }
 
+inline std::vector<std::shared_ptr<Scine::Core::Calculator>>
+getUnderlyingCalculatorsForQMQM(const std::string& multipleMethodsString, const std::string& program) {
+  auto& manager = Scine::Core::ModuleManager::getInstance();
+  const auto listOfMethods = split(multipleMethodsString, '|');
+  std::vector<std::shared_ptr<Scine::Core::Calculator>> underlyingCalculators;
+  for (const auto& method : listOfMethods) {
+    underlyingCalculators.emplace_back(manager.get<Scine::Core::Calculator>(Scine::Core::Calculator::supports(method), program));
+  }
+  return underlyingCalculators;
+}
+
+inline bool isMMMethod(const std::string& method) {
+  std::string small = method;
+  boost::algorithm::to_lower(small);
+  const std::vector<std::string> mmMethods = {"gaff", "sfam"};
+  return std::find(mmMethods.begin(), mmMethods.end(), small) != mmMethods.end();
+}
+
+inline bool containsMMMethod(const std::vector<std::string>& methods) {
+  for (const auto& method : methods) {
+    if (isMMMethod(method)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief Getter for the underlying calculator based on a string representing the model family and a string for the
+ * program.
+ *
+ * Example method families/program combinations:
+ * - getCalculator("dft", "orca") - get Orca DFT calculator.
+ * - getCalculator("dft", "serenity") - get Serenity DFT calculator.
+ * - getCalculator("dft/gaff", "serenity/swoose") - get QM/MM calculator for DFT for the QM region run by Serenity and
+ * GAFF/AMBER in the environment, run by Swoose.
+ * - getCalculator("cc/dft/gaff", "serenity/serenity/swoose") - get QM/QM/MM embedding.
+ * - getCalculator("cc|cc|cc/dft/gaff", "serenity/serenity/swoose") - get QM/QM/MM embedding with CC-in-DFT-in-MM and
+ * multiple CC cores.
+ *
+ * @param method_family The method family string.
+ * @param program       The program string.
+ * @return The calculator.
+ */
 inline std::shared_ptr<Scine::Core::Calculator> getCalculator(std::string method_family, std::string program) {
   // Load module manager
   auto& manager = Scine::Core::ModuleManager::getInstance();
@@ -128,12 +196,55 @@ inline std::shared_ptr<Scine::Core::Calculator> getCalculator(std::string method
     return calc;
   }
   else {
-    calc = manager.get<Scine::Core::Calculator>(Scine::Core::Calculator::supports("QMMM"), "Swoose");
+    if (listOfPrograms.size() != listOfMethods.size()) {
+      std::cout << "The number of programs and methods must be identical for embedding calculations" << std::endl;
+      throw std::runtime_error("Failed to load method/program.");
+    }
+    /*
+     * Embedding/Multilevel method.
+     * Do the following recursion:
+     * 1. Determine the type of the embedding calculator from the last method in the method string.
+     * 2. Get the embedding calculator QM/MM or QM/QM.
+     * 3. Call getCalculator to get the calculator for the environment system QM or MM (these may be multiple in case of
+     * QM/QM).
+     * 4. Remove the last method from the method string and the last program from the program string.
+     * 5. Call getCalculator with the reduced method and program strings to get the underlying calculators (these may be
+     * multiple in case of QM/QM).
+     */
+    const std::string& lastMethod = listOfMethods[listOfMethods.size() - 1];
+    const std::string& lastProgram = listOfPrograms[listOfPrograms.size() - 1];
+    bool checkForMultipleQMQMRegions = false;
+    if (isMMMethod(lastMethod)) {
+      calc = manager.get<Scine::Core::Calculator>(Scine::Core::Calculator::supports("QMMM"), "Swoose");
+    }
+    else if (listOfMethods.size() == 2) {
+      // It must be QM/QM or an input error. Try to load Serenity.
+      calc = manager.get<Scine::Core::Calculator>(Scine::Core::Calculator::supports("QMQM"), "Serenity");
+      checkForMultipleQMQMRegions = true;
+    }
     auto castedCalc = std::dynamic_pointer_cast<Scine::Core::EmbeddingCalculator>(calc);
     if (!castedCalc) {
-      throw std::runtime_error("Please specify an embedding calculator.");
+      throw std::runtime_error("Unable to derive the type of embedding calculator. The method family selected is: " + lastMethod);
     }
-    auto listOfCalculators = determineUnderlyingCalculators(listOfMethods, listOfPrograms);
+    const std::string reducedMethodString = join(listOfMethods, listOfMethods.size() - 1);
+    const std::string reducedProgramString = join(listOfPrograms, listOfPrograms.size() - 1);
+    std::vector<std::shared_ptr<Scine::Core::Calculator>> environmentCalculators;
+    std::vector<std::shared_ptr<Scine::Core::Calculator>> activeCalculators;
+    if (checkForMultipleQMQMRegions) {
+      /*
+       * If the QM/QM embedding consists of multiple subsystems, this can be denoted with a '|' to delimit the
+       * method families for the individual subsystems. The '/' then separates active and environment subsystems.
+       * cc|cc/dft|dft.
+       */
+      environmentCalculators = getUnderlyingCalculatorsForQMQM(lastMethod, lastProgram);
+      activeCalculators = getUnderlyingCalculatorsForQMQM(reducedMethodString, reducedProgramString);
+    }
+    else {
+      environmentCalculators = {getCalculator(lastMethod, lastProgram)};
+      activeCalculators = {getCalculator(reducedMethodString, reducedProgramString)};
+    }
+    std::vector<std::shared_ptr<Scine::Core::Calculator>> listOfCalculators = activeCalculators;
+    listOfCalculators.insert(listOfCalculators.end(), environmentCalculators.begin(), environmentCalculators.end());
     castedCalc->setUnderlyingCalculators(listOfCalculators);
     return castedCalc;
   }
@@ -241,6 +352,7 @@ inline std::pair<std::string, std::string> splitIntoMethodAndDispersion(const st
       "HF-3C",
       "PBEH-3C",
       "B97-3C",
+      "-F12",
   };
   // if input contains one of these as a substring
   // we ignore the number of '-' in the exception and still check for dispersion
@@ -317,6 +429,42 @@ inline void checkValidityOfChargeAndMultiplicity(int molecularCharge, int spinMu
   if ((numUnpairedElecIsEven && !numElectronsIsEven) || (!numUnpairedElecIsEven && numElectronsIsEven)) {
     throw std::logic_error("Invalid charge/multiplicity pair for the given system!");
   }
+}
+
+/*
+ * @brief Returns results for zero electron systems if energy should be zero (no empirics)
+ * @param atoms: the atoms (determines the sizes of results and charges)
+ * @param requiredProperties: the properties that should be filled
+ */
+inline Results calculateZeroElectrons(const AtomCollection& atoms, const PropertyList& requiredProperties) {
+  int nAtoms = atoms.size();
+  if (nAtoms > 1) {
+    // we deem multi-atom-no-electron systems not important enough
+    // to calculate nuclear repulsion energy + gradients ourselves
+    throw std::runtime_error("Calculation of multinuclear system with zero electrons is not implemented.");
+  }
+  Results results;
+  if (requiredProperties.containsSubSet(Property::Energy)) {
+    results.set<Property::Energy>(0.0);
+  }
+  if (requiredProperties.containsSubSet(Property::Gradients)) {
+    results.set<Property::Gradients>(GradientCollection::Zero(nAtoms, 3));
+  }
+  if (requiredProperties.containsSubSet(Property::Hessian)) {
+    results.set<Property::Hessian>(HessianMatrix(nAtoms, nAtoms));
+  }
+  if (requiredProperties.containsSubSet(Property::BondOrderMatrix)) {
+    results.set<Property::BondOrderMatrix>(BondOrderCollection(nAtoms));
+  }
+  if (requiredProperties.containsSubSet(Property::AtomicCharges)) {
+    std::vector<double> charges;
+    for (const auto& e : atoms.getElements()) {
+      charges.push_back(ElementInfo::Z(e));
+    }
+    results.set<Property::AtomicCharges>(charges);
+  }
+  results.set<Property::SuccessfulCalculation>(true);
+  return results;
 }
 
 } // namespace CalculationRoutines

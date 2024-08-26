@@ -54,6 +54,9 @@ void init_molecular_trajectory(pybind11::module& m) {
 
   molecular_trajectory.def("get_energies", &MolecularTrajectory::getEnergies, "Returns the energies of the trajectory");
 
+  molecular_trajectory.def_property("residues", &MolecularTrajectory::getResidues, &MolecularTrajectory::setResidues,
+                                    "The residue information (residue label, atom-type, chain label, residue index)");
+
   // Sequence magic methods
   molecular_trajectory.def(
       "__getitem__",

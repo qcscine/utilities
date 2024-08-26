@@ -73,13 +73,14 @@ int TurbomoleMainOutputParser::getNumberOfNonZeroPointCharges() const {
       std::stod(lineSplitted[1]);
       std::stod(lineSplitted[2]);
       double charge = std::stod(lineSplitted[3]);
+      // Turbomole doesn't consider point charges which are zero, even if they are specified in the control file
       if (std::fabs(charge) > 1e-6) {
         numPointCharges++;
       }
     }
     catch (std::exception& e) {
       throw std::runtime_error("Point charges file " + files_.pointChargesFile + " has an incorrect format!:\n" +
-                               e.what() + "\noccured due to the line:\n" + line);
+                               e.what() + "\noccurred due to the line:\n" + line);
     }
   }
   pc.close();

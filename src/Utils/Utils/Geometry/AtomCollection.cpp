@@ -10,14 +10,14 @@ namespace Scine {
 namespace Utils {
 
 AtomCollection::AtomCollection(int N)
-  : elements_(N), positions_(N, 3), residues_(N, ResidueInformation({"UNX", "A", 1})) {
+  : elements_(N), positions_(N, 3), residues_(N, ResidueInformation({"UNX", "", "A", 1})) {
   positions_.setZero();
 }
 
 AtomCollection::AtomCollection(ElementTypeCollection elements, PositionCollection positions)
   : elements_(std::move(elements)), positions_(std::move(positions)) {
   assert(static_cast<Eigen::Index>(elements_.size()) == positions_.rows());
-  residues_ = ResidueCollection(elements_.size(), ResidueInformation({"UNX", "A", 1}));
+  residues_ = ResidueCollection(elements_.size(), ResidueInformation({"UNX", "", "A", 1}));
 }
 
 void AtomCollection::setElements(ElementTypeCollection elements) {
@@ -30,8 +30,11 @@ void AtomCollection::setPositions(PositionCollection positions) {
   positions_ = std::move(positions);
 }
 
-void AtomCollection::setResidues(ResidueCollection residues) {
-  assert(static_cast<int>(residues.size()) == size());
+void AtomCollection::setResidues(const ResidueCollection& residues) {
+  if (residues.size() != unsigned(this->size())) {
+    throw std::runtime_error(
+        "The number of residue information must be identical to the number of atoms in the collection");
+  }
   residues_ = residues;
 }
 
@@ -43,7 +46,7 @@ void AtomCollection::clear() {
 
 void AtomCollection::resize(int n) {
   elements_.resize(n);
-  residues_.resize(n, ResidueInformation({"UNX", "A", 1}));
+  residues_.resize(n, ResidueInformation({"UNX", "", "A", 1}));
   positions_.resize(n, 3);
 }
 
@@ -59,7 +62,7 @@ void AtomCollection::push_back(const Atom& atom) {
   elements_.push_back(atom.getElementType());
   positions_.conservativeResize(positions_.rows() + 1, 3);
   positions_.row(positions_.rows() - 1) = atom.getPosition();
-  residues_.push_back(ResidueInformation({"UNX", "A", 1}));
+  residues_.push_back(ResidueInformation({"UNX", "", "A", 1}));
 }
 
 bool AtomCollection::operator==(const AtomCollection& other) const {
@@ -148,6 +151,72 @@ Atom AtomCollection::operator[](int i) const {
 
 Atom AtomCollection::at(int i) const {
   return Atom(elements_.at(i), positions_.row(i));
+}
+
+std::vector<unsigned int> AtomCollection::removeAtomsByIndices(const std::vector<unsigned int>& atomsToBeRemoved) {
+  std::vector<unsigned int> atomIndicesKept;
+  for (unsigned int iAtom = 0; iAtom < this->positions_.rows(); ++iAtom) {
+    if (std::find(atomsToBeRemoved.begin(), atomsToBeRemoved.end(), iAtom) == atomsToBeRemoved.end()) {
+      atomIndicesKept.push_back(iAtom);
+    }
+  }
+  const unsigned int nUpdatedAtoms = atomIndicesKept.size();
+  const PositionCollection oldPositions = this->positions_;
+  const ElementTypeCollection oldElements = this->elements_;
+  const ResidueCollection oldResidues = this->residues_;
+  // Update class attributes.
+  this->positions_.resize(nUpdatedAtoms, 3);
+  this->elements_.clear();
+  this->residues_.clear();
+  unsigned int newIndex = 0;
+  for (const auto& iAtom : atomIndicesKept) {
+    this->positions_.row(newIndex) = oldPositions.row(iAtom);
+    this->elements_.push_back(oldElements[iAtom]);
+    this->residues_.push_back(oldResidues[iAtom]);
+    newIndex++;
+  }
+  return atomsToBeRemoved;
+}
+
+std::vector<unsigned int> AtomCollection::removeAtomsByResidueLabel(const std::vector<std::string>& residueLabels) {
+  std::vector<unsigned int> atomIndicesRemoved;
+  // Identify which atoms should be removed.
+  for (unsigned int i = 0; i < residues_.size(); ++i) {
+    const auto& label = std::get<0>(this->residues_[i]);
+    if (std::find(residueLabels.begin(), residueLabels.end(), label) != residueLabels.end()) {
+      atomIndicesRemoved.push_back(i);
+    }
+  }
+  return this->removeAtomsByIndices(atomIndicesRemoved);
+}
+
+std::vector<unsigned int> AtomCollection::keepAtomsByResidueLabel(const std::vector<std::string>& residueLabels) {
+  std::vector<unsigned int> atomIndicesRemoved;
+  // Identify which atoms should be removed.
+  for (unsigned int i = 0; i < residues_.size(); ++i) {
+    const auto& label = std::get<0>(this->residues_[i]);
+    if (std::find(residueLabels.begin(), residueLabels.end(), label) == residueLabels.end()) {
+      atomIndicesRemoved.push_back(i);
+    }
+  }
+  return this->removeAtomsByIndices(atomIndicesRemoved);
+}
+std::vector<unsigned int> AtomCollection::keepAtomsByIndices(const std::vector<unsigned int>& atomsToKeep) {
+  std::vector<unsigned int> atomIndicesRemoved;
+  for (const auto& idx : atomsToKeep) {
+    if (int(idx) >= this->size()) {
+      throw std::runtime_error("You are trying to keep atoms in an atom collection by index. However, the index"
+                               " you speciefied is outside the atom collection size. Your atom index: " +
+                               std::to_string(idx) + " atom collection size " + std::to_string(this->size()));
+    }
+  }
+
+  for (int iAtom = 0; iAtom < this->size(); ++iAtom) {
+    if (std::find(atomsToKeep.begin(), atomsToKeep.end(), iAtom) == atomsToKeep.end()) {
+      atomIndicesRemoved.push_back(iAtom);
+    }
+  }
+  return this->removeAtomsByIndices(atomIndicesRemoved);
 }
 
 AtomCollection::AtomCollectionIterator AtomCollection::AtomCollectionIterator::operator++(int) {

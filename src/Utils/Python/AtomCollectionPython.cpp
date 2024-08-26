@@ -27,7 +27,7 @@ void init_atom_collection(pybind11::module& m) {
   atom_collection.def("get_element", &AtomCollection::getElement, "Get an element type");
 
   atom_collection.def_property("residues", &AtomCollection::getResidues, &AtomCollection::setResidues,
-                               "The residue information (residue label, chain label, residue index)");
+                               "The residue information (residue label, atom-type, chain label, residue index)");
 
   atom_collection.def("set_residue_info", &AtomCollection::setResidueInformation,
                       "Set the residue information (residue label, chain label, residue index)");
@@ -39,6 +39,13 @@ void init_atom_collection(pybind11::module& m) {
 
   atom_collection.def("set_position", &AtomCollection::setPosition, "Set a position");
   atom_collection.def("get_position", &AtomCollection::getPosition, "Get a position");
+
+  // remove atoms by index/residue label
+  atom_collection.def("remove_atoms_by_residue_label", &AtomCollection::removeAtomsByResidueLabel,
+                      "Remove atoms by residue label.");
+  atom_collection.def("keep_atoms_by_residue_label", &AtomCollection::keepAtomsByResidueLabel,
+                      "Remove atoms if their residue label is not within the given list.");
+  atom_collection.def("remove_atoms_by_indices", &AtomCollection::removeAtomsByIndices, "Remove atoms by their index.");
 
   // std::vector-like functions
   atom_collection.def("size", &AtomCollection::size, "Get how many atoms are in the collection");

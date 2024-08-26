@@ -267,7 +267,7 @@ class QmmmTransitionStateOptimizer : public GeometryOptimizerBase {
             totalMmCycles += envMicroCycles;
           }
           else {
-            log.output << "MM is already converged, skipping microcycles: " << totalMmCycles << Core::Log::endl;
+            log.output << "# MM is already converged, skipping microcycles: " << totalMmCycles << Core::Log::endl;
           }
           // restore settings
           mmEnergy = preEnergy;
@@ -307,14 +307,23 @@ class QmmmTransitionStateOptimizer : public GeometryOptimizerBase {
         qmOptimizer->getSettings().modifyBool(SettingsNames::Optimizations::Dimer::skipFirstRotation, true);
       }
       auto qmStructure = qmCalculator_->getStructure();
-      auto qmOptMicrocycles = qmOptimizer->optimize(*qmStructure, log);
+      int qmOptMicrocycles = -1;
+      // Catch exception in QM optimization
+      try {
+        qmOptMicrocycles = qmOptimizer->optimize(*qmStructure, log);
+      }
+      catch (const std::exception& error) {
+        log.error << "QM-only optimization failed with:\n" << error.what() << Core::Log::endl;
+        throw;
+      }
       const double currentQmmmEnergy = (qmmmCalculator_->results().has<Property::Energy>())
                                            ? qmmmCalculator_->results().get<Property::Energy>()
                                            : qmmmCalculator_->calculate().get<Property::Energy>();
       // Wait for convergence of QM optimization
-      if (qmOptMicrocycles < maxQmOptMicrocycles) {
+      if (qmOptMicrocycles < maxQmOptMicrocycles and qmOptMicrocycles != -1) {
         if (qmConverged) {
           if (std::abs(currentQmmmEnergy - qmmmEnergy) < getConvergenceCheck().deltaValue) {
+            // basically convergence reached, breaking while loop for all systems
             break;
           }
         }
@@ -329,12 +338,15 @@ class QmmmTransitionStateOptimizer : public GeometryOptimizerBase {
       }
 
       log.output << "# QM-only optimization macrocycles: " << cycles << Core::Log::endl;
-      totalCycles = (cycles - 1) * maxQmOptMicrocycles + qmOptMicrocycles;
+      if (qmOptMicrocycles != -1) {
+        totalCycles += qmOptMicrocycles;
+      }
 
       if (cycles == maxMacrocycles) {
         converged = true;
       }
     }
+    log.output << "# QM-only optimization total cycles: " << totalCycles << Core::Log::endl;
     // reset settings of QM/MM calculator, because they have been changed internally many times
     return cycles;
   };
@@ -471,9 +483,10 @@ class QmmmTransitionStateOptimizer : public GeometryOptimizerBase {
     std::shared_ptr<InternalCoordinates> transformation = std::make_shared<InternalCoordinates>(tmpQmStructure, rotTransOnly);
     Eigen::VectorXd transformedPositions = transformation->coordinatesToInternal(orgQmPositions);
     Utils::PositionCollection secondTransShift = transformation->coordinatesToCartesian(transformedPositions);
-
-    Utils::DisplacementCollection shift = secondTransShift - orgQmPositions;
-
+    // Translation vector for COMs
+    const auto masses = Utils::Geometry::Properties::getMasses(tmpQmStructure.getElements());
+    const Eigen::RowVector3d& shift = Utils::Geometry::Properties::getCenterOfMass(secondTransShift, masses) -
+                                      Utils::Geometry::Properties::getCenterOfMass(orgQmPositions, masses);
     // Updated all positions by change to come
     Utils::PositionCollection shiftedPositions = Utils::Geometry::Manipulations::translatePositions(orgPositions, shift);
 

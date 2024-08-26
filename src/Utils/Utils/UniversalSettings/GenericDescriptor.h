@@ -14,6 +14,7 @@
 #include "Utils/UniversalSettings/FileDescriptor.h"
 #include "Utils/UniversalSettings/IntDescriptor.h"
 #include "Utils/UniversalSettings/IntListDescriptor.h"
+#include "Utils/UniversalSettings/IntListListDescriptor.h"
 #include "Utils/UniversalSettings/OptionListDescriptor.h"
 #include "Utils/UniversalSettings/StringDescriptor.h"
 #include "Utils/UniversalSettings/StringListDescriptor.h"
@@ -49,9 +50,10 @@ class GenericDescriptor {
     SettingCollection,
     ParametrizedOptionList,
     IntList,
+    IntListList,
     DoubleList,
     StringList,
-    CollectionList
+    CollectionList,
   };
 
   //!@name Special member functions
@@ -83,6 +85,7 @@ class GenericDescriptor {
   GenericDescriptor(DescriptorCollection d);
   GenericDescriptor(ParametrizedOptionListDescriptor d);
   GenericDescriptor(IntListDescriptor d);
+  GenericDescriptor(IntListListDescriptor d);
   GenericDescriptor(DoubleListDescriptor d);
   GenericDescriptor(StringListDescriptor d);
   GenericDescriptor(CollectionListDescriptor d);
@@ -100,6 +103,7 @@ class GenericDescriptor {
   bool relatesToSettingCollection() const;
   bool relatesToParametrizedOptionList() const;
   bool relatesToIntList() const;
+  bool relatesToIntListList() const;
   bool relatesToDoubleList() const;
   bool relatesToStringList() const;
   bool relatesToCollectionList() const;
@@ -118,6 +122,7 @@ class GenericDescriptor {
   const DescriptorCollection& getSettingCollectionDescriptor() const;
   const ParametrizedOptionListDescriptor& getParametrizedOptionListDescriptor() const;
   const IntListDescriptor& getIntListDescriptor() const;
+  const IntListListDescriptor& getIntListListDescriptor() const;
   const DoubleListDescriptor& getDoubleListDescriptor() const;
   const StringListDescriptor& getStringListDescriptor() const;
   const CollectionListDescriptor& getCollectionListDescriptor() const;

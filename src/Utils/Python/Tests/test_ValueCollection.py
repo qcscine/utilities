@@ -25,9 +25,10 @@ def test_value_collection():
         "DoubleList": [1.1, 2.2, 3.3],
         "StringList": ["yes", "no", "maybe so"],
         "CollectionList": [
-            su.ValueCollection(),
-            su.ValueCollection()
-        ]
+            su.ValueCollection({"a": 2}),
+            su.ValueCollection({"b": 3})
+        ],
+        "IntListList": [[1, 2], [3, 4]]
     }
 
     collection = su.ValueCollection(generic_values)
@@ -57,9 +58,10 @@ def test_pickle():
         "DoubleList": [1.1, 2.2, 3.3],
         "StringList": ["yes", "no", "maybe so"],
         "CollectionList": [
-            su.ValueCollection(),
-            su.ValueCollection()
-        ]
+            su.ValueCollection({"a": 2}),
+            su.ValueCollection({"b": 3})
+        ],
+        "IntListList": [[1, 2], [3, 4]]
     }
 
     collection = su.ValueCollection(generic_values)
@@ -74,3 +76,17 @@ def test_pickle():
     assert collection == read_vc
     if os.path.exists(file_name):
         os.remove(file_name)
+
+
+def test_extract():
+    settings = su.Settings('test', {'foo': 1})
+    assert len(settings) == 1
+    t = settings.extract('foo', 2)
+    assert t == 1
+    assert len(settings) == 0
+    t = settings.extract('foo', 3)
+    assert t == 3
+    t = settings.extract('bla', False)
+    assert t is False
+    t = settings.extract('bla', None)
+    assert t is None

@@ -21,7 +21,7 @@ MolecularTrajectory::MolecularTrajectory(double minimumRmsdForAddition)
 MolecularTrajectory::MolecularTrajectory(const ElementTypeCollection& elements, double minimumRmsdForAddition) {
   elements_ = elements;
   minMeanSquareDeviation_ = minimumRmsdForAddition * minimumRmsdForAddition;
-  respectMinRmsd_ = true;
+  respectMinRmsd_ = minimumRmsdForAddition > 1e-12;
 }
 
 void MolecularTrajectory::setElementType(int index, ElementType e) {
@@ -266,6 +266,18 @@ bool MolecularTrajectory::additionOfPositionCollectionIsAllowedBasedOnRmsd(const
   PositionCollection lastPos = structureVector_.back();
   double meanSquareDeviation = (lastPos - p).rowwise().squaredNorm().sum() / lastPos.rows();
   return meanSquareDeviation > minMeanSquareDeviation_;
+}
+
+void MolecularTrajectory::setResidues(const ResidueCollection& residues) {
+  if (residues.size() != unsigned(this->molecularSize())) {
+    throw std::runtime_error(
+        "The number of residue information must be identical to the number of atoms in the collection");
+  }
+  residues_ = residues;
+}
+
+const ResidueCollection& MolecularTrajectory::getResidues() const {
+  return residues_;
 }
 
 } /* namespace Utils */

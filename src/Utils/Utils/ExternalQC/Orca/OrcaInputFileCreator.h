@@ -49,6 +49,8 @@ class OrcaInputFileCreator {
                                    const PropertyList& requiredProperties);
   static void printTitle(std::ostream& out);
   static void printStructure(std::ostream& out, const AtomCollection& atoms, const Settings& settings);
+  // interpret user defined solvation settings
+  static std::tuple<double, double> interpretAsUserDefinedImplicitSolvation(std::string solvent);
 };
 
 } // namespace ExternalQC

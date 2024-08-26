@@ -45,15 +45,20 @@ void init_property_list(pybind11::module& m) {
   property.value("Description", Property::Description);
   property.value("SuccessfulCalculation", Property::SuccessfulCalculation);
   property.value("ProgramName", Property::ProgramName);
+  property.value("OrbitalFragmentPopulations", Property::OrbitalFragmentPopulations);
 
   pybind11::class_<PropertyList> property_list(m, "PropertyList");
   property_list.def(pybind11::init<>(), "Empty-initialize");
   property_list.def(pybind11::init<Property>(), "Default initialize from a property");
   property_list.def("add_property", &PropertyList::addProperty, "Add a property to the list");
   property_list.def("remove_property", &PropertyList::removeProperty, "Remove a property from the list");
+  property_list.def("remove_properties", &PropertyList::removeProperties, "Remove multiple properties from the list");
   property_list.def(
       "contains_subset", &PropertyList::containsSubSet,
       "Check whether this list of properties encompasses all properties set the supplied list of properties");
+  property_list.def("intersection", &PropertyList::intersection, pybind11::arg("property_list"),
+                    "Construct a new PropertyList that is an intersection of the two PropertyLists");
 
   property_list.def("__contains__", &property_list_contains);
+  property_list.def("__str__", &PropertyList::print);
 }

@@ -9,6 +9,8 @@
 #include <Utils/IO/ChemicalFileFormats/XyzStreamHandler.h>
 #include <Utils/Technical/ScopedLocale.h>
 #include <gmock/gmock.h>
+#include <boost/dll.hpp>
+#include <boost/filesystem.hpp>
 #include <sstream>
 
 using namespace testing;
@@ -293,6 +295,24 @@ TEST_F(XyzStreamHandlerTest, AsignQCorrectlyNuclearElectronic) {
   ASSERT_EQ(structure.second[0], true);
   ASSERT_EQ(structure.second[1], false);
   ASSERT_EQ(structure.second[2], true);
+}
+
+TEST_F(XyzStreamHandlerTest, ReadFileWithAbsoluteLargeCoordinates) {
+  const boost::filesystem::path pathToResource =
+      boost::dll::program_location().parent_path() / "Resources/large_coordinates.xyz";
+  std::ifstream input(pathToResource);
+  auto atoms = XyzStreamHandler::read(input);
+  input.close();
+  std::string temporaryFilePath = "temporaryXYZFile.xyz";
+  std::ofstream output;
+  output.open(temporaryFilePath);
+  EXPECT_TRUE(output.is_open());
+  XyzStreamHandler::write(output, atoms);
+  output.close();
+  std::ifstream input2(temporaryFilePath);
+  EXPECT_TRUE(input2.is_open());
+  EXPECT_NO_THROW(XyzStreamHandler::read(input2));
+  std::remove(temporaryFilePath.c_str());
 }
 
 } /* namespace Tests */

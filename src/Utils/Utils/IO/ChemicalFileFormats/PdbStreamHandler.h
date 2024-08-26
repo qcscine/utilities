@@ -15,32 +15,21 @@
 namespace Scine {
 namespace Utils {
 
+class AtomCollection;
+class MolecularTrajectory;
+class BondOrderCollection;
 struct PdbFileData {
-  // The content of the PDB file
-  std::string content;
-  // The header of the PDB file including diverse information.
-  std::string header;
-  // The atom block of the PDB file
-  std::vector<std::string> atomBlocks;
-  // The bond order block of the PDB file
-  std::string connectivityBlock;
-  // A vector of overlaying substructure identifiers
-  std::vector<std::string> overlayIdentifiers;
-  // The number of Atoms in the file
-  int nAtoms = 0;
-  // The number of models (snapshots) resolved in the structure
-  int numModels = 1;
+  std::vector<AtomCollection> atomCollections;
+  BondOrderCollection bondOrderCollection;
 };
 
-class AtomCollection;
-class BondOrderCollection;
+class Atom;
+using ResidueInformation = std::tuple<std::string, std::string, std::string, unsigned int>;
 
 /**
  * @class PdbStreamHandler PdbStreamHandler.h
  * @brief A class that handles the reading and writing of PDB file formats
  *
- * @note Since the connectivity is only represented in some PDB's and usually very error-prone, it
- * is not parsed.
  */
 class PdbStreamHandler : public FormattedStreamHandler {
  public:
@@ -53,18 +42,32 @@ class PdbStreamHandler : public FormattedStreamHandler {
    *
    * @param os The stream to write to
    * @param atoms The element and positional data to write
+   * @param bondOrders Bond orders to write to the file.
+   * @param comment Optional comment for the file.
+   * @param trajectoryFormat If true, statements that end the pdb file are omitted.
+   * @param counter Counter for the model entry.
    *
    * @note Currently only writes "UNX" as residue identifier.
    */
   static void write(std::ostream& os, const AtomCollection& atoms,
-                    BondOrderCollection bondOrders = BondOrderCollection(), const std::string& comment = "");
+                    const BondOrderCollection& bondOrders = BondOrderCollection(), const std::string& comment = "",
+                    bool trajectoryFormat = false, unsigned int counter = 0);
+  /**
+   * @brief Write a pdb trajectory.
+   * @param os         The output stream.
+   * @param m          The molecular trajectory.
+   * @param bondOrders Optional bond orders.
+   * @param comment    Optional comment.
+   */
+  static void writeTrajectory(std::ostream& os, const MolecularTrajectory& m,
+                              const BondOrderCollection& bondOrders = BondOrderCollection(), const std::string& comment = "");
   /**
    * @brief Reads from an input stream in PDB format
    *
    * @param is The stream to read from
    *
    * @return Elemental and positional data.
-   * @note Reading of hydrogens or solvent can be set to false via setReadH(false) or setReadHOH(false)
+   * @note Reading of hydrogen atoms can be set to false via setReadH(false)
    */
   std::vector<AtomCollection> read(std::istream& is) const;
   //!@}
@@ -84,26 +87,53 @@ class PdbStreamHandler : public FormattedStreamHandler {
 
   std::string name() const final;
   //!@
-  // Function to set whether hydrogen atoms should be parse
+  // Function to set whether hydrogen atoms should be parsed
   void setReadH(bool includeH);
   // Function to set whether solvent molecules should be parsed
-  void parseOnlySolvent(bool parseOnlySolvent);
   void setSubstructureID(int substructureID);
+  ///@brief Convert the string encoding the residue sequence number to an int.
+  static unsigned int sequenceNumberStringToInt(const std::string& sequenceNumberString);
+  static std::string sequenceNumberIntToString(const unsigned int& sequenceInteger);
 
  private:
-  static void extractContent(std::istream& is, PdbFileData& data);
-  std::vector<AtomCollection> structuresFromData(PdbFileData& data) const;
+  ///@brief Create an atom from the coordinate information in a PDB file line.
+  inline static Atom getAtomFromPdbLine(const std::string& line);
+  ///@brief Get the atom-like index for a terminus definition in a PDB file line.
+  inline static unsigned int getTerminusIndexFromLine(const std::string& line);
+  ///@brief Create a ResidueInformation object from an ATOM/HETATM PDB file line.
+  inline static ResidueInformation getResidueInformationFromPdbLine(const std::string& line);
+  ///@brief Remove all spaces from the given string.
+  inline static std::string removeAllSpacesFromString(std::string string);
+  /**
+   * @brief To make our life more difficult, termini can be encoded in the pdb file. These termini count
+   * towards the index used in the CONECT statements. Therefore, we must adjust the atom indices
+   * in the CONECT statements by the number of termini with an index lower than this index. This function
+   * performs this shift.
+   * @param triplets The bonding information encoded as triplets, i.e., the bond order is encoded as a triplet of atom
+   *                 index, atom index, bond order.
+   * @param termini The atom-like indices of the terminis defined in the PDB file.
+   */
+  inline static void shiftBondIndicesByTermini(std::vector<Eigen::Triplet<double>>& triplets,
+                                               const std::vector<unsigned int>& termini);
+  ///@brief Shift the atom index by the number of termini with lower atom-like index (see shiftBondIndicesByTermini for
+  /// more information).
+  inline static unsigned int shiftAtomIndexByTermini(unsigned int iAtom, const std::vector<unsigned int>& termini);
+  ///@brief Parse the PDB file.
+  PdbFileData extractContent(std::istream& is, bool onlyOneStructure = false) const;
 
-  static void extractOverlayIdentifiers(std::string line, PdbFileData& data);
-  static bool isAtomLine(std::string line);
-  static bool isModelLine(std::string line);
-  static void extractModels(std::istringstream& in, std::string& line, PdbFileData& data);
-  static void extractStructure(std::istringstream& in, std::string& line, PdbFileData& data);
+  ///@brief True if the line encodes ATOM/HETATM information
+  static bool isAtomLine(const std::string& line);
+  ///@brief True if the line signals the end of a molecular model.
+  static bool isEndModelLine(const std::string& line);
+  ///@brief True if the line is part of the CONECT information.
+  static bool isConnectLine(const std::string& line);
+  ///@brief True if the line encodes a terminus.
+  static bool isTerminusLine(const std::string& line);
   bool includeH_ = true;
-  bool parseOnlySolvent_ = false;
   unsigned int substructureID_ = 0;
   std::vector<unsigned int> residueIndices_;
-  std::vector<std::string> listOfSupportedSolventMolecules = {"HOH"};
+  ///@brief Extract bonding information from a CONECT line.
+  static std::vector<Eigen::Triplet<double>> getConnectTriplet(const std::string& line);
 };
 
 } // namespace Utils

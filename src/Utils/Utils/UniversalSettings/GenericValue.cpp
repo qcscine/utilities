@@ -61,6 +61,12 @@ GenericValue GenericValue::fromIntList(IntList v) {
   return gv;
 }
 
+GenericValue GenericValue::fromIntListList(IntListList v) {
+  GenericValue gv;
+  gv.pimpl_->value = std::move(v);
+  return gv;
+}
+
 GenericValue GenericValue::fromDoubleList(DoubleList v) {
   GenericValue gv;
   gv.pimpl_->value = std::move(v);
@@ -113,6 +119,10 @@ bool GenericValue::isInt() const {
 
 bool GenericValue::isIntList() const {
   return pimpl_->value.type() == typeid(IntList);
+}
+
+bool GenericValue::isIntListList() const {
+  return pimpl_->value.type() == typeid(IntListList);
 }
 
 bool GenericValue::isDoubleList() const {
@@ -181,6 +191,13 @@ GenericValue::IntList GenericValue::toIntList() const {
     throw InvalidValueConversionException{};
   }
   return boost::any_cast<IntList>(pimpl_->value);
+}
+
+GenericValue::IntListList GenericValue::toIntListList() const {
+  if (!isIntListList()) {
+    throw InvalidValueConversionException{};
+  }
+  return boost::any_cast<IntListList>(pimpl_->value);
 }
 
 GenericValue::DoubleList GenericValue::toDoubleList() const {

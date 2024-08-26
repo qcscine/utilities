@@ -22,8 +22,15 @@ void init_thermochemical_calculator(pybind11::module& m) {
   thermochemistryCalculator.def(pybind11::init<const HessianMatrix&, const AtomCollection&, int, double>(),
                                 pybind11::arg("hessian"), pybind11::arg("atoms"), pybind11::arg("multiplicity"),
                                 pybind11::arg("energy"), "Initialize a thermochemistry calculator");
+  thermochemistryCalculator.def(pybind11::init<const PartialHessian&, const AtomCollection&, int, double>(),
+                                pybind11::arg("hessian"), pybind11::arg("atoms"), pybind11::arg("multiplicity"),
+                                pybind11::arg("energy"), "Initialize a thermochemistry calculator");
   thermochemistryCalculator.def(
       pybind11::init<const HessianMatrix&, ElementTypeCollection, const PositionCollection&, int, double>(),
+      pybind11::arg("hessian"), pybind11::arg("elements"), pybind11::arg("positions"), pybind11::arg("multiplicity"),
+      pybind11::arg("energy"), "Initialize a thermochemistry calculator");
+  thermochemistryCalculator.def(
+      pybind11::init<const PartialHessian&, ElementTypeCollection, const PositionCollection&, int, double>(),
       pybind11::arg("hessian"), pybind11::arg("elements"), pybind11::arg("positions"), pybind11::arg("multiplicity"),
       pybind11::arg("energy"), "Initialize a thermochemistry calculator");
   thermochemistryCalculator.def("set_temperature", &ThermochemistryCalculator::setTemperature);

@@ -9,6 +9,7 @@
 #include <Utils/GeometricDerivatives/NormalModeAnalysis.h>
 #include <Utils/GeometricDerivatives/NormalModesContainer.h>
 #include <Utils/Geometry/AtomCollection.h>
+#include <Utils/Geometry/Utilities/Transformations.h>
 #include <Utils/MolecularTrajectory.h>
 #include <gmock/gmock.h>
 #include <cmath>
@@ -133,6 +134,46 @@ TEST_F(ANormalModesTest, CheckCorrectNormalizationOfNormalModes) {
         Eigen::Map<Eigen::VectorXd>(const_cast<double*>(unnormalizedContainer.getMode(iMode).data()), 9).norm();
     // We don't expect perfect equality since the management of the rotational modes is different
     ASSERT_THAT(1. / std::pow(reducedMass, 2), DoubleNear(mwFromGaussian[iMode], 2e-3));
+  }
+}
+
+TEST_F(ANormalModesTest, CheckCorrectNonMassWeightingOfNormalModes) {
+  // Elements type
+  ElementTypeCollection elements;
+  elements.push_back(ElementType::H);
+  elements.push_back(ElementType::O);
+  elements.push_back(ElementType::H);
+
+  // Positions
+  PositionCollection positions;
+  positions.resize(3, 3);
+  positions.row(0) = Position(0.7493682, 0.0, 0.4424329);
+  positions.row(1) = Position(0.0000000, 0.0, -0.1653507);
+  positions.row(2) = Position(-0.7493682, 0.0, 0.4424329);
+
+  // Eigenvalues and Eigenvectors of internal Hessian (without RotTrans)
+  auto transformation = Geometry::Transformations::calculateRotTransFreeTransformMatrix(positions, elements, false);
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
+  es.compute(transformation.transpose() * waterHessian * transformation);
+  auto internalEValues = es.eigenvalues();
+  auto internalEVectors = transformation * es.eigenvectors();
+
+  auto normalizedContainer = NormalModeAnalysis::calculateNormalModes(waterHessian, elements, positions, true, false);
+  // Test that internal Eigenvectors are identical to the mode in container
+  for (int iMode = 0; iMode < 3; iMode++) {
+    const auto& mode = normalizedContainer.getMode(iMode);
+    for (long atom = 0; atom < 3; atom++) {
+      ASSERT_THAT(mode(atom, 0), internalEVectors(atom * 3, iMode));
+      ASSERT_THAT(mode(atom, 1), internalEVectors(atom * 3 + 1, iMode));
+      ASSERT_THAT(mode(atom, 2), internalEVectors(atom * 3 + 2, iMode));
+    }
+  }
+  // Test that internal Eigenvalues are identical to the back-converted frequencies [cm^-1] in container
+  for (int iMode = 0; iMode < 3; iMode++) {
+    double evFromContainer = std::pow(normalizedContainer.getWaveNumbers()[iMode] *
+                                          Constants::hartree_per_invCentimeter / sqrt(Constants::u_per_electronRestMass),
+                                      2);
+    ASSERT_THAT(evFromContainer, DoubleNear(internalEValues(iMode), 1e-8));
   }
 }
 

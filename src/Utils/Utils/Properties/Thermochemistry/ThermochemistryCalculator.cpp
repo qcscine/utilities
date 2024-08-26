@@ -44,7 +44,22 @@ ThermochemistryCalculator::ThermochemistryCalculator(const HessianMatrix& hessia
   : ThermochemistryCalculator(hessian, atoms.getElements(), atoms.getPositions(), spinMultiplicity, electronicEnergy) {
 }
 
+ThermochemistryCalculator::ThermochemistryCalculator(const PartialHessian& hessian, const AtomCollection& atoms,
+                                                     int spinMultiplicity, double electronicEnergy)
+  : ThermochemistryCalculator(hessian, atoms.getElements(), atoms.getPositions(), spinMultiplicity, electronicEnergy) {
+}
+
 ThermochemistryCalculator::ThermochemistryCalculator(const HessianMatrix& hessian, ElementTypeCollection elements,
+                                                     const PositionCollection& positions, int spinMultiplicity,
+                                                     double electronicEnergy)
+  : elements_(std::move(elements)), spinMultiplicity_(spinMultiplicity), electronicEnergy_(electronicEnergy) {
+  auto masses = Utils::Geometry::Properties::getMasses(elements_);
+  auto centerOfMass = Utils::Geometry::Properties::getCenterOfMass(positions, masses);
+  principalMomentsOfInertia_ = Utils::Geometry::Properties::calculatePrincipalMoments(positions, masses, centerOfMass);
+  normalModesContainer_ = Utils::NormalModeAnalysis::calculateNormalModes(hessian, elements_, positions);
+}
+
+ThermochemistryCalculator::ThermochemistryCalculator(const PartialHessian& hessian, ElementTypeCollection elements,
                                                      const PositionCollection& positions, int spinMultiplicity,
                                                      double electronicEnergy)
   : elements_(std::move(elements)), spinMultiplicity_(spinMultiplicity), electronicEnergy_(electronicEnergy) {
@@ -166,7 +181,8 @@ ThermochemicalContainer ThermochemistryCalculator::calculateRotationalPart(doubl
         (constantPartForRotational +
          std::log(rotConst(0) * rotConst(1) * rotConst(2) / (sigma_ * sigma_ * std::pow(thermalCoefficient, 3))) + 3.0);
   }
-  rotationalTC.gibbsFreeEnergy = rotationalTC.enthalpy - temperature * rotationalTC.entropy;
+  rotationalTC.gibbsFreeEnergy =
+      (temperature > 1e-6) ? rotationalTC.enthalpy - temperature * rotationalTC.entropy : rotationalTC.enthalpy;
 
   return rotationalTC;
 }
@@ -190,7 +206,8 @@ ThermochemicalContainer ThermochemistryCalculator::calculateTranslationalPart(do
   translationalTC.entropy = R * (5.0 / 2.0 + logQ);
   translationalTC.heatCapacityP = 2.5 * R;
   translationalTC.heatCapacityV = translationalTC.heatCapacityP * 3. / 5.;
-  translationalTC.gibbsFreeEnergy = translationalTC.enthalpy - temperature * translationalTC.entropy;
+  translationalTC.gibbsFreeEnergy =
+      (temperature > 1e-6) ? translationalTC.enthalpy - temperature * translationalTC.entropy : translationalTC.enthalpy;
   return translationalTC;
 }
 

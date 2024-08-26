@@ -49,6 +49,20 @@ TEST_F(APropertyListTest, CanAddMultipleProperties) {
               b.containsSubSet(Property::Hessian));
 }
 
+TEST_F(APropertyListTest, CanGetIntersection) {
+  auto a = PropertyList(Property::Energy);
+  a.addProperty(Property::Gradients);
+  a.addProperty(Property::Hessian);
+  auto b = PropertyList(Property::Energy | Property::Hessian | Property::AtomicCharges);
+  auto c = a.intersection(b);
+  ASSERT_TRUE(a.containsSubSet(Property::Energy) && a.containsSubSet(Property::Gradients) &&
+              a.containsSubSet(Property::Hessian));
+  ASSERT_TRUE(b.containsSubSet(Property::Energy) && !b.containsSubSet(Property::Gradients) &&
+              b.containsSubSet(Property::Hessian) && b.containsSubSet(Property::AtomicCharges));
+  ASSERT_TRUE(c.containsSubSet(Property::Energy) && !c.containsSubSet(Property::Gradients) &&
+              c.containsSubSet(Property::Hessian) && !c.containsSubSet(Property::AtomicCharges));
+}
+
 TEST_F(APropertyListTest, CanAddMolecularDipole) {
   aPropertyList.addProperty(Property::Dipole);
 }
@@ -78,6 +92,14 @@ TEST_F(APropertyListTest, CanRemoveAProperty) {
   newPropertyList.removeProperty(Property::Hessian);
   ASSERT_FALSE(newPropertyList.containsSubSet(Utils::Property::Hessian));
   ASSERT_TRUE(newPropertyList.containsSubSet(Utils::Property::Energy));
+  newPropertyList.addProperty(Property::Hessian);
+  newPropertyList.addProperty(Property::Gradients);
+  ASSERT_TRUE(newPropertyList.containsSubSet(Utils::Property::Hessian));
+  ASSERT_TRUE(newPropertyList.containsSubSet(Utils::Property::Gradients));
+  newPropertyList.removeProperties(Property::Hessian | Property::Energy);
+  ASSERT_FALSE(newPropertyList.containsSubSet(Utils::Property::Hessian));
+  ASSERT_FALSE(newPropertyList.containsSubSet(Utils::Property::Energy));
+  ASSERT_TRUE(newPropertyList.containsSubSet(Utils::Property::Gradients));
 }
 
 } // namespace Tests

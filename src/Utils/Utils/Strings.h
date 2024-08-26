@@ -29,7 +29,7 @@ static bool caseInsensitiveEqual(const std::string& a, const std::string& b) {
  * @brief Splits a given string based on spaces into a vector and filters out any blank entries in the resulting vector
  * basically a small wrapper around boost::split
  * @param line The string to be split
- * @return The vector of strings in the line, no entry can be an blank space
+ * @return The vector of strings in the line, no entry can be a blank space
  */
 static std::vector<std::string> splitOnSpaceWithoutResultingSpace(const std::string& line) {
   std::vector<std::string> lineSplitted;

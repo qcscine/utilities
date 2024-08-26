@@ -194,8 +194,15 @@ class GeometryOptimizer : public GeometryOptimizerBase {
     _atoms = atoms;
     _log = std::make_shared<Core::Log>(log);
     auto calcStructure = _calculator.getStructure();
+    Results oldResults = _calculator.results();
     if (calcStructure && calcStructure->getElements() == atoms.getElements()) {
+      const Eigen::MatrixXd& oldPositions = _calculator.getPositions();
       _calculator.modifyPositions(atoms.getPositions());
+      // Check in Cartesian Coordinates if the given positions and the positions in the calculator are identical
+      if (oldPositions.rows() == atoms.getPositions().rows() && atoms.getPositions().isApprox(oldPositions, 1e-12)) {
+        _calculator.results() = oldResults;
+        _useOldResults = true;
+      }
     }
     else {
       _calculator.setStructure(atoms);
@@ -343,6 +350,7 @@ class GeometryOptimizer : public GeometryOptimizerBase {
   // following members may be adapted in constructur depending on template
   PropertyList _requiredProperties = Utils::Property::Energy | Utils::Property::Gradients;
   bool _internalAvailable = true;
+  bool _useOldResults = false;
 
   /**
    * @brief Lambda function passed to mathematical optimizer, which calls it to update value and gradient
@@ -400,15 +408,26 @@ class GeometryOptimizer : public GeometryOptimizerBase {
           else {
             coordinates = Eigen::Map<const Utils::PositionCollection>(parameters.data(), nAtoms, 3);
           }
-          _calculator.modifyPositions(coordinates);
+          Results results = _calculator.results();
+          bool recalculate = true;
+
+          if (_useOldResults) {
+            _useOldResults = false;
+            if (results.has<Utils::Property::Energy>() && results.has<Utils::Property::Gradients>() &&
+                results.has<Utils::Property::Hessian>()) {
+              // Same coordinates and all results are present, no need to calculate anything
+              recalculate = false;
+            }
+          }
+          if (recalculate) {
+            _calculator.modifyPositions(coordinates);
+            auto originalProperties = _calculator.getRequiredProperties();
+            originalProperties.addProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
+            _calculator.setRequiredProperties(originalProperties);
+            results = CalculationRoutines::calculateWithCatch(_calculator, *_log,
+                                                              "Aborting optimization due to failed calculation");
+          }
           _atoms.get().setPositions(coordinates);
-
-          auto originalProperties = _calculator.getRequiredProperties();
-          originalProperties.addProperties(Utils::Property::Energy | Utils::Property::Gradients | Utils::Property::Hessian);
-          _calculator.setRequiredProperties(originalProperties);
-
-          Results results = CalculationRoutines::calculateWithCatch(_calculator, *_log,
-                                                                    "Aborting optimization due to failed calculation");
           value = results.get<Property::Energy>();
           if (_transformation) {
             gradients = _transformation->gradientsToInternal(results.get<Property::Gradients>());

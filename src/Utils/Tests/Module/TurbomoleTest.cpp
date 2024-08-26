@@ -6,6 +6,7 @@
  */
 #include <Utils/Bonds/BondDetector.h>
 #include <Utils/ExternalQC/Exceptions.h>
+#include <Utils/ExternalQC/SettingsNames.h>
 #include <Utils/ExternalQC/Turbomole/TurbomoleCalculator.h>
 #include <Utils/ExternalQC/Turbomole/TurbomoleCalculatorSettings.h>
 #include <Utils/ExternalQC/Turbomole/TurbomoleFiles.h>
@@ -679,7 +680,7 @@ TEST_F(ATurbomoleTest, BasisSetStringIsConvertedCorrectly) {
     calculator.settings().modifyString(Utils::SettingsNames::basisSet, "sto-3g");
     auto basisSet2 = calculator.settings().getString(Utils::SettingsNames::basisSet);
     helper.mapBasisSetToTurbomoleStringRepresentation(basisSet2);
-    ASSERT_EQ(basisSet2, "STO-3G");
+    ASSERT_EQ(basisSet2, "sto-3g");
 
     // an unknown basis set
     calculator.settings().modifyString(Utils::SettingsNames::basisSet, "dummyBasisSet");
@@ -734,6 +735,38 @@ TEST_F(ATurbomoleTest, DFTFunctionalStringIsConvertedCorrectly) {
     auto logger = Core::Log();
     logger.output << "Turbomole DFT functional transformation was not tested directly as no binary path was specified."
                   << Core::Log::endl;
+  }
+#endif
+}
+
+TEST_F(ATurbomoleTest, DFTGridUpdatesAutomaticallyForHessians) {
+#ifndef _WIN32
+  const char* envVariablePtr = std::getenv("TURBODIR");
+  if (envVariablePtr) {
+    std::stringstream stream("3\n\n"
+                             "H 3.073966 2.638248 0.173676\n"
+                             "H 2.715150 1.261101 0.831928\n"
+                             "O 2.828578 1.726535 0.000000\n");
+
+    auto structure = Utils::XyzStreamHandler::read(stream);
+    calculator.setStructure(structure);
+
+    auto calcDir = calculator.getCalculationDirectory();
+    auto exeDir = calculator.getTurbomoleExecutableBase();
+    ExternalQC::TurbomoleHelper helper(calcDir, exeDir);
+    calculator.settings().modifyString(Utils::SettingsNames::method, "pbe");
+    const auto originalGrid = calculator.settings().getString(ExternalQC::SettingsNames::dftGrid);
+    calculator.settings().modifyString(ExternalQC::SettingsNames::dftGrid, "m3");
+    calculator.setRequiredProperties(Property::Hessian);
+    calculator.calculate("");
+    ASSERT_THAT(calculator.settings().getString(ExternalQC::SettingsNames::dftGrid), Eq("m4"));
+    calculator.settings().modifyString(ExternalQC::SettingsNames::dftGrid, originalGrid);
+
+    boost::filesystem::remove_all(calculator.getCalculationDirectory());
+  }
+  else {
+    auto logger = Core::Log();
+    logger.output << "Turbomole DFT grid update was not tested directly as no binary path was specified." << Core::Log::endl;
   }
 #endif
 }
@@ -896,7 +929,6 @@ TEST_F(ATurbomoleTest, InputFileIsWrittenCorrectlyAndUserDefinedSolventWorks) {
     ASSERT_THROW(calculator.calculate(""), std::logic_error);
     calculator.settings().modifyString(Utils::SettingsNames::solvent, "use_defined(80.1, 1.95)");
     ASSERT_THROW(calculator.calculate(""), std::runtime_error);
-
     boost::filesystem::remove_all(calculator.getCalculationDirectory());
   }
   else {
@@ -1046,7 +1078,7 @@ TEST_F(ATurbomoleTest, NumforceCallWorks) {
     const auto& hessian = results.get<Property::Hessian>();
     auto evals = hessian.eigenvalues();
     // Check if lowest eval is equal to the reference eigenvalue
-    double ref_eval_0 = -0.06076541616112619;
+    double ref_eval_0 = -0.0607561;
     ASSERT_TRUE(abs(evals[0].real() - ref_eval_0) < 1e-6);
 
     boost::filesystem::remove_all(calculator.getCalculationDirectory());

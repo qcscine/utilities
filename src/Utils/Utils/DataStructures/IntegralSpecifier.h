@@ -54,6 +54,7 @@ struct ParticleType {
   ElementType symbol;
   double mass;
 };
+//
 
 /**
  * @brief returns a vector of all available `ParticleType` objects.
@@ -111,8 +112,24 @@ inline auto getParticleType(std::string str_symbol) -> ParticleType {
  * KineticCOM   Subtracts the total momentum for the elimination of the COM motion.
  * CoulombCOM                 -"-
  *              Note: those integrals do not have 8-fold symmetry!
+ * EquilibriumAngularMomentumSquared: Calculates the one-body contribution to the equilibrium angular momentum operator
+ * of zeroth order (see Nakai, J. Chem. Phys. 122, 164101 (2005).
+ *
+ *  EquilibriumAngularMomentumTwoParticle: Calculates the one-body contribution to the equilibrium angular momentum
+ * operator of zerothorder (see Nakai, J. Chem. Phys. 122, 164101 (2005). Not implemented yet.
+ *
  */
-enum class Operator { Overlap, Kinetic, PointCharges, Coulomb, KineticCOM, CoulombCOM, Dipole };
+enum class Operator {
+  Overlap,
+  Kinetic,
+  PointCharges,
+  Coulomb,
+  KineticCOM,
+  CoulombCOM,
+  Dipole,
+  EquilibriumAngularMomentumSquared,
+  EquilibriumAngularMomentumTwoParticle
+};
 
 /**
  * @struct IntegralSpecifier IntegralSpecifier.h
@@ -123,7 +140,8 @@ struct IntegralSpecifier {
   Operator op;
   // By default: use electron as paricle type.
   std::vector<ParticleType> typeVector{{-1, 1, ElementType::E, 1}};
-  // Derivative order. Supported are only up to first order derivatives.
+
+  // Derivative order. Supported are only up to second order derivatives.
   std::size_t derivOrder = 0;
   // Optional: molecular geometry for point charges integrals.
   boost::optional<AtomCollection> atoms;
@@ -131,6 +149,13 @@ struct IntegralSpecifier {
   boost::optional<double> totalMass;
   // Optional: origin for multipole integrals.
   boost::optional<Position> multipoleOrigin;
+  /** Optional: Needed for EquilibriumAngularMomentumSquared operator. Only relevant for KIWI
+   * momentOfInetia saves, Ix,Iy,Iz of the given molecule.
+   */
+  boost::optional<Eigen::VectorXd> momentOfInertia;
+  boost::optional<Position> particlePositions;
+  // Optional: Nuclei can be made distinguishable, this is a helper Flag. Only relevant for KIWI
+  boost::optional<bool> isDistinguishable = false;
 };
 
 } // namespace Integrals

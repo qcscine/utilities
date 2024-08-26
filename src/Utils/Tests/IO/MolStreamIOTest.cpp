@@ -7,9 +7,12 @@
 #include <Utils/Bonds/BondOrderCollection.h>
 #include <Utils/Constants.h>
 #include <Utils/Geometry/AtomCollection.h>
+#include <Utils/IO/ChemicalFileFormats/ChemicalFileHandler.h>
 #include <Utils/IO/ChemicalFileFormats/MolStreamHandler.h>
 #include <Utils/Technical/ScopedLocale.h>
 #include <gmock/gmock.h>
+#include <boost/dll.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
 
@@ -155,6 +158,15 @@ TEST_F(MolStreamHandlerTest, CorrectImportInLocaleWithCommas) {
   catch (std::runtime_error& e) {
     // Do nothing.
   }
+}
+
+TEST_F(MolStreamHandlerTest, ReadFileWithLargeCoordinates) {
+  const boost::filesystem::path pathToResource =
+      boost::dll::program_location().parent_path() / "Resources/large_coordinates.xyz";
+  auto atomsAndBonds = ChemicalFileHandler::read(pathToResource.string());
+  const std::string temporaryMolFileName = "temporaryMolFile.mol";
+  EXPECT_THROW(ChemicalFileHandler::write(temporaryMolFileName, atomsAndBonds.first), std::runtime_error);
+  std::remove(temporaryMolFileName.c_str());
 }
 } /* namespace Tests */
 } /* namespace Utils */

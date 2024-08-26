@@ -9,6 +9,7 @@
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <Eigen/Core>
 
 using namespace Scine::Utils;
 
@@ -18,6 +19,7 @@ void init_partial_hessian(pybind11::module& m) {
       "Class defining a partial Hessian for use in embedding calculations. It is simply a container for the matrix and "
       "the indices of the atoms in the supersystem.");
 
+  partial_hessian.def(pybind11::init<Eigen::MatrixXd, std::vector<int>>());
   partial_hessian.def_property_readonly("matrix", &PartialHessian::getMatrix, "Returns the Hessian matrix.");
   partial_hessian.def_property_readonly(
       "indices", &PartialHessian::getIndices,

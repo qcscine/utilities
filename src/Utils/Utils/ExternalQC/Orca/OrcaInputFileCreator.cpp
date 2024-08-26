@@ -11,6 +11,7 @@
 #include <Utils/IO/MolecularTrajectoryIO.h>
 #include <Utils/Scf/LcaoUtils/SpinMode.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <fstream>
 #include <iomanip>
 
@@ -43,7 +44,8 @@ void OrcaInputFileCreator::printCalculationType(std::ostream& out, const AtomCol
       settings.getString(Scine::Utils::SettingsNames::method));
   out << "! " << methodInput.first << " " << methodInput.second << " " << basisSet << std::endl;
 
-  if (boost::to_upper_copy<std::string>(methodInput.first).find("DLPNO") != std::string::npos) {
+  if ((boost::to_upper_copy<std::string>(methodInput.first).find("DLPNO") != std::string::npos) ||
+      (boost::to_upper_copy<std::string>(methodInput.first).find("CC") != std::string::npos)) {
     auto auxCBasisSet = settings.getString(Scine::Utils::ExternalQC::SettingsNames::orcaAuxCBasisSet);
     if (!auxCBasisSet.empty()) {
       out << "! " << auxCBasisSet << "/C" << std::endl;
@@ -81,8 +83,17 @@ void OrcaInputFileCreator::printCalculationType(std::ostream& out, const AtomCol
   }
 
   auto solvent = settings.getString(Utils::SettingsNames::solvent);
+  double epsilon = -1.0;
+  double probeRadius = -1.0;
   if (!solvent.empty() && solvent != "none") {
-    out << "! CPCM(" << solvent << ")" << std::endl;
+    if (solvent.find("user_defined") != std::string::npos) {
+      auto epsRadPair = interpretAsUserDefinedImplicitSolvation(solvent);
+      epsilon = std::get<0>(epsRadPair);
+      probeRadius = std::get<1>(epsRadPair);
+    }
+    else {
+      out << "! CPCM(" << solvent << ")" << std::endl;
+    }
   }
   if (requiredProperties.containsSubSet(Property::Gradients)) {
     std::string gradType =
@@ -108,6 +119,10 @@ void OrcaInputFileCreator::printCalculationType(std::ostream& out, const AtomCol
     out << "%cpcm ndiv 6" << std::endl;
     if (settings.getString(Utils::SettingsNames::solvation) == "smd") {
       out << "smd true\nSMDsolvent \"" << solvent << "\"" << std::endl;
+    }
+    if (solvent.find("user_defined") != std::string::npos) {
+      out << "epsilon " << epsilon << std::endl;
+      out << "rsolv " << probeRadius << std::endl;
     }
     out << "end" << std::endl;
   }
@@ -186,7 +201,15 @@ void OrcaInputFileCreator::printCalculationType(std::ostream& out, const AtomCol
   // Write name of point charges file if it was set
   auto pointChargesFile = settings.getString(SettingsNames::pointChargesFile);
   if (!pointChargesFile.empty()) {
-    out << "%pointcharges \"" << pointChargesFile << "\"" << std::endl;
+    boost::filesystem::path filePath(pointChargesFile);
+    if (filePath.is_absolute()) {
+      out << "%pointcharges \"" << pointChargesFile << "\"" << std::endl;
+    }
+    else {
+      // The point charge file will not be in the orca calculation directory but one above.
+      out << "%pointcharges \""
+          << "../" << pointChargesFile << "\"" << std::endl;
+    }
   }
 }
 
@@ -214,6 +237,44 @@ void OrcaInputFileCreator::printStructure(std::ostream& out, const AtomCollectio
     out << std::endl;
     out << "end";
   }
+}
+
+std::tuple<double, double> OrcaInputFileCreator::interpretAsUserDefinedImplicitSolvation(std::string solvent) {
+  const std::string userDefined = "user_defined";
+  auto startPosition = solvent.find("user_defined");
+  // This should now look like (78.39 1.93)
+  std::string epsilonAndProbeRadius = solvent.erase(startPosition, userDefined.length());
+  // Remove brackets
+  const bool firstIsABracket = epsilonAndProbeRadius[0] == '(';
+  const bool lastIsABracket = epsilonAndProbeRadius[epsilonAndProbeRadius.length() - 1] == ')';
+  if (!firstIsABracket || !lastIsABracket) {
+    throw std::logic_error(
+        "The solvent '" + solvent + "' is labeled as user defined but has a wrong format.\n" +
+        "The format must be user_defined(<epsilon>, <probe_radius>). The brackets are misplaced or missing.");
+  }
+  epsilonAndProbeRadius.erase(0, 1);
+  epsilonAndProbeRadius.erase(epsilonAndProbeRadius.length() - 1, 1);
+  std::stringstream sstream(epsilonAndProbeRadius);
+  double epsilon = -1.0;
+  double probeRadius = -1.0;
+  try {
+    std::string epsilonString, probeRadiusString;
+    std::getline(sstream, epsilonString, ',');
+    std::getline(sstream, probeRadiusString, ',');
+    epsilon = std::stod(epsilonString);
+    probeRadius = std::stod(probeRadiusString);
+  }
+  catch (...) {
+    throw std::logic_error("The solvent '" + solvent + "' is labeled as user defined but has a wrong format.\n" +
+                           "The format must be user_defined(<epsilon>, <probe_radius>). Unable to convert the given\n" +
+                           "dielectric constant or probe radius to a floating point number.");
+  }
+  if (sstream.rdbuf()->in_avail()) {
+    throw std::logic_error("The solvent '" + solvent + "' is labeled as user defined but has a wrong format.\n" +
+                           "The format must be user_defined(<epsilon>, <probe_radius>). The number of arguments in\n" +
+                           "the brackets is larger than two.");
+  }
+  return std::make_tuple(epsilon, probeRadius);
 }
 
 } // namespace ExternalQC

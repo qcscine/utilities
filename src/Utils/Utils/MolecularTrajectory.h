@@ -267,6 +267,22 @@ class MolecularTrajectory {
    */
   MolecularTrajectory operator/(double f) const;
 
+  /**
+   * @brief Update all residue information
+   *
+   * The new data must have the correct size,
+   * this function does not resize the data objects.
+   *
+   * @param residues The new positions.
+   */
+  void setResidues(const ResidueCollection& residues);
+  /**
+   * @brief Get the Residue object
+   *
+   * @return const ResidueCollection&
+   */
+  const ResidueCollection& getResidues() const;
+
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW // See http://eigen.tuxfamily.org/dox-devel/group__TopicStructHavingEigenMembers.html
 
       private :
@@ -292,6 +308,7 @@ class MolecularTrajectory {
   PbcContainer pbcs_;
   double minMeanSquareDeviation_;
   bool respectMinRmsd_ = false;
+  ResidueCollection residues_;
 };
 
 } /* namespace Utils */

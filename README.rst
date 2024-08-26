@@ -57,6 +57,16 @@ Due to a `bug <https://github.com/boostorg/process/issues/62>`_ in boost
 version 1.69.0, linkage against this version will result in a leakage
 of file handles if the ORCA and Gaussian Calculators are called repeatedly.
 
+How to Cite
+-----------
+
+When publishing results obtained with any SCINE module, please cite the following paper:
+
+T. Weymuth, J. P. Unsleber, P. L. Türtscher, M. Steiner, J.-G. Sobez, C. H. Müller, M. Mörchen,
+V. Klasovita, S. A. Grimmel, M. Eckhoff, K.-S. Csizi, F. Bosia, M. Bensberg, M. Reiher,
+"SCINE—Software for chemical interaction networks", *J. Chem. Phys.*, **2024**, *160*, 222501
+(DOI `10.1063/5.0206974 <https://doi.org/10.1063/5.0206974>`_).
+
 Support and Contact
 -------------------
 

@@ -32,41 +32,53 @@ namespace Scine {
 namespace Utils {
 
 /*! @brief The properties contained are assigned a bit. This can be switched on or off
- *         to flag the presence or absence of the property. */
-enum class Property : unsigned {
-  Energy = (1 << 0),
-  Gradients = (1 << 1),
-  Hessian = (1 << 2),
-  PartialHessian = (1 << 3),
-  AtomicHessians = (1 << 4),
-  Dipole = (1 << 5),
-  DipoleGradient = (1 << 6),
-  DipoleMatrixAO = (1 << 7),
-  DipoleMatrixMO = (1 << 8),
-  DensityMatrix = (1 << 9),
-  OneElectronMatrix = (1 << 10),
-  TwoElectronMatrix = (1 << 11),
-  OverlapMatrix = (1 << 12),
-  CoefficientMatrix = (1 << 13),
-  OrbitalEnergies = (1 << 14),
-  ElectronicOccupation = (1 << 15),
-  Thermochemistry = (1 << 16),
-  ExcitedStates = (1 << 17),
-  AOtoAtomMapping = (1 << 18),
-  AtomicCharges = (1 << 19),
-  BondOrderMatrix = (1 << 20),
-  Description = (1 << 21),
-  SuccessfulCalculation = (1 << 22),
-  ProgramName = (1 << 23),
-  PointChargesGradients = (1 << 24),
-  AtomicGtos = (1 << 25),
-  GridOccupation = (1 << 26),
-  StressTensor = (1 << 27),
-  MoessbauerParameter = (1 << 28),
-  PartialEnergies = (1 << 29)
+ *         to flag the presence or absence of the property.
+ *
+ *  The total number of possible properties can be increased from 64 by changing the data
+ *  type to a wrapped implementation of a std::bitset, see https://fschoenberger.dev/enum-bitset/
+ *  for an example. Note that you have to be careful with the bit shift operations here.
+ *  If you do (1 << 31) you get an integer overflow because 1 is only a unsigned int. You have to
+ *  do (1ULL << 31) to ensure that 1 is actually an unsigned long long.
+ *
+ *  See also ResultsPython.cpp for more bit shift operations.
+ *
+ */
+enum class Property : unsigned long long {
+  Energy = (1ULL << 0),
+  Gradients = (1ULL << 1),
+  Hessian = (1ULL << 2),
+  PartialHessian = (1ULL << 3),
+  AtomicHessians = (1ULL << 4),
+  Dipole = (1ULL << 5),
+  DipoleGradient = (1ULL << 6),
+  DipoleMatrixAO = (1ULL << 7),
+  DipoleMatrixMO = (1ULL << 8),
+  DensityMatrix = (1ULL << 9),
+  OneElectronMatrix = (1ULL << 10),
+  TwoElectronMatrix = (1ULL << 11),
+  OverlapMatrix = (1ULL << 12),
+  CoefficientMatrix = (1ULL << 13),
+  OrbitalEnergies = (1ULL << 14),
+  ElectronicOccupation = (1ULL << 15),
+  Thermochemistry = (1ULL << 16),
+  ExcitedStates = (1ULL << 17),
+  AOtoAtomMapping = (1ULL << 18),
+  AtomicCharges = (1ULL << 19),
+  BondOrderMatrix = (1ULL << 20),
+  Description = (1ULL << 21),
+  SuccessfulCalculation = (1ULL << 22),
+  ProgramName = (1ULL << 23),
+  PointChargesGradients = (1ULL << 24),
+  AtomicGtos = (1ULL << 25),
+  GridOccupation = (1ULL << 26),
+  StressTensor = (1ULL << 27),
+  MoessbauerParameter = (1ULL << 28),
+  PartialEnergies = (1ULL << 29),
+  PartialGradients = (1ULL << 30),
+  OrbitalFragmentPopulations = (1ULL << 31)
 };
 
-constexpr int N_PROPERTIES = 30;
+constexpr int N_PROPERTIES = 32;
 
 // clang-format off
 using PropertyTypeTuple =
@@ -100,78 +112,85 @@ using PropertyTypeTuple =
     std::vector<int>, /*Property::GridOccupation*/
     Eigen::Matrix3d, /*Property::StressTensor*/
     ExternalQC::Moessbauer::MoessbauerParameterContainer, /*Property::MoessbauerParameter*/
-    std::unordered_map<std::string, double> /*Property::PartialEnergies*/
+    std::unordered_map<std::string, double>, /*Property::PartialEnergies*/
+    std::unordered_map<std::string, GradientCollection>, /*Property::PartialGradients*/
+    SpinAdaptedMatrix /*Property::OrbitalFragmentPopulations*/
     >;
 // clang-format on
 
 static_assert(std::tuple_size<PropertyTypeTuple>::value == N_PROPERTIES,
               "Tuple does not contain as many elements as there are properties");
 
-constexpr std::array<Property, std::tuple_size<PropertyTypeTuple>::value> allProperties{{Property::Energy,
-                                                                                         Property::Gradients,
-                                                                                         Property::Hessian,
-                                                                                         Property::PartialHessian,
-                                                                                         Property::AtomicHessians,
-                                                                                         Property::Dipole,
-                                                                                         Property::DipoleGradient,
-                                                                                         Property::DipoleMatrixAO,
-                                                                                         Property::DipoleMatrixMO,
-                                                                                         Property::DensityMatrix,
-                                                                                         Property::OneElectronMatrix,
-                                                                                         Property::TwoElectronMatrix,
-                                                                                         Property::OverlapMatrix,
-                                                                                         Property::CoefficientMatrix,
-                                                                                         Property::OrbitalEnergies,
-                                                                                         Property::ElectronicOccupation,
-                                                                                         Property::Thermochemistry,
-                                                                                         Property::ExcitedStates,
-                                                                                         Property::AOtoAtomMapping,
-                                                                                         Property::AtomicCharges,
-                                                                                         Property::BondOrderMatrix,
-                                                                                         Property::Description,
-                                                                                         Property::SuccessfulCalculation,
-                                                                                         Property::ProgramName,
-                                                                                         Property::PointChargesGradients,
-                                                                                         Property::AtomicGtos,
-                                                                                         Property::GridOccupation,
-                                                                                         Property::StressTensor,
-                                                                                         Property::MoessbauerParameter,
-                                                                                         Property::PartialEnergies}};
+constexpr std::array<Property, N_PROPERTIES> allProperties{{Property::Energy,
+                                                            Property::Gradients,
+                                                            Property::Hessian,
+                                                            Property::PartialHessian,
+                                                            Property::AtomicHessians,
+                                                            Property::Dipole,
+                                                            Property::DipoleGradient,
+                                                            Property::DipoleMatrixAO,
+                                                            Property::DipoleMatrixMO,
+                                                            Property::DensityMatrix,
+                                                            Property::OneElectronMatrix,
+                                                            Property::TwoElectronMatrix,
+                                                            Property::OverlapMatrix,
+                                                            Property::CoefficientMatrix,
+                                                            Property::OrbitalEnergies,
+                                                            Property::ElectronicOccupation,
+                                                            Property::Thermochemistry,
+                                                            Property::ExcitedStates,
+                                                            Property::AOtoAtomMapping,
+                                                            Property::AtomicCharges,
+                                                            Property::BondOrderMatrix,
+                                                            Property::Description,
+                                                            Property::SuccessfulCalculation,
+                                                            Property::ProgramName,
+                                                            Property::PointChargesGradients,
+                                                            Property::AtomicGtos,
+                                                            Property::GridOccupation,
+                                                            Property::StressTensor,
+                                                            Property::MoessbauerParameter,
+                                                            Property::PartialEnergies,
+                                                            Property::PartialGradients,
+                                                            Property::OrbitalFragmentPopulations}};
 
 static_assert(std::tuple_size<decltype(allProperties)>::value == N_PROPERTIES,
               "allProperties does not contain as many elements as there are properties");
 
 // Python binding names
-constexpr std::array<const char*, std::tuple_size<PropertyTypeTuple>::value> allPropertyNames{"energy",
-                                                                                              "gradients",
-                                                                                              "hessian",
-                                                                                              "partial_hessian",
-                                                                                              "atomic_hessian",
-                                                                                              "dipole",
-                                                                                              "dipole_gradient",
-                                                                                              "ao_dipole_matrix",
-                                                                                              "mo_dipole_matrix",
-                                                                                              "density_matrix",
-                                                                                              "one_electron_matrix",
-                                                                                              "two_electron_matrix",
-                                                                                              "overlap_matrix",
-                                                                                              "coefficient_matrix",
-                                                                                              "orbital_energies",
-                                                                                              "electronic_occupation",
-                                                                                              "thermochemistry",
-                                                                                              "excited_states",
-                                                                                              "ao_to_atom_mapping",
-                                                                                              "atomic_charges",
-                                                                                              "bond_orders",
-                                                                                              "description",
-                                                                                              "successful_calculation",
-                                                                                              "program_name",
-                                                                                              "point_charges_gradients",
-                                                                                              "atomic_gtos",
-                                                                                              "grid_occupation",
-                                                                                              "stress_tensor",
-                                                                                              "moessbauer_parameter",
-                                                                                              "partial_energies"};
+constexpr std::array<const char*, std::tuple_size<PropertyTypeTuple>::value> allPropertyNames{
+    "energy",
+    "gradients",
+    "hessian",
+    "partial_hessian",
+    "atomic_hessian",
+    "dipole",
+    "dipole_gradient",
+    "ao_dipole_matrix",
+    "mo_dipole_matrix",
+    "density_matrix",
+    "one_electron_matrix",
+    "two_electron_matrix",
+    "overlap_matrix",
+    "coefficient_matrix",
+    "orbital_energies",
+    "electronic_occupation",
+    "thermochemistry",
+    "excited_states",
+    "ao_to_atom_mapping",
+    "atomic_charges",
+    "bond_orders",
+    "description",
+    "successful_calculation",
+    "program_name",
+    "point_charges_gradients",
+    "atomic_gtos",
+    "grid_occupation",
+    "stress_tensor",
+    "moessbauer_parameter",
+    "partial_energies",
+    "partial_gradients",
+    "orbital_fragment_populations"};
 
 static_assert(std::tuple_size<decltype(allPropertyNames)>::value == N_PROPERTIES,
               "allPropertyNames does not contain as many elements as there are properties");
@@ -182,7 +201,7 @@ static_assert(std::tuple_size<decltype(allPropertyNames)>::value == N_PROPERTIES
  * - Use a separate array of strings and figure out the index from the original property
  */
 
-constexpr unsigned getPropertyIndex(Property property) {
+constexpr unsigned int getPropertyIndex(Property property) {
   unsigned index = allProperties.size();
   for (unsigned i = 0; i < allProperties.size(); ++i) {
     if (allProperties.at(i) == property) {
@@ -192,7 +211,7 @@ constexpr unsigned getPropertyIndex(Property property) {
   }
 
   if (index == allProperties.size()) {
-    throw std::logic_error("constexpr failed to find property" +
+    throw std::logic_error("constexpr failed to find property " +
                            std::to_string(static_cast<std::underlying_type<Property>::type>(property)));
   }
 
@@ -200,6 +219,7 @@ constexpr unsigned getPropertyIndex(Property property) {
 }
 
 static_assert(getPropertyIndex(Property::Gradients) == 1, "Fn doesn't work");
+static_assert(getPropertyIndex(Property::OrbitalFragmentPopulations) == 31, "Fn doesn't work");
 
 constexpr const char* propertyTypeName(Property property) {
   unsigned enumIndex = getPropertyIndex(property);
@@ -239,6 +259,13 @@ class PropertyList {
     return combinedProperties == properties_;
   }
 
+  PropertyList intersection(const PropertyList& pl) const {
+    // & operator is already overloaded with a bool return type
+    // so we duplicate the code here
+    using utype = std::underlying_type<Property>::type;
+    return static_cast<Property>(static_cast<utype>(properties_) & static_cast<utype>(pl.properties_));
+  }
+
   /*! Switches on the bits that are switched on in the argument Property v */
   void addProperty(const Property v) {
     properties_ = properties_ | v;
@@ -254,6 +281,26 @@ class PropertyList {
       return;
     }
     properties_ = properties_ ^ v;
+  }
+  void removeProperties(const PropertyList v) {
+    if (!containsSubSet(v)) {
+      // not present anyway
+      return;
+    }
+    properties_ = properties_ ^ v.properties_;
+  }
+
+  std::string print() const {
+    std::string p = "[";
+    for (const auto& prop : allProperties) {
+      if (this->containsSubSet(prop)) {
+        if (p.size() > 1) {
+          p += ", ";
+        }
+        p += std::string(propertyTypeName(prop));
+      }
+    }
+    return p + "]";
   }
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

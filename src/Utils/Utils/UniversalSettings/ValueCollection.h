@@ -103,6 +103,10 @@ class ValueCollection {
   GenericValue::IntList getIntList(const std::string& name) const;
   void modifyIntList(const std::string& name, GenericValue::IntList value);
 
+  void addIntListList(std::string name, GenericValue::IntListList value);
+  GenericValue::IntListList getIntListList(const std::string& name) const;
+  void modifyIntListList(const std::string& name, GenericValue::IntListList value);
+
   void addDoubleList(std::string name, GenericValue::DoubleList value);
   GenericValue::DoubleList getDoubleList(const std::string& name) const;
   void modifyDoubleList(const std::string& name, GenericValue::DoubleList value);

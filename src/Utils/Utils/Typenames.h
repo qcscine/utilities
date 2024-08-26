@@ -36,8 +36,9 @@ using ElementTypeCollection = std::vector<ElementType>;
 /**
  * @class Scine::Utils::ElementTypeCollection Typenames.h
  * @brief Another name for an std::pair<std::tuple<std::string, std::string, unsigned int>>.
+ *        Ordering: Residue label, atom-type, chain label, residue index
  */
-using ResidueInformation = std::tuple<std::string, std::string, unsigned int>;
+using ResidueInformation = std::tuple<std::string, std::string, std::string, unsigned int>;
 
 /**
  * @class Scine::Utils::ElementTypeCollection Typenames.h

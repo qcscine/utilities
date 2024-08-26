@@ -80,6 +80,10 @@ void init_bond_order_collection(pybind11::module& m) {
       "Transfers all values to absolute values. Bonds across periodic boundaries can be signalled by negative "
       "bond orders. This method essentially removes this information.");
 
+  // Remove atoms
+  bond_order_collection.def("remove_atoms_by_indices", &BondOrderCollection::removeAtomsByIndices,
+                            "Remove atoms from the bond order collection according to the given index list.");
+
   // Operators
   bond_order_collection.def(pybind11::self == pybind11::self);
   bond_order_collection.def(pybind11::self != pybind11::self);

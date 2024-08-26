@@ -7,8 +7,11 @@
 
 #include <Utils/Geometry/AtomCollection.h>
 #include <Utils/Geometry/ElementInfo.h>
+#include <Utils/IO/ChemicalFileFormats/ChemicalFileHandler.h>
 #include <Utils/IO/ChemicalFileFormats/PdbStreamHandler.h>
 #include <gmock/gmock.h>
+#include <boost/dll.hpp>
+#include <boost/filesystem.hpp>
 #include <sstream>
 #include <vector>
 
@@ -21,6 +24,11 @@ class PdbStreamHandlerTest : public Test {
  public:
   PdbStreamHandler handler;
 };
+
+std::string hexSequence = "HETATM42412  O   HOH 3A85D      54.791  33.858 -14.930  1.00  0.00           O\n"
+                          "HETATM42413  H1  HOH 3A85D      54.736  34.196 -15.824  1.00  0.00           H\n"
+                          "HETATM42414  H2  HOH 3A85D      54.154  34.376 -14.438  1.00  0.00           H\n"
+                          "END";
 
 std::string tyrosine = "HETATM    1  N   UNK     1       1.171  -2.180   0.228  1.00  0.00           N\n"
                        "HETATM    2  C   UNK     2       1.491  -0.984  -0.582  1.00  0.00           C\n"
@@ -78,6 +86,106 @@ std::string tyrosine = "HETATM    1  N   UNK     1       1.171  -2.180   0.228  
                        "CONECT   23    1\n"
                        "CONECT   24    1\n"
                        "END";
+
+const std::string tyrosine2 = "MODEL        1\n"
+                              "HETATM    1  N   UNK     1       1.171  -2.180   0.228  1.00  0.00           N\n"
+                              "HETATM    2  C   UNK     2       1.491  -0.984  -0.582  1.00  0.00           C\n"
+                              "HETATM    3  C   UNK     3       2.946  -0.962  -1.046  1.00  0.00           C\n"
+                              "HETATM    4  O   UNK     4       3.915  -1.497  -0.536  1.00  0.00           O\n"
+                              "HETATM    5  O   UNK     5       3.185  -0.264  -2.178  1.00  0.00           O\n"
+                              "HETATM    6  C   UNK     6       1.205   0.310   0.201  1.00  0.00           C\n"
+                              "HETATM    7  H   UNK     7       1.674   0.272   1.206  1.00  0.00           H\n"
+                              "HETATM    8  H   UNK     8       1.681   1.167  -0.320  1.00  0.00           H\n"
+                              "HETATM    9  C   UNK     9      -0.262   0.568   0.317  1.00  0.00           C\n"
+                              "HETATM   10  C   UNK    10      -0.964   1.087  -0.775  1.00  0.00           C\n"
+                              "HETATM   11  H   UNK    11      -0.432   1.295  -1.711  1.00  0.00           H\n"
+                              "HETATM   12  C   UNK    12      -2.324   1.341  -0.687  1.00  0.00           C\n"
+                              "HETATM   13  H   UNK    13      -2.871   1.749  -1.544  1.00  0.00           H\n"
+                              "HETATM   14  C   UNK    14      -2.990   1.069   0.517  1.00  0.00           C\n"
+                              "HETATM   15  C   UNK    15      -2.299   0.548   1.618  1.00  0.00           C\n"
+                              "HETATM   16  H   UNK    16      -2.818   0.332   2.558  1.00  0.00           H\n"
+                              "HETATM   17  C   UNK    17      -0.936   0.301   1.508  1.00  0.00           C\n"
+                              "HETATM   18  H   UNK    18      -0.391  -0.112   2.364  1.00  0.00           H\n"
+                              "HETATM   19  O   UNK    19      -4.331   1.343   0.538  1.00  0.00           O\n"
+                              "HETATM   20  H   UNK    20      -4.663   1.103   1.394  1.00  0.00           H\n"
+                              "HETATM   21  H   UNK    21       0.824  -1.021  -1.482  1.00  0.00           H\n"
+                              "HETATM   22  H   UNK    22       4.113  -0.293  -2.390  1.00  0.00           H\n"
+                              "HETATM   23  H   UNK    23       1.681  -2.167   1.087  1.00  0.00           H\n"
+                              "HETATM   24  H   UNK    24       1.396  -3.005  -0.284  1.00  0.00           H\n"
+                              "TER      25                                                                   \n"
+                              "HETATM    1  O   HOH     1      -0.711   3.428   0.621  0.00  0.00           O\n"
+                              "HETATM    2  O   HOH     1      -1.659  -1.373  -0.032  0.00  0.00           O\n"
+                              "HETATM    3  H   HOH     1      -0.743   2.872   1.402  0.00  0.00           H\n"
+                              "HETATM    4  H   HOH     1      -1.403   4.092   0.670  0.00  0.00           H\n"
+                              "HETATM    5  H   HOH     1      -0.764  -1.432  -0.374  0.00  0.00           H\n"
+                              "HETATM    6  H   HOH     1      -1.909  -0.450   0.053  0.00  0.00           H\n"
+                              "HETATM    7  N   UNK     1       1.171  -2.180   0.228  1.00  0.00           N\n"
+                              "ENDMDL                                                                        \n"
+                              "MODEL        2                                                                \n"
+                              "HETATM    1  N   UNK     1       1.171  -2.180   0.228  1.00  0.00           N\n"
+                              "HETATM    2  C   UNK     2       1.491  -0.984  -0.582  1.00  0.00           C\n"
+                              "HETATM    3  C   UNK     3       2.946  -0.962  -1.046  1.00  0.00           C\n"
+                              "HETATM    4  O   UNK     4       3.915  -1.497  -0.536  1.00  0.00           O\n"
+                              "HETATM    5  O   UNK     5       3.185  -0.264  -2.178  1.00  0.00           O\n"
+                              "HETATM    6  C   UNK     6       1.205   0.310   0.201  1.00  0.00           C\n"
+                              "HETATM    7  H   UNK     7       1.674   0.272   1.206  1.00  0.00           H\n"
+                              "HETATM    8  H   UNK     8       1.681   1.167  -0.320  1.00  0.00           H\n"
+                              "HETATM    9  C   UNK     9      -0.262   0.568   0.317  1.00  0.00           C\n"
+                              "HETATM   10  C   UNK    10      -0.964   1.087  -0.775  1.00  0.00           C\n"
+                              "HETATM   11  H   UNK    11      -0.432   1.295  -1.711  1.00  0.00           H\n"
+                              "HETATM   12  C   UNK    12      -2.324   1.341  -0.687  1.00  0.00           C\n"
+                              "HETATM   13  H   UNK    13      -2.871   1.749  -1.544  1.00  0.00           H\n"
+                              "HETATM   14  C   UNK    14      -2.990   1.069   0.517  1.00  0.00           C\n"
+                              "HETATM   15  C   UNK    15      -2.299   0.548   1.618  1.00  0.00           C\n"
+                              "HETATM   16  H   UNK    16      -2.818   0.332   2.558  1.00  0.00           H\n"
+                              "HETATM   17  C   UNK    17      -0.936   0.301   1.508  1.00  0.00           C\n"
+                              "HETATM   18  H   UNK    18      -0.391  -0.112   2.364  1.00  0.00           H\n"
+                              "HETATM   19  O   UNK    19      -4.331   1.343   0.538  1.00  0.00           O\n"
+                              "HETATM   20  H   UNK    20      -4.663   1.103   1.394  1.00  0.00           H\n"
+                              "HETATM   21  H   UNK    21       0.824  -1.021  -1.482  1.00  0.00           H\n"
+                              "HETATM   22  H   UNK    22       4.113  -0.293  -2.390  1.00  0.00           H\n"
+                              "HETATM   23  H   UNK    23       1.681  -2.167   1.087  1.00  0.00           H\n"
+                              "HETATM   24  H   UNK    24       1.396  -3.005  -0.284  1.00  0.00           H\n"
+                              "TER      25                                                                   \n"
+                              "HETATM    1  O   HOH     1      -0.711   3.428   0.621  0.00  0.00           O\n"
+                              "HETATM    2  O   HOH     1      -1.659  -1.373  -0.032  0.00  0.00           O\n"
+                              "HETATM    3  H   HOH     1      -0.743   2.872   1.402  0.00  0.00           H\n"
+                              "HETATM    4  H   HOH     1      -1.403   4.092   0.670  0.00  0.00           H\n"
+                              "HETATM    5  H   HOH     1      -0.764  -1.432  -0.374  0.00  0.00           H\n"
+                              "HETATM    6  H   HOH     1      -1.909  -0.450   0.053  0.00  0.00           H\n"
+                              "HETATM    7  N   UNK     1       1.171  -2.180   0.228  1.00  0.00           N\n"
+                              "ENDMDL                                                                        \n"
+                              "CONECT    1    2   23   24 \n"
+                              "CONECT    2    1    3    6   21\n"
+                              "CONECT    3    2    4    5\n"
+                              "CONECT    4    3\n"
+                              "CONECT    5    3   22\n"
+                              "CONECT    6    2    7    8    9\n"
+                              "CONECT    7    6\n"
+                              "CONECT    8    6\n"
+                              "CONECT    9    6   10   17\n"
+                              "CONECT   10    9   11   12\n"
+                              "CONECT   11   10\n"
+                              "CONECT   12   10   13   14\n"
+                              "CONECT   13   12\n"
+                              "CONECT   14   12   15   19\n"
+                              "CONECT   15   14   16   17\n"
+                              "CONECT   16   15\n"
+                              "CONECT   17    9   15   18\n"
+                              "CONECT   18   17\n"
+                              "CONECT   19   14   20\n"
+                              "CONECT   20   19\n"
+                              "CONECT   21    2\n"
+                              "CONECT   22    5\n"
+                              "CONECT   23    1\n"
+                              "CONECT   24    1\n"
+                              "CONECT   26   28   29\n"
+                              "CONECT   27   30   31\n"
+                              "CONECT   28   26\n"
+                              "CONECT   29   26\n"
+                              "CONECT   30   27\n"
+                              "CONECT   31   27\n"
+                              "END";
 
 std::string structureWithOverlay = "ATOM      1  CB ATYR A  14     -13.771   2.911 -17.239  0.50 27.81           C\n"
                                    "ATOM      2  CB BTYR A  14     -13.786   2.928 -17.233  0.50 27.85           C\n"
@@ -195,9 +303,8 @@ TEST_F(PdbStreamHandlerTest, HydrogensAndSolventAreSkipped) {
 
   // Change the setting
   handler.setReadH(false);
-  handler.parseOnlySolvent(false);
   auto structureWithoutHydrogens = handler.read(in);
-
+  structureWithoutHydrogens[0].removeAtomsByResidueLabel({"HOH"});
   ASSERT_THAT(structureWithoutHydrogens[0].size(), Eq(14));
 
   // change the setting
@@ -205,13 +312,15 @@ TEST_F(PdbStreamHandlerTest, HydrogensAndSolventAreSkipped) {
   in.clear();
   in.seekg(0);
   auto structureWithHydrogens = handler.read(in);
+  structureWithHydrogens[0].removeAtomsByResidueLabel({"HOH"});
   ASSERT_THAT(structureWithHydrogens[0].size(), Eq(25));
 
   // Change the setting
-  handler.parseOnlySolvent(true);
   in.clear();
   in.seekg(0);
+  handler.setReadH(true);
   auto solvent = handler.read(in);
+  solvent[0].keepAtomsByResidueLabel({"HOH"});
   ASSERT_THAT(solvent[0].size(), Eq(6));
 }
 
@@ -223,14 +332,7 @@ TEST_F(PdbStreamHandlerTest, CommentIsSetCorrectly) {
   std::string line;
   std::istringstream f(out.str());
   std::getline(f, line);
-  ASSERT_THAT(line, Eq("comment"));
-}
-
-TEST_F(PdbStreamHandlerTest, TwoSubstructuresAreReturnedCorrectly) {
-  std::stringstream in(structureWithOverlay), out;
-
-  auto structure = handler.read(in);
-  ASSERT_THAT(structure[0].size(), Eq(structure[1].size()));
+  ASSERT_THAT(line, Eq("REMARK comment"));
 }
 
 TEST_F(PdbStreamHandlerTest, ThreeModelsAreReturnedCorrectly) {
@@ -240,6 +342,79 @@ TEST_F(PdbStreamHandlerTest, ThreeModelsAreReturnedCorrectly) {
   ASSERT_THAT(structure.size(), Eq(3));
   ASSERT_THAT(structure[0].size(), Eq(structure[1].size()));
   ASSERT_THAT(structure[1].size(), Eq(structure[2].size()));
+}
+
+TEST_F(PdbStreamHandlerTest, ReadBondOrders) {
+  std::stringstream in(tyrosine2);
+
+  const auto structureAndBondOrders = handler.read(in, "pdb");
+  ASSERT_THAT(structureAndBondOrders.first.size(), Eq(31));
+  // Check some bond orders.
+  ASSERT_EQ(structureAndBondOrders.second.getMatrix().cols(), 31);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(0, 1), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(0, 22), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(0, 23), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(0, 24), 0);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(0, 25), 0);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(1, 2), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(2, 1), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(2, 3), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(2, 4), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(2, 5), 0);
+
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(24, 26), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(24, 27), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(25, 28), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(25, 29), 1);
+}
+
+TEST_F(PdbStreamHandlerTest, ReadBondOrdersLarge) {
+  const boost::filesystem::path pathToResource =
+      boost::dll::program_location().parent_path() / "Resources/pdb-file-with-termini.pdb";
+  std::ifstream in(pathToResource.string());
+
+  const auto structureAndBondOrders = handler.read(in, "pdb");
+  ASSERT_THAT(structureAndBondOrders.first.size(), Eq(85865));
+  // Check some bond orders.
+  ASSERT_EQ(structureAndBondOrders.second.getMatrix().cols(), 85865);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(2241, 4690), 1);
+  /**
+   * One TER entry leads to an index shift + pdb files start counting at 1.
+   * TER    4689      GLN A 306
+   * ...
+   * CONECT 4691 4699 4715 4719
+   * CONECT 4692 2242 4710 4714
+   */
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(4689, 4697), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(4689, 4713), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(4689, 4717), 1);
+
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(4690, 2241), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(4690, 4708), 1);
+  ASSERT_EQ(structureAndBondOrders.second.getOrder(4690, 4712), 1);
+}
+
+TEST_F(PdbStreamHandlerTest, ReadAndWriteHexDecSequenceNumber) {
+  std::stringstream in(hexSequence);
+  const auto structureAndBondOrders = handler.read(in, "pdb");
+  ASSERT_EQ(structureAndBondOrders.first.size(), 3);
+  std::string temporaryPdbFileName = "temporaryPdbFile.pdb";
+  ChemicalFileHandler::write(temporaryPdbFileName, structureAndBondOrders.first);
+  const auto readAgain = ChemicalFileHandler::read(temporaryPdbFileName);
+  EXPECT_TRUE(structureAndBondOrders.first == readAgain.first);
+  std::remove(temporaryPdbFileName.c_str());
+}
+
+TEST_F(PdbStreamHandlerTest, SequenceNumberConversion) {
+  unsigned int sequenceNumber = 10045;
+  std::string sequenceString = PdbStreamHandler::sequenceNumberIntToString(sequenceNumber);
+  unsigned int reversedNumber = PdbStreamHandler::sequenceNumberStringToInt(sequenceString);
+  EXPECT_EQ(sequenceNumber, reversedNumber);
+
+  std::string sequenceString2 = "a50e";
+  unsigned int sequenceNumber2 = PdbStreamHandler::sequenceNumberStringToInt(sequenceString2);
+  std::string reversedString3 = PdbStreamHandler::sequenceNumberIntToString(sequenceNumber2);
+  EXPECT_EQ(sequenceString2, reversedString3);
 }
 
 } // namespace Tests

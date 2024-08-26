@@ -47,6 +47,7 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
   void addEnableRi(UniversalSettings::DescriptorCollection& settings);
   void addNumExcitedStates(UniversalSettings::DescriptorCollection& settings);
   void addScfCriterionEnforce(UniversalSettings::DescriptorCollection& settings);
+  void addGridEnforce(UniversalSettings::DescriptorCollection& settings);
   void addDftGrid(UniversalSettings::DescriptorCollection& settings);
   void addCavityPointsPerAtom(UniversalSettings::DescriptorCollection& settings);
   void addCavitySegmentsPerAtom(UniversalSettings::DescriptorCollection& settings);
@@ -79,6 +80,7 @@ class TurbomoleCalculatorSettings : public Scine::Utils::Settings {
     addEnableRi(_fields);
     addNumExcitedStates(_fields);
     addScfCriterionEnforce(_fields);
+    addGridEnforce(_fields);
     addDftGrid(_fields);
     addCavityPointsPerAtom(_fields);
     addCavitySegmentsPerAtom(_fields);
@@ -250,6 +252,15 @@ inline void TurbomoleCalculatorSettings::addScfCriterionEnforce(UniversalSetting
       "even if derivative quantities are calculated.");
   scfEnforce.setDefaultValue(false);
   settings.push_back(SettingsNames::enforceScfCriterion, std::move(scfEnforce));
+}
+
+inline void TurbomoleCalculatorSettings::addGridEnforce(UniversalSettings::DescriptorCollection& settings) {
+  Utils::UniversalSettings::BoolDescriptor gridEnforce(
+      "If true, the grid accuracy is used as provided in the input"
+      " even for Hessian calculations. If false, the grid accuracy is increased to"
+      " m4 if the grid is considered too coarse for Hessian calculations.");
+  gridEnforce.setDefaultValue(false);
+  settings.push_back(SettingsNames::enforceGrid, std::move(gridEnforce));
 }
 
 inline void TurbomoleCalculatorSettings::addDftGrid(UniversalSettings::DescriptorCollection& settings) {

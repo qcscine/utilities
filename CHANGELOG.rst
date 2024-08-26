@@ -8,16 +8,51 @@ It is intended that only the first two groups (``New Features and Feature Update
 ``Important Technical Changes``) are important for the average user, while
 the last one is mainly aimed at developers and users that link deeply into the code.
 
+Release 10.0.0
+--------------
+
+Important Technical Changes
+...........................
+
+- Tests for the QM/MM transition state optimizer
+- In case the atom coordinates given to a `GeometryOptimizer` are identical to the coordinates
+  of the underlying calculator and a `Hessian` is requested,
+  it is checked if this result is already present in the calculator to avoid an unnecessary calculation.
+- The Thermochemical Calculator can now be constructed with a `PartialHessian`.
+- The property `PartialGradients` is now available. It is intended to signal different contributions
+  to the total gradients, e.g., the QM gradient contribution and the MM gradient contribution in QM/MM.
+- Added a class to store derivatives in a more flexible manner.
+- The Harmonic oscillator, particle-in-a-box, static-rotor free energy for zero Kelvin is now set to the
+  sum of the electronic energy and zero point vibrational energy.
+- Fixed a bug which lead to a crash when extracting thermochemical information from the Orca output for a
+  temperature of zero Kelvin.
+- Relative paths for the point charge file in electrostatic embedding calculations with Orca may now be used.
+- More basis sets supported by Turbomole calculator.
+- Pickle support for ElementType.
+- The DFT grid for calculations with Turbomole is now set to 'm4' if Hessians are requested and the grid was
+  too coarse for reliable Hessians (1 - 3, m3).
+- Added support for lists of lists of integers as generic values.
+- Added support for None in the Python bindings of the extract method of the Settings class.
+- Allow writing pdb trajectory files.
+- Fixes a bug where the coordinates in XYZ trajectory files were no longer separated by white spaces.
+- Fixed a bug where the coordinates in PDB files were wrong if the code was compiled with clang.
+
+New Features and Feature Updates
+................................
+- Added support for QM/QM/MM embedding and QM/QM embedding with Serenity.
+
 Release 9.0.0
 -------------
 
 New Features and Feature Updates
 ................................
+- Normal modes may be calculated directly from a Hessian without mass-weighting
+- A custom implicit solvent may be defined for the Orca input creator through
+its dielectric constant and probe radius.
 - Enable calculation of 57-Fe Mössbauer parameters with Orca.
 - Enable DLPNO-CCSD(T)-F12 calculations with Orca.
-- Added a MRCC calculator (requires MRCC executables at the `MRCC_BINARY_PATH` path
-  environment variable).
-  -  Supported methods: DFT, HF, MP2 [LNO-MP2], CC [LNO-CCSD, LNO-CCSD(T)]
+- Added a MRCC calculator (requires MRCC executables at the `MRCC_BINARY_PATH` path environment variable).
+   - Supported methods: DFT, HF, MP2 [LNO-MP2], CC [LNO-CCSD, LNO-CCSD(T)]
 - Added transition state optimizer for QM/MM
 - Molecular trajectories in the PDB file format can now be read.
 
@@ -85,9 +120,9 @@ Important Technical Changes
 ...........................
 - PeriodicSystem canonicalizes the given PeriodicBoundaries to ensure read/write stability
 - Calculators:
-  - For the Turbomole calculator, allow the SCF damping value to be specified exactly (instead of predefined
-    settings "default", "low", "medium", and "high")
-  - Add "PBEH-3C" and "B97-3C" as supported method families for the ORCA calculator
+   - For the Turbomole calculator, allow the SCF damping value to be specified exactly (instead of predefined
+     settings "default", "low", "medium", and "high")
+   - Add "PBEH-3C" and "B97-3C" as supported method families for the ORCA calculator
 - Settings for placing solvent molecules are summarized in ``SolventPlacementSettings``, all solvate functions
   take only this structure as input. This change is not backwards compatible.
 
@@ -105,9 +140,9 @@ New Features and Feature Updates
 - Improve BFGS: guarantees positive-definite approximate Hessian
 - B-Splines: interpolation and compression of trajectories including energy
 - Enable optimization of a geometry together with its unit cell
-  - CP2K:
-    - Add xTB support
-    - Add stress tensor
+- CP2K calculator:
+   - Add xTB support
+   - Add stress tensor
 - Enable point charge embedding for Turbomole
 - Add linear sum assignment algorithm
 - Add functionality to evaluate the spin contamination of a single determinant
